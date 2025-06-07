@@ -8,7 +8,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { genderEnum, roleEnum } from "./../enums";
 
-// TODO: change to profile
 export const profiles = pgTable("profiles", {
   id: uuid("id").defaultRandom().primaryKey(),
   fullName: varchar("full_name", { length: 100 }).notNull(),
