@@ -9,5 +9,3 @@ export function createDb(connectionString: string) {
     schema: { ...schema },
   });
 }
-
-export * from "./schema"

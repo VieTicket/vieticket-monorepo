@@ -5,7 +5,6 @@ import {
   varchar,
   text,
   timestamp,
-  integer,
 } from "drizzle-orm/pg-core";
 import { organizers } from "./profiles";
 import { currency } from "../custom-types";
@@ -26,14 +25,14 @@ export const events = pgTable("events", {
   isApproved: boolean("is_approved").default(false),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-  organizerId: integer("organizer_id")
+  organizerId: uuid("organizer_id")
     .references(() => organizers.id)
     .notNull(),
 });
 
 export const areas = pgTable("areas", {
   id: uuid("id").defaultRandom().primaryKey(),
-  eventId: integer("event_id")
+  eventId: uuid("event_id")
     .references(() => events.id)
     .notNull(),
   name: varchar("name", { length: 64 }).notNull(),
@@ -44,7 +43,7 @@ export const areas = pgTable("areas", {
 
 export const rows = pgTable("rows", {
   id: uuid("id").defaultRandom().primaryKey(),
-  areaId: integer("area_id")
+  areaId: uuid("area_id")
     .references(() => areas.id)
     .notNull(),
   rowName: varchar("row_name", { length: 16 }).notNull(),
@@ -54,7 +53,7 @@ export const rows = pgTable("rows", {
 
 export const seats = pgTable("seats", {
   id: uuid("id").defaultRandom().primaryKey(),
-  rowId: integer("row_id")
+  rowId: uuid("row_id")
     .references(() => rows.id)
     .notNull(),
   seatNumber: varchar("seat_number", { length: 16 }).notNull(),

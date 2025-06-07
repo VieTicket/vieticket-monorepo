@@ -2,7 +2,6 @@ import {
   pgTable,
   uuid,
   timestamp,
-  integer,
   jsonb,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -13,13 +12,13 @@ import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
 
 export const seatHolds = pgTable("seat_holds", {
   id: uuid("id").defaultRandom().primaryKey(),
-  eventId: integer("event_id")
+  eventId: uuid("event_id")
     .references(() => events.id)
     .notNull(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .references(() => profiles.id)
     .notNull(),
-  seatId: integer("seat_id")
+  seatId: uuid("seat_id")
     .references(() => seats.id)
     .notNull(),
   holdExpires: timestamp("hold_expires").notNull(),
@@ -28,7 +27,7 @@ export const seatHolds = pgTable("seat_holds", {
 
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: integer("user_id")
+  userId: uuid("user_id")
     .references(() => profiles.id)
     .notNull(),
   orderDate: timestamp("order_date").defaultNow(),
@@ -40,10 +39,10 @@ export const orders = pgTable("orders", {
 
 export const tickets = pgTable("tickets", {
   id: uuid("id").defaultRandom().primaryKey(),
-  orderId: integer("order_id")
+  orderId: uuid("order_id")
     .references(() => orders.id)
     .notNull(),
-  seatId: integer("seat_id")
+  seatId: uuid("seat_id")
     .references(() => seats.id)
     .notNull(),
   qrCode: varchar("qr_code", { length: 128 }).unique().notNull(),
@@ -53,7 +52,7 @@ export const tickets = pgTable("tickets", {
 
 export const refunds = pgTable("refunds", {
   id: uuid("id").defaultRandom().primaryKey(),
-  orderId: integer("order_id")
+  orderId: uuid("order_id")
     .references(() => orders.id)
     .notNull(),
   requestedAt: timestamp("requested_at").defaultNow(),
