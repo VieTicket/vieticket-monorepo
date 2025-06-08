@@ -5,37 +5,43 @@ import { account, session, user, verification } from "@vieticket/db/schema";
 import { sendMail } from "../mail-sender";
 
 export const auth = betterAuth({
-    database: drizzleAdapter(db, {
-        provider: 'pg',
-        schema: {
-            user,
-            session,
-            account,
-            verification
-        }
-    }),
-    emailAndPassword: {
-        enabled: true,
-        requireEmailVerification: true,
-        sendResetPassword: async ({ user, url }: { user: User, url: string }) => {
-            await sendMail({
-                to: user.email,
-                subject: "Reset your password",
-                text: `Click the link to reset your password: ${url}`,
-            });
-        },
+  database: drizzleAdapter(db, {
+    provider: "pg",
+    schema: {
+      user,
+      session,
+      account,
+      verification,
     },
-    socialProviders: {
-        google: {
-            clientId: process.env.GOOGLE_CLIENT_ID!,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-        }
+  }),
+  emailAndPassword: {
+    enabled: true,
+    requireEmailVerification: true,
+    sendResetPassword: async ({ user, url }: { user: User; url: string }) => {
+      await sendMail({
+        to: user.email,
+        subject: "Reset your password",
+        text: `Click the link to reset your password: ${url}`,
+      });
     },
-    sendVerificationEmail: async ({ user, url }: { user: User, url: string }) => {
-        await sendMail({
-            to: user.email,
-            subject: "Verify your email address",
-            text: `Click the link to verify your email: ${url}`,
-        });
+  },
+  socialProviders: {
+    google: {
+      prompt: "select_account",
+      clientId: process.env.GOOGLE_CLIENT_ID as string,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
-})
+  },
+  emailVerification: {
+    sendOnSignUp: true,
+    autoSignInAfterVerification: false,
+    sendVerificationEmail: async ({ user, url, token }, req) => {
+      await sendMail({
+        to: user.email,
+        subject: "Verify your email",
+        html: `Click <a href="${url}">here</a> to verify.`,
+        text: `Verify your email: ${url}`,
+      });
+    },
+  },
+});
