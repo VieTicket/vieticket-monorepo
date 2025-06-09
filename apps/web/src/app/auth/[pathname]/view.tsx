@@ -1,9 +1,7 @@
 "use client";
 
-import { AuthCard, ProvidersCard } from "@daveyplate/better-auth-ui";
-import Link from "next/link";
+import { AuthCard } from "@daveyplate/better-auth-ui";
 
-import { cn } from "@/lib/utils";
 
 export function AuthView({ pathname }: { pathname: string }) {
   // Just an example, SettingsCards already includes this

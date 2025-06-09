@@ -2,7 +2,7 @@ import { pgEnum } from "drizzle-orm/pg-core";
 
 export const roleEnum = pgEnum("role", [
   "customer",
-  "seller",
+  "organizer",
   "admin",
   "unassigned",
 ]);

@@ -23,7 +23,6 @@ export async function sendMail({
   text,
   html,
 }: SendMailOptions): Promise<void> {
-  console.log("Invoked sendMail"); // TODO: remove
   try {
     const messageData = {
       from: from || `VieTicket <notifications@${process.env.MAILGUN_DOMAIN}>`,
@@ -33,11 +32,10 @@ export async function sendMail({
       ...(html && { html }),
     };
 
-    const response = await mg.messages.create(
+    await mg.messages.create(
       process.env.MAILGUN_DOMAIN as string,
       messageData
     );
-    console.log("Email sent:", response);
   } catch (error) {
     console.error("Error sending email:", error);
   }
