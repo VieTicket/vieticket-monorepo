@@ -12,7 +12,7 @@ export const user = pgTable("user", {
 	image: text('image'),
 	createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
 	updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
-	role: roleEnum("role").notNull().default('unassigned'),
+	role: roleEnum("role").notNull().default('customer'),
 	banned: boolean('banned'),
 	banReason: text('ban_reason'),
 	banExpires: timestamp('ban_expires')
