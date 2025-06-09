@@ -1,14 +1,21 @@
-import { InferSelectModel } from "drizzle-orm";
-import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { boolean, date, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { genderEnum, roleEnum } from "../enums";
 
 export const user = pgTable("user", {
 	id: text('id').primaryKey(),
 	name: text('name').notNull(),
 	email: text('email').notNull().unique(),
 	emailVerified: boolean('email_verified').$defaultFn(() => false).notNull(),
+	dateOfBirth: date("date_of_birth"),
+	gender: genderEnum("gender"),
+	phone: varchar("phone", { length: 20 }),
 	image: text('image'),
 	createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
-	updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull()
+	updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date()).notNull(),
+	role: roleEnum("role").notNull().default('customer'),
+	banned: boolean('banned'),
+	banReason: text('ban_reason'),
+	banExpires: timestamp('ban_expires')
 });
 
 export const session = pgTable("session", {
@@ -19,7 +26,8 @@ export const session = pgTable("session", {
 	updatedAt: timestamp('updated_at').notNull(),
 	ipAddress: text('ip_address'),
 	userAgent: text('user_agent'),
-	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' })
+	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
+	impersonatedBy: text('impersonated_by')
 });
 
 export const account = pgTable("account", {
@@ -47,4 +55,14 @@ export const verification = pgTable("verification", {
 	updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date())
 });
 
-export type User = InferSelectModel<typeof user>;
+export const organizers = pgTable("organizers", {
+	id: text("id")
+		.primaryKey()
+		.references(() => user.id),
+	name: varchar("name", { length: 100 }).notNull(),
+	foundedDate: date("founded_date"),
+	website: varchar("website", { length: 255 }),
+	isActive: boolean("is_active").default(true),
+	address: varchar("address", { length: 255 }),
+	organizerType: varchar("organizer_type", { length: 64 }),
+});

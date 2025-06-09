@@ -1,7 +1,7 @@
 import { betterAuth, User } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
-import { account, session, user, verification } from "@vieticket/db/schema";
+import { account, session, user, verification } from "@vieticket/db/postgres/schema";
 import { sendMail } from "../mail-sender";
 
 export const auth = betterAuth({
@@ -35,6 +35,7 @@ export const auth = betterAuth({
   emailVerification: {
     sendOnSignUp: true,
     autoSignInAfterVerification: false,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     sendVerificationEmail: async ({ user, url, token }, req) => {
       await sendMail({
         to: user.email,
