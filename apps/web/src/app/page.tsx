@@ -1,6 +1,6 @@
 "use client";
 import { authClient } from "@/lib/auth/auth-client";
-import { AuthCard } from "@daveyplate/better-auth-ui";
+import { AuthCard, ProvidersCard } from "@daveyplate/better-auth-ui";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -56,6 +56,7 @@ export default function Home() {
           </li>
         </ol>
         <AuthCard pathname={"/auth/sign-up"} />
+        <ProvidersCard />
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a

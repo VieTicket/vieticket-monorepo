@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/auth";
 import { AuthView } from "./view";
+import SignUpOrganizer from "@/components/sign-up-organizer";
 
 export function generateStaticParams() {
   return Object.values(authViewPaths).map((pathname) => ({ pathname }));
@@ -24,6 +25,14 @@ export default async function AuthPage({
     if (!sessionData) redirect("/auth/sign-in?redirectTo=/auth/settings");
   }
 
+  const authRouter = (pathname: string) => {
+    console.log("Auth Router Pathname:", pathname);
+    if (pathname === "sign-up-organizer") {
+      return <SignUpOrganizer />;
+    }
+    return <AuthView pathname={pathname} />;
+  };
+
   return (
     <div className="flex min-h-screen">
       <div className="hidden lg:flex w-1/2 bg-[#2D2A39] text-white flex-col justify-center px-16">
@@ -33,7 +42,7 @@ export default async function AuthPage({
         </p>
       </div>
       <div className="w-full lg:w-1/2 flex justify-center items-center p-8">
-        <AuthView pathname={pathname} />
+        <div className="w-full max-w-md">{authRouter(pathname)}</div>
       </div>
     </div>
   );
