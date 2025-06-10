@@ -4,19 +4,20 @@ import {
   timestamp,
   jsonb,
   varchar,
+  text,
 } from "drizzle-orm/pg-core";
-import { events, seats } from "./events";
-import { profiles } from "./profiles";
+import { events, seats } from "./events-schemas";
 import { currency } from "../custom-types";
 import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
+import { user } from "./users-schemas";
 
 export const seatHolds = pgTable("seat_holds", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id")
     .references(() => events.id)
     .notNull(),
-  userId: uuid("user_id")
-    .references(() => profiles.id)
+  userId: text("user_id")
+    .references(() => user.id)
     .notNull(),
   seatId: uuid("seat_id")
     .references(() => seats.id)
@@ -27,8 +28,8 @@ export const seatHolds = pgTable("seat_holds", {
 
 export const orders = pgTable("orders", {
   id: uuid("id").defaultRandom().primaryKey(),
-  userId: uuid("user_id")
-    .references(() => profiles.id)
+  userId: text("user_id")
+    .references(() => user.id)
     .notNull(),
   orderDate: timestamp("order_date").defaultNow(),
   totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
