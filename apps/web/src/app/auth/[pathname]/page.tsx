@@ -5,6 +5,9 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth/auth";
 import { AuthView } from "./view";
 import SignUpOrganizer from "@/components/sign-up-organizer";
+import { CardFooter } from "@/components/ui/card";
+import Link from "next/link";
+import SignIn from "@/components/sign-in";
 
 export function generateStaticParams() {
   return Object.values(authViewPaths).map((pathname) => ({ pathname }));
@@ -29,21 +32,29 @@ export default async function AuthPage({
     console.log("Auth Router Pathname:", pathname);
     if (pathname === "sign-up-organizer") {
       return <SignUpOrganizer />;
+    } else if (pathname === "sign-in") {
+      return <SignIn />;
+    } else if (pathname === "sign-up") {
+      return (
+        <div>
+          <AuthView pathname={pathname} />
+          <CardFooter className="pl-4 mr-6">
+            <div className="flex justify-center w-full border-t py-4">
+              <p className="text-center text-xs text-neutral-500">
+                <Link
+                  href="/auth/sign-up-organizer"
+                  className="text-blue-500 hover:text-blue-700 transition-colors text-sm font-medium"
+                >
+                  Sign up as an organizer
+                </Link>
+              </p>
+            </div>
+          </CardFooter>
+        </div>
+      );
     }
     return <AuthView pathname={pathname} />;
   };
 
-  return (
-    <div className="flex min-h-screen">
-      <div className="hidden lg:flex w-1/2 bg-[#2D2A39] text-white flex-col justify-center px-16">
-        <h1 className="text-4xl font-bold mb-4">Discover tailored events.</h1>
-        <p className="text-2xl">
-          Sign in for personalized recommendations today!
-        </p>
-      </div>
-      <div className="w-full lg:w-1/2 flex justify-center items-center p-8">
-        <div className="w-full max-w-md">{authRouter(pathname)}</div>
-      </div>
-    </div>
-  );
+  return <div>{authRouter(pathname)}</div>;
 }

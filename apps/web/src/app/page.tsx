@@ -10,13 +10,12 @@ export default function Home() {
   useEffect(() => {
     const checklogin = async () => {
       const { data: session, error } = await authClient.getSession();
-      console.log("Session data:", session);
     };
     checklogin();
   }, []);
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
+    <div className="grid grid-rows-[20px_1fr_20px] items-start justify-items-center min-h-screen pb-20 gap-16 font-[family-name:var(--font-geist-sans)]">
+      <main className="flex flex-col gap-[32px] row-start-2 items-start sm:items-start">
         <button
           className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
           onClick={async () => {
@@ -55,8 +54,6 @@ export default function Home() {
             Save and see your changes instantly.
           </li>
         </ol>
-        <AuthCard pathname={"/auth/sign-up"} />
-        <ProvidersCard />
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           <a

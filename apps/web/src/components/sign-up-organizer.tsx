@@ -42,7 +42,7 @@ export default function SignUpOrganizer() {
   };
 
   return (
-    <Card className="z-50 rounded-md rounded-t-none max-w-md">
+    <Card className="ml-4 z-50 rounded-md rounded-t-none max-w-sm">
       <CardHeader>
         <CardTitle className="text-lg md:text-xl">Sign Up</CardTitle>
         <CardDescription className="text-xs md:text-sm">
@@ -155,11 +155,14 @@ export default function SignUpOrganizer() {
             disabled={loading}
             onClick={async () => {
               await authClient.signUp.email({
-                email,
-                password,
-                name: `${firstName} ${lastName}`,
-                image: image ? await convertImageToBase64(image) : "",
-                callbackURL: "/dashboard",
+                ...({
+                  email,
+                  password,
+                  name: `${firstName} ${lastName}`,
+                  image: image ? await convertImageToBase64(image) : "",
+                  role: "organizer",
+                } as unknown as Parameters<typeof authClient.signUp.email>[0]),
+                callbackURL: "/organizer",
                 fetchOptions: {
                   onResponse: () => {
                     setLoading(false);
@@ -171,7 +174,8 @@ export default function SignUpOrganizer() {
                     toast.error(ctx.error.message);
                   },
                   onSuccess: async () => {
-                    router.push("/dashboard");
+                    toast.success("Account created successfully!");
+                    router.push("/organizer");
                   },
                 },
               });
@@ -185,13 +189,6 @@ export default function SignUpOrganizer() {
           </Button>
         </div>
       </CardContent>
-      <CardFooter>
-        <div className="flex justify-center w-full border-t py-4">
-          <p className="text-center text-xs text-neutral-500">
-            Secured by <span className="text-orange-400">better-auth.</span>
-          </p>
-        </div>
-      </CardFooter>
     </Card>
   );
 }

@@ -6,24 +6,27 @@ import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 
 import { authClient } from "@/lib/auth/auth-client";
+import { LayoutProvider } from "@/providers/LayoutProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
 
   return (
-    <AuthUIProvider
-      authClient={authClient}
-      navigate={router.push}
-      replace={router.replace}
-      onSessionChange={() => {
-        // Clear router cache (protected routes)
-        router.refresh();
-      }}
-      Link={Link}
-      providers={["google"]}
-      emailVerification={true}
-    >
-      {children}
-    </AuthUIProvider>
+    <LayoutProvider>
+      <AuthUIProvider
+        authClient={authClient}
+        navigate={router.push}
+        replace={router.replace}
+        onSessionChange={() => {
+          // Clear router cache (protected routes)
+          router.refresh();
+        }}
+        Link={Link}
+        providers={["google"]}
+        emailVerification={true}
+      >
+        {children}
+      </AuthUIProvider>
+    </LayoutProvider>
   );
 }

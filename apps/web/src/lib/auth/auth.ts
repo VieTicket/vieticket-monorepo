@@ -1,7 +1,12 @@
 import { betterAuth, User } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@/lib/db";
-import { account, session, user, verification } from "@vieticket/db/postgres/schema";
+import {
+  account,
+  session,
+  user,
+  verification,
+} from "@vieticket/db/postgres/schema";
 import { sendMail } from "../mail-sender";
 
 export const auth = betterAuth({
@@ -14,6 +19,35 @@ export const auth = betterAuth({
       verification,
     },
   }),
+  user: {
+    additionalFields: {
+      role: {
+        type: "string",
+        defaultValue: "customer",
+        required: false,
+        input: true,
+        output: true,
+      },
+      banned: {
+        type: "boolean",
+        defaultValue: false,
+        required: false,
+        input: false,
+      },
+      banReason: {
+        type: "string",
+        defaultValue: "",
+        required: false,
+        input: false,
+      },
+      banExpires: {
+        type: "date",
+        defaultValue: null,
+        required: false,
+        input: false,
+      },
+    },
+  },
   emailAndPassword: {
     enabled: true,
     requireEmailVerification: true,
