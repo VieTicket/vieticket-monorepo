@@ -16,8 +16,10 @@
     "@radix-ui/react-slot": "^1.2.3",
     "@vieticket/db": "workspace:*",
     "better-auth": "^1.2.8",
+    "canvas": "^3.0.0-rc3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "konva": "^9.3.20",
     "lucide-react": "^0.513.0",
     "mailgun.js": "^12.0.2",
     "next": "15.3.3",
@@ -25,6 +27,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-icons": "^5.5.0",
+    "react-konva": "^19.0.5",
     "sonner": "^2.0.5",
     "tailwind-merge": "^3.3.0"
   },

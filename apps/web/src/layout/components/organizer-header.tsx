@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
 import { ProfileDropdown } from "./profile-dropdown";
 import { useState } from "react";
+import { IoTicket } from "react-icons/io5";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
@@ -14,10 +15,12 @@ export default function Header() {
   return (
     <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between">
       {/* Logo & Brand */}
-      <div className="flex items-center gap-2">
-        <Ticket className="w-6 h-6 text-white" />
-        <span className="text-yellow-400 font-bold text-xl">Eventify</span>
-      </div>
+      <Link className="flex" href="/">
+        <IoTicket size={32} color="yellow" />
+        <h1 className="text-2xl text-yellow-300 font-bold ml-2">
+          VieTicket Organizer
+        </h1>
+      </Link>
 
       {/* Navigation */}
       <nav className="flex items-center gap-8 text-sm">

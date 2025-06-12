@@ -14,16 +14,15 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const isOrganizerPage = pathname.startsWith("/organizer");
   const isUserPage = pathname === "/";
 
-  console.log("isAuthPage:", isAuthPage);
-  console.log("isAdminPage:", isAdminPage);
-  console.log("isOrganizerPage:", isOrganizerPage);
-  console.log("isUserPage:", isUserPage);
   return (
     <>
       {isAuthPage && <AuthLayout>{children}</AuthLayout>}
       {isAdminPage && <AdminLayout>{children}</AdminLayout>}
       {isOrganizerPage && <OrganizerLayout>{children}</OrganizerLayout>}
       {isUserPage && <MainLayout>{children}</MainLayout>}
+      {!isAuthPage && !isAdminPage && !isOrganizerPage && !isUserPage && (
+        <div>{children}</div>
+      )}
     </>
   );
 }
