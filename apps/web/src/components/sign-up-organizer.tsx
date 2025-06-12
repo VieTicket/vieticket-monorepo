@@ -5,18 +5,17 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChangeEvent, useState } from "react";
-import Image from "next/image";
-import { Loader2, X } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
-import { toast } from "sonner";
+import { Loader2, X } from "lucide-react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { ChangeEvent, useState } from "react";
+import { toast } from "sonner";
 
 export default function SignUpOrganizer() {
   const [firstName, setFirstName] = useState("");

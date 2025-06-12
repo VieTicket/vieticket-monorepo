@@ -4,26 +4,23 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardHeader,
-  CardTitle,
   CardDescription,
   CardFooter,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
-import { useEffect, useState } from "react";
-import { Loader2, Key } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import {
-  ErrorContext,
-  RequestContext,
-  ResponseContext,
-  SuccessContext,
+  ErrorContext
 } from "better-auth/react";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 export default function SignIn() {
@@ -53,16 +50,16 @@ export default function SignIn() {
         password,
       },
       {
-        onRequest: (ctx: RequestContext) => {
+        onRequest: () => {
           setLoading(true);
         },
-        onResponse: (ctx: ResponseContext) => {
+        onResponse: () => {
           setLoading(false);
         },
         onError: (ctx: ErrorContext) => {
           toast.error(ctx.error.message || "An error occurred during login");
         },
-        onSuccess: (ctx: SuccessContext) => {
+        onSuccess: () => {
           toast.success("Login successful!");
         },
       }
@@ -167,10 +164,10 @@ export default function SignIn() {
                     callbackURL: "/",
                   },
                   {
-                    onRequest: (ctx: RequestContext) => {
+                    onRequest: () => {
                       setLoading(true);
                     },
-                    onResponse: (ctx: ResponseContext) => {
+                    onResponse: () => {
                       setLoading(false);
                     },
                   }
@@ -207,7 +204,7 @@ export default function SignIn() {
           <CardFooter className="pl-4 mr-6">
             <div className="flex justify-center w-full border-t py-4">
               <p className="text-center text-xs text-neutral-500">
-                Don't have an account?{" "}
+                Don&apos;t have an account?{" "}
                 <Link
                   href="/auth/sign-up"
                   className="text-black underline text-sm font-medium"

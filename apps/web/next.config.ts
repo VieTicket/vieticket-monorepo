@@ -9,7 +9,11 @@ const nextConfig: NextConfig = {
         // loaderFile: './src/lib/image-loader.ts',
         remotePatterns: isProduction ? [
             { protocol: 'https', hostname: '**.luxerent.shop' },
-            { protocol: 'https', hostname: 'luxerent.shop' }
+            { protocol: 'https', hostname: 'luxerent.shop' },
+            {
+                protocol: "https",
+                hostname: "res.cloudinary.com",
+            },
         ] : [
             { protocol: 'https', hostname: '**' },
         ]
