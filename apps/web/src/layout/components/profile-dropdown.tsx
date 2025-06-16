@@ -6,9 +6,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { auth } from "@/lib/auth/auth";
 import { authClient } from "@/lib/auth/auth-client";
-import { UserIcon, ChevronDown } from "lucide-react";
+import { UserIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 

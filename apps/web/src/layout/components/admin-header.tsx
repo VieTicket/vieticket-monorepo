@@ -1,11 +1,10 @@
 "use client";
 
-import Link from "next/link";
-import { Ticket, Star, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
+import { Star, Ticket } from "lucide-react";
+import Link from "next/link";
 import { ProfileDropdown } from "./profile-dropdown";
-import { useState } from "react";
 
 export default function Header() {
   const { data: session } = authClient.useSession();

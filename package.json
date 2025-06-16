@@ -6,7 +6,8 @@
     "typescript": "5.8.2"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=18",
+    "bun": ">=1"
   },
   "packageManager": "bun@1.2.15",
   "private": true,
