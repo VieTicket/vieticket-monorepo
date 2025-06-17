@@ -4,10 +4,10 @@ import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth/auth";
 import { AuthView } from "./view";
-import SignUpOrganizer from "@/components/sign-up-organizer";
+import SignUpOrganizer from "@/components/auth/sign-up-organizer";
 import { CardFooter } from "@/components/ui/card";
 import Link from "next/link";
-import SignIn from "@/components/sign-in";
+import SignIn from "@/components/auth/sign-in";
 
 export function generateStaticParams() {
   return Object.values(authViewPaths).map((pathname) => ({ pathname }));
