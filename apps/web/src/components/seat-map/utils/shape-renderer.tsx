@@ -9,7 +9,6 @@ export interface ShapeProps {
 
 export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
   const { id: key, ...props } = commonProps;
-
   switch (shape.type) {
     case "rect":
       return (

@@ -55,6 +55,10 @@ export const useCanvasEvents = () => {
     }
   };
 
+  const handleContextMenu = (e: any) => {
+    e.evt.preventDefault();
+  };
+
   // Selection rectangle handlers
   const handleStageMouseDown = (e: any) => {
     // Only start selection if clicking on empty space (stage)
@@ -278,6 +282,7 @@ export const useCanvasEvents = () => {
     // Shape handlers
     handleShapeClick,
     handleStageClick,
+    handleContextMenu,
     handleShapeDragStart,
     handleShapeDragMove,
     handleShapeDragEnd,
