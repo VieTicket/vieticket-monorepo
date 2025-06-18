@@ -60,7 +60,7 @@ export const organizers = pgTable("organizers", {
 		.primaryKey()
 		.references(() => user.id),
 	name: varchar("name", { length: 100 }).notNull(),
-	foundedDate: date("founded_date"),
+	foundedDate: timestamp("founded_date"),
 	website: varchar("website", { length: 255 }),
 	isActive: boolean("is_active").default(true),
 	address: varchar("address", { length: 255 }),

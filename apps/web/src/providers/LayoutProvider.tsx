@@ -12,17 +12,17 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
   const isAuthPage = pathname.startsWith("/auth");
   const isAdminPage = pathname.startsWith("/admin");
   const isOrganizerPage = pathname.startsWith("/organizer");
-  const isUserPage = pathname === "/";
+  const isNoLayoutPage = pathname.startsWith("/seat-map");
+  const isMainPage =
+    !isAuthPage && !isAdminPage && !isOrganizerPage && !isNoLayoutPage;
 
   return (
     <>
       {isAuthPage && <AuthLayout>{children}</AuthLayout>}
       {isAdminPage && <AdminLayout>{children}</AdminLayout>}
       {isOrganizerPage && <OrganizerLayout>{children}</OrganizerLayout>}
-      {isUserPage && <MainLayout>{children}</MainLayout>}
-      {!isAuthPage && !isAdminPage && !isOrganizerPage && !isUserPage && (
-        <div>{children}</div>
-      )}
+      {isMainPage && <MainLayout>{children}</MainLayout>}
+      {isNoLayoutPage && <>{children}</>}
     </>
   );
 }

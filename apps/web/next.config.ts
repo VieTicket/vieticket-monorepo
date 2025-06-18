@@ -11,6 +11,10 @@ const nextConfig: NextConfig = {
       ? [
           { protocol: "https", hostname: "**.luxerent.shop" },
           { protocol: "https", hostname: "luxerent.shop" },
+          {
+            protocol: "https",
+            hostname: "res.cloudinary.com",
+          },
         ]
       : [{ protocol: "https", hostname: "**" }],
   },
