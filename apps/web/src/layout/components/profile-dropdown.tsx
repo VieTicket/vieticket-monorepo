@@ -33,7 +33,13 @@ export function ProfileDropdown() {
           align="end"
         >
           <DropdownMenuItem>Interests</DropdownMenuItem>
-          <DropdownMenuItem>Account Settings</DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              router.push("/profile");
+            }}
+          >
+            Account Settings
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
               authClient.signOut({
