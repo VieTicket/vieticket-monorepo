@@ -18,7 +18,7 @@ function HeroSection() {
             <div className="relative z-10 max-w-7xl mx-auto px-4 py-32 text-center">
                 <span className="text-white">
                     <h1 className="text-4xl md:text-5xl font-bold mb-4">
-                        Don’t miss out!
+                        Don&rsquo;t miss out!
                     </h1>
                     <h2 className="text-2xl md:text-3xl font-semibold">
                         Explore the <span className="text-yellow-400">vibrant events</span> happening locally and globally.
