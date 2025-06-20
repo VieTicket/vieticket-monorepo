@@ -1,4 +1,4 @@
-import { boolean, date, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
+import { boolean, date, index, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { genderEnum, roleEnum } from "../enums";
 
 export const user = pgTable("user", {
@@ -16,7 +16,10 @@ export const user = pgTable("user", {
 	banned: boolean('banned'),
 	banReason: text('ban_reason'),
 	banExpires: timestamp('ban_expires')
-});
+}, (table) => [
+	index("email_idx").on(table.email),
+	// TODO: add role_idx and ban_idx if admin needs to query by role (`SELECT * FROM users WHERE role = '...'`)
+]);
 
 export const session = pgTable("session", {
 	id: text('id').primaryKey(),
@@ -28,7 +31,10 @@ export const session = pgTable("session", {
 	userAgent: text('user_agent'),
 	userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }),
 	impersonatedBy: text('impersonated_by')
-});
+}, (table) => [
+	index('session_user_id_idx').on(table.userId),
+	index('token_idx').on(table.token),
+]);
 
 export const account = pgTable("account", {
 	id: text('id').primaryKey(),
@@ -44,7 +50,9 @@ export const account = pgTable("account", {
 	password: text('password'),
 	createdAt: timestamp('created_at').notNull(),
 	updatedAt: timestamp('updated_at').notNull()
-});
+}, (table) => [
+	index('user_id_idx').on(table.userId),
+]);
 
 export const verification = pgTable("verification", {
 	id: text('id').primaryKey(),
@@ -53,7 +61,9 @@ export const verification = pgTable("verification", {
 	expiresAt: timestamp('expires_at').notNull(),
 	createdAt: timestamp('created_at').$defaultFn(() => /* @__PURE__ */ new Date()),
 	updatedAt: timestamp('updated_at').$defaultFn(() => /* @__PURE__ */ new Date())
-});
+}, (table) => [
+	index('identifier_idx').on(table.identifier),
+]);
 
 export const organizers = pgTable("organizers", {
 	id: text("id")
