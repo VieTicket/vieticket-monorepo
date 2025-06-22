@@ -11,10 +11,11 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { updateProfileAction, getProfileAction } from "@/lib/actions/profile-actions";
 import { authClient } from "@/lib/auth/auth-client";
 import { GENDER_VALUES } from "@vieticket/db/postgres/schema";
 import { Camera, Loader2 } from "lucide-react";
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 // A reusable component for input fields to reduce repetition
@@ -44,7 +45,7 @@ function FormField({
                 type={type}
                 id={id}
                 placeholder={placeholder}
-                value={value}
+                value={value || ""}
                 onChange={onChange}
                 disabled={disabled}
             />
@@ -93,15 +94,16 @@ function SelectField({
 
 export function AccountForm() {
     const { data: session } = authClient.useSession();
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
+    const [isPending, startTransition] = useTransition();
 
-    // TODO: Use some kind of hooks or something this is bad
     // User fields from 'user' schema
     const [name, setName] = useState("");
     const [dateOfBirth, setDateOfBirth] = useState<string | undefined>();
     const [gender, setGender] = useState<string | undefined>();
     const [phone, setPhone] = useState<string | undefined>();
     const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
 
     // Organizer fields from 'organizers' schema
     const [organizerName, setOrganizerName] = useState<string | undefined>();
@@ -110,32 +112,57 @@ export function AccountForm() {
     const [foundedDate, setFoundedDate] = useState<string | undefined>();
     const [organizerType, setOrganizerType] = useState<string | undefined>();
 
+    // Fetch complete profile data
     useEffect(() => {
         if (session?.user) {
-            // Note: The default session might not contain all user fields.
-            // For a full implementation, you would fetch the complete user profile
-            // from an API endpoint and populate all fields from there.
-            setName(session.user.name ?? "");
-            setImagePreview(session.user.image ?? null);
+            setLoading(true);
+            startTransition(async () => {
+                try {
+                    const profileResult = await getProfileAction();
+                    
+                    if (profileResult.success && profileResult.data) {
+                        const profile = profileResult.data;
+                        
+                        // Set user fields
+                        setName(profile.name || "");
+                        setDateOfBirth(profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : undefined);
+                        setGender(profile.gender || undefined);
+                        setPhone(profile.phone || undefined);
+                        setImagePreview(profile.image || null);
 
-            // The following fields are not in the default session user type.
-            // They are added here for UI demonstration based on the database schema.
-            // setDateOfBirth(profile.dateOfBirth);
-            // setGender(profile.gender);
-            // setPhone(profile.phone);
-
-            if (session.user.role === "organizer") {
-                // Organizer details would also be fetched from an API.
-                // setOrganizerName(profile.organizer.name);
-                // setWebsite(profile.organizer.website);
-                // ...etc.
-            }
+                        // If user is an organizer, we need to fetch organizer details
+                        if (session.user.role === "organizer") {
+                            // Note: We need to modify the getProfileAction to also fetch organizer data
+                            // For now, we'll use placeholder values that should be fetched
+                            // setOrganizerName(profile.organizer?.name);
+                            // setWebsite(profile.organizer?.website);
+                            // setAddress(profile.organizer?.address);
+                            // setFoundedDate(profile.organizer?.foundedDate ? new Date(profile.organizer.foundedDate).toISOString().split('T')[0] : undefined);
+                            // setOrganizerType(profile.organizer?.organizerType);
+                        }
+                    } else {
+                        // Fallback to session data
+                        setName(session.user.name || "");
+                        setImagePreview(session.user.image || null);
+                    }
+                } catch (error) {
+                    console.error("Error fetching profile:", error);
+                    toast.error("Failed to load profile data");
+                    
+                    // Fallback to session data
+                    setName(session.user.name || "");
+                    setImagePreview(session.user.image || null);
+                } finally {
+                    setLoading(false);
+                }
+            });
         }
     }, [session]);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setImageFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setImagePreview(reader.result as string);
@@ -144,19 +171,73 @@ export function AccountForm() {
         }
     };
 
-    const handleSave = async () => {
-        setLoading(true);
-        // In a real application, this would call an API to update the user profile.
-        // e.g., await api.updateProfile({ name, dateOfBirth, ... });
-        await new Promise((resolve) => setTimeout(resolve, 1000)); // Simulate API call
-        setLoading(false);
-        toast.success("Profile updated successfully!");
+    const convertImageToBase64 = (file: File): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+        });
+    };
+
+    const handleSave = () => {
+        startTransition(async () => {
+            try {
+                let imageBase64 = imagePreview;
+                if (imageFile) {
+                    imageBase64 = await convertImageToBase64(imageFile);
+                }
+
+                const formData = {
+                    name,
+                    dateOfBirth,
+                    gender,
+                    phone,
+                    image: imageBase64,
+                    organizerDetails:
+                        session?.user.role === "organizer"
+                            ? {
+                                organizerName,
+                                website,
+                                address,
+                                foundedDate,
+                                organizerType,
+                            }
+                            : undefined,
+                };
+
+                const result = await updateProfileAction(formData);
+
+                if (result.success) {
+                    toast.success(result.message);
+                    // Reset the image file after successful save
+                    setImageFile(null);
+                } else {
+                    toast.error(result.message);
+                    if (result.errors) {
+                        console.error("Validation errors:", result.errors);
+                    }
+                }
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                toast.error("Failed to save profile");
+            }
+        });
     };
 
     if (!session?.user) {
         return (
             <div className="flex justify-center items-center h-40">
                 <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center h-40">
+                <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
+                <span className="ml-2 text-slate-500">Loading profile...</span>
             </div>
         );
     }
@@ -307,9 +388,9 @@ export function AccountForm() {
                     size="lg"
                     className="bg-slate-800 hover:bg-slate-900 text-white"
                     onClick={handleSave}
-                    disabled={loading}
+                    disabled={isPending}
                 >
-                    {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                    {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                     Save My Profile
                 </Button>
             </div>

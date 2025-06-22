@@ -1,5 +1,6 @@
 import { boolean, date, index, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core";
 import { genderEnum, roleEnum } from "../enums";
+import { type InferSelectModel } from "drizzle-orm";
 
 export const user = pgTable("user", {
 	id: text('id').primaryKey(),
@@ -76,3 +77,9 @@ export const organizers = pgTable("organizers", {
 	address: varchar("address", { length: 255 }),
 	organizerType: varchar("organizer_type", { length: 64 }),
 });
+
+// TODO: Update the code that uses these exported type to use from users-model instead.
+export type User = InferSelectModel<typeof user>;
+export type Organizer = InferSelectModel<typeof organizers>;
+export type UserProfileData = Partial<Omit<User, "id">>;
+export type OrganizerProfileData = Partial<Omit<Organizer, "id" | "userId">>;
