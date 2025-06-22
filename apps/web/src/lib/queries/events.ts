@@ -116,10 +116,8 @@ export async function getEventSummaries({
                 }
             }
         },
-      },
-    },
-    where: and(...whereConditions),
-  });
+        where: and(...whereConditions),
+      });
 
   // Check if there are more items
   const hasMore = eventList.length > limit;
