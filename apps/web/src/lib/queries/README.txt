@@ -1,0 +1,1 @@
+This directory contains only view-related content. No data mutations should occur here.

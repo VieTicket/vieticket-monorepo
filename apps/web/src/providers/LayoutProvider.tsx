@@ -1,0 +1,28 @@
+"use client";
+
+import AdminLayout from "@/layout/admin-layout";
+import AuthLayout from "@/layout/auth-layout";
+import MainLayout from "@/layout/main-layout";
+import OrganizerLayout from "@/layout/organizer-layout";
+import { usePathname } from "next/navigation";
+
+export function LayoutProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  const isAuthPage = pathname.startsWith("/auth");
+  const isAdminPage = pathname.startsWith("/admin");
+  const isOrganizerPage = pathname.startsWith("/organizer");
+  const isNoLayoutPage = pathname.startsWith("/seat-map");
+  const isMainPage =
+    !isAuthPage && !isAdminPage && !isOrganizerPage && !isNoLayoutPage;
+
+  return (
+    <>
+      {isAuthPage && <AuthLayout>{children}</AuthLayout>}
+      {isAdminPage && <AdminLayout>{children}</AdminLayout>}
+      {isOrganizerPage && <OrganizerLayout>{children}</OrganizerLayout>}
+      {isMainPage && <MainLayout>{children}</MainLayout>}
+      {isNoLayoutPage && <>{children}</>}
+    </>
+  );
+}

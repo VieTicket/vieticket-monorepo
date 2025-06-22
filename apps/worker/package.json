@@ -1,0 +1,20 @@
+{
+  "name": "worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "bun src/index.js",
+    "dev": "bun src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "drizzle-orm": "^0.29.0",
+    "postgres": "^3.4.0",
+    "@vieticket/db": "workspace:*"
+  }
+}
