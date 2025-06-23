@@ -1,16 +1,19 @@
 import { StateCreator } from "zustand";
 import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
+import { ToolType } from "../main-toolbar";
 
 export interface CanvasSlice {
   canvasSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   zoom: number;
   pan: { x: number; y: number };
+  currentTool: ToolType;
   setCanvasSize: (width: number, height: number) => void;
   setViewportSize: (width: number, height: number) => void;
   setZoom: (zoom: number) => void;
   setPan: (x: number, y: number) => void;
+  setCurrentTool: (tool: ToolType) => void;
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
@@ -22,10 +25,18 @@ export const createCanvasSlice: StateCreator<
   [],
   CanvasSlice
 > = (set, get) => ({
-  canvasSize: { width: 4000, height: 3000 }, // Large default size
+  currentTool: "select",
+  canvasSize: { width: 4000, height: 3000 },
   viewportSize: { width: 800, height: 600 },
   zoom: 1,
   pan: { x: 0, y: 0 },
+
+  setCurrentTool: (tool) => {
+    set({ currentTool: tool });
+    if (tool !== "select") {
+      set({ selectedShapeIds: [] });
+    }
+  },
 
   setCanvasSize: (width, height) => {
     set({ canvasSize: { width, height } });

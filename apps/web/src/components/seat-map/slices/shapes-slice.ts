@@ -1,13 +1,20 @@
 import { StateCreator } from "zustand";
 import { v4 as uuidv4 } from "uuid";
-import { Shape, ShapeType, CreateShapeData } from "@/types/seat-map-types";
+import {
+  Shape,
+  ShapeType,
+  CreateShapeData,
+  ShapeWithoutMeta,
+} from "@/types/seat-map-types";
 import { HistorySlice } from "./history-slice";
 import { CanvasSlice } from "./canvas-slice";
 
 export interface ShapesSlice {
   shapes: Shape[];
   selectedShapeIds: string[];
-  addShape: <T extends ShapeType>(shape: CreateShapeData<T>) => void;
+  isEditing: boolean;
+  editingShapeId: string | null;
+  addShape: (shape: ShapeWithoutMeta) => void;
   updateShape: (
     id: string,
     updates: Partial<Omit<Shape, "id" | "type">>
@@ -22,6 +29,11 @@ export interface ShapesSlice {
   getShapeById: (id: string) => Shape | undefined;
   bringToFront: (id: string) => void;
   sendToBack: (id: string) => void;
+  selectAll: () => void;
+  duplicateSelectedShapes: () => void;
+  startEditing: (shapeId: string) => void;
+  stopEditing: () => void;
+  isShapeEditing: (shapeId: string) => boolean;
 }
 
 export const createShapesSlice: StateCreator<
@@ -32,18 +44,19 @@ export const createShapesSlice: StateCreator<
 > = (set, get) => ({
   shapes: [],
   selectedShapeIds: [],
+  isEditing: false,
+  editingShapeId: null,
 
-  addShape: <T extends ShapeType>(shapeData: CreateShapeData<T>) => {
+  addShape: (shapeData) => {
     const newShape: Shape = {
-      ...shapeData,
       id: uuidv4(),
-      draggable: true,
       visible: true,
-    } as Shape;
+      draggable: true,
+      ...shapeData,
+    };
 
     set((state) => ({
       shapes: [...state.shapes, newShape],
-      selectedShapeIds: [newShape.id],
     }));
   },
 
@@ -152,5 +165,54 @@ export const createShapesSlice: StateCreator<
       }
       return state;
     });
+  },
+
+  selectAll: () => {
+    const { shapes } = get();
+    const allShapeIds = shapes.map((shape) => shape.id);
+    set({ selectedShapeIds: allShapeIds });
+  },
+
+  duplicateSelectedShapes: () => {
+    const { shapes, selectedShapeIds, addShape } = get();
+    const selectedShapes = shapes.filter((shape) =>
+      selectedShapeIds.includes(shape.id)
+    );
+
+    const newShapeIds: string[] = [];
+
+    selectedShapes.forEach((shape) => {
+      const duplicatedShape = {
+        ...shape,
+        x: shape.x + 20, // Offset the duplicate
+        y: shape.y + 20,
+        id: undefined, // Let addShape generate new ID
+      };
+
+      // Remove the id so addShape can generate a new one
+      delete (duplicatedShape as any).id;
+
+      addShape(duplicatedShape);
+      // You'd need to capture the new ID if you want to select the duplicates
+    });
+  },
+  startEditing: (shapeId: string) => {
+    set({
+      isEditing: true,
+      editingShapeId: shapeId,
+      selectedShapeIds: [shapeId], // Auto-select the shape being edited
+    });
+  },
+
+  stopEditing: () => {
+    set({
+      isEditing: false,
+      editingShapeId: null,
+    });
+  },
+
+  isShapeEditing: (shapeId: string) => {
+    const { isEditing, editingShapeId } = get();
+    return isEditing && editingShapeId === shapeId;
   },
 });

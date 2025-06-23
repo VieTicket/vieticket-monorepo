@@ -20,9 +20,6 @@ export const useCanvasResize = () => {
         const canvasWidth = viewportWidth * 5;
         const canvasHeight = viewportHeight * 5;
 
-        console.log("Viewport size:", viewportWidth, viewportHeight);
-        console.log("Canvas size:", canvasWidth, canvasHeight);
-
         setCanvasSize(canvasWidth, canvasHeight);
 
         // Only center on initial load, not on resize

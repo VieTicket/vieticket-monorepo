@@ -179,63 +179,14 @@ export const usePanZoom = () => {
     stage.container().style.cursor = "default";
   }, []);
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      const panStep = 50;
-      const zoomStep = 0.1;
-
-      switch (e.key) {
-        case "ArrowUp":
-          if (e.ctrlKey || e.metaKey) {
-            setZoom(Math.min(5, zoom + zoomStep));
-          } else {
-            setBoundedPan(pan.x, pan.y + panStep); // Use setBoundedPan
-          }
-          e.preventDefault();
-          break;
-        case "ArrowDown":
-          if (e.ctrlKey || e.metaKey) {
-            setZoom(Math.max(0.1, zoom - zoomStep));
-          } else {
-            setBoundedPan(pan.x, pan.y - panStep); // Use setBoundedPan
-          }
-          e.preventDefault();
-          break;
-        case "ArrowLeft":
-          setBoundedPan(pan.x + panStep, pan.y); // Use setBoundedPan
-          e.preventDefault();
-          break;
-        case "ArrowRight":
-          setBoundedPan(pan.x - panStep, pan.y); // Use setBoundedPan
-          e.preventDefault();
-          break;
-        case "0":
-          if (e.ctrlKey || e.metaKey) {
-            centerCanvas();
-            e.preventDefault();
-          }
-          break;
-        case "1":
-          if (e.ctrlKey || e.metaKey) {
-            setZoom(1);
-            e.preventDefault();
-          }
-          break;
-      }
-    },
-    [pan, zoom, setBoundedPan, setZoom, centerCanvas] // Update dependencies
-  );
-
   const fitToScreen = useCallback(() => {
     if (viewportSize && canvasSize) {
-      // Calculate zoom to fit canvas in viewport
       const scaleX = viewportSize.width / canvasSize.width;
       const scaleY = viewportSize.height / canvasSize.height;
-      const newZoom = Math.min(scaleX, scaleY, 1); // Don't zoom in beyond 100%
+      const newZoom = Math.min(scaleX, scaleY, 1);
 
       setZoom(newZoom);
 
-      // Center after zoom
       const centerX = (viewportSize.width - canvasSize.width * newZoom) / 2;
       const centerY = (viewportSize.height - canvasSize.height * newZoom) / 2;
       setBoundedPan(centerX, centerY, newZoom);
@@ -261,7 +212,7 @@ export const usePanZoom = () => {
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
-    handleKeyDown,
+    setBoundedPan,
     centerCanvas,
     fitToScreen,
     zoomIn,

@@ -8,18 +8,28 @@ import { useCanvasResize } from "./hooks/useCanvasResize";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { renderShape } from "./utils/shape-renderer";
 import { buildShapeProps } from "./utils/shape-props-builder";
+import { useKeyMap } from "./hooks/useKeyMap";
 
 export default function CanvasEditorClient() {
   const stageRef = useRef(null);
   const hasInitialized = useRef(false);
 
-  const { shapes, selectedShapeIds, canvasSize, viewportSize, zoom, pan } =
-    useCanvasStore();
+  const {
+    shapes,
+    selectedShapeIds,
+    canvasSize,
+    viewportSize,
+    zoom,
+    pan,
+    currentTool,
+  } = useCanvasStore();
 
   const eventHandlers = useCanvasEvents();
   const panZoomHandlers = usePanZoom();
 
   const { isInitialLoad } = useCanvasResize();
+
+  useKeyMap();
 
   useEffect(() => {
     if (
@@ -32,98 +42,44 @@ export default function CanvasEditorClient() {
         hasInitialized.current = true;
       }, 100);
     }
-  }, [viewportSize.width, viewportSize.height]); // Remove panZoomHandlers.centerCanvas from dependencies
+  }, [viewportSize.width, viewportSize.height]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      panZoomHandlers.handleKeyDown(e);
-    };
+  const renderShapeWithProps = useCallback(
+    (shape: any, isPreview = false) => {
+      const isSelected = !isPreview && selectedShapeIds.includes(shape.id);
+      const commonProps = buildShapeProps(shape, isSelected, eventHandlers);
 
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [panZoomHandlers.handleKeyDown]);
+      if (isPreview || currentTool !== "select") {
+        commonProps.draggable = false;
+        commonProps.onClick = () => {};
+        commonProps.onDragStart = () => {};
+        commonProps.onDragMove = () => {};
+        commonProps.onDragEnd = () => {};
+      }
 
-  // Add context menu handler
-  const handleContextMenu = useCallback((e: any) => {
-    e.evt.preventDefault();
-  }, []);
+      const shapeKey = isPreview ? `preview-${shape.id}` : shape.id;
 
-  const renderShapeWithProps = (shape: any) => {
-    const isSelected = selectedShapeIds.includes(shape.id);
-    const commonProps = buildShapeProps(shape, isSelected, eventHandlers);
-
-    return renderShape({ shape, isSelected, commonProps });
-  };
-
-  const renderGrid = useCallback(() => {
-    // Only show grid when zoomed in enough
-    if (zoom < 0.5) return null;
-
-    const gridSize = 50;
-    const { width, height } = canvasSize;
-
-    // Calculate visible area to only render visible grid lines
-    const visibleLeft = Math.max(0, -pan.x / zoom);
-    const visibleTop = Math.max(0, -pan.y / zoom);
-    const visibleRight = Math.min(width, (-pan.x + viewportSize.width) / zoom);
-    const visibleBottom = Math.min(
-      height,
-      (-pan.y + viewportSize.height) / zoom
-    );
-
-    const lines = [];
-
-    // Vertical lines (only visible ones)
-    const startX = Math.floor(visibleLeft / gridSize) * gridSize;
-    const endX = Math.ceil(visibleRight / gridSize) * gridSize;
-    for (let i = startX; i <= endX; i += gridSize) {
-      lines.push(
-        <Line
-          key={`v-${i}`}
-          points={[i, visibleTop, i, visibleBottom]}
-          stroke="#C0C0C0"
-          strokeWidth={0.5}
-          listening={false}
-        />
-      );
-    }
-
-    // Horizontal lines (only visible ones)
-    const startY = Math.floor(visibleTop / gridSize) * gridSize;
-    const endY = Math.ceil(visibleBottom / gridSize) * gridSize;
-    for (let i = startY; i <= endY; i += gridSize) {
-      lines.push(
-        <Line
-          key={`h-${i}`}
-          points={[visibleLeft, i, visibleRight, i]}
-          stroke="#C0C0C0"
-          strokeWidth={0.5}
-          listening={false}
-        />
-      );
-    }
-
-    return lines;
-  }, [canvasSize, zoom, pan, viewportSize]);
-
-  const renderCanvasBorder = useCallback(() => {
-    return (
-      <Rect
-        x={0}
-        y={0}
-        width={canvasSize.width}
-        height={canvasSize.height}
-        stroke="#666"
-        strokeWidth={2}
-        fill="transparent"
-        listening={false}
-        dash={[10, 5]}
-      />
-    );
-  }, [canvasSize]);
+      return renderShape({
+        shape,
+        isSelected,
+        commonProps: {
+          ...commonProps,
+          key: shapeKey,
+          // Performance optimization
+          perfectDrawEnabled: false,
+        },
+      });
+    },
+    [selectedShapeIds, currentTool, eventHandlers]
+  );
 
   const renderSelectionRectangle = useCallback(() => {
-    if (!eventHandlers.selectionRect || !eventHandlers.isSelecting) return null;
+    if (
+      !eventHandlers.selectionRect ||
+      !eventHandlers.isSelecting ||
+      currentTool !== "select"
+    )
+      return null;
     return (
       <Rect
         x={eventHandlers.selectionRect.x}
@@ -137,9 +93,25 @@ export default function CanvasEditorClient() {
         listening={false}
       />
     );
-  }, [eventHandlers.selectionRect, eventHandlers.isSelecting]);
+  }, [eventHandlers.selectionRect, eventHandlers.isSelecting, currentTool]);
+
+  const getCursor = () => {
+    switch (currentTool) {
+      case "select":
+        return "default";
+      case "rect":
+      case "circle":
+      case "polygon":
+        return "crosshair";
+      case "text":
+        return "text";
+      default:
+        return "default";
+    }
+  };
+
   return (
-    <div className="canvas-container relative bg-gray-100 h-full w-full">
+    <div className="canvas-container relative bg-gray-100 h-screen w-full">
       <Stage
         ref={stageRef}
         width={viewportSize.width}
@@ -151,40 +123,44 @@ export default function CanvasEditorClient() {
         onClick={eventHandlers.handleStageClick}
         onMouseDown={(e) => {
           eventHandlers.handleStageMouseDown(e);
-          panZoomHandlers.handleMouseDown(e);
+          if (currentTool === "select" || e.evt.button !== 0) {
+            panZoomHandlers.handleMouseDown(e);
+          }
         }}
         onMouseMove={(e) => {
           eventHandlers.handleStageMouseMove(e);
-          panZoomHandlers.handleMouseMove(e);
+          if (currentTool === "select" || e.evt.button !== 0) {
+            panZoomHandlers.handleMouseMove(e);
+          }
         }}
         onMouseUp={(e) => {
           eventHandlers.handleStageMouseUp(e);
           panZoomHandlers.handleMouseUp(e);
         }}
         onWheel={panZoomHandlers.handleWheel}
-        onContextMenu={handleContextMenu}
         className="absolute top-0 left-0"
+        style={{ cursor: getCursor() }}
       >
-        <Layer>
-          {/* Optional Grid */}
-          {renderGrid()}
+        <Layer
+          // Performance optimizations
+          hitGraphEnabled={true}
+          clearBeforeDraw={true}
+        >
+          {/* Existing shapes */}
+          {shapes.map((shape) => renderShapeWithProps(shape, false))}
 
-          {/* Canvas Border */}
-          {renderCanvasBorder()}
+          {/* Preview shape */}
+          {eventHandlers.previewShape &&
+            currentTool !== "select" &&
+            renderShapeWithProps(
+              { ...eventHandlers.previewShape, id: "preview" },
+              true
+            )}
 
-          {/* Shapes */}
-          {shapes.map(renderShapeWithProps)}
-
-          {/* Selection Rectangle */}
+          {/* Selection rectangle */}
           {renderSelectionRectangle()}
         </Layer>
       </Stage>
-
-      {/* Canvas Navigation Info */}
-      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm">
-        Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
-        {Math.round(pan.y)}
-      </div>
     </div>
   );
 }

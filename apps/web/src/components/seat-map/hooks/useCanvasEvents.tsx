@@ -1,18 +1,35 @@
+// useCanvasEvents.tsx - Fix click vs drag issue
 import { useState, useRef } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
-import { Shape } from "@/types/seat-map-types";
+import {
+  CircleShape,
+  PolygonShape,
+  RectShape,
+  Shape,
+  ShapeWithoutMeta,
+  TextShape,
+} from "@/types/seat-map-types";
 
 export const useCanvasEvents = () => {
+  const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
     null
   );
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedShapeId, setDraggedShapeId] = useState<string | null>(null);
   const [initialShapePositions, setInitialShapePositions] = useState<
     Map<string, { x: number; y: number }>
   >(new Map());
 
-  // Selection rectangle state
+  // Drawing and selection states remain the same
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [drawingStart, setDrawingStart] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+  const [drawingEnd, setDrawingEnd] = useState<{ x: number; y: number } | null>(
+    null
+  );
+  const [previewShape, setPreviewShape] = useState<any>(null);
+
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectionStart, setSelectionStart] = useState<{
     x: number;
@@ -22,31 +39,119 @@ export const useCanvasEvents = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [selectionRect, setSelectionRect] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
+  const [selectionRect, setSelectionRect] = useState<any>(null);
 
   const stageRef = useRef<any>(null);
 
   const {
     shapes,
     selectedShapeIds,
+    currentTool,
     updateShape,
     selectShape,
     clearSelection,
     saveToHistory,
     selectMultipleShapes,
+    addShape,
     zoom,
     pan,
   } = useCanvasStore();
 
+  // SIMPLE click handler - only for selection
   const handleShapeClick = (shapeId: string, e: any) => {
+    if (currentTool !== "select") return;
+
+    // Don't select if we just finished dragging
+    if (isDragging) return;
+
+    const evt = e.evt || e;
+    if (evt) {
+      evt.cancelBubble = true;
+      evt.stopPropagation && evt.stopPropagation();
+    }
+
     e.cancelBubble = true;
-    const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
+    if (e.stopPropagation) {
+      e.stopPropagation();
+    }
+
+    const multiSelect = evt?.ctrlKey || evt?.metaKey || false;
     selectShape(shapeId, multiSelect);
+  };
+
+  // SIMPLE drag handlers
+  const handleShapeDragStart = (shapeId: string, e: any) => {
+    if (currentTool !== "select") return;
+
+    setIsDragging(true);
+
+    // Auto-select if not already selected
+    if (!selectedShapeIds.includes(shapeId)) {
+      selectShape(shapeId, false);
+    }
+
+    const target = e.target;
+    setDragStart({ x: target.x(), y: target.y() });
+
+    // Store initial positions for multi-shape drag
+    const currentSelectedIds = selectedShapeIds.includes(shapeId)
+      ? selectedShapeIds
+      : [shapeId];
+    const positions = new Map();
+    currentSelectedIds.forEach((id: string) => {
+      const shape = shapes.find((s) => s.id === id);
+      if (shape) {
+        positions.set(id, { x: shape.x, y: shape.y });
+      }
+    });
+    setInitialShapePositions(positions);
+  };
+
+  const handleShapeDragMove = (shapeId: string, e: any) => {
+    if (currentTool !== "select" || !isDragging || !dragStart) return;
+
+    const target = e.target;
+    const deltaX = target.x() - dragStart.x;
+    const deltaY = target.y() - dragStart.y;
+
+    // Update OTHER selected shapes (not the one being dragged)
+    initialShapePositions.forEach((initialPos, id) => {
+      if (id !== shapeId) {
+        updateShape(id, {
+          x: initialPos.x + deltaX,
+          y: initialPos.y + deltaY,
+        });
+      }
+    });
+  };
+
+  const handleShapeDragEnd = (shapeId: string, e: any) => {
+    if (currentTool !== "select") return;
+
+    if (isDragging) {
+      const target = e.target;
+      updateShape(shapeId, {
+        x: target.x(),
+        y: target.y(),
+      });
+      saveToHistory();
+    }
+
+    // Reset drag state
+    setIsDragging(false);
+    setDragStart(null);
+    setInitialShapePositions(new Map());
+
+    // Small delay to prevent click after drag
+    setTimeout(() => setIsDragging(false), 50);
+  };
+
+  // Stage handlers remain the same...
+  const getCanvasCoordinates = (pointerPosition: any) => {
+    return {
+      x: (pointerPosition.x - pan.x) / zoom,
+      y: (pointerPosition.y - pan.y) / zoom,
+    };
   };
 
   const handleStageClick = (e: any) => {
@@ -55,101 +160,228 @@ export const useCanvasEvents = () => {
     }
   };
 
-  const handleContextMenu = (e: any) => {
-    e.evt.preventDefault();
-  };
-
-  // Selection rectangle handlers
+  // Stage mouse down handler - switches between selection and drawing modes
   const handleStageMouseDown = (e: any) => {
-    // Only start selection if clicking on empty space (stage)
+    // Only handle clicks on empty space (stage)
     if (e.target !== e.target.getStage()) {
       return;
     }
 
-    // Get pointer position relative to stage
     const stage = e.target.getStage();
     const pointerPosition = stage.getPointerPosition();
+    const canvasCoords = getCanvasCoordinates(pointerPosition);
 
-    // Adjust for zoom and pan
-    const x = (pointerPosition.x - pan.x) / zoom;
-    const y = (pointerPosition.y - pan.y) / zoom;
+    if (currentTool === "select") {
+      // Selection mode
+      handleSelectionMouseDown(canvasCoords, e);
+    } else {
+      // Drawing mode
+      handleDrawingMouseDown(canvasCoords, e);
+    }
+  };
 
+  const handleStageMouseMove = (e: any) => {
+    const stage = e.target.getStage();
+    const pointerPosition = stage.getPointerPosition();
+    const canvasCoords = getCanvasCoordinates(pointerPosition);
+
+    if (currentTool === "select" && isSelecting) {
+      handleSelectionMouseMove(canvasCoords);
+    } else if (currentTool !== "select" && isDrawing) {
+      handleDrawingMouseMove(canvasCoords);
+    }
+  };
+
+  const handleStageMouseUp = (e: any) => {
+    if (currentTool === "select" && isSelecting) {
+      handleSelectionMouseUp(e);
+    } else if (currentTool !== "select" && isDrawing) {
+      handleDrawingMouseUp(e);
+    }
+  };
+
+  // Selection handlers
+  const handleSelectionMouseDown = (canvasCoords: any, e: any) => {
     setIsSelecting(true);
-    setSelectionStart({ x, y });
-    setSelectionEnd({ x, y });
-    setSelectionRect({ x, y, width: 0, height: 0 });
+    setSelectionStart(canvasCoords);
+    setSelectionEnd(canvasCoords);
+    setSelectionRect({
+      x: canvasCoords.x,
+      y: canvasCoords.y,
+      width: 0,
+      height: 0,
+    });
 
-    // Clear selection if not holding Ctrl/Cmd
     if (!e.evt.ctrlKey && !e.evt.metaKey) {
       clearSelection();
     }
   };
 
-  const handleStageMouseMove = (e: any) => {
-    if (!isSelecting || !selectionStart) {
-      return;
-    }
+  const handleSelectionMouseMove = (canvasCoords: any) => {
+    if (!selectionStart) return;
 
-    const stage = e.target.getStage();
-    const pointerPosition = stage.getPointerPosition();
+    setSelectionEnd(canvasCoords);
 
-    // Adjust for zoom and pan
-    const x = (pointerPosition.x - pan.x) / zoom;
-    const y = (pointerPosition.y - pan.y) / zoom;
-
-    setSelectionEnd({ x, y });
-
-    // Calculate rectangle bounds
     const rect = {
-      x: Math.min(selectionStart.x, x),
-      y: Math.min(selectionStart.y, y),
-      width: Math.abs(x - selectionStart.x),
-      height: Math.abs(y - selectionStart.y),
+      x: Math.min(selectionStart.x, canvasCoords.x),
+      y: Math.min(selectionStart.y, canvasCoords.y),
+      width: Math.abs(canvasCoords.x - selectionStart.x),
+      height: Math.abs(canvasCoords.y - selectionStart.y),
     };
 
     setSelectionRect(rect);
   };
 
-  const handleStageMouseUp = (e: any) => {
-    if (!isSelecting || !selectionRect) {
-      setIsSelecting(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setSelectionRect(null);
+  const handleSelectionMouseUp = (e: any) => {
+    if (!selectionRect) {
+      resetSelectionState();
       return;
     }
 
-    // Find shapes within selection rectangle
-    const shapesInSelection = shapes.filter((shape) => {
-      return isShapeInRectangle(shape, selectionRect);
-    });
+    const shapesInSelection = shapes.filter((shape) =>
+      isShapeInRectangle(shape, selectionRect)
+    );
 
-    // Select the shapes
     if (shapesInSelection.length > 0) {
       const shapeIds = shapesInSelection.map((shape) => shape.id);
       const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
 
       if (multiSelect) {
-        // Add to existing selection
         shapeIds.forEach((id) => {
           if (!selectedShapeIds.includes(id)) {
             selectShape(id, true);
           }
         });
       } else {
-        // Replace selection
         selectMultipleShapes(shapeIds);
       }
     }
 
-    // Reset selection state
+    resetSelectionState();
+  };
+
+  // Drawing handlers
+  const handleDrawingMouseDown = (canvasCoords: any, e: any) => {
+    setIsDrawing(true);
+    setDrawingStart(canvasCoords);
+    setDrawingEnd(canvasCoords);
+
+    // Create initial preview shape
+    createPreviewShape(canvasCoords, canvasCoords);
+  };
+
+  const handleDrawingMouseMove = (canvasCoords: any) => {
+    if (!drawingStart) return;
+
+    setDrawingEnd(canvasCoords);
+    createPreviewShape(drawingStart, canvasCoords);
+  };
+
+  const handleDrawingMouseUp = (e: any) => {
+    if (!drawingStart || !drawingEnd) {
+      resetDrawingState();
+      return;
+    }
+
+    // Create the actual shape
+    createFinalShape(drawingStart, drawingEnd);
+    resetDrawingState();
+    saveToHistory();
+  };
+
+  // Helper functions
+  const createPreviewShape = (start: any, end: any) => {
+    const shape = generateShapeFromCoords(start, end, currentTool);
+    setPreviewShape(shape);
+  };
+
+  const createFinalShape = (start: any, end: any) => {
+    const shape = generateShapeFromCoords(start, end, currentTool);
+    if (shape) {
+      addShape(shape);
+    }
+  };
+
+  const generateShapeFromCoords = (
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+    shapeType: string
+  ): ShapeWithoutMeta | null => {
+    const width = Math.abs(end.x - start.x);
+    const height = Math.abs(end.y - start.y);
+    const x = Math.min(start.x, end.x);
+    const y = Math.min(start.y, end.y);
+
+    // Don't create shapes that are too small
+    if (width < 5 && height < 5) return null;
+
+    switch (shapeType) {
+      case "rect":
+        return {
+          type: "rect" as const,
+          x,
+          y,
+          width,
+          height,
+          fill: "#f0f0f0",
+          stroke: "#000000",
+          strokeWidth: 1,
+        } satisfies Omit<RectShape, "id" | "visible" | "draggable">;
+
+      case "circle":
+        const radius = Math.max(width, height) / 2;
+        return {
+          type: "circle" as const,
+          x: start.x + (end.x - start.x) / 2,
+          y: start.y + (end.y - start.y) / 2,
+          radius,
+          fill: "#e0e0ff",
+          stroke: "#000000",
+          strokeWidth: 1,
+        } satisfies Omit<CircleShape, "id" | "visible" | "draggable">;
+
+      case "text":
+        return {
+          type: "text" as const,
+          x: start.x,
+          y: start.y,
+          text: "New Text",
+          fontSize: 16,
+          fill: "#000000",
+          width: Math.max(100, width),
+        } satisfies Omit<TextShape, "id" | "visible" | "draggable">;
+
+      case "polygon":
+        return {
+          type: "polygon" as const,
+          x,
+          y,
+          points: [0, 0, width, 0, width, height, 0, height],
+          fill: "#ffe0e0",
+          stroke: "#000000",
+          strokeWidth: 1,
+          closed: true,
+        } satisfies Omit<PolygonShape, "id" | "visible" | "draggable">;
+
+      default:
+        return null;
+    }
+  };
+
+  const resetSelectionState = () => {
     setIsSelecting(false);
     setSelectionStart(null);
     setSelectionEnd(null);
     setSelectionRect(null);
   };
 
-  // Helper function to check if shape is within rectangle
+  const resetDrawingState = () => {
+    setIsDrawing(false);
+    setDrawingStart(null);
+    setDrawingEnd(null);
+    setPreviewShape(null);
+  };
+
   const isShapeInRectangle = (
     shape: Shape,
     rect: { x: number; y: number; width: number; height: number }
@@ -159,7 +391,6 @@ export const useCanvasEvents = () => {
     let shapeRight = shape.x;
     let shapeBottom = shape.y;
 
-    // Calculate shape bounds based on type
     switch (shape.type) {
       case "rect":
         shapeRight = shape.x + shape.width;
@@ -186,7 +417,7 @@ export const useCanvasEvents = () => {
             minX = Math.min(minX, shape.x + shape.points[i]);
             maxX = Math.max(maxX, shape.x + shape.points[i]);
             minY = Math.min(minY, shape.y + shape.points[i + 1]);
-            maxY = Math.max(maxY, shape.y + shape.points[i + 1]);
+            maxY = Math.max(maxY, shape.points[i + 1]);
           }
 
           shapeLeft = minX;
@@ -197,7 +428,6 @@ export const useCanvasEvents = () => {
         break;
     }
 
-    // Check if shape intersects with selection rectangle
     return !(
       shapeRight < rect.x ||
       shapeLeft > rect.x + rect.width ||
@@ -206,95 +436,25 @@ export const useCanvasEvents = () => {
     );
   };
 
-  // Shape drag handlers - FIXED VERSION
-  const handleShapeDragStart = (shapeId: string, e: any) => {
-    // If shape is not selected, select it first
-    if (!selectedShapeIds.includes(shapeId)) {
-      selectShape(shapeId, false); // Select only this shape
-    }
-
-    setIsDragging(true);
-    setDraggedShapeId(shapeId);
-
-    // Store the initial position of the dragged shape
-    setDragStart({
-      x: e.target.x(),
-      y: e.target.y(),
-    });
-
-    // Store initial positions of ALL selected shapes (including the newly selected one if applicable)
-    const currentSelectedIds = selectedShapeIds.includes(shapeId)
-      ? selectedShapeIds
-      : [shapeId]; // If shape wasn't selected, only this shape will be moved
-
-    const positions = new Map<string, { x: number; y: number }>();
-    currentSelectedIds.forEach((id: string) => {
-      const shape = shapes.find((s: Shape) => s.id === id);
-      if (shape) {
-        positions.set(id, { x: shape.x, y: shape.y });
-      }
-    });
-    setInitialShapePositions(positions);
-  };
-
-  const handleShapeDragMove = (shapeId: string, e: any) => {
-    if (!isDragging || !dragStart || draggedShapeId !== shapeId) {
-      return;
-    }
-
-    // Calculate the delta from the initial drag position
-    const deltaX = e.target.x() - dragStart.x;
-    const deltaY = e.target.y() - dragStart.y;
-
-    // Update all shapes that were selected when drag started (excluding the dragged shape itself)
-    initialShapePositions.forEach((initialPos, id) => {
-      if (id !== shapeId) {
-        updateShape(id, {
-          x: initialPos.x + deltaX,
-          y: initialPos.y + deltaY,
-        });
-      }
-    });
-  };
-
-  const handleShapeDragEnd = (shapeId: string, e: any) => {
-    if (!isDragging || !dragStart || draggedShapeId !== shapeId) {
-      return;
-    }
-
-    // Update the dragged shape's position in the store
-    // (Konva updates the shape's visual position, but we need to update our store)
-    updateShape(shapeId, {
-      x: e.target.x(),
-      y: e.target.y(),
-    });
-
-    // The other selected shapes were already updated in handleShapeDragMove
-
-    setIsDragging(false);
-    setDragStart(null);
-    setDraggedShapeId(null);
-    setInitialShapePositions(new Map());
-    saveToHistory();
-  };
-
   return {
     // Shape handlers
     handleShapeClick,
     handleStageClick,
-    handleContextMenu,
     handleShapeDragStart,
     handleShapeDragMove,
     handleShapeDragEnd,
 
-    // Selection rectangle handlers
+    // Stage handlers (mode-aware)
     handleStageMouseDown,
     handleStageMouseMove,
     handleStageMouseUp,
 
-    // Selection rectangle state
+    // State
     selectionRect,
     isSelecting,
+    previewShape,
+    isDrawing,
+    currentTool,
 
     // Refs
     stageRef,

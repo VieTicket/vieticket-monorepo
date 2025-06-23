@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
-import { Star, Ticket } from "lucide-react";
+import { Star, Ticket, UserIcon } from "lucide-react";
 import Link from "next/link";
 import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
@@ -59,7 +59,11 @@ export default function Header() {
             <Star className="w-5 h-5" />
             <span>Interested</span>
           </div>
-          <div className="flex flex-col items-center relative group cursor-pointer">
+          <div className="flex flex-col group items-center relative cursor-pointer">
+            <div className="flex flex-col items-center ">
+              <UserIcon className="w-5 h-5" />
+              <span>Profile</span>
+            </div>
             <ProfileDropdown />
           </div>
         </div>
