@@ -1,5 +1,4 @@
-// shape-renderer.tsx - Fix selection styling and key issues
-import { Rect, Circle, Line, Text, Group } from "react-konva";
+import { Circle, Group, Line, Rect, Text } from "react-konva";
 import { Shape } from "@/types/seat-map-types";
 
 export interface ShapeProps {
@@ -8,13 +7,15 @@ export interface ShapeProps {
   commonProps: any;
 }
 
+// shape-renderer.tsx - Alternative approach with Group-level events
 export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
   const { id, key, ...restProps } = commonProps;
 
-  // Optimize: Only apply expensive effects when actually selected
+  // Apply events to the Group, not individual shapes
   const groupProps = {
     ...restProps,
-    // Move shadow to shape level, not group level
+    // Ensure the group can receive events
+    listening: true,
   };
 
   switch (shape.type) {
@@ -32,7 +33,6 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
             strokeWidth={isSelected ? 2 : shape.strokeWidth || 1}
             dash={isSelected ? [5, 5] : shape.dash || []}
             opacity={shape.opacity}
-            // Apply shadow here for better performance
             shadowColor={isSelected ? "blue" : undefined}
             shadowBlur={isSelected ? 10 : 0}
             shadowOpacity={isSelected ? 0.6 : 0}
@@ -40,7 +40,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
           {shape.name && (
             <Text
               text={shape.name}
-              fontSize={14} // Smaller font for performance
+              fontSize={14}
               fontFamily={"Arial"}
               x={shape.width / 2}
               y={shape.height / 2}
@@ -48,12 +48,13 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
               offsetY={7}
               fill={"black"}
               listening={false}
-              perfectDrawEnabled={false} // Performance optimization
+              perfectDrawEnabled={false}
             />
           )}
         </Group>
       );
 
+    // Similar for other shape types...
     case "circle":
       return (
         <Group key={key} {...groupProps}>
@@ -91,8 +92,8 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
       return (
         <Group key={key} {...groupProps}>
           <Line
-            x={0} // Relative to group
-            y={0} // Relative to group
+            x={0}
+            y={0}
             points={shape.points}
             closed={shape.closed}
             fill={shape.fill}
@@ -101,11 +102,10 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
             dash={isSelected ? [5, 5] : shape.dash || []}
             opacity={shape.opacity}
           />
-
           {shape.name && (
             <Text
-              x={getPolygonCenter(shape.points).x} // Center relative to polygon
-              y={getPolygonCenter(shape.points).y} // Center relative to polygon
+              x={getPolygonCenter(shape.points).x}
+              y={getPolygonCenter(shape.points).y}
               text={shape.name}
               fontSize={12}
               fill="#000"
@@ -124,7 +124,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
         <Text
           key={key}
           {...restProps}
-          text={shape.text}
+          text={shape.name || "New Text"}
           fontSize={shape.fontSize || 16}
           fontFamily={shape.fontFamily || "Arial"}
           fontStyle={shape.fontStyle || "normal"}
@@ -132,6 +132,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
           fill={shape.fill}
           stroke={isSelected ? "#4A90E2" : shape.stroke}
           strokeWidth={isSelected ? 1 : shape.strokeWidth || 0}
+          listening={true} // Text shapes need to listen since they're not in groups
         />
       );
 

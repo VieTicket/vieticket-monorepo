@@ -1,0 +1,252 @@
+"use client";
+
+import React from "react";
+import { Button } from "../../ui/button";
+import { Input } from "../../ui/input";
+import { Label } from "../../ui/label";
+import { Move3D, RotateCw, Layers } from "lucide-react";
+import { Shape } from "@/types/seat-map-types";
+import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
+import { useCanvasEvents } from "../hooks/useCanvasEvents";
+
+interface TransformControlsProps {
+  selectedShapes: Shape[];
+  updateMultipleShapes: (
+    updates: { id: string; updates: Partial<Shape> }[]
+  ) => void;
+  saveToHistory: () => void;
+}
+
+export const TransformControls: React.FC<TransformControlsProps> = ({
+  selectedShapes,
+  updateMultipleShapes,
+  saveToHistory,
+}) => {
+  const { refreshHitDetection } = useCanvasEvents();
+
+  const editId =
+    selectedShapes.length === 1
+      ? selectedShapes[0].id
+      : `batch-${selectedShapes.map((s) => s.id).join("-")}`;
+
+  const avgRotation =
+    selectedShapes.reduce((sum, s) => sum + (s.rotation || 0), 0) /
+    selectedShapes.length;
+
+  const rotationEdit = useStoreInlineEdit(
+    `${editId}-rotation`,
+    Math.round(avgRotation),
+    (value) => {
+      const updates = selectedShapes.map((shape) => ({
+        id: shape.id,
+        updates: { rotation: parseFloat(value) || 0 },
+      }));
+      updateMultipleShapes(updates);
+      saveToHistory();
+
+      setTimeout(refreshHitDetection, 50);
+    }
+  );
+
+  return (
+    <div className="space-y-4 text-white">
+      {/* Position with Inline Editing */}
+      <div>
+        <Label className="text-xs flex items-center gap-1">
+          <Move3D className="w-3 h-3" />
+          Position
+        </Label>
+
+        {/* Movement Buttons */}
+        <div className="grid grid-cols-2 gap-2 mt-2">
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { x: shape.x - 10 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            ← 10px
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { x: shape.x + 10 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            → 10px
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { y: shape.y - 10 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            ↑ 10px
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { y: shape.y + 10 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            ↓ 10px
+          </Button>
+        </div>
+      </div>
+
+      {/* Rotation with Inline Editing */}
+      <div>
+        <Label className="text-xs flex items-center gap-1">
+          <RotateCw className="w-3 h-3" />
+          Rotation
+        </Label>
+        {rotationEdit.isEditing ? (
+          <Input
+            type="number"
+            value={rotationEdit.editValue}
+            onChange={(e) => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { rotation: (shape.rotation || 0) - 15 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+              setTimeout(refreshHitDetection, 50);
+            }}
+            className="h-8 mt-1"
+            step="1"
+            placeholder="degrees"
+            autoFocus
+            {...rotationEdit.eventHandlers}
+          />
+        ) : (
+          <div
+            className="h-8 mt-1 px-3 py-1 border border-gray-600 rounded-md cursor-pointer hover:border-gray-500 bg-gray-800 flex items-center transition-colors"
+            {...rotationEdit.eventHandlers}
+          >
+            <span className="text-gray-300">{Math.round(avgRotation)}°</span>
+          </div>
+        )}
+
+        {/* Rotation Buttons */}
+        <div className="grid grid-cols-3 gap-2 mt-2">
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { rotation: (shape.rotation || 0) - 15 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            -15°
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { rotation: 0 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            Reset
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { rotation: (shape.rotation || 0) + 15 },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            +15°
+          </Button>
+        </div>
+      </div>
+
+      {/* Alignment */}
+      <div>
+        <Label className="text-xs flex items-center gap-1">
+          <Layers className="w-3 h-3" />
+          Align Shapes
+        </Label>
+        <div className="grid grid-cols-2 gap-2 mt-1">
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const leftmostX = Math.min(...selectedShapes.map((s) => s.x));
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { x: leftmostX },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            Align Left
+          </Button>
+          <Button
+            size="sm"
+            className="border border-white/30"
+            variant="ghost"
+            onClick={() => {
+              const topmostY = Math.min(...selectedShapes.map((s) => s.y));
+              const updates = selectedShapes.map((shape) => ({
+                id: shape.id,
+                updates: { y: topmostY },
+              }));
+              updateMultipleShapes(updates);
+              saveToHistory();
+            }}
+          >
+            Align Top
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+};

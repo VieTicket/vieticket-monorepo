@@ -200,7 +200,6 @@ export const createShapesSlice: StateCreator<
     set({
       isEditing: true,
       editingShapeId: shapeId,
-      selectedShapeIds: [shapeId], // Auto-select the shape being edited
     });
   },
 

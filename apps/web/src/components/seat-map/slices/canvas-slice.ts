@@ -17,6 +17,12 @@ export interface CanvasSlice {
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+
+  updateMultipleShapes: (
+    updates: Array<{ id: string; updates: Record<string, any> }>
+  ) => void;
+  duplicateShapes: () => void;
+  deleteShapes: (shapeIds: string[]) => void;
 }
 
 export const createCanvasSlice: StateCreator<
@@ -78,5 +84,39 @@ export const createCanvasSlice: StateCreator<
   zoomOut: () => {
     const { zoom } = get();
     set({ zoom: Math.max(0.1, zoom / 1.2) });
+  },
+
+  updateMultipleShapes: (updates) => {
+    set((state) => ({
+      shapes: state.shapes.map((shape) => {
+        const update = updates.find((u) => u.id === shape.id);
+        return update ? { ...shape, ...update.updates } : shape;
+      }),
+    }));
+  },
+
+  duplicateShapes: () => {
+    const state = get();
+    const shapesToDuplicate = state.shapes.filter((s) =>
+      state.selectedShapeIds.includes(s.id)
+    );
+    const newShapes = shapesToDuplicate.map((shape) => ({
+      ...shape,
+      id: `shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      x: shape.x + 20,
+      y: shape.y + 20,
+    }));
+
+    set((state) => ({
+      shapes: [...state.shapes, ...newShapes],
+      selectedShapeIds: newShapes.map((s) => s.id),
+    }));
+  },
+
+  deleteShapes: (shapeIds) => {
+    set((state) => ({
+      shapes: state.shapes.filter((s) => !shapeIds.includes(s.id)),
+      selectedShapeIds: [],
+    }));
   },
 });

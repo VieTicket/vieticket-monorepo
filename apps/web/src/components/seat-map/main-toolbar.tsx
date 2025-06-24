@@ -44,6 +44,7 @@ export default function MainToolbar() {
     zoomIn,
     zoomOut,
     zoom,
+    duplicateShapes,
   } = useCanvasStore();
 
   const { centerCanvas } = usePanZoom();
@@ -113,6 +114,9 @@ export default function MainToolbar() {
         </Button>
         <Button onClick={deleteSelectedShapes} variant="ghost" size="icon">
           <Trash2 className="w-5 h-5" />
+        </Button>
+        <Button onClick={duplicateShapes} variant="ghost" size="icon">
+          <Save className="w-5 h-5" />
         </Button>
       </div>
 

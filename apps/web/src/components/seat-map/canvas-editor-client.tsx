@@ -11,7 +11,6 @@ import { buildShapeProps } from "./utils/shape-props-builder";
 import { useKeyMap } from "./hooks/useKeyMap";
 
 export default function CanvasEditorClient() {
-  const stageRef = useRef(null);
   const hasInitialized = useRef(false);
 
   const {
@@ -26,6 +25,8 @@ export default function CanvasEditorClient() {
 
   const eventHandlers = useCanvasEvents();
   const panZoomHandlers = usePanZoom();
+
+  const { stageRef } = eventHandlers;
 
   const { isInitialLoad } = useCanvasResize();
 

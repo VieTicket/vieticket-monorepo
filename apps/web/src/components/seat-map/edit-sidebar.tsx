@@ -1,751 +1,516 @@
 "use client";
 
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useCanvasStore } from "./store/main-store";
-import { Input } from "../ui/input";
 import { Button } from "../ui/button";
-import { Label } from "../ui/label";
-import { Slider } from "../ui/slider";
-import { Separator } from "../ui/separator";
 import { Badge } from "../ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "../ui/select";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
-import {
-  Edit3,
-  Save,
-  X,
-  Eye,
-  EyeOff,
-  ArrowUp,
-  ArrowDown,
-  Copy,
-  Trash2,
-  Palette,
-  Move3D,
-  RotateCw,
-} from "lucide-react";
+import { Card, CardContent } from "../ui/card";
+import { Label } from "../ui/label";
+import { Copy, Trash2, Settings } from "lucide-react";
+
+// Import the separated control components
+import { StyleControls } from "./edit-sidebar/style-controls";
+import { TextControls } from "./edit-sidebar/text-controls";
+import { TransformControls } from "./edit-sidebar/transform-controls";
+import { SingleShapeEditor } from "./edit-sidebar/single-shape-editor";
+
+// FIXED: Better utility function for safe property access
+const safeGetProperty = (
+  obj: any,
+  property: string,
+  defaultValue: any
+): any => {
+  if (!obj || typeof obj !== "object") return defaultValue;
+
+  try {
+    const value = obj[property];
+    return value !== undefined && value !== null ? value : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+};
+
+// Type guards
+const isRectShape = (shape: any): boolean => shape?.type === "rect";
+const isCircleShape = (shape: any): boolean => shape?.type === "circle";
+const isTextShape = (shape: any): boolean => shape?.type === "text";
 
 export default function EditSidebar() {
   const {
     selectedShapeIds,
     shapes,
     updateShape,
-    isEditing,
-    editingShapeId,
-    startEditing,
-    stopEditing,
+    updateMultipleShapes,
     saveToHistory,
   } = useCanvasStore();
 
-  const [tempValues, setTempValues] = useState<Record<string, any>>({});
-  const inputRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  const [batchValues, setBatchValues] = useState<Record<string, any>>({});
+  const [activeTab, setActiveTab] = useState<
+    "props" | "style" | "text" | "transform"
+  >("style");
 
-  const selectedShapes = shapes.filter((shape) =>
-    selectedShapeIds.includes(shape.id)
-  );
+  const selectedShapes = useMemo(() => {
+    return shapes.filter((shape) => selectedShapeIds.includes(shape.id));
+  }, [shapes, selectedShapeIds]);
 
-  // Reset temp values when selection changes
+  const singleShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
+
+  // FIXED: Only calculate batch values for multiple shapes
   useEffect(() => {
-    if (selectedShapes.length === 1) {
-      const shape = selectedShapes[0];
-      setTempValues({
-        id: shape.id,
-        type: shape.type,
-        x: shape.x ?? 0,
-        y: shape.y ?? 0,
-        rotation: shape.rotation ?? 0,
-        fill: shape.fill ?? "#ffffff",
-        stroke: shape.stroke ?? "#000000",
-        strokeWidth: shape.strokeWidth ?? 1,
-        opacity: shape.opacity ?? 1,
-        visible: shape.visible ?? true,
-        name: shape.name ?? "",
-        // Add shape-specific properties with defaults
-        ...(shape.type === "rect" && {
-          width: shape.width ?? 100,
-          height: shape.height ?? 60,
-          cornerRadius: shape.cornerRadius ?? 0,
-        }),
-        ...(shape.type === "circle" && {
-          radius: shape.radius ?? 50,
-        }),
-        ...(shape.type === "text" && {
-          text: shape.text ?? "Text",
-          fontSize: shape.fontSize ?? 16,
-          width: shape.width ?? 100,
-          align: shape.align ?? "left",
-        }),
-        ...(shape.type === "polygon" && {
-          points: shape.points ?? [],
-          closed: shape.closed ?? true,
-        }),
-      });
-    } else {
-      setTempValues({});
-    }
-  }, [selectedShapeIds, shapes]);
+    if (selectedShapes.length > 1) {
+      const calculateCommonValues = () => {
+        const commonValues: Record<string, any> = {};
 
-  const handleStartEdit = (shapeId: string) => {
-    const shape = shapes.find((s) => s.id === shapeId);
-    if (shape) {
-      // Set up temp values before starting edit
-      setTempValues({
-        id: shape.id,
-        type: shape.type,
-        x: shape.x ?? 0,
-        y: shape.y ?? 0,
-        rotation: shape.rotation ?? 0,
-        fill: shape.fill ?? "#ffffff",
-        stroke: shape.stroke ?? "#000000",
-        strokeWidth: shape.strokeWidth ?? 1,
-        opacity: shape.opacity ?? 1,
-        visible: shape.visible ?? true,
-        name: shape.name ?? "",
-        // Add shape-specific properties with defaults
-        ...(shape.type === "rect" && {
-          width: shape.width ?? 100,
-          height: shape.height ?? 60,
-          cornerRadius: shape.cornerRadius ?? 0,
-        }),
-        ...(shape.type === "circle" && {
-          radius: shape.radius ?? 50,
-        }),
-        ...(shape.type === "text" && {
-          text: shape.text ?? "Text",
-          fontSize: shape.fontSize ?? 16,
-          width: shape.width ?? 100,
-          align: shape.align ?? "left",
-        }),
-        ...(shape.type === "polygon" && {
-          points: shape.points ?? [],
-          closed: shape.closed ?? true,
-        }),
-      });
-    }
-    startEditing(shapeId);
-  };
-
-  const createInputHandlers = (shapeId: string, fieldKey: string) => ({
-    onClick: (e: React.MouseEvent) => {
-      if (!isEditing || editingShapeId !== shapeId) {
-        handleStartEdit(shapeId);
-      }
-      e.stopPropagation();
-    },
-
-    onFocus: (e: React.FocusEvent) => {
-      if (!isEditing || editingShapeId !== shapeId) {
-        handleStartEdit(shapeId);
-      }
-      e.stopPropagation();
-    },
-
-    onBlur: (e: React.FocusEvent) => {
-      // Delay to allow other events to process first
-      setTimeout(() => {
-        if (isEditing && editingShapeId === shapeId) {
-          handleSaveEdit();
-        }
-      }, 100);
-      e.stopPropagation();
-    },
-
-    onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === "Enter") {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Blur the input first, then save
-        if (e.target instanceof HTMLInputElement) {
-          e.target.blur();
+        // Check for common fill color
+        const fills = selectedShapes.map((s) => s.fill).filter(Boolean);
+        if (fills.length > 0 && fills.every((f) => f === fills[0])) {
+          commonValues.fill = fills[0];
         }
 
-        setTimeout(() => {
-          if (isEditing && editingShapeId === shapeId) {
-            handleSaveEdit();
+        // Check for common stroke color
+        const strokes = selectedShapes.map((s) => s.stroke).filter(Boolean);
+        if (strokes.length > 0 && strokes.every((s) => s === strokes[0])) {
+          commonValues.stroke = strokes[0];
+        }
+
+        // Check for common stroke width
+        const strokeWidths = selectedShapes.map((s) => s.strokeWidth || 1);
+        if (strokeWidths.every((w) => w === strokeWidths[0])) {
+          commonValues.strokeWidth = strokeWidths[0];
+        }
+
+        // Check for common opacity
+        const opacities = selectedShapes.map((s) => s.opacity ?? 1);
+        if (opacities.every((o) => o === opacities[0])) {
+          commonValues.opacity = opacities[0];
+        }
+
+        // Check for common corner radius (for rects)
+        const rectShapes = selectedShapes.filter(isRectShape);
+        if (rectShapes.length > 0) {
+          const radii = rectShapes.map((s) =>
+            safeGetProperty(s, "cornerRadius", 0)
+          );
+          if (radii.every((r) => r === radii[0])) {
+            commonValues.cornerRadius = radii[0];
           }
-        }, 0);
-      } else if (e.key === "Escape") {
-        e.preventDefault();
-        e.stopPropagation();
-
-        // Blur the input first, then cancel
-        if (e.target instanceof HTMLInputElement) {
-          e.target.blur();
         }
 
-        setTimeout(() => {
-          handleCancelEdit();
-        }, 0);
-      }
-    },
+        // Check for common radius (for circles)
+        const circleShapes = selectedShapes.filter(isCircleShape);
+        if (circleShapes.length > 0) {
+          const radii = circleShapes.map((s) =>
+            safeGetProperty(s, "radius", 50)
+          );
+          if (radii.every((r) => r === radii[0])) {
+            commonValues.radius = radii[0];
+          }
+        }
 
-    onChange: (value: any) => {
-      const isEditingThis = isEditing && editingShapeId === shapeId;
-      if (isEditingThis) {
-        handleTempValueChange(fieldKey, value);
-      } else {
-        handleStartEdit(shapeId);
-        setTimeout(() => {
-          handleTempValueChange(fieldKey, value);
-        }, 0);
-      }
-    },
-  });
-  const handleSaveEdit = useCallback(() => {
-    if (editingShapeId && tempValues) {
-      const shape = shapes.find((s) => s.id === editingShapeId);
-      if (shape) {
-        const updates: Record<string, any> = {};
-        Object.keys(tempValues).forEach((key) => {
+        // Check for common text properties
+        const textShapes = selectedShapes.filter(isTextShape);
+        if (textShapes.length > 0) {
+          const fontSizes = textShapes.map((s) =>
+            safeGetProperty(s, "fontSize", 16)
+          );
+          if (fontSizes.every((f) => f === fontSizes[0])) {
+            commonValues.fontSize = fontSizes[0];
+          }
+
+          const textFills = textShapes.map((s) => s.fill).filter(Boolean);
           if (
-            key !== "id" &&
-            key !== "type" &&
-            tempValues[key] !== (shape as any)[key]
+            textFills.length > 0 &&
+            textFills.every((f) => f === textFills[0])
           ) {
-            updates[key] = tempValues[key];
+            commonValues.textFill = textFills[0];
           }
-        });
 
-        if (Object.keys(updates).length > 0) {
-          updateShape(editingShapeId, updates);
+          const fontFamilies = textShapes.map((s) =>
+            safeGetProperty(s, "fontFamily", "Arial")
+          );
+          if (fontFamilies.every((f) => f === fontFamilies[0])) {
+            commonValues.fontFamily = fontFamilies[0];
+          }
+
+          const aligns = textShapes.map((s) =>
+            safeGetProperty(s, "align", "left")
+          );
+          if (aligns.every((a) => a === aligns[0])) {
+            commonValues.align = aligns[0];
+          }
+        }
+
+        return commonValues;
+      };
+
+      const newCommonValues = calculateCommonValues();
+      setBatchValues(newCommonValues);
+    } else {
+      // FIXED: Clear batch values for single shape
+      setBatchValues({});
+    }
+  }, [selectedShapes]);
+
+  // FIXED: Handle batch updates for multiple shapes only
+  const handleBatchChange = useCallback(
+    (key: string, value: any) => {
+      // FIXED: Validate value before processing
+      if (value === undefined || value === null || value === "") {
+        return; // Don't process invalid values
+      }
+
+      setBatchValues((prev) => ({ ...prev, [key]: value }));
+
+      // Handle special cases for specific shape types
+      if (key === "textFill") {
+        const textShapeIds = selectedShapes
+          .filter(isTextShape)
+          .map((s) => s.id);
+
+        if (textShapeIds.length > 0) {
+          const shapeUpdates = textShapeIds.map((id) => ({
+            id,
+            updates: { fill: value },
+          }));
+          updateMultipleShapes(shapeUpdates);
           saveToHistory();
         }
+      } else if (key === "cornerRadius") {
+        const rectShapeIds = selectedShapes
+          .filter(isRectShape)
+          .map((s) => s.id);
+
+        if (rectShapeIds.length > 0) {
+          const shapeUpdates = rectShapeIds.map((id) => ({
+            id,
+            updates: { cornerRadius: value },
+          }));
+          updateMultipleShapes(shapeUpdates);
+          saveToHistory();
+        }
+      } else if (key === "radius") {
+        const circleShapeIds = selectedShapes
+          .filter(isCircleShape)
+          .map((s) => s.id);
+
+        if (circleShapeIds.length > 0) {
+          const shapeUpdates = circleShapeIds.map((id) => ({
+            id,
+            updates: { radius: value },
+          }));
+          updateMultipleShapes(shapeUpdates);
+          saveToHistory();
+        }
+      } else if (
+        key === "fontSize" ||
+        key === "fontFamily" ||
+        key === "align"
+      ) {
+        const textShapeIds = selectedShapes
+          .filter(isTextShape)
+          .map((s) => s.id);
+
+        if (textShapeIds.length > 0) {
+          const shapeUpdates = textShapeIds.map((id) => ({
+            id,
+            updates: { [key]: value },
+          }));
+          updateMultipleShapes(shapeUpdates);
+          saveToHistory();
+        }
+      } else {
+        // Apply to all selected shapes
+        const shapeUpdates = selectedShapeIds.map((id) => ({
+          id,
+          updates: { [key]: value },
+        }));
+        updateMultipleShapes(shapeUpdates);
+        saveToHistory();
       }
-    }
+    },
+    [selectedShapes, selectedShapeIds, updateMultipleShapes, saveToHistory]
+  );
 
-    // Clear any focused input
-    if (document.activeElement instanceof HTMLInputElement) {
-      document.activeElement.blur();
-    }
-
-    stopEditing();
-  }, [
-    editingShapeId,
-    tempValues,
-    shapes,
-    updateShape,
-    saveToHistory,
-    stopEditing,
-  ]);
-
-  const handleCancelEdit = () => {
-    stopEditing();
-    // Reset temp values to original
-    if (editingShapeId) {
-      const shape = shapes.find((s) => s.id === editingShapeId);
-      if (shape) {
-        setTempValues({
-          id: shape.id,
-          type: shape.type,
-          x: shape.x ?? 0,
-          y: shape.y ?? 0,
-          rotation: shape.rotation ?? 0,
-          fill: shape.fill ?? "#ffffff",
-          stroke: shape.stroke ?? "#000000",
-          strokeWidth: shape.strokeWidth ?? 1,
-          opacity: shape.opacity ?? 1,
-          visible: shape.visible ?? true,
-          name: shape.name ?? "",
-          // Reset shape-specific properties
-          ...(shape.type === "rect" && {
-            width: shape.width ?? 100,
-            height: shape.height ?? 60,
-            cornerRadius: shape.cornerRadius ?? 0,
-          }),
-          ...(shape.type === "circle" && {
-            radius: shape.radius ?? 50,
-          }),
-          ...(shape.type === "text" && {
-            text: shape.text ?? "Text",
-            fontSize: shape.fontSize ?? 16,
-            width: shape.width ?? 100,
-            align: shape.align ?? "left",
-          }),
-          ...(shape.type === "polygon" && {
-            points: shape.points ?? [],
-            closed: shape.closed ?? true,
-          }),
-        });
-      }
-    }
-  };
-
-  const handleTempValueChange = (key: string, value: any) => {
-    setTempValues((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
-  };
-
-  // Handle immediate updates for non-editing mode
-  const handleImmediateUpdate = (shapeId: string, key: string, value: any) => {
-    updateShape(shapeId, { [key]: value });
-    saveToHistory();
-  };
-
-  const handleToggleVisibility = (shapeId: string, visible: boolean) => {
-    handleImmediateUpdate(shapeId, "visible", !visible);
-  };
-
-  const renderShapeSpecificControls = (shape: any, isEditingThis: boolean) => {
-    const getValue = (key: string, defaultValue: any = "") => {
-      const value = isEditingThis ? tempValues[key] : shape[key];
-      return value !== undefined && value !== null ? value : defaultValue;
-    };
-
-    const handlers = createInputHandlers(shape.id, "");
-
-    switch (shape.type) {
-      case "rect":
-        return (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Width</Label>
-                <Input
-                  ref={(el) => {
-                    inputRefs.current[`${shape.id}-width`] = el;
-                  }}
-                  type="number"
-                  value={getValue("width", 0)}
-                  {...createInputHandlers(shape.id, "width")}
-                  onChange={(e) =>
-                    createInputHandlers(shape.id, "width").onChange(
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                  className="h-8"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Height</Label>
-                <Input
-                  ref={(el) => {
-                    inputRefs.current[`${shape.id}-height`] = el;
-                  }}
-                  type="number"
-                  value={getValue("height", 0)}
-                  {...createInputHandlers(shape.id, "height")}
-                  onChange={(e) =>
-                    createInputHandlers(shape.id, "height").onChange(
-                      parseFloat(e.target.value) || 0
-                    )
-                  }
-                  className="h-8"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Corner Radius</Label>
-              <Input
-                ref={(el) => {
-                  inputRefs.current[`${shape.id}-cornerRadius`] = el;
-                }}
-                type="number"
-                value={getValue("cornerRadius", 0)}
-                {...createInputHandlers(shape.id, "cornerRadius")}
-                onChange={(e) =>
-                  createInputHandlers(shape.id, "cornerRadius").onChange(
-                    parseFloat(e.target.value) || 0
-                  )
-                }
-                className="h-8"
-              />
-            </div>
-          </div>
-        );
-
-      case "circle":
-        return (
-          <div>
-            <Label className="text-xs">Radius</Label>
-            <Input
-              ref={(el) => {
-                inputRefs.current[`${shape.id}-radius`] = el;
-              }}
-              type="number"
-              value={getValue("radius", 0)}
-              {...createInputHandlers(shape.id, "radius")}
-              onChange={(e) =>
-                createInputHandlers(shape.id, "radius").onChange(
-                  parseFloat(e.target.value) || 0
-                )
+  // FIXED: Handle single shape updates with validation
+  const handleSingleShapeUpdate = useCallback(
+    (updates: Record<string, any>) => {
+      if (singleShape) {
+        // FIXED: Validate numeric values
+        const validatedUpdates = Object.entries(updates).reduce(
+          (acc, [key, value]) => {
+            if (
+              typeof value === "string" &&
+              [
+                "x",
+                "y",
+                "strokeWidth",
+                "opacity",
+                "cornerRadius",
+                "radius",
+                "fontSize",
+                "rotation",
+              ].includes(key)
+            ) {
+              const numValue = parseFloat(value);
+              if (!isNaN(numValue)) {
+                acc[key] = numValue;
               }
-              className="h-8"
-            />
-          </div>
+            } else if (value !== undefined && value !== null && value !== "") {
+              acc[key] = value;
+            }
+            return acc;
+          },
+          {} as Record<string, any>
         );
 
-      case "text":
-        return (
-          <div className="space-y-3">
-            <div>
-              <Label className="text-xs">Text</Label>
-              <Input
-                ref={(el) => {
-                  inputRefs.current[`${shape.id}-text`] = el;
-                }}
-                value={getValue("text", "")}
-                {...createInputHandlers(shape.id, "text")}
-                onChange={(e) =>
-                  createInputHandlers(shape.id, "text").onChange(e.target.value)
-                }
-                className="h-8"
-                placeholder="Enter text..."
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Font Size</Label>
-                <Input
-                  ref={(el) => {
-                    inputRefs.current[`${shape.id}-fontSize`] = el;
-                  }}
-                  type="number"
-                  value={getValue("fontSize", 16)}
-                  {...createInputHandlers(shape.id, "fontSize")}
-                  onChange={(e) =>
-                    createInputHandlers(shape.id, "fontSize").onChange(
-                      parseFloat(e.target.value) || 16
-                    )
-                  }
-                  className="h-8"
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Width</Label>
-                <Input
-                  ref={(el) => {
-                    inputRefs.current[`${shape.id}-width`] = el;
-                  }}
-                  type="number"
-                  value={getValue("width", 100)}
-                  {...createInputHandlers(shape.id, "width")}
-                  onChange={(e) =>
-                    createInputHandlers(shape.id, "width").onChange(
-                      parseFloat(e.target.value) || 100
-                    )
-                  }
-                  className="h-8"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">Alignment</Label>
-              <Select
-                value={getValue("align", "left")}
-                onValueChange={(value) => {
-                  if (!isEditingThis) {
-                    handleStartEdit(shape.id);
-                  }
-                  setTimeout(() => {
-                    handleTempValueChange("align", value);
-                    handleSaveEdit();
-                  }, 0);
-                }}
-              >
-                <SelectTrigger className="h-8">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="left">Left</SelectItem>
-                  <SelectItem value="center">Center</SelectItem>
-                  <SelectItem value="right">Right</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        );
+        if (Object.keys(validatedUpdates).length > 0) {
+          updateShape(singleShape.id, validatedUpdates);
+        }
+      }
+    },
+    [singleShape, updateShape]
+  );
 
-      case "polygon":
-        return (
-          <div>
-            <Label className="text-xs">Points (Advanced)</Label>
-            <div className="text-xs text-gray-400 mt-1">
-              {getValue("points", []).length || 0} points
-            </div>
-          </div>
-        );
+  // Shape type summary for multi-selection
+  const shapeTypeSummary = useMemo(() => {
+    return Object.entries(
+      selectedShapes.reduce(
+        (acc, shape) => {
+          acc[shape.type] = (acc[shape.type] || 0) + 1;
+          return acc;
+        },
+        {} as Record<string, number>
+      )
+    );
+  }, [selectedShapes]);
 
-      default:
-        return null;
-    }
-  };
-
-  // Update the basic properties section with reusable handlers
-  const renderBasicProperties = (shape: any, isEditingThis: boolean) => {
-    const getValue = (key: string, defaultValue: any = "") => {
-      const value = isEditingThis ? tempValues[key] : shape[key];
-      return value !== undefined && value !== null ? value : defaultValue;
-    };
-
+  // No selection state
+  if (selectedShapeIds.length === 0) {
     return (
-      <div className="space-y-3">
-        <div>
-          <Label className="text-xs flex items-center gap-1">
-            <Move3D className="w-3 h-3" />
-            Position
-          </Label>
-          <div className="grid grid-cols-2 gap-2 mt-1">
-            <Input
-              ref={(el) => {
-                inputRefs.current[`${shape.id}-x`] = el;
-              }}
-              type="number"
-              value={getValue("x", 0)}
-              {...createInputHandlers(shape.id, "x")}
-              onChange={(e) =>
-                createInputHandlers(shape.id, "x").onChange(
-                  parseFloat(e.target.value) || 0
-                )
-              }
-              className="h-8"
-              placeholder="X"
-            />
-            <Input
-              ref={(el) => {
-                inputRefs.current[`${shape.id}-y`] = el;
-              }}
-              type="number"
-              value={getValue("y", 0)}
-              {...createInputHandlers(shape.id, "y")}
-              onChange={(e) =>
-                createInputHandlers(shape.id, "y").onChange(
-                  parseFloat(e.target.value) || 0
-                )
-              }
-              className="h-8"
-              placeholder="Y"
-            />
-          </div>
+      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Properties</h2>
+          <Badge variant="secondary" className="text-xs">
+            0 selected
+          </Badge>
         </div>
-
-        <div>
-          <Label className="text-xs flex items-center gap-1">
-            <RotateCw className="w-3 h-3" />
-            Rotation
-          </Label>
-          <Input
-            ref={(el) => {
-              inputRefs.current[`${shape.id}-rotation`] = el;
-            }}
-            type="number"
-            value={getValue("rotation", 0)}
-            {...createInputHandlers(shape.id, "rotation")}
-            onChange={(e) =>
-              createInputHandlers(shape.id, "rotation").onChange(
-                parseFloat(e.target.value) || 0
-              )
-            }
-            className="h-8"
-            placeholder="Degrees"
-          />
-        </div>
-
-        <div>
-          <Label className="text-xs flex items-center gap-1">
-            <Palette className="w-3 h-3" />
-            Colors
-          </Label>
-          <div className="grid grid-cols-2 gap-2 mt-1">
-            <div>
-              <Input
-                ref={(el) => {
-                  inputRefs.current[`${shape.id}-fill`] = el;
-                }}
-                type="color"
-                value={getValue("fill", "#ffffff")}
-                {...createInputHandlers(shape.id, "fill")}
-                onChange={(e) =>
-                  createInputHandlers(shape.id, "fill").onChange(e.target.value)
-                }
-                className="h-8"
-                title="Fill Color"
-              />
-            </div>
-            <div>
-              <Input
-                ref={(el) => {
-                  inputRefs.current[`${shape.id}-stroke`] = el;
-                }}
-                type="color"
-                value={getValue("stroke", "#000000")}
-                {...createInputHandlers(shape.id, "stroke")}
-                onChange={(e) =>
-                  createInputHandlers(shape.id, "stroke").onChange(
-                    e.target.value
-                  )
-                }
-                className="h-8"
-                title="Stroke Color"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <Label className="text-xs">Stroke Width</Label>
-          <Input
-            ref={(el) => {
-              inputRefs.current[`${shape.id}-strokeWidth`] = el;
-            }}
-            type="number"
-            min="0"
-            max="10"
-            step="0.5"
-            value={getValue("strokeWidth", 1)}
-            {...createInputHandlers(shape.id, "strokeWidth")}
-            onChange={(e) =>
-              createInputHandlers(shape.id, "strokeWidth").onChange(
-                parseFloat(e.target.value) || 1
-              )
-            }
-            className="h-8"
-          />
-        </div>
-
-        <div>
-          <Label className="text-xs">Opacity</Label>
-          <Input
-            ref={(el) => {
-              inputRefs.current[`${shape.id}-opacity`] = el;
-            }}
-            type="number"
-            min="0"
-            max="1"
-            step="0.01"
-            value={getValue("opacity", 0)}
-            {...createInputHandlers(shape.id, "opacity")}
-            onChange={(e) =>
-              createInputHandlers(shape.id, "opacity").onChange(
-                parseFloat(e.target.value) || 1
-              )
-            }
-            className="h-8"
-          />
+        <div className="text-center text-gray-400 py-8">
+          <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
+          <p className="text-sm">Select shapes to edit properties</p>
         </div>
       </div>
     );
-  };
+  }
 
-  // Update the CardContent section
+  // FIXED: Single shape editing - prevent switching to batch mode
+  if (singleShape) {
+    return (
+      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Edit Shape</h2>
+          <Badge variant="secondary" className="text-xs">
+            1 selected
+          </Badge>
+        </div>
+
+        {/* Tabs for single shape */}
+        <div className="flex border-b border-gray-700 mb-4">
+          <button
+            className={`flex-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors ${
+              activeTab === "props"
+                ? "border-blue-400 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveTab("props")}
+          >
+            Props
+          </button>
+          <button
+            className={`flex-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors ${
+              activeTab === "style"
+                ? "border-blue-400 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveTab("style")}
+          >
+            Style
+          </button>
+          <button
+            className={`flex-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors ${
+              activeTab === "text"
+                ? "border-blue-400 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveTab("text")}
+          >
+            Text
+          </button>
+          <button
+            className={`flex-1 px-2 py-2 text-xs font-medium border-b-2 transition-colors ${
+              activeTab === "transform"
+                ? "border-blue-400 text-blue-400"
+                : "border-transparent text-gray-400 hover:text-gray-300"
+            }`}
+            onClick={() => setActiveTab("transform")}
+          >
+            Transform
+          </button>
+        </div>
+
+        {/* Tab Content for single shape */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            {activeTab === "props" && (
+              <SingleShapeEditor
+                shape={singleShape}
+                onUpdate={handleSingleShapeUpdate}
+                onSave={saveToHistory}
+              />
+            )}
+            {activeTab === "style" && (
+              <StyleControls
+                selectedShapes={[singleShape]}
+                batchValues={{
+                  fill: singleShape.fill,
+                  stroke: singleShape.stroke,
+                  strokeWidth: singleShape.strokeWidth || 1,
+                  opacity: singleShape.opacity ?? 1,
+                  // FIXED: Safe property access with proper fallbacks
+                  ...(isRectShape(singleShape) && {
+                    cornerRadius: safeGetProperty(
+                      singleShape,
+                      "cornerRadius",
+                      0
+                    ),
+                  }),
+                  ...(isCircleShape(singleShape) && {
+                    radius: safeGetProperty(singleShape, "radius", 50),
+                  }),
+                }}
+                onBatchChange={(key, value) => {
+                  handleSingleShapeUpdate({ [key]: value });
+                  saveToHistory();
+                }}
+              />
+            )}
+            {activeTab === "text" && (
+              <TextControls
+                selectedShapes={[singleShape]}
+                batchValues={{
+                  textFill: singleShape.fill,
+                  fontSize: safeGetProperty(singleShape, "fontSize", 16),
+                  fontFamily: safeGetProperty(
+                    singleShape,
+                    "fontFamily",
+                    "Arial"
+                  ),
+                  align: safeGetProperty(singleShape, "align", "left"),
+                }}
+                onBatchChange={(key, value) => {
+                  const updateKey = key === "textFill" ? "fill" : key;
+                  handleSingleShapeUpdate({ [updateKey]: value });
+                  saveToHistory();
+                }}
+              />
+            )}
+            {activeTab === "transform" && (
+              <TransformControls
+                selectedShapes={[singleShape]}
+                updateMultipleShapes={(updates) => {
+                  if (updates.length > 0) {
+                    handleSingleShapeUpdate(updates[0].updates);
+                  }
+                }}
+                saveToHistory={saveToHistory}
+              />
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold">Properties</h2>
+        <h2 className="text-lg font-semibold">Batch Edit</h2>
         <Badge variant="secondary" className="text-xs">
           {selectedShapeIds.length} selected
         </Badge>
       </div>
 
-      {selectedShapes.map((shape) => {
-        const isEditingThis = isEditing && editingShapeId === shape.id;
+      {/* Tabs for batch editing */}
+      <div className="flex border-b border-gray-700 mb-4">
+        <button
+          className={`flex-1 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "style"
+              ? "border-blue-400 text-blue-400"
+              : "border-transparent text-gray-400 hover:text-gray-300"
+          }`}
+          onClick={() => setActiveTab("style")}
+        >
+          Style
+        </button>
+        <button
+          className={`flex-1 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "text"
+              ? "border-blue-400 text-blue-400"
+              : "border-transparent text-gray-400 hover:text-gray-300"
+          }`}
+          onClick={() => setActiveTab("text")}
+        >
+          Text
+        </button>
+        <button
+          className={`flex-1 px-3 py-2 text-xs font-medium border-b-2 transition-colors ${
+            activeTab === "transform"
+              ? "border-blue-400 text-blue-400"
+              : "border-transparent text-gray-400 hover:text-gray-300"
+          }`}
+          onClick={() => setActiveTab("transform")}
+        >
+          Transform
+        </button>
+      </div>
 
-        return (
-          <Card key={shape.id} className="mb-4 bg-gray-800 border-gray-700">
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <CardTitle className="text-sm text-gray-200">
-                    <Input
-                      ref={(el) => {
-                        inputRefs.current[`${shape.id}-name`] = el;
-                      }}
-                      type="text"
-                      value={
-                        isEditingThis
-                          ? (tempValues.name ?? "")
-                          : (shape.name ?? "")
-                      }
-                      {...createInputHandlers(shape.id, "name")}
-                      onChange={(e) =>
-                        createInputHandlers(shape.id, "name").onChange(
-                          e.target.value
-                        )
-                      }
-                      className="h-8 w-full transparent border border-gray-800"
-                      placeholder="Shape Name"
-                      disabled={!isEditingThis}
-                    />
-                  </CardTitle>
-                </div>
+      {/* Tab Content for batch editing */}
+      <Card className="bg-gray-800 border-gray-700">
+        <CardContent className="p-4">
+          {activeTab === "style" && (
+            <StyleControls
+              selectedShapes={selectedShapes}
+              batchValues={batchValues}
+              onBatchChange={handleBatchChange}
+            />
+          )}
+          {activeTab === "text" && (
+            <TextControls
+              selectedShapes={selectedShapes}
+              batchValues={batchValues}
+              onBatchChange={handleBatchChange}
+            />
+          )}
+          {activeTab === "transform" && (
+            <TransformControls
+              selectedShapes={selectedShapes}
+              updateMultipleShapes={updateMultipleShapes}
+              saveToHistory={saveToHistory}
+            />
+          )}
+        </CardContent>
+      </Card>
 
-                <div className="flex items-center gap-1 text-gray-200">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() =>
-                      handleToggleVisibility(shape.id, shape.visible !== false)
-                    }
-                    className="h-6 w-6 p-0"
-                  >
-                    {shape.visible !== false ? (
-                      <Eye className="w-3 h-3" />
-                    ) : (
-                      <EyeOff className="w-3 h-3" />
-                    )}
-                  </Button>
-
-                  {!isEditingThis ? (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleStartEdit(shape.id)}
-                      className="h-6 w-6 p-0"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </Button>
-                  ) : (
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleSaveEdit}
-                        className="h-6 w-6 p-0 text-green-400"
-                      >
-                        <Save className="w-3 h-3" />
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={handleCancelEdit}
-                        className="h-6 w-6 p-0 text-red-400"
-                      >
-                        <X className="w-3 h-3" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </CardHeader>
-
-            <CardContent className="px-4 space-y-4 text-gray-200">
-              <Separator className="bg-gray-700" />
-
-              {/* Basic Properties */}
-              {renderBasicProperties(shape, isEditingThis)}
-
-              <Separator className="bg-gray-700" />
-
-              {/* Shape-specific controls */}
-              {renderShapeSpecificControls(shape, isEditingThis)}
-            </CardContent>
-          </Card>
-        );
-      })}
+      {/* Shape Type Summary */}
+      <div className="mt-4">
+        <Label className="text-xs text-gray-400">Selected Shapes</Label>
+        <div className="flex flex-wrap gap-1 mt-1">
+          {shapeTypeSummary.map(([type, count]) => (
+            <Badge key={type} variant="outline" className="text-xs text-white">
+              {count}x {type}
+            </Badge>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

@@ -37,7 +37,7 @@ export const buildShapeProps = (
     scaleY: shape.scaleY || 1,
     visible: shape.visible !== false,
     opacity: shape.opacity ?? 1,
-    draggable: shape.draggable !== false,
+    draggable: true,
     listening: true,
     // Only pass shape-specific event handlers
     onClick: (e: any) => handleShapeClick(shape.id, e),
