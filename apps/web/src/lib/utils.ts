@@ -1,14 +1,13 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-
-const vndFormatter = new Intl.NumberFormat('vi-VN', {
-  style: 'currency',
-  currency: 'VND',
+const vndFormatter = new Intl.NumberFormat("vi-VN", {
+  style: "currency",
+  currency: "VND",
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
 });
@@ -18,11 +17,28 @@ export function formatCurrencyVND(amount: number): string {
 }
 
 export function formatTimeRange(start: Date, end: Date) {
-  const dateOptions = { day: 'numeric', month: 'short', year: 'numeric' } as const;
-  const timeOptions = { hour: 'numeric', minute: '2-digit', hour12: true } as const;
+  const dateOptions = {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  } as const;
+  const timeOptions = {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  } as const;
 
   const dateStr = start.toLocaleDateString("en-US", dateOptions);
   const timeStr = `${start.toLocaleTimeString("en-US", timeOptions)} - ${end.toLocaleTimeString("en-US", timeOptions)}`;
 
   return `${dateStr} | ${timeStr}`;
+}
+
+export function formatDateEn(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long", // e.g., Saturday
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
 }

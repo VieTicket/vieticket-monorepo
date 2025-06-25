@@ -12,7 +12,7 @@ import TiptapEditorInput from "@/components/TiptapEditorInput";
 import {
   PreviewEvent,
   EventPreviewData,
-} from "@/components/CreateEvent/Preview";
+} from "@/components/CreateEvent/preview";
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -135,8 +135,13 @@ export default function CreateEventPage() {
           </div>
         );
       case 3: // Review Step
-        return <PreviewEvent data={formData as EventPreviewData} />;
-
+        return (
+          <div className="bg-gradient-to-br from-[#f4f4f8] to-[#eaeaea] py-0 px-0 w-full">
+            <div className="bg-white shadow-none rounded-none w-full px-4 md:px-8 lg:px-20 py-12">
+              <PreviewEvent data={formData as EventPreviewData} />
+            </div>
+          </div>
+        );
       case 4: // Ticketing Step
         return (
           <div>
@@ -144,7 +149,7 @@ export default function CreateEventPage() {
             <div className="space-y-2">
               <Label>What type of event are you running?</Label>
               <div className="flex space-x-4">
-                <Button variant="outline" className="flex-1">
+                <Button type="button" variant="outline" className="flex-1">
                   Have a SeatMap
                   <br />
                 </Button>
