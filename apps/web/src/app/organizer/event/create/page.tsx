@@ -18,7 +18,7 @@ import { FileUploader } from "@/components/ui/file-uploader";
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
     name: "",
-    type: "", 
+    type: "",
     ticketSaleStart: "",
     ticketSaleEnd: "",
     startTime: "",
@@ -31,6 +31,8 @@ export default function CreateEventPage() {
     ticketPrice: "",
   });
   const [step, setStep] = useState(1);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [errors] = useState<Record<string, string>>({});
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -62,12 +64,21 @@ export default function CreateEventPage() {
 
   // Handle poster upload success
   const handlePosterUpload = (response: any) => {
+    if (response.file) {
+      const tempUrl = URL.createObjectURL(response.file);
+      setPosterPreview(tempUrl); // Preview tạm
+    }
+
     setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
     toast.success("Poster uploaded successfully!");
   };
 
-  // Handle banner upload success
   const handleBannerUpload = (response: any) => {
+    if (response.file) {
+      const tempUrl = URL.createObjectURL(response.file);
+      setBannerPreview(tempUrl); // Preview tạm
+    }
+
     setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
     toast.success("Banner uploaded successfully!");
   };
@@ -97,8 +108,9 @@ export default function CreateEventPage() {
           name={name}
           value={formData[name]}
           onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${errors[name] ? "border-red-500" : ""
-            }`}
+          className={`w-full border rounded px-3 py-2 ${
+            errors[name] ? "border-red-500" : ""
+          }`}
           required={
             name === "name" || name === "location" || name === "description"
           }
@@ -150,8 +162,16 @@ export default function CreateEventPage() {
               <div className="grid grid-cols-2 gap-4">
                 {renderField("startTime", "Start Time", "datetime-local")}
                 {renderField("endTime", "End Time", "datetime-local")}
-                {renderField("ticketSaleStart", "Ticket Sale Start", "datetime-local")}
-                {renderField("ticketSaleEnd", "Ticket Sale End", "datetime-local")}
+                {renderField(
+                  "ticketSaleStart",
+                  "Ticket Sale Start",
+                  "datetime-local"
+                )}
+                {renderField(
+                  "ticketSaleEnd",
+                  "Ticket Sale End",
+                  "datetime-local"
+                )}
               </div>
             </div>
             {renderField("location", "Where will your event take place?")}
@@ -166,44 +186,48 @@ export default function CreateEventPage() {
       case 2: // Banner Step
         return (
           <div className="space-y-6">
-            <h2 className="text-xl font-semibold mb-4">📸 Event Images</h2>
-            
             {/* Poster Upload Section */}
             <div className="space-y-3">
               <Label className="text-base font-medium">
                 Event Poster
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  (Recommended: 400x600px or 2:3 ratio)
+                  (Recommended: 600x800px or 3:4 ratio)
                 </span>
               </Label>
-              {formData.posterUrl ? (
-                <div className="space-y-3">
-                  <div className="relative w-48 h-72 border rounded-lg overflow-hidden">
-                    <img
-                      src={formData.posterUrl}
-                      alt="Event poster preview"
-                      className="w-full h-full object-cover"
+
+              <div className="relative w-48 h-64 border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                {formData.posterUrl ? (
+                  <img
+                    src={formData.posterUrl}
+                    alt="Event poster preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center p-2">
+                    <FileUploader
+                      onUploadSuccess={handlePosterUpload}
+                      onUploadError={handleUploadError}
+                      folder="event-posters"
+                      mode="dropzone"
+                      buttonLabel="Upload Poster"
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData((prev) => ({ ...prev, posterUrl: "" }))}
-                    >
-                      Remove Poster
-                    </Button>
-                  </div>
+                )}
+              </div>
+
+              {formData.posterUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, posterUrl: "" }))
+                    }
+                  >
+                    Remove Poster
+                  </Button>
                 </div>
-              ) : (
-                <FileUploader
-                  onUploadSuccess={handlePosterUpload}
-                  onUploadError={handleUploadError}
-                  folder="event-posters"
-                  mode="dropzone"
-                  buttonLabel="Upload Poster"
-                />
               )}
             </div>
 
@@ -212,41 +236,48 @@ export default function CreateEventPage() {
               <Label className="text-base font-medium">
                 Event Banner
                 <span className="text-sm font-normal text-gray-500 ml-2">
-                  (Recommended: 1200x400px or 3:1 ratio)
+                  (Recommended: 1280x720px or 16:9 ratio)
                 </span>
               </Label>
-              {formData.bannerUrl ? (
-                <div className="space-y-3">
-                  <div className="relative w-full max-w-2xl h-48 border rounded-lg overflow-hidden">
-                    <img
-                      src={formData.bannerUrl}
-                      alt="Event banner preview"
-                      className="w-full h-full object-cover"
+
+              <div className="relative w-full max-w-3xl aspect-[16/9] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                {formData.bannerUrl ? (
+                  <img
+                    src={formData.bannerUrl}
+                    alt="Event banner preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center p-2">
+                    <FileUploader
+                      onUploadSuccess={handleBannerUpload}
+                      onUploadError={handleUploadError}
+                      folder="event-banners"
+                      mode="dropzone"
+                      buttonLabel="Upload Banner"
                     />
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setFormData((prev) => ({ ...prev, bannerUrl: "" }))}
-                    >
-                      Remove Banner
-                    </Button>
-                  </div>
+                )}
+              </div>
+
+              {formData.bannerUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, bannerUrl: "" }))
+                    }
+                  >
+                    Remove Banner
+                  </Button>
                 </div>
-              ) : (
-                <FileUploader
-                  onUploadSuccess={handleBannerUpload}
-                  onUploadError={handleUploadError}
-                  folder="event-banners"
-                  mode="dropzone"
-                  buttonLabel="Upload Banner"
-                />
               )}
             </div>
           </div>
         );
+
       case 3: // Review Step
         return (
           <div className="bg-white shadow-none rounded-none w-full py-0">
