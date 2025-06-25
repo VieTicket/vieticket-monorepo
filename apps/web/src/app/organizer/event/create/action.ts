@@ -1,15 +1,25 @@
-// apps/web/src/app/organizer/event/create/actions.ts
 "use server";
-import { createEventWithStructure } from "@/lib/services/eventService"; // Bước 2 bạn sẽ viết hàm này
+
+import { createEventWithStructure } from "@/lib/services/eventService";
 import { revalidatePath } from "next/cache";
+import { authorise } from "@/lib/auth/authorise";
+import { slugify } from "@/lib/utils";
 
 export async function handleCreateEvent(formData: FormData) {
+  // Authorize the user as an organizer and get session data
+  const session = await authorise("organizer");
+  const organizerId = session.user.id;
+
+  // Generate slug from event name
+  const eventName = formData.get("name") as string;
+  const slug = slugify(eventName, true); // randomize = true by default
+
   const seatCount = Number(formData.get("seatCount") || 0);
   const ticketPrice = Number(formData.get("ticketPrice") || 0);
 
   const eventPayload = {
-    name: formData.get("name") as string,
-    slug: formData.get("slug") as string,
+    name: eventName,
+    slug: slug, // Generated slug
     description: formData.get("description") as string | null,
     startTime: new Date(formData.get("startTime") as string),
     endTime: new Date(formData.get("endTime") as string),
@@ -23,13 +33,13 @@ export async function handleCreateEvent(formData: FormData) {
       : null,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
-    organizerId: formData.get("organizerId") as string,
+    organizerId: organizerId, // Use authorized user's ID
     views: 0,
     isApproved: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  await createEventWithStructure(eventPayload, seatCount, ticketPrice); // thay thế
+  await createEventWithStructure(eventPayload, seatCount, ticketPrice);
   revalidatePath("/organizer/events");
 }

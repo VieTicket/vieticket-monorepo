@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Ticket, MapPin, Building2, Globe, Landmark } from "lucide-react"; // Cài: npm install lucide-react
-import { formatCurrencyVND, formatDateEn } from "@/lib/utils";
+import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 
 export type EventPreviewData = {
   bannerUrl: string;
@@ -56,11 +56,11 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-2 text-sm text-gray-700">
               <div>
                 <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {formatDateEn(new Date(data.startTime))}
+                {formatDateVi(new Date(data.startTime))}
               </div>
               <div>
                 <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {formatDateEn(new Date(data.endTime))}
+                {formatDateVi(new Date(data.endTime))}
               </div>
             </div>
           </div>
@@ -113,9 +113,9 @@ export function PreviewEvent({ data }: Props) {
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Ticket className="w-5 h-5 text-[#2a273f]" />
           <span>Ticket Sale:</span>
-          <span>{formatDateEn(new Date(data.ticketSaleStart))}</span>
+          <span>{formatDateVi(new Date(data.ticketSaleStart))}</span>
           <span className="text-[#2a273f]">~</span>
-          <span>{formatDateEn(new Date(data.ticketSaleEnd))}</span>
+          <span>{formatDateVi(new Date(data.ticketSaleEnd))}</span>
         </div>
 
         <div className="mt-6 w-full md:flex md:flex-row gap-4">
