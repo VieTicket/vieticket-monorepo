@@ -80,17 +80,21 @@ export type EventWithOrganizer = Event & {
   organizer: Pick<InferSelectModel<typeof organizers>, "id" | "name">;
 };
 
-
-export const areasRelations = relations(areas, ({one, many}) => ({
-    event: one(events, {
-        fields: [areas.eventId],
-        references: [events.id],
-    }),
-    rows: many(rows)
-}))
-
-export type Event = InferSelectModel<typeof events>
-export type EventWithOrganizer = Event & {
-  organizer: Pick<InferSelectModel<typeof organizers>, 'id' | 'name'>;
+export const areasRelations = relations(areas, ({ one, many }) => ({
+  event: one(events, {
+    fields: [areas.eventId],
+    references: [events.id],
+  }),
+  rows: many(rows),
+}));
+export type Area = InferSelectModel<typeof areas>;
+export type EventWithAreas = Event & {
+  areas: Area[];
 };
 
+export type EventFull = Event & {
+  organizer: InferSelectModel<typeof organizers> & {
+    avatar?: string | null;
+  };
+  areas: Area[];
+};

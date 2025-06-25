@@ -6,8 +6,9 @@ export const baseEventSchema = z.object({
   slug: z.string().min(1).max(100),
   description: z.preprocess(
     (val) => (typeof val === "string" && val.trim() === "" ? null : val),
-    z.string().max(1000).nullable().default(null)
+    z.string().nullable().default(null)
   ),
+
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   location: z.preprocess(
