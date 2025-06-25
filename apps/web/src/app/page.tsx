@@ -25,9 +25,9 @@ function HeroSection() {
                     </h2>
                 </span>
 
-                <div className="mt-12">
-                    <SearchBar />
-                </div>
+                {/* <div className="mt-12">
+                    <SearchBar  />
+                </div> */}
             </div>
         </section>
     );

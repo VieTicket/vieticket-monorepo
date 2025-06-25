@@ -12,7 +12,7 @@ const SORTABLE_COLUMNS = {
 
 export type SortableEventColumnKey = keyof typeof SORTABLE_COLUMNS;
 
-export type EventSummary = Pick<Event, 'id' | 'name' | 'slug' | 'startTime' | 'endTime' | 'location' | 'views' | 'bannerUrl'> & {
+export type EventSummary = Pick<Event, 'id' | 'name' | 'slug' | 'startTime' | 'endTime' | 'location' | 'views' | 'bannerUrl' | 'type'> & {
     typicalTicketPrice: number;
     organizer: { id: string; name: string };
 } & Partial<Pick<Event, SortableEventColumnKey>>;
@@ -71,6 +71,7 @@ export async function getEventSummaries({
             location: true,
             bannerUrl: true,
             views: true,
+            type: true,
             [sortColumnKey]: true,
         } as const,
         with: {

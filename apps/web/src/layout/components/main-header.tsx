@@ -6,9 +6,19 @@ import { Star, Ticket } from "lucide-react";
 import Link from "next/link";
 import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
+import { usePathname } from "next/navigation";
+import clsx from "clsx";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
+  const pathname = usePathname();
+
+  const navItems = [
+    { label: "Home", href: "/" },
+    { label: "Events", href: "/events" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
+  ];
 
   return (
     <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between">
@@ -20,24 +30,27 @@ export default function Header() {
 
       {/* Navigation */}
       <nav className="flex items-center gap-8 text-sm">
-        <Link
-          href="/"
-          className="relative text-white hover:text-yellow-400 transition"
-        >
-          Home
-          <div className="h-1 bg-yellow-400 w-full absolute bottom-[-12px] left-0" />
-        </Link>
-        <Link href="/events" className="hover:text-yellow-400 transition">
-          Events
-        </Link>
-        <Link href="/about" className="hover:text-yellow-400 transition">
-          About
-        </Link>
-        <Link href="/contact" className="hover:text-yellow-400 transition">
-          Contact
-        </Link>
+        {navItems.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={clsx(
+                "relative hover:text-yellow-400 transition",
+                isActive ? "text-yellow-400 font-semibold" : "text-white"
+              )}
+            >
+              {item.label}
+              {isActive && (
+                <div className="h-1 bg-yellow-400 w-full absolute bottom-[-12px] left-0" />
+              )}
+            </Link>
+          );
+        })}
       </nav>
 
+      {/* Auth Section */}
       {!session?.user ? (
         <div className="flex items-center gap-4">
           <Link href="/auth/sign-in">Log In</Link>
