@@ -11,12 +11,13 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { updateProfileAction, getProfileAction } from "@/lib/actions/profile-actions";
+import { updateProfileAction, getProfileAction, uploadAvatarAction } from "@/lib/actions/profile-actions";
 import { authClient } from "@/lib/auth/auth-client";
 import { GENDER_VALUES } from "@vieticket/db/postgres/schema";
 import { Camera, Loader2 } from "lucide-react";
 import { ChangeEvent, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { FileUploader } from "../ui/file-uploader";
 
 // A reusable component for input fields to reduce repetition
 function FormField({
@@ -119,10 +120,10 @@ export function AccountForm() {
             startTransition(async () => {
                 try {
                     const profileResult = await getProfileAction();
-                    
+
                     if (profileResult.success && profileResult.data) {
                         const profile = profileResult.data;
-                        
+
                         // Set user fields
                         setName(profile.name || "");
                         setDateOfBirth(profile.dateOfBirth ? new Date(profile.dateOfBirth).toISOString().split('T')[0] : undefined);
@@ -130,15 +131,13 @@ export function AccountForm() {
                         setPhone(profile.phone || undefined);
                         setImagePreview(profile.image || null);
 
-                        // If user is an organizer, we need to fetch organizer details
-                        if (session.user.role === "organizer") {
-                            // Note: We need to modify the getProfileAction to also fetch organizer data
-                            // For now, we'll use placeholder values that should be fetched
-                            // setOrganizerName(profile.organizer?.name);
-                            // setWebsite(profile.organizer?.website);
-                            // setAddress(profile.organizer?.address);
-                            // setFoundedDate(profile.organizer?.foundedDate ? new Date(profile.organizer.foundedDate).toISOString().split('T')[0] : undefined);
-                            // setOrganizerType(profile.organizer?.organizerType);
+                        // Only populate organizer fields if user is an organizer AND organizer data exists
+                        if (session.user.role === "organizer" && profile.organizer) {
+                            setOrganizerName(profile.organizer.name || "");
+                            setWebsite(profile.organizer.website || "");
+                            setAddress(profile.organizer.address || "");
+                            setFoundedDate(profile.organizer.foundedDate ? new Date(profile.organizer.foundedDate).toISOString().split('T')[0] : "");
+                            setOrganizerType(profile.organizer.organizerType || "");
                         }
                     } else {
                         // Fallback to session data
@@ -148,7 +147,7 @@ export function AccountForm() {
                 } catch (error) {
                     console.error("Error fetching profile:", error);
                     toast.error("Failed to load profile data");
-                    
+
                     // Fallback to session data
                     setName(session.user.name || "");
                     setImagePreview(session.user.image || null);
@@ -159,15 +158,14 @@ export function AccountForm() {
         }
     }, [session]);
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setImageFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setImagePreview(reader.result as string);
-            };
-            reader.readAsDataURL(file);
+    const handleAvatarUpload = async (response: any) => {
+        const url = response.secure_url;
+        const result = await uploadAvatarAction(url);
+        if (result.success) {
+            setImagePreview(url);
+            toast.success("Avatar updated!");
+        } else {
+            toast.error(result.message);
         }
     };
 
@@ -260,19 +258,12 @@ export function AccountForm() {
                                 .toUpperCase()}
                         </AvatarFallback>
                     </Avatar>
-                    <Button asChild variant="outline">
-                        <label htmlFor="profile-photo-input" className="cursor-pointer">
-                            <Camera className="w-4 h-4 mr-2" />
-                            Change Photo
-                            <input
-                                id="profile-photo-input"
-                                type="file"
-                                className="hidden"
-                                onChange={handleImageChange}
-                                accept="image/*"
-                            />
-                        </label>
-                    </Button>
+                    <FileUploader
+                        mode="button"
+                        buttonLabel="Upload New Avatar"
+                        folder="avatars"
+                        onUploadSuccess={handleAvatarUpload}
+                    />
                 </div>
             </section>
 

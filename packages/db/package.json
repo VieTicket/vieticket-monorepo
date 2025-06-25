@@ -6,11 +6,8 @@
   "types": "dist/index.d.ts",
   "exports": {
     "./postgres": "./src/postgres/connection.ts",
-
     "./postgres/schema": "./src/postgres/schema.ts",
-
     "./schemas/*": "./src/postgres/schemas/*-schemas.ts",
-
     "./models/*": "./src/postgres/models/*-models.ts"
   },
   "scripts": {
