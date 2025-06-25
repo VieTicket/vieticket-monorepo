@@ -214,7 +214,43 @@ export function PreviewEvent({ data }: Props) {
             </div>
           </div>
         ) : (
-          <p className="text-gray-500">No organizer information available.</p>
+          <div className="flex items-start gap-4">
+            <img
+              src="https://i.pinimg.com/originals/f2/8b/62/f28b62e3c73e0991d51e6c0dcb412360.gif"
+              alt="Organizer Avatar"
+              className="w-16 h-16 rounded-full object-cover border border-gray-300"
+            />
+
+            <div className="space-y-1 text-gray-700">
+              <p className="flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-[#2a273f]" />
+                <strong>Name:</strong> Your Name
+              </p>
+
+              <p className="flex items-center gap-2">
+                <Globe className="w-4 h-4 text-[#2a273f]" />
+                <strong>Website:</strong>{" "}
+                <a
+                  href=""
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  Your Website
+                </a>
+              </p>
+
+              <p className="flex items-center gap-2">
+                <MapPin className="w-4 h-4 text-[#2a273f]" />
+                <strong>Address:</strong> Your Address
+              </p>
+
+              <p className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-[#2a273f]" />
+                <strong>Type:</strong> Your Type
+              </p>
+            </div>
+          </div>
         )}
       </section>
     </>

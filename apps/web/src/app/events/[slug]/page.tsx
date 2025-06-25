@@ -2,14 +2,15 @@ import { fetchEventDetail } from "@/lib/services/eventService";
 import {
   PreviewEvent,
   EventPreviewData,
-} from "@/components/CreateEvent/preview";
+} from "@/components/create-event/preview";
 
 export default async function EventPage({
   params,
 }: {
   params: { slug: string };
 }) {
-  const raw = await fetchEventDetail(params.slug);
+  const { slug } = await params;
+  const raw = await fetchEventDetail(slug);
 
   const event: EventPreviewData = {
     name: raw.name,

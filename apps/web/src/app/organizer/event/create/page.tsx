@@ -7,12 +7,12 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { handleCreateEvent } from "./action";
-import { StepProgressBar } from "@/components/CreateEvent/progress-bar";
+import { StepProgressBar } from "@/components/create-event/progress-bar";
 import TiptapEditorInput from "@/components/TiptapEditorInput";
-import {
-  PreviewEvent,
-  EventPreviewData,
-} from "@/components/CreateEvent/preview";
+import { PreviewEvent } from "@/components/create-event/preview";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useTransition } from "react";
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
     name: "",
@@ -31,7 +31,25 @@ export default function CreateEventPage() {
     ticketPrice: "",
   });
   const [step, setStep] = useState(1);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors] = useState<Record<string, string>>({});
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      try {
+        await handleCreateEvent(form);
+        toast.success("🎉 Event created successfully!");
+        router.push("/"); // redirect về homepage
+      } catch (err) {
+        toast.error("Something went wrong while creating the event.");
+        console.error(err);
+      }
+    });
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -136,10 +154,14 @@ export default function CreateEventPage() {
         );
       case 3: // Review Step
         return (
-          <div className="bg-gradient-to-br from-[#f4f4f8] to-[#eaeaea] py-0 px-0 w-full">
-            <div className="bg-white shadow-none rounded-none w-full px-4 md:px-8 lg:px-20 py-12">
-              <PreviewEvent data={formData as EventPreviewData} />
-            </div>
+          <div className="bg-white shadow-none rounded-none w-full py-0">
+            <PreviewEvent
+              data={{
+                ...formData,
+                organizer: null, // Provide default or fetched organizer info
+                areas: [], // Provide an empty array or actual areas if available
+              }}
+            />
           </div>
         );
       case 4: // Ticketing Step
@@ -188,12 +210,12 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">Create a New Event</h1>
       <StepProgressBar step={step} />
 
       <Separator className="mb-6" />
-      <form action={handleCreateEvent} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {renderStep()}
 
         {step === 4 && (
@@ -235,8 +257,12 @@ export default function CreateEventPage() {
               name="ticketPrice"
               value={formData.ticketPrice}
             />
-            <Button type="submit" className="bg-blue-600 text-white">
-              🎉 Create Event
+            <Button
+              type="submit"
+              className="bg-blue-600 text-white"
+              disabled={isPending}
+            >
+              {isPending ? "Creating..." : "🎉 Create Event"}
             </Button>
           </div>
         )}
