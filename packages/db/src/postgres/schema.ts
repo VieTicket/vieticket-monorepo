@@ -1,3 +1,6 @@
+// TODO: Move away from using this barrel export.
+// https://turborepo.com/docs/crafting-your-repository/structuring-a-repository#exports
+
 export * from "./schemas/users-schemas";
 export * from "./schemas/events-schemas";
 export * from "./schemas/orders-schemas";

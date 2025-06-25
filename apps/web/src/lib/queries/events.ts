@@ -1,10 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { events, organizers, areas, user } from "@vieticket/db/postgres/schema";
-import type { Event, EventFull } from "@vieticket/db/postgres/schema";
+import { organizers, areas, user } from "@vieticket/db/postgres/schema";
+import type { EventFull } from "@vieticket/db/postgres/schema";
 
 import { and, desc, eq, lt, or } from "drizzle-orm";
+import { Event } from "@vieticket/db/models/events";
+import { events } from "@vieticket/db/schemas/events";
 
 const SORTABLE_COLUMNS = {
   views: events.views,
