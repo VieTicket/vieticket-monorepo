@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Ticket } from "lucide-react"; // Cài: npm install lucide-react
+import { Ticket, MapPin, Building2, Globe, Landmark } from "lucide-react"; // Cài: npm install lucide-react
+import { formatCurrencyVND, formatDateEn } from "@/lib/utils";
 
 export type EventPreviewData = {
   bannerUrl: string;
@@ -15,7 +16,19 @@ export type EventPreviewData = {
   ticketSaleStart: string;
   ticketSaleEnd: string;
   posterUrl?: string;
-  organizerId: string;
+  organizer: {
+    id: string;
+    name: string;
+    avatar?: string | null;
+    website?: string | null;
+    address?: string | null;
+    organizerType?: string | null;
+  } | null;
+  areas: {
+    id: string;
+    name: string;
+    price: number;
+  }[];
 };
 
 type Props = {
@@ -43,21 +56,34 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-2 text-sm text-gray-700">
               <div>
                 <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {data.startTime}
+                {formatDateEn(new Date(data.startTime))}
               </div>
               <div>
                 <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {data.endTime}
+                {formatDateEn(new Date(data.endTime))}
               </div>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-200 space-y-4">
             <p className="text-lg font-semibold text-[#2a273f]">
-              Just <span className="text-[#ffdf20]">X.XXX.000 VNĐ</span>
+              Just{" "}
+              <span className="text-[#ffdf20]">
+                {data.areas?.length > 0
+                  ? formatCurrencyVND(
+                      data.areas.reduce(
+                        (min, area) => (area.price < min ? area.price : min),
+                        data.areas[0].price
+                      )
+                    )
+                  : "XX.XXX.XXX ₫"}
+              </span>
             </p>
 
-            <button className="flex items-center justify-center gap-2 bg-[#ffdf20] text-[#2a273f] px-6 py-3 rounded-xl font-semibold hover:bg-yellow-300 transition-colors duration-200 w-full">
+            <button
+              type="button"
+              className="flex items-center justify-center gap-2 bg-[#ffdf20] text-[#2a273f] px-6 py-3 rounded-xl font-semibold hover:bg-yellow-300 transition-colors duration-200 w-full"
+            >
               <Ticket className="w-5 h-5" />
               Buy Tickets
             </button>
@@ -68,42 +94,65 @@ export function PreviewEvent({ data }: Props) {
         <div className="hidden md:block w-[1px] border-l border-dashed border-black z-10" />
 
         {/* Right: Hình ảnh (70%) */}
-        <div className="w-full md:w-[70%]">
+        <div className="w-full md:w-[70%] aspect-[16/9]">
           {data.bannerUrl ? (
             <img
               src={data.bannerUrl}
               alt="Banner"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover rounded-r-xl"
             />
           ) : (
-            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+            <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400 rounded-r-xl">
               No image
             </div>
           )}
         </div>
       </header>
 
-      <section className="border-t pt-6 space-y-3">
-        <p>
-          <span className="font-semibold text-gray-700">
-            Ticket Sale Starts :
-          </span>{" "}
-          {data.ticketSaleStart}
-        </p>
-        <p>
-          <span className="font-semibold text-gray-700">
-            Ticket Sale Ends :
-          </span>{" "}
-          {data.ticketSaleEnd}
-        </p>
-        <div>
-          <p>
-            <span className="font-semibold text-gray-700">Location :</span>{" "}
-            {data.location}
-          </p>
-          <div className="mt-4 flex flex-col md:flex-row gap-4 w-full">
-            {/* Bên trái: Map */}
-            <div className="w-full md:w-1/2 h-64 rounded-lg overflow-hidden shadow-md border border-gray-200">
+      <section className="border-t pt-6 space-y-3 mt-5">
+        <div className="flex items-center gap-2 text-sm text-gray-700">
+          <Ticket className="w-5 h-5 text-[#2a273f]" />
+          <span>Ticket Sale:</span>
+          <span>{formatDateEn(new Date(data.ticketSaleStart))}</span>
+          <span className="text-[#2a273f]">~</span>
+          <span>{formatDateEn(new Date(data.ticketSaleEnd))}</span>
+        </div>
+
+        <div className="mt-6 w-full md:flex md:flex-row gap-4">
+          {/* Description bên trái */}
+          <div className="w-full md:w-2/3 p-4 max-h-[800px] overflow-y-auto">
+            <h3 className="text-[#2a273f] font-semibold mb-2">Description</h3>
+            <div
+              className="prose max-w-none text-gray-700"
+              dangerouslySetInnerHTML={{ __html: data.description }}
+            />
+          </div>
+
+          {/* Poster + Location bên phải */}
+          <div className="w-full md:w-1/3 flex flex-col gap-4">
+            {/* Poster */}
+            <div className="aspect-[3/4] w-full rounded-lg overflow-hidden shadow-md border border-gray-200">
+              {data.posterUrl ? (
+                <img
+                  src={data.posterUrl}
+                  alt="Poster"
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400">
+                  No poster
+                </div>
+              )}
+            </div>
+
+            {/* Location */}
+            <div className="flex items-start gap-2">
+              <MapPin className="w-5 h-5 text-[#2a273f]" />
+              <span className="text-sm text-[#2a273f]">{data.location}</span>
+            </div>
+
+            {/* Google Map */}
+            <div className="h-[240px] w-full rounded-lg border border-gray-200 shadow-md overflow-hidden">
               <iframe
                 className="w-full h-full"
                 src={`https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`}
@@ -112,43 +161,62 @@ export function PreviewEvent({ data }: Props) {
                 allowFullScreen
               />
             </div>
-
-            <div className="w-full md:w-1/2 h-full flex items-center justify-center ">
-              {data.posterUrl ? (
-                <img
-                  src={data.posterUrl}
-                  alt="Poster"
-                  className="max-h-full max-w-[400px] object-contain rounded-lg overflow-hidden shadow-md border border-gray-200"
-                />
-              ) : (
-                <img
-                  // src={data.posterUrl}
-                  src="https://ticketbox.vn/_next/image?url=https%3A%2F%2Fimages.tkbcdn.com%2F2%2F360%2F479%2Fts%2Fds%2Fac%2F2c%2F39%2Fa24ca816d93d1a353c845ff18e7b53e8.jpg&w=384&q=75"
-                  alt="Poster"
-                  className="max-h-full w-full max-w-[800px] object-contain rounded-lg overflow-hidden shadow-md border border-gray-200"
-                />
-              )}
-            </div>
           </div>
-        </div>
-        <div>
-          {" "}
-          <span className="font-semibold text-gray-700">Description :</span>
-          <div
-            className="prose max-w-none mt-2 text-gray-700"
-            dangerouslySetInnerHTML={{ __html: data.description }}
-          />
         </div>
       </section>
 
-      <section className="border-t pt-6 space-y-3"></section>
-
-      {/* <section className="border-t pt-6 space-y-4">
-        <h2 className="text-xl font-semibold text-gray-800">
-          Thông tin nhà tổ chức{" "}
+      <section className="border-t pt-6 space-y-4 mt-8">
+        <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+          <Building2 className="w-6 h-6 text-[#2a273f]" />
+          Organizer Information
         </h2>
-        <h2>{data.organizerId}</h2>
-      </section> */}
+
+        {data.organizer ? (
+          <div className="flex items-start gap-4">
+            {data.organizer.avatar && (
+              <img
+                src={data.organizer.avatar}
+                alt="Organizer Avatar"
+                className="w-16 h-16 rounded-full object-cover border border-gray-300"
+              />
+            )}
+            <div className="space-y-1 text-gray-700">
+              <p className="flex items-center gap-2">
+                <Landmark className="w-4 h-4 text-[#2a273f]" />
+                <strong>Name:</strong> {data.organizer.name}
+              </p>
+              {data.organizer.website && (
+                <p className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-[#2a273f]" />
+                  <strong>Website:</strong>{" "}
+                  <a
+                    href={data.organizer.website}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline"
+                  >
+                    {data.organizer.website}
+                  </a>
+                </p>
+              )}
+              {data.organizer.address && (
+                <p className="flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-[#2a273f]" />
+                  <strong>Address:</strong> {data.organizer.address}
+                </p>
+              )}
+              {data.organizer.organizerType && (
+                <p className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-[#2a273f]" />
+                  <strong>Type:</strong> {data.organizer.organizerType}
+                </p>
+              )}
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-500">No organizer information available.</p>
+        )}
+      </section>
     </>
   );
 }
