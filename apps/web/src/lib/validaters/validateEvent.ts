@@ -31,7 +31,6 @@ export const baseEventSchema = z.object({
   ),
   organizerId: z.string(),
   views: z.number().int().nonnegative().default(0),
-  isApproved: z.boolean().default(false),
   createdAt: z.coerce.date().default(new Date()),
   updatedAt: z.coerce.date().default(new Date()),
 });

@@ -73,7 +73,7 @@ export async function getEventSummaries({
 }): EventSummaryResponse {
   const sortBy = SORTABLE_COLUMNS[sortColumnKey]!;
 
-  const whereConditions = [eq(events.isApproved, true)];
+  const whereConditions = [eq(events.approvalStatus, 'approved')];
 
   if (cursor) {
     // Handle cursor pagination with composite conditions
