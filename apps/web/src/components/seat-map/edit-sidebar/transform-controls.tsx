@@ -8,6 +8,7 @@ import { Move3D, RotateCw, Layers } from "lucide-react";
 import { Shape } from "@/types/seat-map-types";
 import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
 import { useCanvasEvents } from "../hooks/useCanvasEvents";
+import { useStageRef } from "../providers/stage-provider";
 
 interface TransformControlsProps {
   selectedShapes: Shape[];
@@ -169,6 +170,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
               }));
               updateMultipleShapes(updates);
               saveToHistory();
+              setTimeout(refreshHitDetection, 50);
             }}
           >
             -15°
@@ -184,6 +186,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
               }));
               updateMultipleShapes(updates);
               saveToHistory();
+              setTimeout(refreshHitDetection, 50);
             }}
           >
             Reset
@@ -199,6 +202,7 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
               }));
               updateMultipleShapes(updates);
               saveToHistory();
+              setTimeout(refreshHitDetection, 50);
             }}
           >
             +15°

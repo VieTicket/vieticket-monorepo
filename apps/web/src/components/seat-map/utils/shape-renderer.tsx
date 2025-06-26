@@ -1,5 +1,6 @@
 import { Circle, Group, Line, Rect, Text } from "react-konva";
 import { Shape } from "@/types/seat-map-types";
+import { createHitFunc } from "./shape-hit-detection";
 
 export interface ShapeProps {
   shape: Shape;
@@ -9,19 +10,15 @@ export interface ShapeProps {
 
 // shape-renderer.tsx - Alternative approach with Group-level events
 export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
-  const { id, key, ...restProps } = commonProps;
+  const { key, ...restProps } = commonProps;
 
-  // Apply events to the Group, not individual shapes
-  const groupProps = {
-    ...restProps,
-    // Ensure the group can receive events
-    listening: true,
-  };
+  const hitFunc = createHitFunc(shape);
+  console.log("Hit function created for shape:", shape.type, hitFunc);
 
   switch (shape.type) {
     case "rect":
       return (
-        <Group key={key} {...groupProps}>
+        <Group key={key} {...restProps}>
           <Rect
             x={0}
             y={0}
@@ -36,14 +33,14 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
             shadowColor={isSelected ? "blue" : undefined}
             shadowBlur={isSelected ? 10 : 0}
             shadowOpacity={isSelected ? 0.6 : 0}
+            offsetX={shape.width / 2 || 0}
+            offsetY={shape.height / 2 || 0}
           />
           {shape.name && (
             <Text
               text={shape.name}
               fontSize={14}
               fontFamily={"Arial"}
-              x={shape.width / 2}
-              y={shape.height / 2}
               offsetX={shape.name.length * 3}
               offsetY={7}
               fill={"black"}
@@ -57,7 +54,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
     // Similar for other shape types...
     case "circle":
       return (
-        <Group key={key} {...groupProps}>
+        <Group key={key} {...restProps}>
           <Circle
             x={0}
             y={0}
@@ -70,6 +67,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
             shadowColor={isSelected ? "blue" : undefined}
             shadowBlur={isSelected ? 10 : 0}
             shadowOpacity={isSelected ? 0.6 : 0}
+            hitFunc={hitFunc}
           />
           {shape.name && (
             <Text
@@ -90,7 +88,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
 
     case "polygon":
       return (
-        <Group key={key} {...groupProps}>
+        <Group key={key} {...restProps}>
           <Line
             x={0}
             y={0}
@@ -101,6 +99,7 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
             strokeWidth={isSelected ? 2 : shape.strokeWidth || 1}
             dash={isSelected ? [5, 5] : shape.dash || []}
             opacity={shape.opacity}
+            hitFunc={hitFunc}
           />
           {shape.name && (
             <Text
@@ -132,7 +131,8 @@ export const renderShape = ({ shape, isSelected, commonProps }: ShapeProps) => {
           fill={shape.fill}
           stroke={isSelected ? "#4A90E2" : shape.stroke}
           strokeWidth={isSelected ? 1 : shape.strokeWidth || 0}
-          listening={true} // Text shapes need to listen since they're not in groups
+          listening={true}
+          hitFunc={hitFunc}
         />
       );
 

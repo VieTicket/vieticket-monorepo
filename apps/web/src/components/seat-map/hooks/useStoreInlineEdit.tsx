@@ -19,7 +19,6 @@ export const useStoreInlineEdit = (
 
   const startEdit = useCallback(
     (e?: React.MouseEvent) => {
-      // FIXED: More aggressive event stopping
       if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -33,7 +32,6 @@ export const useStoreInlineEdit = (
   );
 
   const saveAndStop = useCallback(() => {
-    // FIXED: More flexible validation - allow string values
     if (editValue !== undefined && editValue !== null && editValue !== "") {
       onSave(editValue);
     }
@@ -53,7 +51,6 @@ export const useStoreInlineEdit = (
       startEdit(e);
     },
     onMouseDown: (e: React.MouseEvent) => {
-      // FIXED: Prevent all mouse events from bubbling
       e.preventDefault();
       e.stopPropagation();
     },

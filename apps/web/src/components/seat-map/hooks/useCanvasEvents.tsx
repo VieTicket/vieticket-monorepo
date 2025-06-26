@@ -1,25 +1,22 @@
-// Refactored main hook that orchestrates all events
-
 import { useRef } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 import { useSelectionEvents } from "./events/useSelectionEvents";
 import { useDrawingEvents } from "./events/useDrawingEvents";
 import { usePolygonEvents } from "./events/usePolygonEvents";
 import { useDragEvents } from "./events/useDragEvents";
+import { useStageRef } from "../providers/stage-provider";
+import { createHitFunc } from "../utils/shape-hit-detection";
 
 export const useCanvasEvents = () => {
-  const stageRef = useRef<any>(null);
-
-  const { currentTool, selectShape, clearSelection, zoom, pan } =
+  const { currentTool, selectShape, clearSelection, zoom, pan, shapes } =
     useCanvasStore();
+  const stageRef = useStageRef();
 
-  // Import all event handlers
   const selectionEvents = useSelectionEvents();
   const drawingEvents = useDrawingEvents();
   const polygonEvents = usePolygonEvents();
   const dragEvents = useDragEvents();
 
-  // Main coordinate helper
   const getCanvasCoordinates = (pointerPosition: any) => {
     return {
       x: (pointerPosition.x - pan.x) / zoom,
@@ -27,7 +24,6 @@ export const useCanvasEvents = () => {
     };
   };
 
-  // Shape click handler
   const handleShapeClick = (shapeId: string, e: any) => {
     if (currentTool !== "select") return;
     e.cancelBubble = true;
@@ -36,7 +32,6 @@ export const useCanvasEvents = () => {
     selectShape(shapeId, multiSelect);
   };
 
-  // Stage click handler
   const handleStageClick = (e: any) => {
     if (e.target === e.target.getStage()) {
       clearSelection();
@@ -44,16 +39,10 @@ export const useCanvasEvents = () => {
   };
 
   const handleStageMouseDown = (e: any) => {
-    console.log("event target:", e.target);
-    console.log("event target constructor:", e.target.constructor.name);
-    console.log("event target type:", e.target.getStage());
-
     const stage = e.target.getStage();
     const pointerPosition = stage.getPointerPosition();
     const canvasCoords = getCanvasCoordinates(pointerPosition);
 
-    // FIXED: Allow polygon events when target is Stage OR when we're drawing a polygon
-    // and the target is the preview polygon line
     const isStageTarget = e.target === stage;
     const isPolygonPreview =
       currentTool === "polygon" &&
@@ -62,25 +51,20 @@ export const useCanvasEvents = () => {
         e.target.attrs?.id === "preview" ||
         e.target.attrs?.id === "polygon-preview");
 
-    // For other tools, only allow stage clicks
     if (!isStageTarget && !isPolygonPreview) {
       return;
     }
 
-    console.log("Stage mouse down at:", canvasCoords);
     switch (currentTool) {
       case "select":
-        // Only allow selection on actual stage clicks
         if (isStageTarget) {
           selectionEvents.handleSelectionMouseDown(canvasCoords, e);
         }
         break;
       case "polygon":
-        console.log("Polygon tool active");
         polygonEvents.handlePolygonMouseDown(canvasCoords, e);
         break;
       default:
-        // Only allow drawing on actual stage clicks
         if (isStageTarget) {
           drawingEvents.handleDrawingMouseDown(canvasCoords, e);
         }
@@ -114,21 +98,51 @@ export const useCanvasEvents = () => {
     ) {
       drawingEvents.handleDrawingMouseUp(e);
     }
-    // Note: Polygon doesn't use mouse up, only mouse down
   };
 
-  // Hit detection refresh
+  // Update the refreshHitDetection function in useCanvasEvents.tsx
   const refreshHitDetection = () => {
     if (stageRef.current) {
       const stage = stageRef.current;
       const layer = stage.getLayers()[0];
+
       if (layer) {
+        // Method 1: Force hit canvas regeneration
+        const hitCanvas = layer.getHitCanvas();
+        if (hitCanvas) {
+          const context = hitCanvas.getContext();
+
+          const canvas = hitCanvas._canvas;
+
+          // Force regeneration by changing canvas size
+          const currentWidth = canvas.width;
+          canvas.width = currentWidth + 1;
+          canvas.width = currentWidth;
+        }
+
+        // Method 2: Update all shapes' hit functions
+        layer.getChildren().forEach((child: any) => {
+          if (child.attrs?.id && shapes.find((s) => s.id === child.attrs.id)) {
+            const shape = shapes.find((s) => s.id === child.attrs.id);
+            if (shape) {
+              const newHitFunc = createHitFunc(shape);
+              if (newHitFunc) {
+                child.hitFunc(newHitFunc);
+              }
+            }
+          }
+        });
+
+        // Method 3: Force complete redraw
         layer.batchDraw();
+
+        // Method 4: Clear hit region cache
+        setTimeout(() => {
+          layer.draw();
+        }, 16);
       }
     }
   };
-
-  // Get the appropriate preview shape based on current tool
   const getPreviewShape = () => {
     if (currentTool === "polygon") {
       return polygonEvents.previewShape;
@@ -138,21 +152,17 @@ export const useCanvasEvents = () => {
   };
 
   return {
-    // Shape handlers
     handleShapeClick,
     handleStageClick,
     ...dragEvents,
 
-    // Stage handlers
     handleStageMouseDown,
     handleStageMouseMove,
     handleStageMouseUp,
 
-    // Utility
     refreshHitDetection,
     getCanvasCoordinates,
 
-    // State from different event handlers
     selectionRect: selectionEvents.selectionRect,
     isSelecting: selectionEvents.isSelecting,
     previewShape: getPreviewShape(),
@@ -161,10 +171,6 @@ export const useCanvasEvents = () => {
     polygonPoints: polygonEvents.polygonPoints,
     currentTool,
 
-    // Refs
-    stageRef,
-
-    // Polygon specific handlers for UI
     cancelPolygon: polygonEvents.cancelPolygon,
     finishPolygon: polygonEvents.finishPolygon,
     isNearFirstPoint: polygonEvents.isNearFirstPoint,

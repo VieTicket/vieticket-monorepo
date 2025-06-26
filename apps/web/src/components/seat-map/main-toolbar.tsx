@@ -24,6 +24,9 @@ import {
   ZoomOut,
   Circle,
   Type,
+  Grid3X3,
+  Eye,
+  Bug,
 } from "lucide-react";
 import { useCanvasStore } from "./store/main-store";
 import { usePanZoom } from "./hooks/usePanZoom";
@@ -45,6 +48,11 @@ export default function MainToolbar() {
     zoomOut,
     zoom,
     duplicateShapes,
+    // Add debug state
+    showGrid,
+    showHitCanvas,
+    setShowGrid,
+    setShowHitCanvas,
   } = useCanvasStore();
 
   const { centerCanvas } = usePanZoom();
@@ -118,6 +126,39 @@ export default function MainToolbar() {
         <Button onClick={duplicateShapes} variant="ghost" size="icon">
           <Save className="w-5 h-5" />
         </Button>
+
+        <div className="border-l mx-2 h-6" />
+
+        {/* Debug Buttons */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" title="Debug Tools">
+              <Bug className="w-5 h-5" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              onClick={() => setShowGrid(!showGrid)}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center">
+                <Grid3X3 className="w-4 h-4 mr-2" />
+                Show Grid
+              </div>
+              {showGrid && <span className="text-green-500">✓</span>}
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() => setShowHitCanvas(!showHitCanvas)}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center">
+                <Eye className="w-4 h-4 mr-2" />
+                Show Hit Canvas
+              </div>
+              {showHitCanvas && <span className="text-green-500">✓</span>}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
       <div className="flex items-center gap-4">

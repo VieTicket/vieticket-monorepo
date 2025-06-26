@@ -78,7 +78,6 @@ export const usePolygonEvents = () => {
 
   const finishPolygon = () => {
     if (polygonPoints.length >= 3) {
-      console.log("Finishing polygon with points:", polygonPoints);
       const polygonShape: ShapeWithoutMeta = {
         type: "polygon" as const,
         x: 0,

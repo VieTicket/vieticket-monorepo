@@ -1,5 +1,5 @@
-// shape-props-builder.tsx - Fix selection styling
 import { Shape } from "@/types/seat-map-types";
+import { createHitFunc } from "./shape-hit-detection";
 
 export const buildShapeProps = (
   shape: Shape,
@@ -39,12 +39,26 @@ export const buildShapeProps = (
     opacity: shape.opacity ?? 1,
     draggable: true,
     listening: true,
-    // Only pass shape-specific event handlers
-    onClick: (e: any) => handleShapeClick(shape.id, e),
-    onTap: (e: any) => handleShapeClick(shape.id, e), // For mobile
-    onDragStart: (e: any) => handleShapeDragStart(shape.id, e),
-    onDragMove: (e: any) => handleShapeDragMove(shape.id, e),
-    onDragEnd: (e: any) => handleShapeDragEnd(shape.id, e),
+    perfectDrawEnabled: false,
+
+    // Fixed event handlers with proper logging
+    onClick: (e: any) => {
+      e.cancelBubble = true;
+      handleShapeClick?.(shape.id, e);
+    },
+    onTap: (e: any) => {
+      e.cancelBubble = true;
+      handleShapeClick?.(shape.id, e);
+    },
+    onDragStart: (e: any) => {
+      handleShapeDragStart?.(shape.id, e);
+    },
+    onDragMove: (e: any) => {
+      handleShapeDragMove?.(shape.id, e);
+    },
+    onDragEnd: (e: any) => {
+      handleShapeDragEnd?.(shape.id, e);
+    },
   };
 
   return baseProps;

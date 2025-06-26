@@ -25,7 +25,6 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
       ? selectedShapes[0].id
       : `batch-${selectedShapes.map((s) => s.id).join("-")}`;
 
-  // FIXED: Safe value parsing functions
   const safeParseFloat = (value: any, defaultValue: number): number => {
     const parsed = parseFloat(value);
     return isNaN(parsed) ? defaultValue : parsed;

@@ -8,13 +8,11 @@ import { Card, CardContent } from "../ui/card";
 import { Label } from "../ui/label";
 import { Copy, Trash2, Settings } from "lucide-react";
 
-// Import the separated control components
 import { StyleControls } from "./edit-sidebar/style-controls";
 import { TextControls } from "./edit-sidebar/text-controls";
 import { TransformControls } from "./edit-sidebar/transform-controls";
 import { SingleShapeEditor } from "./edit-sidebar/single-shape-editor";
 
-// FIXED: Better utility function for safe property access
 const safeGetProperty = (
   obj: any,
   property: string,
@@ -30,7 +28,6 @@ const safeGetProperty = (
   }
 };
 
-// Type guards
 const isRectShape = (shape: any): boolean => shape?.type === "rect";
 const isCircleShape = (shape: any): boolean => shape?.type === "circle";
 const isTextShape = (shape: any): boolean => shape?.type === "text";
@@ -55,37 +52,31 @@ export default function EditSidebar() {
 
   const singleShape = selectedShapes.length === 1 ? selectedShapes[0] : null;
 
-  // FIXED: Only calculate batch values for multiple shapes
   useEffect(() => {
     if (selectedShapes.length > 1) {
       const calculateCommonValues = () => {
         const commonValues: Record<string, any> = {};
 
-        // Check for common fill color
         const fills = selectedShapes.map((s) => s.fill).filter(Boolean);
         if (fills.length > 0 && fills.every((f) => f === fills[0])) {
           commonValues.fill = fills[0];
         }
 
-        // Check for common stroke color
         const strokes = selectedShapes.map((s) => s.stroke).filter(Boolean);
         if (strokes.length > 0 && strokes.every((s) => s === strokes[0])) {
           commonValues.stroke = strokes[0];
         }
 
-        // Check for common stroke width
         const strokeWidths = selectedShapes.map((s) => s.strokeWidth || 1);
         if (strokeWidths.every((w) => w === strokeWidths[0])) {
           commonValues.strokeWidth = strokeWidths[0];
         }
 
-        // Check for common opacity
         const opacities = selectedShapes.map((s) => s.opacity ?? 1);
         if (opacities.every((o) => o === opacities[0])) {
           commonValues.opacity = opacities[0];
         }
 
-        // Check for common corner radius (for rects)
         const rectShapes = selectedShapes.filter(isRectShape);
         if (rectShapes.length > 0) {
           const radii = rectShapes.map((s) =>
@@ -96,7 +87,6 @@ export default function EditSidebar() {
           }
         }
 
-        // Check for common radius (for circles)
         const circleShapes = selectedShapes.filter(isCircleShape);
         if (circleShapes.length > 0) {
           const radii = circleShapes.map((s) =>
@@ -107,7 +97,6 @@ export default function EditSidebar() {
           }
         }
 
-        // Check for common text properties
         const textShapes = selectedShapes.filter(isTextShape);
         if (textShapes.length > 0) {
           const fontSizes = textShapes.map((s) =>
@@ -146,22 +135,18 @@ export default function EditSidebar() {
       const newCommonValues = calculateCommonValues();
       setBatchValues(newCommonValues);
     } else {
-      // FIXED: Clear batch values for single shape
       setBatchValues({});
     }
   }, [selectedShapes]);
 
-  // FIXED: Handle batch updates for multiple shapes only
   const handleBatchChange = useCallback(
     (key: string, value: any) => {
-      // FIXED: Validate value before processing
       if (value === undefined || value === null || value === "") {
-        return; // Don't process invalid values
+        return;
       }
 
       setBatchValues((prev) => ({ ...prev, [key]: value }));
 
-      // Handle special cases for specific shape types
       if (key === "textFill") {
         const textShapeIds = selectedShapes
           .filter(isTextShape)
@@ -219,7 +204,6 @@ export default function EditSidebar() {
           saveToHistory();
         }
       } else {
-        // Apply to all selected shapes
         const shapeUpdates = selectedShapeIds.map((id) => ({
           id,
           updates: { [key]: value },
@@ -231,11 +215,9 @@ export default function EditSidebar() {
     [selectedShapes, selectedShapeIds, updateMultipleShapes, saveToHistory]
   );
 
-  // FIXED: Handle single shape updates with validation
   const handleSingleShapeUpdate = useCallback(
     (updates: Record<string, any>) => {
       if (singleShape) {
-        // FIXED: Validate numeric values
         const validatedUpdates = Object.entries(updates).reduce(
           (acc, [key, value]) => {
             if (
@@ -271,7 +253,6 @@ export default function EditSidebar() {
     [singleShape, updateShape]
   );
 
-  // Shape type summary for multi-selection
   const shapeTypeSummary = useMemo(() => {
     return Object.entries(
       selectedShapes.reduce(
@@ -284,7 +265,6 @@ export default function EditSidebar() {
     );
   }, [selectedShapes]);
 
-  // No selection state
   if (selectedShapeIds.length === 0) {
     return (
       <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full">
@@ -302,7 +282,6 @@ export default function EditSidebar() {
     );
   }
 
-  // FIXED: Single shape editing - prevent switching to batch mode
   if (singleShape) {
     return (
       <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
@@ -375,7 +354,7 @@ export default function EditSidebar() {
                   stroke: singleShape.stroke,
                   strokeWidth: singleShape.strokeWidth || 1,
                   opacity: singleShape.opacity ?? 1,
-                  // FIXED: Safe property access with proper fallbacks
+
                   ...(isRectShape(singleShape) && {
                     cornerRadius: safeGetProperty(
                       singleShape,
@@ -428,6 +407,8 @@ export default function EditSidebar() {
         </Card>
       </div>
     );
+  } else if (selectedShapeIds.length > 1 && activeTab === "props") {
+    setActiveTab("style");
   }
 
   return (

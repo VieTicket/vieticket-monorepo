@@ -9,6 +9,9 @@ export interface CanvasSlice {
   zoom: number;
   pan: { x: number; y: number };
   currentTool: ToolType;
+  showGrid: boolean;
+  showHitCanvas: boolean;
+
   setCanvasSize: (width: number, height: number) => void;
   setViewportSize: (width: number, height: number) => void;
   setZoom: (zoom: number) => void;
@@ -17,6 +20,8 @@ export interface CanvasSlice {
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+  setShowGrid: (show: boolean) => void;
+  setShowHitCanvas: (show: boolean) => void;
 
   updateMultipleShapes: (
     updates: Array<{ id: string; updates: Record<string, any> }>
@@ -36,6 +41,8 @@ export const createCanvasSlice: StateCreator<
   viewportSize: { width: 800, height: 600 },
   zoom: 1,
   pan: { x: 0, y: 0 },
+  showGrid: false,
+  showHitCanvas: false,
 
   setCurrentTool: (tool) => {
     set({ currentTool: tool });
@@ -59,6 +66,9 @@ export const createCanvasSlice: StateCreator<
   setPan: (x, y) => {
     set({ pan: { x, y } });
   },
+
+  setShowGrid: (show) => set({ showGrid: show }),
+  setShowHitCanvas: (show) => set({ showHitCanvas: show }),
 
   resetView: () => {
     const { viewportSize } = get();
