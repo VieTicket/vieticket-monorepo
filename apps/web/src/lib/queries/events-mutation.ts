@@ -1,4 +1,6 @@
 import { db } from "../db";
+import { eq } from "drizzle-orm";
+
 import {
   events,
   NewEvent,
@@ -30,4 +32,8 @@ export async function createSeats(
   }[]
 ) {
   return db.insert(seats).values(seatsData);
+}
+
+export async function getEventsByOrganizer(organizerId: string) {
+  return db.select().from(events).where(eq(events.organizerId, organizerId));
 }

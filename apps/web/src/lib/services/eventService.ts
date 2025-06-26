@@ -3,6 +3,7 @@ import {
   createArea,
   createRow,
   createSeats,
+  getEventsByOrganizer,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
@@ -59,4 +60,18 @@ export async function fetchEventDetail(slug: string) {
 
   if (!event) throw new Error("Event not found");
   return event;
+}
+
+export async function getEventsByStatus(organizerId: string) {
+  const all = await getEventsByOrganizer(organizerId);
+  const now = new Date();
+
+  return {
+    pending: all.filter((e) => e.approvalStatus === "pending"),
+    approved: all.filter(
+      (e) => e.approvalStatus === "approved" && new Date(e.endTime) > now
+    ),
+    rejected: all.filter((e) => e.approvalStatus === "rejected"),
+    passed: all.filter((e) => new Date(e.endTime) < now),
+  };
 }
