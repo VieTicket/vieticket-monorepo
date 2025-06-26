@@ -7,6 +7,7 @@ import {
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
 import { NewEvent } from "@vieticket/db/postgres/schema";
+import { getEventBySlug } from "../queries/events";
 
 export async function createEventWithStructure(
   event: NewEvent,
@@ -52,4 +53,10 @@ export async function createEventWithStructure(
       await createSeats(seatValues);
     }
   });
+}
+export async function fetchEventDetail(slug: string) {
+  const event = await getEventBySlug(slug);
+
+  if (!event) throw new Error("Event not found");
+  return event;
 }

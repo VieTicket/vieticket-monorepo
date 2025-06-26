@@ -11,15 +11,15 @@ async function scrambleUserId(userId: string): Promise<string> {
     // Use Web Crypto API (edge-safe)
     const encoder = new TextEncoder();
     const data = encoder.encode(userId + process.env.CLOUDINARY_API_SECRET!);
-    
+
     const hashBuffer = await crypto.subtle.digest('SHA-256', data);
     const hashArray = new Uint8Array(hashBuffer);
-    
+
     // Convert to hex string
     const hashHex = Array.from(hashArray)
         .map(b => b.toString(16).padStart(2, '0'))
         .join('');
-    
+
     return hashHex.substring(0, 16); // Use first 16 characters
 }
 
@@ -41,5 +41,9 @@ export async function POST(request: Request) {
 
     const signature = cloudinary.utils.api_sign_request(paramsToSign, process.env.CLOUDINARY_API_SECRET!);
 
-    return Response.json({ signature });
+    return Response.json({
+        signature,
+        api_key: process.env.CLOUDINARY_API_KEY!,
+        ...paramsToSign,
+    });
 }
