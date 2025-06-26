@@ -16,19 +16,9 @@ const SORTABLE_COLUMNS = {
 
 export type SortableEventColumnKey = keyof typeof SORTABLE_COLUMNS;
 
-export type EventSummary = Pick<
-  Event,
-  | "id"
-  | "name"
-  | "slug"
-  | "startTime"
-  | "endTime"
-  | "location"
-  | "views"
-  | "bannerUrl"
-> & {
-  typicalTicketPrice: number;
-  organizer: { id: string; name: string };
+export type EventSummary = Pick<Event, 'id' | 'name' | 'slug' | 'startTime' | 'endTime' | 'location' | 'views' | 'bannerUrl' | 'type'> & {
+    typicalTicketPrice: number;
+    organizer: { id: string; name: string };
 } & Partial<Pick<Event, SortableEventColumnKey>>;
 
 export type EventSummaryResponse = Promise<{
@@ -97,31 +87,34 @@ export async function getEventSummaries({
     }
   }
 
-  // Use RAW SQL with prepared statements if performance REALLY suffers
-  const eventList = await db.query.events.findMany({
-    limit: limit + 1,
-    orderBy: [desc(sortBy), desc(events.id)],
-    columns: {
-      id: true,
-      name: true,
-      slug: true,
-      startTime: true,
-      endTime: true,
-      location: true,
-      bannerUrl: true,
-      views: true,
-      [sortColumnKey]: true,
-    } as const,
-    with: {
-      organizer: {
+    // Use RAW SQL with prepared statements if performance REALLY suffers
+    const eventList = await db.query.events.findMany({
+        limit: limit + 1,
+        orderBy: [desc(sortBy), desc(events.id)],
         columns: {
-          id: true,
-          name: true,
-        },
-      },
-      areas: {
-        columns: {
-          price: true,
+            id: true,
+            name: true,
+            slug: true,
+            startTime: true,
+            endTime: true,
+            location: true,
+            bannerUrl: true,
+            views: true,
+            type: true,
+            [sortColumnKey]: true,
+        } as const,
+        with: {
+            organizer: {
+                columns: {
+                    id: true,
+                    name: true,
+                }
+            },
+            areas: {
+                columns: {
+                    price: true,
+                }
+            }
         },
       },
     },
