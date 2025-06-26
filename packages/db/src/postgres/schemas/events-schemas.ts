@@ -14,7 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
 import { organizers } from "./users-schemas";
-import { approvalStatusEnum } from "../enums";
+import { eventApprovalStatusEnum } from "../enums";
 
 // Schemas
 export const events = pgTable("events", {
@@ -31,10 +31,7 @@ export const events = pgTable("events", {
   posterUrl: varchar("poster_url", { length: 255 }),
   bannerUrl: varchar("banner_url", { length: 255 }),
   views: integer().notNull().default(0),
-  approvalStatus: approvalStatusEnum("approval_status")
-    .notNull()
-    .default("pending"),
-
+  approvalStatus: eventApprovalStatusEnum("approval_status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   organizerId: text("organizer_id")

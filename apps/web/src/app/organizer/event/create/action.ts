@@ -35,7 +35,6 @@ export async function handleCreateEvent(formData: FormData) {
     bannerUrl: (formData.get("bannerUrl") as string) || null,
     organizerId: organizerId, // Use authorized user's ID
     views: 0,
-    isApproved: false,
     createdAt: new Date(),
     updatedAt: new Date(),
   };

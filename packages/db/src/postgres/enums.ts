@@ -52,14 +52,7 @@ export const REFUND_STATUS_VALUES = [
 export type RefundStatus = (typeof REFUND_STATUS_VALUES)[number];
 export const refundStatusEnum = pgEnum("refund_status", REFUND_STATUS_VALUES);
 
-// Approval status type
-export const APPROVAL_STATUS_VALUES = [
-  "pending",
-  "approved",
-  "rejected",
-] as const;
-export type ApprovalStatus = (typeof APPROVAL_STATUS_VALUES)[number];
-export const approvalStatusEnum = pgEnum(
-  "approval_status",
-  APPROVAL_STATUS_VALUES
-);
+// Event approval status type
+export const EVENT_APPROVAL_STATUS_VALUES = ["pending", "approved", "rejected"] as const;
+export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
+export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
