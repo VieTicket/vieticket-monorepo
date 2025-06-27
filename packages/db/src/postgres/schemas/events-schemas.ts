@@ -103,3 +103,17 @@ export type EventFull = Event & {
   };
   areas: Area[];
 };
+export const rowsRelations = relations(rows, ({ one, many }) => ({
+  area: one(areas, {
+    fields: [rows.areaId],
+    references: [areas.id],
+  }),
+  seats: many(seats),
+}));
+
+export const seatsRelations = relations(seats, ({ one }) => ({
+  row: one(rows, {
+    fields: [seats.rowId],
+    references: [rows.id],
+  }),
+}));
