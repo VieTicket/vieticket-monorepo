@@ -34,6 +34,59 @@ export async function createSeats(
   return db.insert(seats).values(seatsData);
 }
 
-export async function getEventsByOrganizer(organizerId: string) {
+export async function getEventsByOrganizerId(organizerId: string) {
   return db.select().from(events).where(eq(events.organizerId, organizerId));
+}
+
+export async function getEventsById(eventId: string) {
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    with: {
+      areas: {
+        with: {
+          rows: {
+            with: {
+              seats: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  return event ? [event] : [];
+}
+
+export async function updateEventById(
+  eventId: string,
+  data: Partial<typeof events.$inferInsert>
+) {
+  return db.update(events).set(data).where(eq(events.id, eventId)).returning();
+}
+export async function updateAreaById(
+  areaId: string,
+  data: Partial<typeof areas.$inferInsert>
+) {
+  return db.update(areas).set(data).where(eq(areas.id, areaId)).returning();
+}
+export async function updateRowById(
+  rowId: string,
+  data: Partial<typeof rows.$inferInsert>
+) {
+  return db.update(rows).set(data).where(eq(rows.id, rowId)).returning();
+}
+export async function updateSeatById(
+  seatId: string,
+  data: Partial<typeof seats.$inferInsert>
+) {
+  return db.update(seats).set(data).where(eq(seats.id, seatId)).returning();
+}
+export async function getAreasByEventId(eventId: string) {
+  return db.select().from(areas).where(eq(areas.eventId, eventId));
+}
+export async function getRowsByAreaId(areaId: string) {
+  return db.select().from(rows).where(eq(rows.areaId, areaId));
+}
+export async function deleteSeatsByRowId(rowId: string) {
+  return db.delete(seats).where(eq(seats.rowId, rowId));
 }
