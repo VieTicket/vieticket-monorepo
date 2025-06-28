@@ -79,4 +79,9 @@ export const auth = betterAuth({
       });
     },
   },
+  session: {
+    cookieCache: {
+      enabled: true,
+    },
+  },
 });

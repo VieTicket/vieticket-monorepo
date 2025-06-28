@@ -2,23 +2,23 @@
 
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { handleCreateEvent } from "./action";
-import { StepProgressBar } from "@/components/CreateEvent/progress-bar";
+import { StepProgressBar } from "@/components/create-event/progress-bar";
 import TiptapEditorInput from "@/components/TiptapEditorInput";
-import {
-  PreviewEvent,
-  EventPreviewData,
-} from "@/components/CreateEvent/Preview";
+import { PreviewEvent } from "@/components/create-event/preview";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { useTransition } from "react";
+import { slugify } from "@/lib/utils";
+import { FileUploader } from "@/components/ui/file-uploader";
+
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
     name: "",
-    slug: "",
-    organizerId: "",
-    type: "", // Default to single event
+    type: "",
     ticketSaleStart: "",
     ticketSaleEnd: "",
     startTime: "",
@@ -31,7 +31,27 @@ export default function CreateEventPage() {
     ticketPrice: "",
   });
   const [step, setStep] = useState(1);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [errors] = useState<Record<string, string>>({});
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+
+    startTransition(async () => {
+      try {
+        await handleCreateEvent(form);
+        toast.success("🎉 Event created successfully!");
+        router.push("/organizer"); // redirect to organizer dashboard
+      } catch (err) {
+        toast.error("Something went wrong while creating the event.");
+        console.error(err);
+      }
+    });
+  };
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -42,11 +62,37 @@ export default function CreateEventPage() {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  // Handle poster upload success
+  const handlePosterUpload = (response: any) => {
+    if (response.file) {
+      const tempUrl = URL.createObjectURL(response.file);
+      setPosterPreview(tempUrl); // Preview tạm
+    }
+
+    setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
+    toast.success("Poster uploaded successfully!");
+  };
+
+  const handleBannerUpload = (response: any) => {
+    if (response.file) {
+      const tempUrl = URL.createObjectURL(response.file);
+      setBannerPreview(tempUrl); // Preview tạm
+    }
+
+    setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
+    toast.success("Banner uploaded successfully!");
+  };
+
+  // Handle upload errors
+  const handleUploadError = (error: Error) => {
+    toast.error(`Upload failed: ${error.message}`);
+  };
+
   const renderField = (
     name: keyof typeof formData,
     label: string,
     type: string = "text",
-    options?: string[] // <-- danh sách tùy chọn nếu là select
+    options?: string[]
   ) => (
     <div className="space-y-2">
       <Label htmlFor={name}>
@@ -101,23 +147,34 @@ export default function CreateEventPage() {
           <>
             <h2 className="text-xl font-semibold mb-4">Event Details</h2>
             {renderField("name", "Event Title", "text")}
-            {renderField("slug", "slug", "text")}
-            {renderField("organizerId", "organizerId", "text")}
             {renderField("type", "Event Category", "select", [
               "Workshop",
               "Concert",
               "Webinar",
+              "Music",
+              "Sports",
+              "Art",
+              "Comedy",
+              "Food",
+              "Conference",
             ])}
             <div className="space-y-2">
               <div className="grid grid-cols-2 gap-4">
-                {renderField("startTime", "Start Time", "date")}
-                {renderField("endTime", "End Time", "date")}
-                {renderField("ticketSaleStart", "Ticket Sale Start", "date")}
-                {renderField("ticketSaleEnd", "Ticket Sale End", "date")}
+                {renderField("startTime", "Start Time", "datetime-local")}
+                {renderField("endTime", "End Time", "datetime-local")}
+                {renderField(
+                  "ticketSaleStart",
+                  "Ticket Sale Start",
+                  "datetime-local"
+                )}
+                {renderField(
+                  "ticketSaleEnd",
+                  "Ticket Sale End",
+                  "datetime-local"
+                )}
               </div>
             </div>
             {renderField("location", "Where will your event take place?")}
-            {/* {formData.location && <LocationMap address={formData.location} />} */}
 
             <TiptapEditorInput
               value={formData.description}
@@ -128,15 +185,112 @@ export default function CreateEventPage() {
         );
       case 2: // Banner Step
         return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-semibold mb-2">📸 Ảnh Sự Kiện</h2>
-            {renderField("posterUrl", "Poster URL", "text")}
-            {renderField("bannerUrl", "Banner URL", "text")}
+          <div className="space-y-6">
+            {/* Poster Upload Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">
+                Event Poster
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  (Recommended: 600x800px or 3:4 ratio)
+                </span>
+              </Label>
+
+              <div className="relative w-48 h-64 border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                {formData.posterUrl ? (
+                  <img
+                    src={formData.posterUrl}
+                    alt="Event poster preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center p-2">
+                    <FileUploader
+                      onUploadSuccess={handlePosterUpload}
+                      onUploadError={handleUploadError}
+                      folder="event-posters"
+                      mode="dropzone"
+                      buttonLabel="Upload Poster"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {formData.posterUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, posterUrl: "" }))
+                    }
+                  >
+                    Remove Poster
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Banner Upload Section */}
+            <div className="space-y-3">
+              <Label className="text-base font-medium">
+                Event Banner
+                <span className="text-sm font-normal text-gray-500 ml-2">
+                  (Recommended: 1280x720px or 16:9 ratio)
+                </span>
+              </Label>
+
+              <div className="relative w-full max-w-3xl aspect-[16/9] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                {formData.bannerUrl ? (
+                  <img
+                    src={formData.bannerUrl}
+                    alt="Event banner preview"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center p-2">
+                    <FileUploader
+                      onUploadSuccess={handleBannerUpload}
+                      onUploadError={handleUploadError}
+                      folder="event-banners"
+                      mode="dropzone"
+                      buttonLabel="Upload Banner"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {formData.bannerUrl && (
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, bannerUrl: "" }))
+                    }
+                  >
+                    Remove Banner
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         );
-      case 3: // Review Step
-        return <PreviewEvent data={formData as EventPreviewData} />;
 
+      case 3: // Review Step
+        return (
+          <div className="bg-white shadow-none rounded-none w-full py-0">
+            <PreviewEvent
+              data={{
+                ...formData,
+                slug: `${slugify(formData.name)}-preview`,
+                organizer: null,
+                areas: [],
+              }}
+            />
+          </div>
+        );
       case 4: // Ticketing Step
         return (
           <div>
@@ -144,7 +298,7 @@ export default function CreateEventPage() {
             <div className="space-y-2">
               <Label>What type of event are you running?</Label>
               <div className="flex space-x-4">
-                <Button variant="outline" className="flex-1">
+                <Button type="button" variant="outline" className="flex-1">
                   Have a SeatMap
                   <br />
                 </Button>
@@ -183,12 +337,12 @@ export default function CreateEventPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-6">
+    <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">Create a New Event</h1>
       <StepProgressBar step={step} />
 
       <Separator className="mb-6" />
-      <form action={handleCreateEvent} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-6">
         {renderStep()}
 
         {step === 4 && (
@@ -197,12 +351,6 @@ export default function CreateEventPage() {
               Go back
             </Button>
             <input type="hidden" name="name" value={formData.name} />
-            <input type="hidden" name="slug" value={formData.slug} />
-            <input
-              type="hidden"
-              name="organizerId"
-              value={formData.organizerId}
-            />
             <input type="hidden" name="type" value={formData.type} />
             <input type="hidden" name="startTime" value={formData.startTime} />
             <input type="hidden" name="endTime" value={formData.endTime} />
@@ -230,8 +378,12 @@ export default function CreateEventPage() {
               name="ticketPrice"
               value={formData.ticketPrice}
             />
-            <Button type="submit" className="bg-blue-600 text-white">
-              🎉 Create Event
+            <Button
+              type="submit"
+              className="bg-blue-600 text-white"
+              disabled={isPending}
+            >
+              {isPending ? "Creating..." : "🎉 Create Event"}
             </Button>
           </div>
         )}

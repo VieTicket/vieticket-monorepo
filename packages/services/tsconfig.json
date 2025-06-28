@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    // Environment setup & latest features
     "target": "ES2020",
     "module": "esnext",
     "moduleResolution": "bundler",
@@ -12,6 +13,11 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist"
+  ]
 }

@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth/auth-client";
 import { UserIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -33,13 +34,7 @@ export function ProfileDropdown() {
           align="end"
         >
           <DropdownMenuItem>Interests</DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => {
-              router.push("/profile");
-            }}
-          >
-            Account Settings
-          </DropdownMenuItem>
+          <DropdownMenuItem><Link href={'/profile/edit'}>Account Settings</Link></DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
               authClient.signOut({

@@ -1,0 +1,28 @@
+{
+  "name": "@vieticket/services",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./profile": {
+      "types": "./dist/profile-services.d.ts",
+      "default": "./dist/profile-services.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@vieticket/repos": "*"
+  },
+  "private": true
+}
