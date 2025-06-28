@@ -6,7 +6,7 @@ import {
   fetchRevenueDistribution,
   fetchTopRevenueEvents,
 } from "../actions";
-import OrganizerDashboardClient from "./ClientDashboard";
+import OrganizerDashboardModern from "./ClientDashboard";
 
 export default async function OrganizerGeneralPage() {
   const session = await authorise("organizer");
@@ -18,7 +18,7 @@ export default async function OrganizerGeneralPage() {
   ]);
 
   return (
-    <OrganizerDashboardClient
+    <OrganizerDashboardModern
       revenueOverTime={overTime}
       revenueDistribution={distribution}
       topEvents={top}

@@ -66,12 +66,25 @@ export default function EventCard({ event }: EventCardProps) {
 
       {/* Actions */}
       <div className="flex gap-2 pt-2">
-        <Button variant="outline">View statistic</Button>
         <Button
-          onClick={() => router.push(`/organizer/event/create?id=${event.id}`)}
+          onClick={() =>
+            router.push(`/organizer/general/create?id=${event.id}`)
+          }
+          variant="outline"
         >
-          Edit event
+          View statistic
         </Button>
+        {event.approvalStatus != "approved" ? (
+          <Button
+            onClick={() =>
+              router.push(`/organizer/event/create?id=${event.id}`)
+            }
+          >
+            Edit event
+          </Button>
+        ) : (
+          ""
+        )}
       </div>
     </div>
   );
