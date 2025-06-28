@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { handleCreateEvent } from "./action";
+import { handleCreateEvent, handleUpdateEvent } from "./action";
 import { StepProgressBar } from "@/components/create-event/progress-bar";
 import TiptapEditorInput from "@/components/TiptapEditorInput";
 import { PreviewEvent } from "@/components/create-event/preview";
@@ -14,6 +14,9 @@ import { toast } from "sonner";
 import { useTransition } from "react";
 import { slugify } from "@/lib/utils";
 import { FileUploader } from "@/components/ui/file-uploader";
+import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { fetchEventById } from "./action";
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -36,6 +39,60 @@ export default function CreateEventPage() {
   const [errors] = useState<Record<string, string>>({});
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get("id");
+  const [areas, setAreas] = useState([
+    { name: "Area A", seatCount: "", ticketPrice: "" },
+  ]);
+
+  useEffect(() => {
+    if (!eventId) return;
+
+    const loadEvent = async () => {
+      const event = await fetchEventById(eventId);
+      if (!event) return;
+
+      setFormData({
+        name: event.name ?? "",
+        type: event.type ?? "",
+        ticketSaleStart: event.ticketSaleStart
+          ? new Date(event.ticketSaleStart).toISOString().slice(0, 16)
+          : "",
+        ticketSaleEnd: event.ticketSaleEnd
+          ? new Date(event.ticketSaleEnd).toISOString().slice(0, 16)
+          : "",
+        startTime: event.startTime
+          ? new Date(event.startTime).toISOString().slice(0, 16)
+          : "",
+        endTime: event.endTime
+          ? new Date(event.endTime).toISOString().slice(0, 16)
+          : "",
+        location: event.location ?? "",
+        description: event.description ?? "",
+        posterUrl: event.posterUrl ?? "",
+        bannerUrl: event.bannerUrl ?? "",
+        seatCount: "", // Bỏ dùng, xử lý theo areas riêng
+        ticketPrice: "", // Bỏ dùng, xử lý theo areas riêng
+      });
+
+      // 👇 Cập nhật danh sách areas từ dữ liệu
+      if (event.areas?.length > 0) {
+        setAreas(
+          event.areas.map((area) => ({
+            name: area.name,
+            ticketPrice: area.price.toString(),
+            seatCount: area.rows?.[0]?.seats?.length.toString() || "0",
+          }))
+        );
+      }
+
+      // 👇 Cập nhật preview (nếu cần)
+      setPosterPreview(event.posterUrl ?? null);
+      setBannerPreview(event.bannerUrl ?? null);
+    };
+
+    loadEvent();
+  }, [eventId]);
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -43,8 +100,15 @@ export default function CreateEventPage() {
 
     startTransition(async () => {
       try {
-        await handleCreateEvent(form);
-        toast.success("🎉 Event created successfully!");
+        const hasId = form.get("eventId");
+        if (hasId) {
+          await handleUpdateEvent(form);
+          toast.success("✅ Event updated successfully!");
+        } else {
+          await handleCreateEvent(form);
+          toast.success("🎉 Event created successfully!");
+        }
+
         router.push("/organizer"); // redirect to organizer dashboard
       } catch (err) {
         toast.error("Something went wrong while creating the event.");
@@ -291,46 +355,120 @@ export default function CreateEventPage() {
             />
           </div>
         );
-      case 4: // Ticketing Step
+      case 4:
         return (
           <div>
             <h2 className="text-xl font-semibold mb-4">Ticketing</h2>
-            <div className="space-y-2">
-              <Label>What type of event are you running?</Label>
-              <div className="flex space-x-4">
-                <Button type="button" variant="outline" className="flex-1">
-                  Have a SeatMap
-                  <br />
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-2 mt-4">
-              <Label>Just selling tickets ?</Label>
-              <div className="grid grid-cols-2 gap-4">
-                <Input
-                  id="seatCount"
-                  name="seatCount"
-                  type="number"
-                  placeholder="Number of ticket"
-                  min={1}
-                  defaultValue={formData.seatCount}
-                  onChange={handleChange}
-                />
+            <div className="space-y-4">
+              {areas.map((area, index) => (
+                <div
+                  key={index}
+                  className="grid grid-cols-3 gap-4 items-end border p-4 rounded-lg relative"
+                >
+                  <div className="space-y-1">
+                    <Label htmlFor={`area-name-${index}`}>Area Name</Label>
+                    <Input
+                      id={`area-name-${index}`}
+                      type="text"
+                      name={`areas[${index}][name]`}
+                      placeholder="e.g. VIP, Standard"
+                      value={area.name}
+                      onChange={(e) =>
+                        setAreas((prev) =>
+                          prev.map((a, i) =>
+                            i === index ? { ...a, name: e.target.value } : a
+                          )
+                        )
+                      }
+                      required
+                    />
+                  </div>
 
-                <Input
-                  id="ticketPrice"
-                  name="ticketPrice"
-                  type="number"
-                  placeholder="0.0 VND"
-                  step="10000"
-                  min={0}
-                  defaultValue={formData.ticketPrice}
-                  onChange={handleChange}
-                />
-              </div>
+                  <div className="space-y-1">
+                    <Label htmlFor={`area-seatCount-${index}`}>
+                      Seat Count
+                    </Label>
+                    <Input
+                      id={`area-seatCount-${index}`}
+                      type="number"
+                      name={`areas[${index}][seatCount]`}
+                      placeholder="e.g. 100"
+                      value={area.seatCount}
+                      min={1}
+                      onChange={(e) =>
+                        setAreas((prev) =>
+                          prev.map((a, i) =>
+                            i === index
+                              ? { ...a, seatCount: e.target.value }
+                              : a
+                          )
+                        )
+                      }
+                      required
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label htmlFor={`area-ticketPrice-${index}`}>
+                      Ticket Price (VND)
+                    </Label>
+                    <Input
+                      id={`area-ticketPrice-${index}`}
+                      type="number"
+                      name={`areas[${index}][ticketPrice]`}
+                      placeholder="e.g. 50000"
+                      step="10000"
+                      min={0}
+                      value={area.ticketPrice}
+                      onChange={(e) =>
+                        setAreas((prev) =>
+                          prev.map((a, i) =>
+                            i === index
+                              ? { ...a, ticketPrice: e.target.value }
+                              : a
+                          )
+                        )
+                      }
+                      required
+                    />
+                  </div>
+
+                  {/* Xoá khu vực */}
+                  {areas.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setAreas((prev) => prev.filter((_, i) => i !== index))
+                      }
+                      className="absolute top-2 right-2 text-red-500 text-sm"
+                    >
+                      🗑 Remove
+                    </button>
+                  )}
+                </div>
+              ))}
+
+              {/* Thêm khu vực mới */}
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() =>
+                  setAreas((prev) => [
+                    ...prev,
+                    {
+                      name: `Area ${String.fromCharCode(65 + prev.length)}`,
+                      seatCount: "",
+                      ticketPrice: "",
+                    },
+                  ])
+                }
+              >
+                + Add Area
+              </Button>
             </div>
           </div>
         );
+
       default:
         return null;
     }
@@ -338,7 +476,10 @@ export default function CreateEventPage() {
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">Create a New Event</h1>
+      <h1 className="text-3xl font-semibold mb-4">
+        {eventId ? "Edit Event" : "Create a New Event"}
+      </h1>
+
       <StepProgressBar step={step} />
 
       <Separator className="mb-6" />
@@ -350,6 +491,27 @@ export default function CreateEventPage() {
             <Button variant="outline" onClick={() => setStep(step - 1)}>
               Go back
             </Button>
+            {eventId && <input type="hidden" name="eventId" value={eventId} />}
+            {areas.map((area, index) => (
+              <div key={index}>
+                <input
+                  type="hidden"
+                  name={`areas[${index}][name]`}
+                  value={area.name}
+                />
+                <input
+                  type="hidden"
+                  name={`areas[${index}][seatCount]`}
+                  value={area.seatCount}
+                />
+                <input
+                  type="hidden"
+                  name={`areas[${index}][ticketPrice]`}
+                  value={area.ticketPrice}
+                />
+              </div>
+            ))}
+
             <input type="hidden" name="name" value={formData.name} />
             <input type="hidden" name="type" value={formData.type} />
             <input type="hidden" name="startTime" value={formData.startTime} />
@@ -383,7 +545,13 @@ export default function CreateEventPage() {
               className="bg-blue-600 text-white"
               disabled={isPending}
             >
-              {isPending ? "Creating..." : "🎉 Create Event"}
+              {isPending
+                ? eventId
+                  ? "Updating..."
+                  : "Creating..."
+                : eventId
+                  ? "Update Event"
+                  : "🎉 Create Event"}
             </Button>
           </div>
         )}

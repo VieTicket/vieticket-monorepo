@@ -23,6 +23,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "recharts": "^3.0.2"
   }
 }

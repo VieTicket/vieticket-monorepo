@@ -1,4 +1,8 @@
-import { type InferInsertModel, type InferSelectModel, relations } from "drizzle-orm";
+import {
+  type InferInsertModel,
+  type InferSelectModel,
+  relations,
+} from "drizzle-orm";
 import {
   boolean,
   integer,
@@ -10,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
 import { organizers } from "./users-schemas";
+import { eventApprovalStatusEnum } from "../enums";
 
 // Schemas
 export const events = pgTable("events", {
@@ -26,7 +31,7 @@ export const events = pgTable("events", {
   posterUrl: varchar("poster_url", { length: 255 }),
   bannerUrl: varchar("banner_url", { length: 255 }),
   views: integer().notNull().default(0),
-  isApproved: boolean("is_approved").default(false),
+  approvalStatus: eventApprovalStatusEnum("approval_status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
   organizerId: text("organizer_id")
@@ -98,3 +103,17 @@ export type EventFull = Event & {
   };
   areas: Area[];
 };
+export const rowsRelations = relations(rows, ({ one, many }) => ({
+  area: one(areas, {
+    fields: [rows.areaId],
+    references: [areas.id],
+  }),
+  seats: many(seats),
+}));
+
+export const seatsRelations = relations(seats, ({ one }) => ({
+  row: one(rows, {
+    fields: [seats.rowId],
+    references: [rows.id],
+  }),
+}));
