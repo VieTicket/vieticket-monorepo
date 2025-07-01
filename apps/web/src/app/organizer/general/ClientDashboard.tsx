@@ -23,7 +23,7 @@ import {
   TrendingUp,
   Wallet,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Area,
   AreaChart,
@@ -139,19 +139,51 @@ export default function OrganizerDashboardModern({
   };
   const [fromDate, setFromDate] = useState<string>("");
   const [toDate, setToDate] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+
+  // Calculate date ranges based on filter selection
+  const getDateRange = useCallback(
+    (filter: string) => {
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+
+      switch (filter) {
+        case "7days":
+          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return {
+            from: last7Days.toISOString().split("T")[0],
+            to: today,
+          };
+        case "30days":
+          const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return {
+            from: last30Days.toISOString().split("T")[0],
+            to: today,
+          };
+        case "custom":
+          return { from: fromDate, to: toDate };
+        case "all":
+        default:
+          return { from: "", to: "" };
+      }
+    },
+    [fromDate, toDate]
+  );
 
   // Filter data by date range
   const filteredRevenue = useMemo(() => {
-    if (!fromDate && !toDate) return revenueOverTime;
+    const { from, to } = getDateRange(dateFilter);
+
+    if (!from && !to) return revenueOverTime;
 
     return revenueOverTime.filter((item) => {
       const current = new Date(item.date).getTime();
-      const from = fromDate ? new Date(fromDate).getTime() : -Infinity;
-      const to = toDate ? new Date(toDate).getTime() : Infinity;
+      const fromTime = from ? new Date(from).getTime() : -Infinity;
+      const toTime = to ? new Date(to).getTime() : Infinity;
 
-      return current >= from && current <= to;
+      return current >= fromTime && current <= toTime;
     });
-  }, [revenueOverTime, fromDate, toDate]);
+  }, [revenueOverTime, dateFilter, fromDate, toDate]);
   const dynamicColors = generateColors(revenueDistribution.length);
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -240,21 +272,38 @@ export default function OrganizerDashboardModern({
                   <CardDescription>Revenue over time.</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
-                  <input
-                    type="date"
-                    value={fromDate}
-                    onChange={(e) => setFromDate(e.target.value)}
-                    className="rounded border px-2 py-1 text-sm"
-                  />
-                  <span className="text-muted-foreground text-sm hidden sm:inline">
-                    –
-                  </span>
-                  <input
-                    type="date"
-                    value={toDate}
-                    onChange={(e) => setToDate(e.target.value)}
-                    className="rounded border px-2 py-1 text-sm"
-                  />
+                  <select
+                    value={dateFilter}
+                    onChange={(e) => setDateFilter(e.target.value)}
+                    className="rounded border px-2 py-1 text-sm bg-white"
+                  >
+                    <option value="all">All time</option>
+                    <option value="7days">Last 7 days</option>
+                    <option value="30days">Last 30 days</option>
+                    <option value="custom">Custom</option>
+                  </select>
+
+                  {dateFilter === "custom" && (
+                    <>
+                      <input
+                        type="date"
+                        value={fromDate}
+                        onChange={(e) => setFromDate(e.target.value)}
+                        className="rounded border px-2 py-1 text-sm"
+                        placeholder="From"
+                      />
+                      <span className="text-muted-foreground text-sm hidden sm:inline">
+                        –
+                      </span>
+                      <input
+                        type="date"
+                        value={toDate}
+                        onChange={(e) => setToDate(e.target.value)}
+                        className="rounded border px-2 py-1 text-sm"
+                        placeholder="To"
+                      />
+                    </>
+                  )}
                 </div>
               </div>
             </CardHeader>
@@ -303,6 +352,8 @@ export default function OrganizerDashboardModern({
                     strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#colorTotal)"
+                    activeDot={{ r: 6 }}
+                    isAnimationActive={true}
                   />
                 </AreaChart>
               </ResponsiveContainer>
