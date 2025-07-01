@@ -1,6 +1,6 @@
-import { Shape } from "@/types/seat-map-types";
+import { Shape, AreaShape } from "@/types/seat-map-types";
 
-export const createHitFunc = (shape: Shape) => {
+export const createHitFunc = (shape: Shape | AreaShape) => {
   switch (shape.type) {
     case "rect":
       return createRectHitFunc(shape);
@@ -15,188 +15,78 @@ export const createHitFunc = (shape: Shape) => {
   }
 };
 
-// Fixed: Rectangle hit function
+// FIXED: Rectangle hit function for both Shape and AreaShape
 const createRectHitFunc = (shape: any) => {
-  return (context: any, konvaShape?: any) => {
-    const width = shape.width;
-    const height = shape.height;
-    const cornerRadius = shape.cornerRadius || 0;
+  return (context: any, shapeNode: any) => {
+    // FIXED: Handle both regular shapes and area shapes
+    const w = shape.width || shapeNode.width() || 20;
+    const h = shape.height || shapeNode.height() || 20;
+    const r = shape.cornerRadius || 0;
 
-    console.log("Rectangle hit function called:", {
-      width,
-      height,
-      cornerRadius,
-      context,
-      konvaShape,
-    });
+    context.beginPath();
 
-    if (!context) {
-      console.warn("No context provided to hit function");
-      return;
+    if (r > 0) {
+      context.moveTo(r, 0);
+      context.lineTo(w - r, 0);
+      context.quadraticCurveTo(w, 0, w, r);
+      context.lineTo(w, h - r);
+      context.quadraticCurveTo(w, h, w - r, h);
+      context.lineTo(r, h);
+      context.quadraticCurveTo(0, h, 0, h - r);
+      context.lineTo(0, r);
+      context.quadraticCurveTo(0, 0, r, 0);
+    } else {
+      context.rect(0, 0, w, h);
     }
 
-    try {
-      context.beginPath();
-
-      if (cornerRadius > 0) {
-        // Rounded rectangle path
-        const x = 0;
-        const y = 0;
-        const r = Math.min(cornerRadius, width / 2, height / 2);
-
-        context.moveTo(x + r, y);
-        context.lineTo(x + width - r, y);
-        context.quadraticCurveTo(x + width, y, x + width, y + r);
-        context.lineTo(x + width, y + height - r);
-        context.quadraticCurveTo(
-          x + width,
-          y + height,
-          x + width - r,
-          y + height
-        );
-        context.lineTo(x + r, y + height);
-        context.quadraticCurveTo(x, y + height, x, y + height - r);
-        context.lineTo(x, y + r);
-        context.quadraticCurveTo(x, y, x + r, y);
-      } else {
-        // Regular rectangle
-        context.rect(0, 0, width, height);
-      }
-
-      context.closePath();
-
-      // Use fillStrokeShape if available, otherwise use fill/stroke
-      if (konvaShape && typeof konvaShape.fillStrokeShape === "function") {
-        konvaShape.fillStrokeShape(context);
-      } else {
-        context.fill();
-        if (shape.stroke) {
-          context.stroke();
-        }
-      }
-
-      console.log("Rectangle hit function completed successfully");
-    } catch (error) {
-      console.error("Error in rectangle hit function:", error);
-    }
+    context.closePath();
+    context.fillStrokeShape(shapeNode);
   };
 };
 
 // Fixed: Circle hit function
 const createCircleHitFunc = (shape: any) => {
-  return (context: any, konvaShape?: any) => {
-    const radius = shape.radius;
-
-    console.log("Circle hit function called:", { radius, context, konvaShape });
-
-    if (!context) {
-      console.warn("No context provided to circle hit function");
-      return;
-    }
-
-    try {
-      context.beginPath();
-      context.arc(0, 0, radius, 0, Math.PI * 2);
-      context.closePath();
-
-      if (konvaShape && typeof konvaShape.fillStrokeShape === "function") {
-        konvaShape.fillStrokeShape(context);
-      } else {
-        context.fill();
-        if (shape.stroke) {
-          context.stroke();
-        }
-      }
-
-      console.log("Circle hit function completed successfully");
-    } catch (error) {
-      console.error("Error in circle hit function:", error);
-    }
+  return (context: any, shapeNode?: any) => {
+    const radius = shape.radius || 10;
+    context.beginPath();
+    context.arc(0, 0, radius, 0, Math.PI * 2);
+    context.closePath();
+    context.fillStrokeShape(shapeNode);
   };
 };
 
 // Fixed: Polygon hit function
 const createPolygonHitFunc = (shape: any) => {
-  return (context: any, konvaShape?: any) => {
+  return (context: any, shapeNode?: any) => {
     const points = shape.points;
+    if (!points || points.length < 4) return; // Need at least 2 points (4 values)
 
-    console.log("Polygon hit function called:", {
-      points,
-      context,
-      konvaShape,
-    });
+    context.beginPath();
+    context.moveTo(points[0], points[1]);
 
-    if (!context || !points || points.length < 6) {
-      console.warn("Invalid context or points for polygon hit function");
-      return;
+    for (let i = 2; i < points.length; i += 2) {
+      context.lineTo(points[i], points[i + 1]);
     }
 
-    try {
-      context.beginPath();
-      context.moveTo(points[0], points[1]);
-
-      for (let i = 2; i < points.length; i += 2) {
-        context.lineTo(points[i], points[i + 1]);
-      }
-
-      if (shape.closed !== false) {
-        context.closePath();
-      }
-
-      if (konvaShape && typeof konvaShape.fillStrokeShape === "function") {
-        konvaShape.fillStrokeShape(context);
-      } else {
-        context.fill();
-        if (shape.stroke) {
-          context.stroke();
-        }
-      }
-
-      console.log("Polygon hit function completed successfully");
-    } catch (error) {
-      console.error("Error in polygon hit function:", error);
+    if (shape.closed !== false) {
+      context.closePath();
     }
+
+    context.fillStrokeShape(shapeNode);
   };
 };
 
 // Fixed: Text hit function
 const createTextHitFunc = (shape: any) => {
-  return (context: any, konvaShape?: any) => {
+  return (context: any, shapeNode?: any) => {
     const fontSize = shape.fontSize || 16;
     const text = shape.text || shape.name || "New Text";
     const width = shape.width || Math.max(100, text.length * fontSize * 0.6);
     const height = fontSize * 1.2;
 
-    console.log("Text hit function called:", {
-      width,
-      height,
-      text,
-      context,
-      konvaShape,
-    });
-
-    if (!context) {
-      console.warn("No context provided to text hit function");
-      return;
-    }
-
-    try {
-      context.beginPath();
-      context.rect(0, 0, width, height);
-      context.closePath();
-
-      if (konvaShape && typeof konvaShape.fillStrokeShape === "function") {
-        konvaShape.fillStrokeShape(context);
-      } else {
-        context.fill();
-        if (shape.stroke) {
-          context.stroke();
-        }
-      }
-
-      console.log("Text hit function completed successfully");
-    } catch (error) {
-      console.error("Error in text hit function:", error);
-    }
+    context.beginPath();
+    context.rect(0, 0, width, height);
+    context.closePath();
+    context.fillStrokeShape(shapeNode);
   };
 };

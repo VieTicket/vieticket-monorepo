@@ -27,13 +27,25 @@ import {
   Grid3X3,
   Eye,
   Bug,
+  Grid,
+  Minus,
+  ArrowLeft,
 } from "lucide-react";
 import { useCanvasStore } from "./store/main-store";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
+import { useAreaZoom } from "./hooks/useAreaZoom";
 
-export type ToolType = "select" | "rect" | "circle" | "text" | "polygon";
+export type ToolType =
+  | "select"
+  | "rect"
+  | "circle"
+  | "polygon"
+  | "text"
+  | "area-zoom" // NEW
+  | "seat-grid" // NEW
+  | "seat-row"; // NEW
 
 export default function MainToolbar() {
   const {
@@ -56,6 +68,7 @@ export default function MainToolbar() {
   } = useCanvasStore();
 
   const { centerCanvas } = usePanZoom();
+  const { isInAreaMode, exitAreaMode } = useAreaZoom();
 
   const tools = [
     { id: "select", icon: MousePointerClick, label: "Select" },
@@ -64,6 +77,13 @@ export default function MainToolbar() {
     { id: "text", icon: Type, label: "Text" },
     { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
   ];
+
+  const areaTools = [
+    { id: "seat-grid", icon: Grid, label: "Seat Grid" },
+    { id: "seat-row", icon: Minus, label: "Seat Row" },
+  ];
+
+  console.log("isInAreaMode:", isInAreaMode);
 
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
@@ -97,20 +117,47 @@ export default function MainToolbar() {
         <div className="border-l mx-2 h-6" />
 
         {/* Tool Buttons */}
-        {tools.map((tool) => {
-          const IconComponent = tool.icon;
-          return (
+        {!isInAreaMode ? (
+          <div>
             <Button
-              key={tool.id}
-              variant={currentTool === tool.id ? "secondary" : "ghost"}
+              variant="ghost"
               size="icon"
-              onClick={() => setCurrentTool(tool.id as ToolType)}
-              title={tool.label}
+              onClick={() => exitAreaMode()}
+              title="Zoom Out"
             >
-              <IconComponent className="w-5 h-5" />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
-          );
-        })}
+            {tools.map((tool) => {
+              const IconComponent = tool.icon;
+              return (
+                <Button
+                  key={tool.id}
+                  variant={currentTool === tool.id ? "secondary" : "ghost"}
+                  size="icon"
+                  onClick={() => setCurrentTool(tool.id as ToolType)}
+                  title={tool.label}
+                >
+                  <IconComponent className="w-5 h-5" />
+                </Button>
+              );
+            })}
+          </div>
+        ) : (
+          areaTools.map((tool) => {
+            const IconComponent = tool.icon;
+            return (
+              <Button
+                key={tool.id}
+                variant={currentTool === tool.id ? "secondary" : "ghost"}
+                size="icon"
+                onClick={() => setCurrentTool(tool.id as ToolType)}
+                title={tool.label}
+              >
+                <IconComponent className="w-5 h-5" />
+              </Button>
+            );
+          })
+        )}
 
         <div className="border-l mx-2 h-6" />
 

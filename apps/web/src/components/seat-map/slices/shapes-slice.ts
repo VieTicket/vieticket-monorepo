@@ -2,12 +2,13 @@ import { StateCreator } from "zustand";
 import { v4 as uuidv4 } from "uuid";
 import {
   Shape,
-  ShapeType,
-  CreateShapeData,
   ShapeWithoutMeta,
+  AnyShapeUpdate, // Use the more flexible type
 } from "@/types/seat-map-types";
-import { HistorySlice } from "./history-slice";
-import { CanvasSlice } from "./canvas-slice";
+
+import type { HistorySlice } from "./history-slice";
+import type { CanvasSlice } from "./canvas-slice";
+import type { AreaSlice } from "./area-slice";
 
 export interface ShapesSlice {
   shapes: Shape[];
@@ -15,10 +16,8 @@ export interface ShapesSlice {
   isEditing: boolean;
   editingShapeId: string | null;
   addShape: (shape: ShapeWithoutMeta) => void;
-  updateShape: (
-    id: string,
-    updates: Partial<Omit<Shape, "id" | "type">>
-  ) => void;
+  // FIXED: Use the more flexible update type
+  updateShape: (id: string, updates: AnyShapeUpdate) => void;
   deleteShape: (id: string) => void;
   deleteSelectedShapes: () => void;
   selectShape: (id: string, multiSelect?: boolean) => void;
@@ -34,6 +33,7 @@ export interface ShapesSlice {
   startEditing: (shapeId: string) => void;
   stopEditing: () => void;
   isShapeEditing: (shapeId: string) => boolean;
+  syncAreaToShape: () => void;
 }
 
 export const createShapesSlice: StateCreator<
@@ -60,15 +60,47 @@ export const createShapesSlice: StateCreator<
     }));
   },
 
+  // FIXED: Use the more flexible update type
   updateShape: (id, updates) => {
     set((state) => ({
       shapes: state.shapes.map((shape) =>
         shape.id === id ? { ...shape, ...updates } : shape
       ),
     }));
+
+    // Sync with area mode if updating the zoomed area
+    // const { zoomedArea, updateZoomedArea } = get();
+    // if (zoomedArea && id === zoomedArea.id) {
+    //   updateZoomedArea(updates);
+    // }
+  },
+
+  syncAreaToShape: () => {
+    // const { zoomedArea } = get();
+    // if (zoomedArea) {
+    //   // Update the main shape with area data
+    //   set((state) => ({
+    //     shapes: state.shapes.map((shape) =>
+    //       shape.id === zoomedArea.id
+    //         ? {
+    //             ...shape,
+    //             rows: zoomedArea.rows,
+    //             seats: zoomedArea.seats,
+    //           }
+    //         : shape
+    //     ),
+    //   }));
+    // }
   },
 
   deleteShape: (id) => {
+    // const { exitAreaMode, zoomedArea } = get();
+
+    // // If deleting the currently zoomed area, exit area mode
+    // if (zoomedArea && id === zoomedArea.id) {
+    //   exitAreaMode();
+    // }
+
     set((state) => ({
       shapes: state.shapes.filter((shape) => shape.id !== id),
       selectedShapeIds: state.selectedShapeIds.filter(
@@ -79,6 +111,12 @@ export const createShapesSlice: StateCreator<
 
   deleteSelectedShapes: () => {
     const { selectedShapeIds } = get();
+
+    // // Check if the zoomed area is being deleted
+    // if (zoomedArea && selectedShapeIds.includes(zoomedArea.id)) {
+    //   exitAreaMode();
+    // }
+
     set((state) => ({
       shapes: state.shapes.filter(
         (shape) => !selectedShapeIds.includes(shape.id)
@@ -121,7 +159,8 @@ export const createShapesSlice: StateCreator<
   },
 
   duplicateShape: (id) => {
-    const shape = get().shapes.find((s) => s.id === id);
+    const { shapes } = get();
+    const shape = shapes.find((s) => s.id === id);
     if (shape) {
       const duplicatedShape: Shape = {
         ...shape,
@@ -138,7 +177,8 @@ export const createShapesSlice: StateCreator<
   },
 
   getShapeById: (id) => {
-    return get().shapes.find((shape) => shape.id === id);
+    const { shapes } = get();
+    return shapes.find((shape) => shape.id === id);
   },
 
   bringToFront: (id) => {
@@ -174,28 +214,28 @@ export const createShapesSlice: StateCreator<
   },
 
   duplicateSelectedShapes: () => {
-    const { shapes, selectedShapeIds, addShape } = get();
+    const { shapes, selectedShapeIds } = get();
     const selectedShapes = shapes.filter((shape) =>
       selectedShapeIds.includes(shape.id)
     );
 
-    const newShapeIds: string[] = [];
-
+    const newShapes: Shape[] = [];
     selectedShapes.forEach((shape) => {
-      const duplicatedShape = {
+      const duplicatedShape: Shape = {
         ...shape,
-        x: shape.x + 20, // Offset the duplicate
+        id: uuidv4(),
+        x: shape.x + 20,
         y: shape.y + 20,
-        id: undefined, // Let addShape generate new ID
       };
-
-      // Remove the id so addShape can generate a new one
-      delete (duplicatedShape as any).id;
-
-      addShape(duplicatedShape);
-      // You'd need to capture the new ID if you want to select the duplicates
+      newShapes.push(duplicatedShape);
     });
+
+    set((state) => ({
+      shapes: [...state.shapes, ...newShapes],
+      selectedShapeIds: newShapes.map((s) => s.id),
+    }));
   },
+
   startEditing: (shapeId: string) => {
     set({
       isEditing: true,

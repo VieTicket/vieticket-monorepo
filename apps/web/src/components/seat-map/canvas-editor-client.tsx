@@ -1,13 +1,14 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import { Stage, Layer, Rect, Line } from "react-konva";
+import { Stage, Layer, Rect, Line, Group, Circle } from "react-konva";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 import { useCanvasEvents } from "./hooks/useCanvasEvents";
 import { useCanvasResize } from "./hooks/useCanvasResize";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { renderShape } from "./utils/shape-renderer";
 import { buildShapeProps } from "./utils/shape-props-builder";
+import { SelectionOverlay } from "./utils/selection-overlay";
 import { useKeyMap } from "./hooks/useKeyMap";
 import { useStageRef } from "./providers/stage-provider";
 
@@ -47,7 +48,6 @@ export default function CanvasEditorClient() {
     }
   }, [viewportSize.width, viewportSize.height]);
 
-  // Debug: Show hit canvas
   useEffect(() => {
     if (showHitCanvas && stageRef.current) {
       const timer = setTimeout(() => {
@@ -58,14 +58,12 @@ export default function CanvasEditorClient() {
           if (hitCanvas && hitCanvas._canvas) {
             const canvas = hitCanvas._canvas;
 
-            // Remove existing debug canvas
             const existingDebugCanvas =
               document.getElementById("debug-hit-canvas");
             if (existingDebugCanvas) {
               existingDebugCanvas.remove();
             }
 
-            // Create debug canvas overlay
             const debugCanvas = document.createElement("canvas");
             debugCanvas.id = "debug-hit-canvas";
             debugCanvas.width = canvas.width;
@@ -83,7 +81,6 @@ export default function CanvasEditorClient() {
               debugCtx.drawImage(canvas, 0, 0);
             }
 
-            // Add to canvas container
             const canvasContainer = document.querySelector(".canvas-container");
             if (canvasContainer) {
               canvasContainer.appendChild(debugCanvas);
@@ -94,7 +91,6 @@ export default function CanvasEditorClient() {
 
       return () => clearTimeout(timer);
     } else {
-      // Remove debug canvas when disabled
       const existingDebugCanvas = document.getElementById("debug-hit-canvas");
       if (existingDebugCanvas) {
         existingDebugCanvas.remove();
@@ -108,7 +104,6 @@ export default function CanvasEditorClient() {
     const gridSize = 50;
     const lines = [];
 
-    // Calculate grid bounds based on canvas size and zoom
     const startX = Math.floor(-pan.x / zoom / gridSize) * gridSize;
     const endX =
       Math.ceil((viewportSize.width - pan.x) / zoom / gridSize) * gridSize;
@@ -116,7 +111,6 @@ export default function CanvasEditorClient() {
     const endY =
       Math.ceil((viewportSize.height - pan.y) / zoom / gridSize) * gridSize;
 
-    // Vertical lines
     for (let x = startX; x <= endX; x += gridSize) {
       lines.push(
         <Line
@@ -130,7 +124,6 @@ export default function CanvasEditorClient() {
       );
     }
 
-    // Horizontal lines
     for (let y = startY; y <= endY; y += gridSize) {
       lines.push(
         <Line
@@ -168,35 +161,58 @@ export default function CanvasEditorClient() {
         commonProps: {
           ...commonProps,
           key: shapeKey,
-          // Performance optimization
           perfectDrawEnabled: false,
         },
+        isInAreaMode: eventHandlers.areaZoom.isInAreaMode,
+        zoomedAreaId: eventHandlers.areaZoom.zoomedArea?.id,
+        selectedRowIds: [],
+        selectedSeatIds: [],
+        onRowClick: eventHandlers.handleRowClick,
+        onSeatClick: eventHandlers.handleSeatClick,
       });
     },
     [selectedShapeIds, currentTool, eventHandlers]
   );
 
-  const renderSelectionRectangle = useCallback(() => {
-    if (
-      !eventHandlers.selectionRect ||
-      !eventHandlers.isSelecting ||
-      currentTool !== "select"
-    )
-      return null;
-    return (
-      <Rect
-        x={eventHandlers.selectionRect.x}
-        y={eventHandlers.selectionRect.y}
-        width={eventHandlers.selectionRect.width}
-        height={eventHandlers.selectionRect.height}
-        fill="rgba(0, 162, 255, 0.1)"
-        stroke="rgba(0, 162, 255, 0.6)"
-        strokeWidth={1}
-        dash={[5, 5]}
-        listening={false}
-      />
-    );
-  }, [eventHandlers.selectionRect, eventHandlers.isSelecting, currentTool]);
+  // const renderRowPreview = useCallback(() => {
+  //   if (!eventHandlers.rowDrawing.previewRow) return null;
+
+  //   const { row, seats } = eventHandlers.rowDrawing.previewRow;
+
+  //   return (
+  //     <Group key="row-preview">
+  //       {seats.length > 1 && (
+  //         <Line
+  //           points={[
+  //             seats[0].x,
+  //             seats[0].y,
+  //             seats[seats.length - 1].x,
+  //             seats[seats.length - 1].y,
+  //           ]}
+  //           stroke="#FF6B6B"
+  //           strokeWidth={2}
+  //           dash={[5, 5]}
+  //           opacity={0.7}
+  //           listening={false}
+  //         />
+  //       )}
+
+  //       {seats.map((seat, index) => (
+  //         <Circle
+  //           key={`preview-seat-${index}`}
+  //           x={seat.x}
+  //           y={seat.y}
+  //           radius={seat.radius}
+  //           fill={seat.fill}
+  //           stroke={seat.stroke}
+  //           strokeWidth={seat.strokeWidth}
+  //           opacity={0.7}
+  //           listening={false}
+  //         />
+  //       ))}
+  //     </Group>
+  //   );
+  // }, [eventHandlers.rowDrawing.previewRow]);
 
   const getCursor = () => {
     switch (currentTool) {
@@ -208,9 +224,45 @@ export default function CanvasEditorClient() {
         return "crosshair";
       case "text":
         return "text";
+      case "row":
+        return "crosshair";
       default:
         return "default";
     }
+  };
+
+  const renderSeatPreviews = useCallback(() => {
+    if (!eventHandlers.seatDrawing.previewSeats.length) return null;
+
+    return eventHandlers.seatDrawing.previewSeats.map((seat, index) => (
+      <Circle
+        key={`preview-seat-${index}`}
+        x={seat.x}
+        y={seat.y}
+        radius={seat.radius}
+        fill={seat.fill}
+        stroke={seat.stroke}
+        strokeWidth={seat.strokeWidth}
+        opacity={0.7}
+        listening={false}
+      />
+    ));
+  }, [eventHandlers.seatDrawing.previewSeats]);
+
+  const selectedShapes = shapes.filter((shape) =>
+    selectedShapeIds.includes(shape.id)
+  );
+
+  const shouldShowSelectionOverlay = () => {
+    if (currentTool !== "select") return false;
+
+    if (selectedShapes.length === 0) return false;
+
+    if (eventHandlers.isDragging) return false;
+
+    if (eventHandlers.isSelecting) return false;
+
+    return true;
   };
 
   return (
@@ -256,7 +308,18 @@ export default function CanvasEditorClient() {
               true
             )}
 
-          {renderSelectionRectangle()}
+          {/* {renderRowPreview()}
+
+          {renderSeatPreviews()} */}
+
+          {shouldShowSelectionOverlay() && (
+            <SelectionOverlay
+              selectedShapes={selectedShapes}
+              onResize={(shapeId, newBounds) => {
+                console.log("Resize shape:", shapeId, newBounds);
+              }}
+            />
+          )}
         </Layer>
       </Stage>
 
@@ -264,9 +327,18 @@ export default function CanvasEditorClient() {
         Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
         {Math.round(pan.y)}
         {showGrid && <span className="text-green-600 ml-2">Grid ON</span>}
-        {showHitCanvas && (
-          <span className="text-red-600 ml-2">Hit Canvas ON</span>
+        {eventHandlers.isDragging && (
+          <span className="text-orange-600 ml-2">DRAGGING</span>
         )}
+        {eventHandlers.areaZoom.isInAreaMode && (
+          <span className="text-blue-600 ml-2">
+            AREA MODE:{" "}
+            {eventHandlers.areaZoom.zoomedArea?.name || "Unnamed Area"}
+          </span>
+        )}
+        {/* {eventHandlers.rowDrawing.isDrawingRow && (
+          <span className="text-purple-600 ml-2">DRAWING ROW</span>
+        )} */}
       </div>
     </div>
   );

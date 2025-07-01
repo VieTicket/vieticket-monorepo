@@ -2,13 +2,14 @@ import { StateCreator } from "zustand";
 import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
 import { ToolType } from "../main-toolbar";
+import { AreaToolType } from "../area-toolbar";
 
 export interface CanvasSlice {
   canvasSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   zoom: number;
   pan: { x: number; y: number };
-  currentTool: ToolType;
+  currentTool: ToolType | AreaToolType;
   showGrid: boolean;
   showHitCanvas: boolean;
 
@@ -87,13 +88,15 @@ export const createCanvasSlice: StateCreator<
   },
 
   zoomIn: () => {
-    const { zoom } = get();
-    set({ zoom: Math.min(5, zoom * 1.2) });
+    const { zoom, setZoom } = get();
+    const newZoom = Math.min(zoom * 1.2, 10); // Max zoom 10x
+    setZoom(newZoom);
   },
 
   zoomOut: () => {
-    const { zoom } = get();
-    set({ zoom: Math.max(0.1, zoom / 1.2) });
+    const { zoom, setZoom } = get();
+    const newZoom = Math.max(zoom / 1.2, 0.1); // Min zoom 0.1x
+    setZoom(newZoom);
   },
 
   updateMultipleShapes: (updates) => {

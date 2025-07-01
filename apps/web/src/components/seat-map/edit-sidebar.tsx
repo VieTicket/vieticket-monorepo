@@ -218,7 +218,14 @@ export default function EditSidebar() {
   const handleSingleShapeUpdate = useCallback(
     (updates: Record<string, any>) => {
       if (singleShape) {
-        const validatedUpdates = Object.entries(updates).reduce(
+        const filteredUpdates = { ...updates };
+
+        if (singleShape.type === "polygon" && "rotation" in filteredUpdates) {
+          console.warn("Rotation not supported for polygon shapes");
+          delete filteredUpdates.rotation;
+        }
+
+        const validatedUpdates = Object.entries(filteredUpdates).reduce(
           (acc, [key, value]) => {
             if (
               typeof value === "string" &&
