@@ -7,7 +7,7 @@ export interface ShapeProps {
   shape: Shape;
   isSelected: boolean;
   commonProps: any;
-  // NEW: Area mode properties
+  // Area mode properties
   isInAreaMode?: boolean;
   zoomedAreaId?: string;
   selectedRowIds?: string[];
@@ -36,9 +36,6 @@ export const renderShape = ({
 
   switch (shape.type) {
     case "rect":
-      // Hide rectangles (stages) in area mode
-      if (isInAreaMode) return null;
-
       return (
         <Group key={key} {...restProps}>
           <Rect
@@ -53,7 +50,7 @@ export const renderShape = ({
             dash={shape.dash || []}
             opacity={shape.opacity}
             hitFunc={hitFunc}
-            listening={true}
+            listening={!isInAreaMode} // FIX: Disable interaction in area mode
           />
           {shape.name && (
             <Text
@@ -73,9 +70,6 @@ export const renderShape = ({
       );
 
     case "circle":
-      // Hide circles (stages) in area mode
-      if (isInAreaMode) return null;
-
       return (
         <Group key={key} {...restProps}>
           <Circle
@@ -88,7 +82,7 @@ export const renderShape = ({
             dash={shape.dash || []}
             opacity={shape.opacity}
             hitFunc={hitFunc}
-            listening={true}
+            listening={!isInAreaMode} // FIX: Disable interaction in area mode
           />
           {shape.name && (
             <Text
@@ -110,22 +104,26 @@ export const renderShape = ({
     case "polygon":
       const polygonShape = shape as PolygonShape;
       const isCurrentArea = isInAreaMode && zoomedAreaId === shape.id;
+      const hasRows =
+        Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
 
       return (
         <Group key={key} {...restProps}>
-          {/* Polygon outline */}
+          {/* FIX: Polygon outline with area mode styling */}
           <Line
             x={0}
             y={0}
             points={shape.points}
             closed={shape.closed}
-            fill={shape.fill}
-            stroke={shape.stroke}
+            // FIX: Light gray background when in area mode and this is the current area
+            fill={isCurrentArea ? "#f5f5f5" : shape.fill}
+            stroke={isCurrentArea ? "#999999" : shape.stroke}
             strokeWidth={shape.strokeWidth || 1}
             dash={shape.dash || []}
-            opacity={isInAreaMode && !isCurrentArea ? 0.1 : shape.opacity || 1}
+            opacity={shape.opacity || 1}
             hitFunc={hitFunc}
-            listening={!isInAreaMode} // Only listen to clicks when not in area mode
+            // FIX: Disable polygon click events in area mode
+            listening={!isInAreaMode}
           />
 
           {/* Area name */}
@@ -141,35 +139,34 @@ export const renderShape = ({
               offsetX={shape.name.length * 3}
               offsetY={6}
               listening={false}
-              opacity={isInAreaMode && !isCurrentArea ? 0.1 : 1}
             />
           )}
 
-          {/* NEW: Render rows and seats when in area mode for current area */}
-          {isCurrentArea &&
-            polygonShape.rows &&
-            polygonShape.rows.length > 0 &&
-            renderAreaContent({
-              rows: polygonShape.rows,
-              selectedRowIds,
-              selectedSeatIds,
-              onRowClick,
-              onSeatClick,
-              onRowDoubleClick,
-              onSeatDoubleClick,
-            })}
+          {/* FIX: Area content (rows and seats) - only interactive in area mode */}
+          {hasRows && (
+            <Group>
+              {renderAreaContent({
+                rows: polygonShape.rows ? polygonShape.rows : [],
+                selectedRowIds,
+                selectedSeatIds,
+                onRowClick: isInAreaMode ? onRowClick : undefined,
+                onSeatClick: isInAreaMode ? onSeatClick : undefined,
+                onRowDoubleClick: isInAreaMode ? onRowDoubleClick : undefined,
+                onSeatDoubleClick: isInAreaMode ? onSeatDoubleClick : undefined,
+                // FIX: Make seats non-interactive when not in area mode
+                isInteractive: isInAreaMode,
+              })}
+            </Group>
+          )}
         </Group>
       );
 
     case "text":
-      // Hide text shapes in area mode unless they're area-specific
-      if (isInAreaMode) return null;
-
       return (
         <Text
           key={key}
           {...restProps}
-          text={shape.text || shape.name || "New Text"}
+          text={shape.name || "New Text"}
           fontSize={shape.fontSize || 16}
           fontFamily={shape.fontFamily || "Arial"}
           fontStyle={shape.fontStyle || "normal"}
@@ -177,7 +174,7 @@ export const renderShape = ({
           fill={shape.fill}
           stroke={shape.stroke}
           strokeWidth={shape.strokeWidth || 0}
-          listening={true}
+          listening={!isInAreaMode} // FIX: Disable interaction in area mode
           hitFunc={hitFunc}
         />
       );

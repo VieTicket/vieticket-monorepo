@@ -1,8 +1,11 @@
-// Create: hooks/useSeatDrawing.tsx
 import { useState, useCallback } from "react";
-import { useCanvasStore } from "@/components/seat-map/store/main-store";
-import { SeatShape, AreaConfig } from "@/types/seat-map-types"; // Changed from AreaShape to SeatShape
+import {
+  useAreaActions,
+  useCanvasStore,
+} from "@/components/seat-map/store/main-store";
+import { SeatShape, AreaConfig } from "@/types/seat-map-types";
 import { v4 as uuidv4 } from "uuid";
+import { useAreaZoom } from "./useAreaZoom";
 
 type SeatDrawingMode = "grid" | "row" | null;
 
@@ -21,11 +24,10 @@ export const useSeatDrawing = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [previewSeats, setPreviewSeats] = useState<SeatShape[]>([]); // Changed to SeatShape[]
+  const [previewSeats, setPreviewSeats] = useState<SeatShape[]>([]);
 
-  // Area configuration for seats
   const [areaConfig, setAreaConfig] = useState<AreaConfig>({
-    defaultSeatRadius: 20, // Updated property names
+    defaultSeatRadius: 8,
     defaultSeatSpacing: 25,
     defaultRowSpacing: 30,
     startingRowLabel: "A",
@@ -35,6 +37,7 @@ export const useSeatDrawing = () => {
   });
 
   const { saveToHistory } = useCanvasStore();
+  const areaZoom = useAreaZoom(); // Get areaZoom from the hook
 
   const startSeatDrawing = useCallback(
     (canvasCoords: { x: number; y: number }, mode: SeatDrawingMode) => {
@@ -67,6 +70,9 @@ export const useSeatDrawing = () => {
       if (drawingMode === "grid" && clickCount === 2 && secondPoint) {
         const seats = generateSeatGrid(startPoint, secondPoint, canvasCoords);
         setPreviewSeats(seats);
+      } else if (drawingMode === "grid" && clickCount === 1) {
+        const seats = generateSeatRow(startPoint, canvasCoords);
+        setPreviewSeats(seats);
       } else if (drawingMode === "row" && clickCount === 1) {
         const seats = generateSeatRow(startPoint, canvasCoords);
         setPreviewSeats(seats);
@@ -75,30 +81,38 @@ export const useSeatDrawing = () => {
     [isDrawing, startPoint, secondPoint, drawingMode, clickCount, areaConfig]
   );
 
-  // FIXED: Updated function signature
+  // FIX: Update finishSeatDrawing to handle both single row and multi-row scenarios
   const finishSeatDrawing = useCallback(
-    (addSeatToRow: (rowId: string, seat: Omit<SeatShape, "id">) => void) => {
+    (callback: (data: any) => void) => {
       if (previewSeats.length > 0) {
-        // Group seats by row and add them
-        const seatsByRow = previewSeats.reduce(
-          (acc, seat) => {
-            if (!acc[seat.row]) {
-              acc[seat.row] = [];
+        console.log("=== FINISHING SEAT DRAWING ===");
+        console.log("Drawing mode:", drawingMode);
+        console.log("Preview seats count:", previewSeats.length);
+
+        if (drawingMode === "grid") {
+          // FIX: Group seats by row name for grid mode
+          const seatsGroupedByRow: { [rowName: string]: SeatShape[] } = {};
+
+          previewSeats.forEach((seat) => {
+            const rowName = seat.row;
+            if (!seatsGroupedByRow[rowName]) {
+              seatsGroupedByRow[rowName] = [];
             }
-            acc[seat.row].push(seat);
-            return acc;
-          },
-          {} as Record<string, SeatShape[]>
-        );
-
-        // Add seats to their respective rows
-        Object.entries(seatsByRow).forEach(([rowId, seats]) => {
-          seats.forEach((seat) => {
-            const { id, ...seatWithoutId } = seat;
-            addSeatToRow(rowId, seatWithoutId);
+            seatsGroupedByRow[rowName].push(seat);
           });
-        });
 
+          console.log("Seats grouped by row:", seatsGroupedByRow);
+          console.log("Number of rows:", Object.keys(seatsGroupedByRow).length);
+
+          // Call the callback with grouped seats
+          callback(seatsGroupedByRow);
+        } else if (drawingMode === "row") {
+          // FIX: For row mode, pass the seats array directly
+          console.log("Single row seats:", previewSeats);
+          callback(previewSeats);
+        }
+
+        console.log("=== SEAT DRAWING FINISHED ===");
         saveToHistory();
       }
 
@@ -111,7 +125,7 @@ export const useSeatDrawing = () => {
       setPreviewSeats([]);
       setDrawingMode(null);
     },
-    [previewSeats, saveToHistory]
+    [previewSeats, drawingMode, saveToHistory]
   );
 
   const cancelSeatDrawing = useCallback(() => {
@@ -124,6 +138,7 @@ export const useSeatDrawing = () => {
     setDrawingMode(null);
   }, []);
 
+  // FIX: Use area defaults when available
   const generateSeatGrid = useCallback(
     (
       start: { x: number; y: number },
@@ -131,9 +146,17 @@ export const useSeatDrawing = () => {
       end: { x: number; y: number }
     ): SeatShape[] => {
       const seats: SeatShape[] = [];
+
+      // FIX: Use area defaults if available
+      const defaultRadius =
+        areaZoom.zoomedArea?.defaultSeatRadius || areaConfig.defaultSeatRadius;
+      const defaultSpacing =
+        areaZoom.zoomedArea?.defaultSeatSpacing || areaConfig.defaultSeatSpacing;
+      const defaultColor =
+        areaZoom.zoomedArea?.defaultSeatColor ||
+        getSeatCategoryColor(areaConfig.defaultSeatCategory);
+
       const {
-        defaultSeatRadius,
-        defaultSeatSpacing,
         defaultRowSpacing,
         startingRowLabel,
         startingSeatNumber,
@@ -141,7 +164,6 @@ export const useSeatDrawing = () => {
         defaultPrice,
       } = areaConfig;
 
-      // Calculate grid dimensions
       const rowDirection = {
         x: second.x - start.x,
         y: second.y - start.y,
@@ -155,9 +177,8 @@ export const useSeatDrawing = () => {
       const colLength = Math.sqrt(colDirection.x ** 2 + colDirection.y ** 2);
 
       const rowCount = Math.max(1, Math.floor(colLength / defaultRowSpacing));
-      const colCount = Math.max(1, Math.floor(rowLength / defaultSeatSpacing));
+      const colCount = Math.max(1, Math.floor(rowLength / defaultSpacing));
 
-      // Normalize directions
       const rowUnit = {
         x: rowDirection.x / rowLength,
         y: rowDirection.y / rowLength,
@@ -167,6 +188,7 @@ export const useSeatDrawing = () => {
         y: colDirection.y / colLength,
       };
 
+      // FIX: Create seats with proper row assignments
       for (let row = 0; row < rowCount; row++) {
         const currentRowLabel = String.fromCharCode(
           startingRowLabel.charCodeAt(0) + row
@@ -175,36 +197,39 @@ export const useSeatDrawing = () => {
         for (let col = 0; col < colCount; col++) {
           const x =
             start.x +
-            rowUnit.x * col * defaultSeatSpacing +
+            rowUnit.x * col * defaultSpacing +
             colUnit.x * row * defaultRowSpacing;
           const y =
             start.y +
-            rowUnit.y * col * defaultSeatSpacing +
+            rowUnit.y * col * defaultSpacing +
             colUnit.y * row * defaultRowSpacing;
 
           seats.push({
             type: "seat" as const,
             id: `temp-${row}-${col}`,
-            x: x - defaultSeatRadius / 2,
-            y: y - defaultSeatRadius / 2,
-            radius: defaultSeatRadius / 2,
-            fill: getSeatCategoryColor(defaultSeatCategory),
+            x: x,
+            y: y,
+            radius: defaultRadius,
+            fill: defaultColor,
             stroke: "#2E7D32",
             strokeWidth: 1,
-            // FIXED: Use correct property names
             number: col + startingSeatNumber,
-            row: currentRowLabel, // Changed from rowId to row
+            // FIX: Each seat gets assigned to its proper row
+            row: currentRowLabel,
             category: defaultSeatCategory,
-            status: "available", // Changed from seatStatus to status
+            status: "available",
             price: defaultPrice,
             visible: true,
           });
         }
       }
 
+      console.log("Generated grid seats:", seats.length);
+      console.log("Unique rows:", [...new Set(seats.map((s) => s.row))]);
+
       return seats;
     },
-    [areaConfig]
+    [areaConfig, areaZoom.zoomedArea]
   );
 
   const generateSeatRow = useCallback(
@@ -235,17 +260,16 @@ export const useSeatDrawing = () => {
         seats.push({
           type: "seat" as const,
           id: `temp-row-${i}`,
-          x: x - defaultSeatRadius / 2,
-          y: y - defaultSeatRadius / 2,
-          radius: defaultSeatRadius / 2,
+          x: x,
+          y: y,
+          radius: defaultSeatRadius,
           fill: getSeatCategoryColor(defaultSeatCategory),
           stroke: "#2E7D32",
           strokeWidth: 1,
-          // FIXED: Use correct property names
           number: i + startingSeatNumber,
-          row: startingRowLabel, // Changed from rowId to row
+          row: startingRowLabel,
           category: defaultSeatCategory,
-          status: "available", // Changed from seatStatus to status
+          status: "available",
           price: defaultPrice,
           visible: true,
         });

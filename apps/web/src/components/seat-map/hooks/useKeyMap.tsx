@@ -1,5 +1,8 @@
 import { useCallback, useEffect } from "react";
-import { useCanvasStore } from "@/components/seat-map/store/main-store";
+import {
+  useCanvasStore,
+  useAreaMode,
+} from "@/components/seat-map/store/main-store";
 import { usePanZoom } from "./usePanZoom";
 
 export const useKeyMap = () => {
@@ -34,10 +37,48 @@ export const useKeyMap = () => {
     saveToHistory,
   } = useCanvasStore();
 
+  // FIX: Get area mode state to switch tool mappings
+  const { isInAreaMode } = useAreaMode();
+
   const { centerCanvas, fitToScreen, zoomIn, zoomOut, setBoundedPan } =
     usePanZoom();
 
-  // useKeyMap.tsx - Update the handleKeyDown function
+  // FIX: Define tool mappings for different modes
+  const getToolMapping = useCallback(
+    (key: string) => {
+      if (isInAreaMode) {
+        // Area mode tool mappings
+        switch (key) {
+          case "1":
+            return "select";
+          case "2":
+            return "seat-grid";
+          case "3":
+            return "seat-row";
+          default:
+            return null;
+        }
+      } else {
+        // Main mode tool mappings
+        switch (key) {
+          case "1":
+            return "select";
+          case "2":
+            return "rect";
+          case "3":
+            return "circle";
+          case "4":
+            return "polygon";
+          case "5":
+            return "text";
+          default:
+            return null;
+        }
+      }
+    },
+    [isInAreaMode]
+  );
+
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const isCtrl = e.ctrlKey || e.metaKey;
@@ -70,29 +111,20 @@ export const useKeyMap = () => {
         }
       }
 
-      // Tool shortcuts (no modifiers) - DISABLED WHEN EDITING
+      // FIX: Tool shortcuts (no modifiers) - UPDATED FOR AREA MODE
       if (!isCtrl && !isShift && !isAlt && !isEditing) {
+        // Check if it's a tool key (1-5)
+        if (["1", "2", "3", "4", "5"].includes(e.key)) {
+          const toolToSelect = getToolMapping(e.key);
+          if (toolToSelect) {
+            setCurrentTool(toolToSelect as any);
+            preventDefault();
+            return;
+          }
+        }
+
+        // Other non-tool shortcuts
         switch (e.key) {
-          case "1":
-            setCurrentTool("select");
-            preventDefault();
-            return;
-          case "2":
-            setCurrentTool("rect");
-            preventDefault();
-            return;
-          case "3":
-            setCurrentTool("circle");
-            preventDefault();
-            return;
-          case "4":
-            setCurrentTool("text");
-            preventDefault();
-            return;
-          case "5":
-            setCurrentTool("polygon");
-            preventDefault();
-            return;
           case "Escape":
             clearSelection();
             setCurrentTool("select");
@@ -249,6 +281,10 @@ export const useKeyMap = () => {
       startEditing,
       stopEditing,
       setBoundedPan,
+      duplicateSelectedShapes,
+      selectAll,
+      getToolMapping, // FIX: Add the new function to dependencies
+      isInAreaMode, // FIX: Add area mode to dependencies
     ]
   );
 
@@ -260,15 +296,9 @@ export const useKeyMap = () => {
     };
   }, [handleKeyDown]);
 
-  const getShortcuts = useCallback(() => {
-    return {
-      tools: {
-        1: "Select Tool",
-        2: "Rectangle Tool",
-        3: "Circle Tool",
-        4: "Text Tool",
-        5: "Polygon Tool",
-      },
+  // FIX: Update getShortcuts to show different shortcuts based on mode
+  const getShortcuts = useCallback(
+    () => ({
       actions: {
         "Ctrl+Z": "Undo",
         "Ctrl+Y / Ctrl+Shift+Z": "Redo",
@@ -290,8 +320,9 @@ export const useKeyMap = () => {
       file: {
         "Ctrl+S": "Save",
       },
-    };
-  }, []);
+    }),
+    [isInAreaMode]
+  );
 
   return {
     handleKeyDown,

@@ -19,7 +19,6 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
   batchValues,
   onBatchChange,
 }) => {
-  // Create unique IDs for batch editing
   const editId =
     selectedShapes.length === 1
       ? selectedShapes[0].id
@@ -37,7 +36,6 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
     return String(value);
   };
 
-  // Inline editing hooks for each property with safe parsing
   const strokeWidthEdit = useStoreInlineEdit(
     `${editId}-strokeWidth`,
     safeFormatValue(batchValues.strokeWidth, 1),

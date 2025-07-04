@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useCanvasStore } from "@/components/seat-map/store/main-store";
+import { useState, useCallback } from "react";
+import { useCanvasStore, useAreaMode, useAreaActions } from "@/components/seat-map/store/main-store";
 import { Shape } from "@/types/seat-map-types";
 
 export const useSelectionEvents = () => {
@@ -22,6 +22,10 @@ export const useSelectionEvents = () => {
     selectMultipleShapes,
   } = useCanvasStore();
 
+  // FIX: Add area mode support
+  const { isInAreaMode, zoomedArea } = useAreaMode();
+  const { selectMultipleRows, selectMultipleSeats, clearAreaSelections } = useAreaActions();
+
   const handleSelectionMouseDown = (canvasCoords: any, e: any) => {
     setIsSelecting(true);
     setSelectionStart(canvasCoords);
@@ -35,6 +39,10 @@ export const useSelectionEvents = () => {
 
     if (!e.evt.ctrlKey && !e.evt.metaKey) {
       clearSelection();
+      // FIX: Also clear area selections when not multi-selecting
+      if (isInAreaMode) {
+        clearAreaSelections();
+      }
     }
   };
 
@@ -53,33 +61,69 @@ export const useSelectionEvents = () => {
     setSelectionRect(rect);
   };
 
-  const handleSelectionMouseUp = (e: any) => {
+  const handleSelectionMouseUp = useCallback((e: any) => {
     if (!selectionRect) {
       resetSelectionState();
       return;
     }
 
-    const shapesInSelection = shapes.filter((shape) =>
-      isShapeInRectangle(shape, selectionRect)
-    );
+    const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
 
-    if (shapesInSelection.length > 0) {
-      const shapeIds = shapesInSelection.map((shape) => shape.id);
-      const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
+    // FIX: Handle area mode selection
+    if (isInAreaMode && zoomedArea) {
+      // Select seats and rows in area mode
+      const seatsInSelection: string[] = [];
+      const rowsInSelection: string[] = [];
 
-      if (multiSelect) {
-        shapeIds.forEach((id) => {
-          if (!selectedShapeIds.includes(id)) {
-            selectShape(id, true);
+      zoomedArea.rows?.forEach((row) => {
+        let rowHasSeatsInSelection = false;
+        
+        row.seats?.forEach((seat) => {
+          if (isSeatInRectangle(seat, selectionRect)) {
+            seatsInSelection.push(seat.id);
+            rowHasSeatsInSelection = true;
           }
         });
-      } else {
-        selectMultipleShapes(shapeIds);
+
+        // If any seats in the row are selected, or if the row line is in selection
+        if (rowHasSeatsInSelection || isRowInRectangle(row, selectionRect)) {
+          rowsInSelection.push(row.id);
+        }
+      });
+
+      // Apply selections
+      if (seatsInSelection.length > 0) {
+        selectMultipleSeats(seatsInSelection, multiSelect);
+        console.log("Selected seats:", seatsInSelection);
+      }
+
+      if (rowsInSelection.length > 0) {
+        selectMultipleRows(rowsInSelection, multiSelect);
+        console.log("Selected rows:", rowsInSelection);
+      }
+    } else {
+      // Main mode selection (existing logic)
+      const shapesInSelection = shapes.filter((shape) =>
+        isShapeInRectangle(shape, selectionRect)
+      );
+
+      if (shapesInSelection.length > 0) {
+        const shapeIds = shapesInSelection.map((shape) => shape.id);
+
+        if (multiSelect) {
+          shapeIds.forEach((id) => {
+            if (!selectedShapeIds.includes(id)) {
+              selectShape(id, true);
+            }
+          });
+        } else {
+          selectMultipleShapes(shapeIds);
+        }
       }
     }
 
     resetSelectionState();
-  };
+  }, [selectionRect, isInAreaMode, zoomedArea, shapes, selectedShapeIds, selectMultipleSeats, selectMultipleRows, selectShape, selectMultipleShapes]);
 
   const resetSelectionState = () => {
     setIsSelecting(false);
@@ -88,6 +132,53 @@ export const useSelectionEvents = () => {
     setSelectionRect(null);
   };
 
+  // FIX: Add seat selection logic
+  const isSeatInRectangle = (
+    seat: any,
+    rect: { x: number; y: number; width: number; height: number }
+  ) => {
+    const seatBounds = {
+      left: seat.x - seat.radius,
+      right: seat.x + seat.radius,
+      top: seat.y - seat.radius,
+      bottom: seat.y + seat.radius,
+    };
+
+    return !(
+      seatBounds.right < rect.x ||
+      seatBounds.left > rect.x + rect.width ||
+      seatBounds.bottom < rect.y ||
+      seatBounds.top > rect.y + rect.height
+    );
+  };
+
+  // FIX: Add row selection logic
+  const isRowInRectangle = (
+    row: any,
+    rect: { x: number; y: number; width: number; height: number }
+  ) => {
+    if (!row.seats || row.seats.length === 0) return false;
+
+    const firstSeat = row.seats[0];
+    const lastSeat = row.seats[row.seats.length - 1];
+
+    // Check if row line intersects with selection rectangle
+    const rowLineBounds = {
+      left: Math.min(firstSeat.x, lastSeat.x),
+      right: Math.max(firstSeat.x, lastSeat.x),
+      top: Math.min(firstSeat.y, lastSeat.y),
+      bottom: Math.max(firstSeat.y, lastSeat.y),
+    };
+
+    return !(
+      rowLineBounds.right < rect.x ||
+      rowLineBounds.left > rect.x + rect.width ||
+      rowLineBounds.bottom < rect.y ||
+      rowLineBounds.top > rect.y + rect.height
+    );
+  };
+
+  // Existing shape selection logic...
   const isShapeInRectangle = (
     shape: Shape,
     rect: { x: number; y: number; width: number; height: number }
@@ -199,7 +290,7 @@ export const useSelectionEvents = () => {
           shape.width ||
           Math.max(
             100,
-            (shape.text?.length || 10) * (shape.fontSize || 16) * 0.6
+            (shape.name?.length || 10) * (shape.fontSize || 16) * 0.6
           );
         const textHeight = shape.fontSize || 16;
         const shapeRotation = shape.rotation || 0;
@@ -321,15 +412,6 @@ export const useSelectionEvents = () => {
     }
 
     return bounds;
-  };
-
-  const getRectangleCorners = (shape: any) => {
-    return [
-      { x: shape.x, y: shape.y },
-      { x: shape.x + shape.width, y: shape.y },
-      { x: shape.x + shape.width, y: shape.y + shape.height },
-      { x: shape.x, y: shape.y + shape.height },
-    ];
   };
 
   const rotatePoint = (

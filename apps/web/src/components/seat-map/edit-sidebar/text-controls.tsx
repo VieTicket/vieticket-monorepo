@@ -27,13 +27,11 @@ export const TextControls: React.FC<TextControlsProps> = ({
 }) => {
   const hasTextShapes = selectedShapes.some((s) => s.type === "text");
 
-  // Create unique IDs for batch editing
   const editId =
     selectedShapes.length === 1
       ? selectedShapes[0].id
       : `batch-${selectedShapes.map((s) => s.id).join("-")}`;
 
-  // Inline editing hooks for text properties
   const fontSizeEdit = useStoreInlineEdit(
     `${editId}-fontSize`,
     batchValues.fontSize || 16,

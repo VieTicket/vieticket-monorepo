@@ -83,7 +83,7 @@ export const usePolygonEvents = () => {
         x: 0,
         y: 0,
         points: polygonPoints,
-        fill: "#ffe0e0",
+        fill: "#ffffff",
         stroke: "#000000",
         strokeWidth: 1,
         closed: true,

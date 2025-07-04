@@ -1,5 +1,5 @@
 // Create: utils/area-renderer.tsx
-import { Group, Circle, Line, Text } from "react-konva";
+import { Group, Circle, Line, Text, Rect } from "react-konva";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 import { JSX } from "react";
 
@@ -11,6 +11,8 @@ export interface AreaRenderProps {
   onSeatClick?: (seatId: string, e: any) => void;
   onRowDoubleClick?: (rowId: string, e: any) => void;
   onSeatDoubleClick?: (seatId: string, e: any) => void;
+  // FIX: Add interactive state control
+  isInteractive?: boolean;
 }
 
 export const renderAreaContent = ({
@@ -21,11 +23,12 @@ export const renderAreaContent = ({
   onSeatClick,
   onRowDoubleClick,
   onSeatDoubleClick,
+  isInteractive = true,
 }: AreaRenderProps) => {
   const elements: JSX.Element[] = [];
 
   rows.forEach((row) => {
-    // Render row line (visual guide)
+    // FIX: Add row line for selection (make it more visible and clickable)
     if (row.seats.length > 1) {
       const firstSeat = row.seats[0];
       const lastSeat = row.seats[row.seats.length - 1];
@@ -40,44 +43,90 @@ export const renderAreaContent = ({
               : row.stroke || "#666666"
           }
           strokeWidth={
-            (row.strokeWidth || 1) + (selectedRowIds.includes(row.id) ? 1 : 0)
+            (row.strokeWidth || 2) + (selectedRowIds.includes(row.id) ? 2 : 0)
           }
           dash={[5, 5]}
-          opacity={0.5}
-          listening={true}
-          onClick={(e) => {
-            e.cancelBubble = true;
-            onRowClick?.(row.id, e);
-          }}
-          onDblClick={(e) => {
-            e.cancelBubble = true;
-            onRowDoubleClick?.(row.id, e);
-          }}
+          opacity={isInteractive ? 0.7 : 0.3}
+          // FIX: Make row line clickable
+          listening={isInteractive}
+          onClick={
+            isInteractive
+              ? (e) => {
+                  e.cancelBubble = true;
+                  onRowClick?.(row.id, e);
+                }
+              : undefined
+          }
+          onDblClick={
+            isInteractive
+              ? (e) => {
+                  e.cancelBubble = true;
+                  onRowDoubleClick?.(row.id, e);
+                }
+              : undefined
+          }
         />
       );
     }
 
-    // Render row label
+    // Render row label - FIX: Make it more prominent when row is selected
     if (row.seats.length > 0) {
       const firstSeat = row.seats[0];
+      const isRowSelected = selectedRowIds.includes(row.id);
+
       elements.push(
-        <Text
-          key={`row-label-${row.id}`}
-          x={firstSeat.x - 25}
-          y={firstSeat.y - 5}
-          text={row.name}
-          fontSize={12}
-          fontFamily="Arial"
-          fill={selectedRowIds.includes(row.id) ? "#FF6B6B" : "#000000"}
-          fontStyle={selectedRowIds.includes(row.id) ? "bold" : "normal"}
-          listening={false}
-        />
+        <Group key={`row-label-group-${row.id}`}>
+          {/* FIX: Add background rectangle for row label when selected */}
+          {isRowSelected && (
+            <Rect
+              x={firstSeat.x - 35}
+              y={firstSeat.y - 15}
+              width={30}
+              height={20}
+              fill="#FF6B6B"
+              opacity={0.2}
+              cornerRadius={3}
+              listening={false}
+            />
+          )}
+
+          <Text
+            key={`row-label-${row.id}`}
+            x={firstSeat.x - 25}
+            y={firstSeat.y - 5}
+            text={row.name}
+            fontSize={isRowSelected ? 14 : 12}
+            fontFamily="Arial"
+            fill={isRowSelected ? "#FF6B6B" : "#000000"}
+            fontStyle={isRowSelected ? "bold" : "normal"}
+            opacity={isInteractive ? 1 : 0.6}
+            // FIX: Make row label clickable
+            listening={isInteractive}
+            onClick={
+              isInteractive
+                ? (e) => {
+                    e.cancelBubble = true;
+                    onRowClick?.(row.id, e);
+                  }
+                : undefined
+            }
+            onDblClick={
+              isInteractive
+                ? (e) => {
+                    e.cancelBubble = true;
+                    onRowDoubleClick?.(row.id, e);
+                  }
+                : undefined
+            }
+          />
+        </Group>
       );
     }
 
-    // Render seats
+    // Render seats - FIX: Better multi-select visual feedback
     row.seats.forEach((seat) => {
-      const isSelected = selectedSeatIds.includes(seat.id);
+      const isSeatSelected = selectedSeatIds.includes(seat.id);
+      const isRowSelected = selectedRowIds.includes(row.id);
 
       elements.push(
         <Group key={`seat-${seat.id}`}>
@@ -87,18 +136,51 @@ export const renderAreaContent = ({
             y={seat.y}
             radius={seat.radius}
             fill={seat.fill || getSeatStatusColor(seat.status, seat.category)}
-            stroke={isSelected ? "#FF6B6B" : seat.stroke || "#2E7D32"}
-            strokeWidth={(seat.strokeWidth || 1) + (isSelected ? 2 : 0)}
-            listening={true}
-            onClick={(e) => {
-              e.cancelBubble = true;
-              onSeatClick?.(seat.id, e);
-            }}
-            onDblClick={(e) => {
-              e.cancelBubble = true;
-              onSeatDoubleClick?.(seat.id, e);
-            }}
+            stroke={
+              isSeatSelected
+                ? "#FF6B6B" // Red for selected seat
+                : isRowSelected
+                ? "#FFA500" // Orange for selected row
+                : seat.stroke || "#2E7D32"
+            }
+            strokeWidth={
+              (seat.strokeWidth || 1) +
+              (isSeatSelected ? 3 : isRowSelected ? 2 : 0)
+            }
+            opacity={isInteractive ? 1 : 0.6}
+            listening={isInteractive}
+            // FIX: Single click selects row, double click selects seat
+            onClick={
+              isInteractive
+                ? (e) => {
+                    e.cancelBubble = true;
+                    onSeatClick?.(seat.id, e);
+                  }
+                : undefined
+            }
+            onDblClick={
+              isInteractive
+                ? (e) => {
+                    e.cancelBubble = true;
+                    onSeatDoubleClick?.(seat.id, e);
+                  }
+                : undefined
+            }
           />
+
+          {/* FIX: Add multi-select indicator */}
+          {isSeatSelected && (
+            <Circle
+              x={seat.x + seat.radius - 2}
+              y={seat.y - seat.radius + 2}
+              radius={3}
+              fill="#FF6B6B"
+              stroke="#FFFFFF"
+              strokeWidth={1}
+              opacity={0.9}
+              listening={false}
+            />
+          )}
 
           {/* Seat number */}
           <Text
@@ -112,6 +194,7 @@ export const renderAreaContent = ({
             verticalAlign="middle"
             offsetX={seat.number.toString().length * 2}
             offsetY={4}
+            opacity={isInteractive ? 1 : 0.6}
             listening={false}
           />
 
@@ -122,6 +205,7 @@ export const renderAreaContent = ({
               y={seat.y - seat.radius + 3}
               radius={2}
               fill={getStatusIndicatorColor(seat.status)}
+              opacity={isInteractive ? 1 : 0.6}
               listening={false}
             />
           )}

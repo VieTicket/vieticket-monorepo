@@ -34,7 +34,7 @@ export interface CircleShape extends BaseShape {
 
 export interface TextShape extends BaseShape {
   type: "text";
-  text: string;
+  name: string;
   fontSize?: number;
   fontFamily?: string;
   fontStyle?: string;
@@ -51,12 +51,18 @@ export interface PolygonShape extends BaseShape {
   areaName?: string;
   capacity?: number;
   areaType?: "seating" | "stage" | "entrance" | "facilities" | "custom";
-  // NEW: Contains rows and seats
+  // NEW: Default settings for consistency across the area
+  defaultSeatRadius?: number;
+  defaultSeatSpacing?: number;
+  defaultRowSpacing?: number;
+  defaultSeatCategory?: "standard" | "premium" | "accessible" | "restricted";
+  defaultSeatColor?: string;
+  // Contains rows and seats
   rows?: RowShape[];
   seats?: SeatShape[]; // Standalone seats not in rows
 }
 
-// NEW: Row shape for area mode
+// NEW: Row shape for area mode - updated with more properties
 export interface RowShape {
   id: string;
   type: "row";
@@ -68,6 +74,9 @@ export interface RowShape {
   rotation: number;
   area: string; // Reference to parent area
   seats: SeatShape[];
+  // NEW: Additional properties for editing
+  rowColor?: string;
+  rowCategory?: "standard" | "premium" | "accessible" | "restricted";
   // Visual properties
   fill?: string;
   stroke?: string;
@@ -75,7 +84,7 @@ export interface RowShape {
   visible?: boolean;
 }
 
-// NEW: Seat shape for area mode
+// NEW: Seat shape for area mode - updated with more properties
 export interface SeatShape {
   id: string;
   type: "seat";
@@ -88,6 +97,8 @@ export interface SeatShape {
   // Additional properties
   price?: number;
   category?: "standard" | "premium" | "accessible" | "restricted";
+  // NEW: Individual seat properties
+  seatLabel?: string; // Custom seat label
   // Visual properties
   fill?: string;
   stroke?: string;

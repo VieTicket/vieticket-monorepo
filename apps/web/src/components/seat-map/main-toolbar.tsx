@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -8,34 +8,40 @@ import {
 } from "@/components/ui/dropdown-menu";
 import {
   FolderOpen,
-  HelpCircle,
   List,
   LogOut,
-  MousePointerClick,
   Move,
-  RectangleHorizontal,
   Redo2,
-  RotateCcw,
   Save,
   Search,
   Trash2,
   Undo2,
   ZoomIn,
   ZoomOut,
-  Circle,
-  Type,
   Grid3X3,
   Eye,
   Bug,
+  ArrowLeft,
+  MousePointer,
+  Square,
+  Circle,
+  Type,
   Grid,
   Minus,
-  ArrowLeft,
+  Plus,
 } from "lucide-react";
-import { useCanvasStore } from "./store/main-store";
+import {
+  useCurrentTool,
+  useZoom,
+  useShowGrid,
+  useShowHitCanvas,
+  useAreaMode,
+  useAreaActions,
+  useCanvasActions,
+} from "@/components/seat-map/store/main-store";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
-import { useAreaZoom } from "./hooks/useAreaZoom";
 
 export type ToolType =
   | "select"
@@ -43,194 +49,236 @@ export type ToolType =
   | "circle"
   | "polygon"
   | "text"
-  | "area-zoom" // NEW
-  | "seat-grid" // NEW
-  | "seat-row"; // NEW
+  | "seat-grid"
+  | "seat-row";
 
 export default function MainToolbar() {
+  const fileMenuRef = useRef<HTMLButtonElement>(null);
+  const debugMenuRef = useRef<HTMLButtonElement>(null);
+
+  const currentTool = useCurrentTool();
+  const zoom = useZoom();
+  const showGrid = useShowGrid();
+  const showHitCanvas = useShowHitCanvas();
+
   const {
-    currentTool,
     setCurrentTool,
-    deleteSelectedShapes,
+    setShowGrid,
+    setShowHitCanvas,
     undo,
     redo,
     canUndo,
     canRedo,
     zoomIn,
     zoomOut,
-    zoom,
     duplicateShapes,
-    // Add debug state
-    showGrid,
-    showHitCanvas,
-    setShowGrid,
-    setShowHitCanvas,
-  } = useCanvasStore();
+    deleteSelectedShapes,
+  } = useCanvasActions();
 
   const { centerCanvas } = usePanZoom();
-  const { isInAreaMode, exitAreaMode } = useAreaZoom();
+  const { isInAreaMode, zoomedArea } = useAreaMode();
+  const { exitAreaMode } = useAreaActions();
 
-  const tools = [
-    { id: "select", icon: MousePointerClick, label: "Select" },
-    { id: "rect", icon: RectangleHorizontal, label: "Rectangle" },
+  const mainTools = [
+    { id: "select", icon: MousePointer, label: "Select" },
+    { id: "rect", icon: Square, label: "Rectangle" },
     { id: "circle", icon: Circle, label: "Circle" },
+    { id: "polygon", icon: FaDrawPolygon, label: "Area" },
     { id: "text", icon: Type, label: "Text" },
-    { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
   ];
 
   const areaTools = [
+    { id: "select", icon: MousePointer, label: "Select" },
     { id: "seat-grid", icon: Grid, label: "Seat Grid" },
     { id: "seat-row", icon: Minus, label: "Seat Row" },
   ];
 
-  console.log("isInAreaMode:", isInAreaMode);
+  const currentTools = isInAreaMode ? areaTools : mainTools;
+
+  const handleSave = useCallback(() => {
+    console.log("Save");
+  }, []);
+
+  const handleLoad = useCallback(() => {
+    console.log("Load");
+  }, []);
+
+  const handleSearch = useCallback(() => {
+    console.log("Search");
+  }, []);
+
+  const handleExit = useCallback(() => {
+    console.log("Exit");
+  }, []);
+
+  const toggleGrid = useCallback(() => {
+    setShowGrid(!showGrid);
+  }, [showGrid, setShowGrid]);
+
+  const toggleHitCanvas = useCallback(() => {
+    setShowHitCanvas(!showHitCanvas);
+  }, [showHitCanvas, setShowHitCanvas]);
+
+  const handleToolSelect = useCallback(
+    (toolId: ToolType) => {
+      setCurrentTool(toolId);
+    },
+    [setCurrentTool]
+  );
 
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
       <div className="flex items-center gap-2">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <List className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={() => console.log("Save")}>
-              <Save className="w-4 h-4 mr-2" />
-              Save
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <FolderOpen className="w-4 h-4 mr-2" />
-              Load
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Search className="w-4 h-4 mr-2" />
-              Search
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <LogOut className="w-4 h-4 mr-2" />
-              Exit
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-
+        {/* File Menu - FIX: Use uncontrolled dropdown */}
+        {!isInAreaMode ? (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" ref={fileMenuRef}>
+                <List className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem onClick={handleSave}>
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleLoad}>
+                <FolderOpen className="w-4 h-4 mr-2" />
+                Load
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSearch}>
+                <Search className="w-4 h-4 mr-2" />
+                Search
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExit}>
+                <LogOut className="w-4 h-4 mr-2" />
+                Exit
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        ) : (
+          <Button
+            onClick={exitAreaMode}
+            size="sm"
+            variant="ghost"
+            className="text-gray-300 hover:text-white"
+            title="Exit Area Mode"
+          >
+            <ArrowLeft className="w-4 h-4" />
+          </Button>
+        )}
         <div className="border-l mx-2 h-6" />
 
         {/* Tool Buttons */}
-        {!isInAreaMode ? (
-          <div>
+        {currentTools.map((tool) => {
+          const IconComponent = tool.icon;
+          return (
             <Button
-              variant="ghost"
+              key={tool.id}
+              variant={currentTool === tool.id ? "secondary" : "ghost"}
               size="icon"
-              onClick={() => exitAreaMode()}
-              title="Zoom Out"
+              onClick={() => handleToolSelect(tool.id as ToolType)}
+              title={tool.label}
             >
-              <ArrowLeft className="w-5 h-5" />
+              <IconComponent className="w-4 h-4" />
             </Button>
-            {tools.map((tool) => {
-              const IconComponent = tool.icon;
-              return (
-                <Button
-                  key={tool.id}
-                  variant={currentTool === tool.id ? "secondary" : "ghost"}
-                  size="icon"
-                  onClick={() => setCurrentTool(tool.id as ToolType)}
-                  title={tool.label}
-                >
-                  <IconComponent className="w-5 h-5" />
-                </Button>
-              );
-            })}
-          </div>
-        ) : (
-          areaTools.map((tool) => {
-            const IconComponent = tool.icon;
-            return (
-              <Button
-                key={tool.id}
-                variant={currentTool === tool.id ? "secondary" : "ghost"}
-                size="icon"
-                onClick={() => setCurrentTool(tool.id as ToolType)}
-                title={tool.label}
-              >
-                <IconComponent className="w-5 h-5" />
-              </Button>
-            );
-          })
-        )}
+          );
+        })}
 
         <div className="border-l mx-2 h-6" />
 
-        <Button onClick={undo} disabled={!canUndo} variant="ghost" size="icon">
+        {/* Edit Actions */}
+        <Button
+          onClick={undo}
+          disabled={!canUndo}
+          variant="ghost"
+          size="icon"
+          title="Undo"
+        >
           <Undo2 className="w-5 h-5" />
         </Button>
-        <Button onClick={redo} disabled={!canRedo} variant="ghost" size="icon">
+        <Button
+          onClick={redo}
+          disabled={!canRedo}
+          variant="ghost"
+          size="icon"
+          title="Redo"
+        >
           <Redo2 className="w-5 h-5" />
         </Button>
-        <Button onClick={deleteSelectedShapes} variant="ghost" size="icon">
+        <Button
+          onClick={deleteSelectedShapes}
+          variant="ghost"
+          size="icon"
+          title="Delete"
+        >
           <Trash2 className="w-5 h-5" />
         </Button>
-        <Button onClick={duplicateShapes} variant="ghost" size="icon">
+        <Button
+          onClick={duplicateShapes}
+          variant="ghost"
+          size="icon"
+          title="Duplicate"
+        >
           <Save className="w-5 h-5" />
         </Button>
 
         <div className="border-l mx-2 h-6" />
 
-        {/* Debug Buttons */}
+        {/* Debug Tools - FIX: Use uncontrolled dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" title="Debug Tools">
+            <Button
+              variant="ghost"
+              size="icon"
+              title="Debug Tools"
+              ref={debugMenuRef}
+            >
               <Bug className="w-5 h-5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            <DropdownMenuItem
-              onClick={() => setShowGrid(!showGrid)}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Grid3X3 className="w-4 h-4 mr-2" />
-                Show Grid
-              </div>
-              {showGrid && <span className="text-green-500">✓</span>}
+            <DropdownMenuItem onClick={toggleGrid}>
+              <Grid3X3 className="w-4 h-4 mr-2" />
+              Show Grid {showGrid && "✓"}
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onClick={() => setShowHitCanvas(!showHitCanvas)}
-              className="flex items-center justify-between"
-            >
-              <div className="flex items-center">
-                <Eye className="w-4 h-4 mr-2" />
-                Show Hit Canvas
-              </div>
-              {showHitCanvas && <span className="text-green-500">✓</span>}
+            <DropdownMenuItem onClick={toggleHitCanvas}>
+              <Eye className="w-4 h-4 mr-2" />
+              Show Hit Canvas {showHitCanvas && "✓"}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      <div className="flex items-center gap-4">
-        <div className="text-xl font-semibold">Event Name</div>
-
-        {/* Current Tool Indicator */}
-        <div className="px-3 py-1 bg-gray-700 rounded-md text-sm">
-          Mode: {tools.find((t) => t.id === currentTool)?.label}
+      {!isInAreaMode ? (
+        <div className="flex items-center gap-4">
+          <div className="text-xl font-semibold">Event Name</div>
         </div>
-      </div>
-
+      ) : (
+        <div className="text-xl font-semibold">
+          Area Mode - {zoomedArea?.name || zoomedArea?.areaName || "Unnamed"}
+        </div>
+      )}
+      {/* Right Controls */}
       <div className="flex gap-2 items-center">
-        <Button onClick={zoomOut} size="sm" variant="ghost">
+        <Button onClick={zoomOut} size="sm" variant="ghost" title="Zoom Out">
           <ZoomOut className="w-4 h-4" />
         </Button>
         <span className="text-sm font-mono min-w-[60px] text-center">
           {Math.round(zoom * 100)}%
         </span>
-        <Button onClick={zoomIn} size="sm" variant="ghost">
+        <Button onClick={zoomIn} size="sm" variant="ghost" title="Zoom In">
           <ZoomIn className="w-4 h-4" />
         </Button>
 
         <div className="border-l mx-2 h-6" />
 
-        <Button onClick={centerCanvas} size="sm" variant="ghost">
+        <Button
+          onClick={centerCanvas}
+          size="sm"
+          variant="ghost"
+          title="Center Canvas"
+        >
           <Move className="w-4 h-4 mr-2" />
           Center
         </Button>

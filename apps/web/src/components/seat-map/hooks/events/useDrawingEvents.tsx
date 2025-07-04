@@ -99,7 +99,7 @@ export const useDrawingEvents = () => {
           type: "text" as const,
           x: start.x,
           y: start.y,
-          text: "New Text",
+          name: "New Text",
           fontSize: 16,
           fill: "#000000",
           width: Math.max(100, width),

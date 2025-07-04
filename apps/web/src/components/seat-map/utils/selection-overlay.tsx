@@ -132,7 +132,7 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           shape.width ||
           Math.max(
             100,
-            (shape.text?.length || 10) * (shape.fontSize || 16) * 0.6
+            (shape.name?.length || 10) * (shape.fontSize || 16) * 0.6
           );
         const textHeight = shape.fontSize || 16;
 

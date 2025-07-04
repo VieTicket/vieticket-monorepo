@@ -140,17 +140,50 @@ export default function CanvasEditorClient() {
     return lines;
   }, [showGrid, viewportSize, zoom, pan]);
 
+  // FIX: Update selection rectangle rendering to work in area mode
+  const renderSelectionRectangle = useCallback(() => {
+    if (!eventHandlers.selectionRect || !eventHandlers.isSelecting) return null;
+
+    // FIX: Show selection rectangle in both main mode and area mode
+    return (
+      <Rect
+        x={eventHandlers.selectionRect.x}
+        y={eventHandlers.selectionRect.y}
+        width={eventHandlers.selectionRect.width}
+        height={eventHandlers.selectionRect.height}
+        fill="rgba(0, 162, 255, 0.1)"
+        stroke="rgba(0, 162, 255, 0.6)"
+        strokeWidth={1}
+        dash={[5, 5]}
+        listening={false}
+      />
+    );
+  }, [eventHandlers.selectionRect, eventHandlers.isSelecting]);
+
   const renderShapeWithProps = useCallback(
     (shape: any, isPreview = false) => {
       const isSelected = !isPreview && selectedShapeIds.includes(shape.id);
+
+      const isInAreaMode = eventHandlers.areaZoom.isInAreaMode;
+      const zoomedAreaId = eventHandlers.areaZoom.zoomedArea?.id;
+      const isCurrentZoomedArea = isInAreaMode && shape.id === zoomedAreaId;
+
+      if (isInAreaMode && !isCurrentZoomedArea) {
+        return null; // Don't render other shapes in area mode
+      }
+
       const commonProps = buildShapeProps(shape, isSelected, eventHandlers);
 
-      if (isPreview || currentTool !== "select") {
+      if (isPreview || currentTool !== "select" || isInAreaMode) {
         commonProps.draggable = false;
         commonProps.onClick = () => {};
         commonProps.onDragStart = () => {};
         commonProps.onDragMove = () => {};
         commonProps.onDragEnd = () => {};
+
+        if (isInAreaMode && !isCurrentZoomedArea) {
+          commonProps.listening = false;
+        }
       }
 
       const shapeKey = isPreview ? `preview-${shape.id}` : shape.id;
@@ -163,56 +196,19 @@ export default function CanvasEditorClient() {
           key: shapeKey,
           perfectDrawEnabled: false,
         },
-        isInAreaMode: eventHandlers.areaZoom.isInAreaMode,
-        zoomedAreaId: eventHandlers.areaZoom.zoomedArea?.id,
-        selectedRowIds: [],
-        selectedSeatIds: [],
+        isInAreaMode: isInAreaMode,
+        zoomedAreaId: zoomedAreaId,
+        selectedRowIds: eventHandlers.areaZoom.selectedRowIds || [],
+        selectedSeatIds: eventHandlers.areaZoom.selectedSeatIds || [],
         onRowClick: eventHandlers.handleRowClick,
         onSeatClick: eventHandlers.handleSeatClick,
+        // FIX: Add the new double-click handlers
+        onRowDoubleClick: eventHandlers.handleRowDoubleClick,
+        onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
       });
     },
     [selectedShapeIds, currentTool, eventHandlers]
   );
-
-  // const renderRowPreview = useCallback(() => {
-  //   if (!eventHandlers.rowDrawing.previewRow) return null;
-
-  //   const { row, seats } = eventHandlers.rowDrawing.previewRow;
-
-  //   return (
-  //     <Group key="row-preview">
-  //       {seats.length > 1 && (
-  //         <Line
-  //           points={[
-  //             seats[0].x,
-  //             seats[0].y,
-  //             seats[seats.length - 1].x,
-  //             seats[seats.length - 1].y,
-  //           ]}
-  //           stroke="#FF6B6B"
-  //           strokeWidth={2}
-  //           dash={[5, 5]}
-  //           opacity={0.7}
-  //           listening={false}
-  //         />
-  //       )}
-
-  //       {seats.map((seat, index) => (
-  //         <Circle
-  //           key={`preview-seat-${index}`}
-  //           x={seat.x}
-  //           y={seat.y}
-  //           radius={seat.radius}
-  //           fill={seat.fill}
-  //           stroke={seat.stroke}
-  //           strokeWidth={seat.strokeWidth}
-  //           opacity={0.7}
-  //           listening={false}
-  //         />
-  //       ))}
-  //     </Group>
-  //   );
-  // }, [eventHandlers.rowDrawing.previewRow]);
 
   const getCursor = () => {
     switch (currentTool) {
@@ -266,7 +262,11 @@ export default function CanvasEditorClient() {
   };
 
   return (
-    <div className="canvas-container relative bg-gray-100 h-screen w-full">
+    <div
+      className={`canvas-container relative h-screen w-full ${
+        eventHandlers.areaZoom.isInAreaMode ? "bg-gray-200" : "bg-gray-100"
+      }`}
+    >
       <Stage
         ref={stageRef}
         width={viewportSize.width}
@@ -278,67 +278,80 @@ export default function CanvasEditorClient() {
         onClick={eventHandlers.handleStageClick}
         onMouseDown={(e) => {
           eventHandlers.handleStageMouseDown(e);
-          if (currentTool === "select" || e.evt.button !== 0) {
+
+          if (
+            (currentTool === "select" &&
+              !eventHandlers.areaZoom.isInAreaMode) ||
+            e.evt.button !== 0
+          ) {
             panZoomHandlers.handleMouseDown(e);
           }
         }}
         onMouseMove={(e) => {
           eventHandlers.handleStageMouseMove(e);
-          if (currentTool === "select" || e.evt.button !== 0) {
+
+          if (
+            (currentTool === "select" &&
+              !eventHandlers.areaZoom.isInAreaMode) ||
+            e.evt.button !== 0
+          ) {
             panZoomHandlers.handleMouseMove(e);
           }
         }}
         onMouseUp={(e) => {
           eventHandlers.handleStageMouseUp(e);
-          panZoomHandlers.handleMouseUp(e);
+          if (!eventHandlers.areaZoom.isInAreaMode) {
+            panZoomHandlers.handleMouseUp(e);
+          }
         }}
-        onWheel={panZoomHandlers.handleWheel}
+        onWheel={
+          !eventHandlers.areaZoom.isInAreaMode
+            ? panZoomHandlers.handleWheel
+            : undefined
+        }
         className="absolute top-0 left-0"
         style={{ cursor: getCursor() }}
       >
         <Layer clearBeforeDraw={true}>
-          {showGrid && renderGrid()}
+          {showGrid && !eventHandlers.areaZoom.isInAreaMode && renderGrid()}
 
-          {shapes.map((shape) => renderShapeWithProps(shape, false))}
+          {shapes
+            .filter((shape) => {
+              if (!eventHandlers.areaZoom.isInAreaMode) return true;
+
+              return shape.id === eventHandlers.areaZoom.zoomedArea?.id;
+            })
+            .map((shape) => renderShapeWithProps(shape, false))}
 
           {eventHandlers.previewShape &&
             currentTool !== "select" &&
+            (!eventHandlers.areaZoom.isInAreaMode ||
+              ["row", "seat-grid", "seat-row"].includes(currentTool)) &&
             renderShapeWithProps(
               { ...eventHandlers.previewShape, id: "preview" },
               true
             )}
 
-          {/* {renderRowPreview()}
+          {eventHandlers.areaZoom.isInAreaMode && renderSeatPreviews()}
 
-          {renderSeatPreviews()} */}
+          {renderSelectionRectangle()}
 
-          {shouldShowSelectionOverlay() && (
-            <SelectionOverlay
-              selectedShapes={selectedShapes}
-              onResize={(shapeId, newBounds) => {
-                console.log("Resize shape:", shapeId, newBounds);
-              }}
-            />
-          )}
+          {!eventHandlers.areaZoom.isInAreaMode &&
+            shouldShowSelectionOverlay() && (
+              <SelectionOverlay
+                selectedShapes={selectedShapes}
+                onResize={(shapeId, newBounds) => {
+                  console.log("Resize shape:", shapeId, newBounds);
+                }}
+              />
+            )}
         </Layer>
       </Stage>
 
-      <div className="absolute bottom-16 left-32 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm">
+      <div className="absolute bottom-20 left-20 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm">
         Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
         {Math.round(pan.y)}
         {showGrid && <span className="text-green-600 ml-2">Grid ON</span>}
-        {eventHandlers.isDragging && (
-          <span className="text-orange-600 ml-2">DRAGGING</span>
-        )}
-        {eventHandlers.areaZoom.isInAreaMode && (
-          <span className="text-blue-600 ml-2">
-            AREA MODE:{" "}
-            {eventHandlers.areaZoom.zoomedArea?.name || "Unnamed Area"}
-          </span>
-        )}
-        {/* {eventHandlers.rowDrawing.isDrawingRow && (
-          <span className="text-purple-600 ml-2">DRAWING ROW</span>
-        )} */}
       </div>
     </div>
   );

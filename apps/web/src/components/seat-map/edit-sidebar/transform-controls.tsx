@@ -28,7 +28,6 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
       ? selectedShapes[0].id
       : `batch-${selectedShapes.map((s) => s.id).join("-")}`;
 
-  // FIXED: Filter out polygon shapes for rotation calculations
   const rotatableShapes = selectedShapes.filter(
     (shape) => shape.type !== "polygon"
   );
@@ -44,7 +43,6 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
     `${editId}-rotation`,
     Math.round(avgRotation),
     (value) => {
-      // FIXED: Only update non-polygon shapes
       const updates = rotatableShapes.map((shape) => ({
         id: shape.id,
         updates: { rotation: parseFloat(value) || 0 },
@@ -57,7 +55,6 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   );
 
   const handleRotationChange = (deltaRotation: number) => {
-    // FIXED: Only apply rotation to non-polygon shapes
     const updates = rotatableShapes.map((shape) => ({
       id: shape.id,
       updates: { rotation: (shape.rotation || 0) + deltaRotation },
@@ -69,7 +66,6 @@ export const TransformControls: React.FC<TransformControlsProps> = ({
   };
 
   const handleRotationReset = () => {
-    // FIXED: Only reset rotation for non-polygon shapes
     const updates = rotatableShapes.map((shape) => ({
       id: shape.id,
       updates: { rotation: 0 },

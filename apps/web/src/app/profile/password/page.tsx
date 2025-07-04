@@ -31,7 +31,6 @@ export default function SetPasswordForm() {
       toast.error("Passwords do not match");
       return;
     }
-    console.log("Password Update Submitted", data);
     await authClient.changePassword({
       newPassword: data.newPassword,
       currentPassword: data.oldPassword,

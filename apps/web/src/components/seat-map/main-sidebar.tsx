@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useCanvasStore } from "./store/main-store";
+import { useCanvasStore, useAreaMode } from "./store/main-store";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { Card, CardContent } from "../ui/card";
@@ -32,7 +32,7 @@ const isRectShape = (shape: any): boolean => shape?.type === "rect";
 const isCircleShape = (shape: any): boolean => shape?.type === "circle";
 const isTextShape = (shape: any): boolean => shape?.type === "text";
 
-export default function EditSidebar() {
+export default function MainSidebar() {
   const {
     selectedShapeIds,
     shapes,
@@ -40,6 +40,9 @@ export default function EditSidebar() {
     updateMultipleShapes,
     saveToHistory,
   } = useCanvasStore();
+
+  const { isInAreaMode, selectedRowIds, selectedSeatIds, zoomedArea } =
+    useAreaMode();
 
   const [batchValues, setBatchValues] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState<
@@ -416,6 +419,104 @@ export default function EditSidebar() {
     );
   } else if (selectedShapeIds.length > 1 && activeTab === "props") {
     setActiveTab("style");
+  }
+
+  if (isInAreaMode && (selectedRowIds.length > 0 || selectedSeatIds.length > 0)) {
+    return (
+      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold">Area Selection</h2>
+          <Badge variant="secondary" className="text-xs">
+            {selectedRowIds.length > 0
+              ? `${selectedRowIds.length} rows`
+              : `${selectedSeatIds.length} seats`}
+          </Badge>
+        </div>
+
+        {/* Area mode selection info */}
+        <Card className="bg-gray-800 border-gray-700">
+          <CardContent className="p-4">
+            {selectedRowIds.length > 0 && (
+              <div className="mb-4">
+                <Label className="text-sm font-medium">Selected Rows</Label>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {selectedRowIds.map((rowId) => {
+                    const row = zoomedArea?.rows?.find((r) => r.id === rowId);
+                    return (
+                      <Badge key={rowId} variant="outline" className="text-xs">
+                        {row?.name || rowId}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {selectedSeatIds.length > 0 && (
+              <div className="mb-4">
+                <Label className="text-sm font-medium">Selected Seats</Label>
+                <div className="flex flex-wrap gap-1 mt-2">
+                  {selectedSeatIds.slice(0, 10).map((seatId) => {
+                    const seat = zoomedArea?.rows
+                      ?.find((r) =>
+                        r.seats?.some((s) => s.id === seatId)
+                      )
+                      ?.seats?.find((s) => s.id === seatId);
+                    return (
+                      <Badge key={seatId} variant="outline" className="text-xs">
+                        {seat?.row}-{seat?.number || seatId}
+                      </Badge>
+                    );
+                  })}
+                  {selectedSeatIds.length > 10 && (
+                    <Badge variant="outline" className="text-xs">
+                      +{selectedSeatIds.length - 10} more
+                    </Badge>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Area mode actions */}
+            <div className="flex gap-2 mt-4">
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // TODO: Implement bulk edit for selected items
+                  console.log("Bulk edit area items");
+                }}
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  // TODO: Implement duplicate for selected items
+                  console.log("Duplicate area items");
+                }}
+              >
+                <Copy className="w-4 h-4 mr-2" />
+                Duplicate
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => {
+                  // TODO: Implement delete for selected items
+                  console.log("Delete area items");
+                }}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

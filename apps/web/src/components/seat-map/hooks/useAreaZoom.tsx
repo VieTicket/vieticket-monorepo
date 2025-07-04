@@ -1,6 +1,9 @@
-// Create: hooks/useAreaZoom.tsx
 import { useCallback } from "react";
-import { useCanvasStore } from "@/components/seat-map/store/main-store";
+import {
+  useCanvasStore,
+  useAreaMode,
+  useAreaActions,
+} from "@/components/seat-map/store/main-store";
 import { Shape, PolygonShape } from "@/types/seat-map-types";
 
 export const useAreaZoom = () => {
@@ -13,14 +16,12 @@ export const useAreaZoom = () => {
     updateShape,
     viewportSize,
     setCurrentTool,
-    // Area state from store
-    isInAreaMode,
-    zoomedArea,
-    originalCanvasState,
-    enterAreaMode,
-    exitAreaMode,
-    syncAreaToShape,
   } = useCanvasStore();
+
+  const { isInAreaMode, zoomedArea, selectedRowIds, selectedSeatIds } =
+    useAreaMode();
+  const { enterAreaMode, exitAreaMode, addRowToArea, addSeatToRow } =
+    useAreaActions();
 
   const saveCanvasState = useCallback(() => {
     return { zoom, pan };
@@ -79,9 +80,17 @@ export const useAreaZoom = () => {
       ) as PolygonShape;
       if (!area) return;
 
+      const areaWithRows = {
+        ...area,
+        rows: area.rows || [],
+      };
+
       const originalState = saveCanvasState();
-      enterAreaMode(area, originalState);
+
+      enterAreaMode(areaWithRows, originalState);
+
       zoomInOnShape(area);
+
       setCurrentTool("select");
     },
     [shapes, saveCanvasState, enterAreaMode, setCurrentTool]
@@ -117,46 +126,32 @@ export const useAreaZoom = () => {
   );
 
   const handleExitAreaMode = useCallback(() => {
-    if (originalCanvasState && zoomedArea) {
-      // Sync area changes back to the main shape
-      syncAreaToShape();
+    if (!isInAreaMode || !zoomedArea) return;
 
-      // Restore original state
-      setZoom(originalCanvasState.zoom);
-      setPan(originalCanvasState.pan.x, originalCanvasState.pan.y);
+    const originalFill = zoomedArea.fill || "#e0e0e0";
+    const originalStroke = zoomedArea.stroke || "#666666";
+    const originalStrokeWidth = zoomedArea.strokeWidth || 1;
 
-      // Restore polygon appearance (use stored properties or defaults)
-      const originalFill = zoomedArea.fill || "#e0e0e0";
-      const originalStroke = zoomedArea.stroke || "#666666";
-      const originalStrokeWidth = zoomedArea.strokeWidth || 1;
+    exitAreaMode();
 
-      updateShape(zoomedArea.id, {
-        fill: originalFill,
-        stroke: originalStroke,
-        strokeWidth: originalStrokeWidth,
-      });
+    updateShape(zoomedArea.id, {
+      fill: originalFill,
+      stroke: originalStroke,
+      strokeWidth: originalStrokeWidth,
+    });
 
-      exitAreaMode();
-      setCurrentTool("select");
-    }
-  }, [
-    originalCanvasState,
-    zoomedArea,
-    syncAreaToShape,
-    setZoom,
-    setPan,
-    updateShape,
-    exitAreaMode,
-    setCurrentTool,
-  ]);
+    setCurrentTool("select");
+  }, [isInAreaMode, zoomedArea, exitAreaMode, updateShape, setCurrentTool]);
 
   return {
-    // State from store
     isInAreaMode,
     zoomedArea,
-    // Actions
+    selectedRowIds,
+    selectedSeatIds,
     handleAreaDoubleClick,
     exitAreaMode: handleExitAreaMode,
     isPointInsidePolygon,
+    addRowToArea,
+    addSeatToRow,
   };
 };
