@@ -1,17 +1,16 @@
 {
-  "name": "@vieticket/repos",
+  "name": "@vieticket/utils",
   "version": "1.0.0",
   "module": "src/index.ts",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    ".": "./src/index.ts",
-    "./*": "./src/*-repo.ts"
+    "./vnpay": "./src/vnpay/index.ts"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch"
+    "build": "tsc",
+    "dev": "tsc --watch"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -20,7 +19,7 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@vieticket/db": "*",
-    "drizzle-orm": "^0.44.2"
-  }
+    "vnpay": "^2.4.0"
+  },
+  "private": true
 }

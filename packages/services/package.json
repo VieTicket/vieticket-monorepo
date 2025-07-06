@@ -6,14 +6,12 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    "./profile": {
-      "types": "./dist/profile-services.d.ts",
-      "default": "./dist/profile-services.js"
-    }
+    ".": "./src/index.ts",
+    "./*": "./src/*-service.ts"
   },
   "scripts": {
-    "build": "tsc",
-    "dev": "tsc --watch"
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
   },
   "devDependencies": {
     "@types/bun": "latest"
@@ -22,7 +20,9 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "@vieticket/repos": "*"
+    "@vieticket/repos": "*",
+    "@vieticket/db": "*",
+    "@vieticket/utils": "*"
   },
   "private": true
 }

@@ -21,6 +21,7 @@ import {
   Legend,
 } from "recharts";
 import { useMemo, useState, useEffect } from "react";
+import { OrderStatus } from "@vieticket/db/postgres/schema";
 
 // More detailed data types
 type RevenueOverTimeItem = { date: string; total: number };
@@ -36,7 +37,7 @@ type RecentTransaction = {
   date: string;
   ticketType: string;
   amount: number;
-  status: "pending" | "paid" | "cancelled" | "refunded";
+  status: OrderStatus;
 };
 
 type Props = {
@@ -578,7 +579,7 @@ export function DashboardOverview({
                                                                         "pending"
                                                                       ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
                                                                       : transaction.status ===
-                                                                          "cancelled"
+                                                                          "failed"
                                                                         ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
                                                                         : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
                                                                 }`}

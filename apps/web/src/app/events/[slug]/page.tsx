@@ -7,12 +7,13 @@ import {
 export default async function EventPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const raw = await fetchEventDetail(slug);
 
   const event: EventPreviewData = {
+    eventId: raw.id,
     name: raw.name,
     slug: raw.slug,
     bannerUrl: raw.bannerUrl ?? "",
@@ -44,7 +45,10 @@ export default async function EventPage({
   return (
     <div className="bg-white min-h-screen w-full">
       <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
-        <PreviewEvent data={event} />
+        <PreviewEvent data={{
+          ...event,
+          isPreview: false,
+        }} />
       </div>
     </div>
   );

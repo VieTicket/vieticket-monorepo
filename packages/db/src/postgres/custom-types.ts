@@ -1,3 +1,4 @@
+import { VNPayOrderData } from "@vieticket/utils/vnpay";
 import { customType } from "drizzle-orm/pg-core";
 
 type NumericConfig = {
@@ -25,3 +26,10 @@ export const tsVector = customType<{ data: string }>({
     return "tsvector";
   },
 });
+
+export type PaymentMetadata = {
+  provider: "vnpay",
+  data: VNPayOrderData
+} | {
+  provider: "unknown"
+}
