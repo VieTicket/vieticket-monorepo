@@ -6,19 +6,25 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
-    "./vnpay": "./src/vnpay/index.ts"
+    "./vnpay": "./src/vnpay/public.ts",
+    "./mailer": "./src/mailer/index.ts",
+    "./ticket-validation": "./src/ticket-validation/index.ts"
   },
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/qrcode": "^1.5.5"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
+    "form-data": "^4.0.3",
+    "mailgun.js": "^12.0.3",
+    "qrcode": "^1.5.4",
     "vnpay": "^2.4.0"
   },
   "private": true

@@ -24,8 +24,7 @@ const globalForVNPay = globalThis as unknown as {
 };
 
 /**
- * @todo export inside package only, no export to other packages
- * The primary, ready-to-use VNPay instance.
+ * Internal VNPay instance for use within the vnpay package only.
  * It automatically infers the configuration from environment variables.
  */
 export const vnpay: VNPay = globalForVNPay.vnpay ?? createVNPayInstance();

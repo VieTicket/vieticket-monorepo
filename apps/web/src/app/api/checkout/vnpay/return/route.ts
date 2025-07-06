@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { processPaymentResult } from "@vieticket/services/checkout";
 import { ReturnQueryFromVNPay } from "@vieticket/utils/vnpay";
 import { getAuthSession } from "@/lib/auth/auth";
+import { User } from "@vieticket/db/schemas/users";
 
 /**
  * Handles VNPay payment return URL
@@ -58,8 +59,7 @@ export async function GET(request: NextRequest) {
     // 4. Process payment result through service layer
     const result = await processPaymentResult(
       vnpayResponseData,
-      session.user.id,
-      session.user.role
+      session.user as User
     );
 
     // 5. Return appropriate response based on result

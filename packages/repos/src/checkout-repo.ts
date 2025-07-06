@@ -1,6 +1,6 @@
 import { NewOrder, NewSeatHold } from "@vieticket/db/models/order";
 import { db } from "@vieticket/db/postgres";
-import { OrderStatus, PaymentMetadata } from "@vieticket/db/postgres/schema";
+import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/postgres/schema";
 import { areas, rows, seats } from "@vieticket/db/schemas/events";
 import { orders, seatHolds, tickets, } from "@vieticket/db/schemas/orders";
 import { VNPayOrderData } from "@vieticket/utils/vnpay";
@@ -251,52 +251,48 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
 }
 
 /**
- * @todo remove from repo
- * Generates QR code for a ticket
- * @param ticketId - The ID of the ticket
+ * Creates ticket records for confirmed seats
  * @param orderId - The ID of the order
- * @returns A unique QR code string
- */
-function generateQRCode(ticketId: string, orderId: string): string {
-  // Simple QR code generation - in production, use a proper QR library
-  const timestamp = Date.now().toString(36);
-  const hash = Buffer.from(`${ticketId}-${orderId}-${timestamp}`).toString('base64url');
-  return `${hash}`;
-}
-
-/**
- * Generates ticket records for confirmed seats
- * @param orderId - The ID of the order
- * @param seatIds - Array of seat IDs to generate tickets for
+ * @param ticketData - Array of ticket data to insert
  * @returns Array of created tickets
  */
-export async function generateTickets(orderId: string, seatIds: string[]) {
-  if (seatIds.length === 0) {
+export async function createTickets(orderId: string, ticketData: Array<{
+  seatId: string;
+  validationData: string;
+  status: TicketStatus;
+}>) {
+  if (ticketData.length === 0) {
     return [];
   }
 
-  const ticketData = seatIds.map(seatId => ({
+  const ticketsToInsert = ticketData.map(data => ({
     orderId,
-    seatId,
-    qrCode: generateQRCode(`temp-${seatId}`, orderId),
-    status: "active" as const,
+    ...data,
   }));
 
   const createdTickets = await db
     .insert(tickets)
-    .values(ticketData)
+    .values(ticketsToInsert)
     .returning();
 
-  // Update QR codes with actual ticket IDs
-  const updatePromises = createdTickets.map(ticket => 
-    db.update(tickets)
-      .set({ qrCode: generateQRCode(ticket.id, orderId) })
-      .where(eq(tickets.id, ticket.id))
-      .returning()
-  );
+  return createdTickets;
+}
 
-  const updatedTickets = await Promise.all(updatePromises);
-  return updatedTickets.flat();
+/**
+ * Gets unconfirmed seat holds for a specific user
+ * @param userId - The ID of the user
+ * @returns Array of seat holds that are not yet confirmed
+ */
+export async function getUserUnconfirmedSeatHolds(userId: string) {
+  return db
+    .select({ seatId: seatHolds.seatId })
+    .from(seatHolds)
+    .where(
+      and(
+        eq(seatHolds.userId, userId),
+        eq(seatHolds.isConfirmed, false)
+      )
+    );
 }
 
 /**
@@ -312,7 +308,7 @@ export async function getTicketDetails(orderId: string) {
       seatNumber: seats.seatNumber,
       rowName: rows.rowName,
       areaName: areas.name,
-      qrCode: tickets.qrCode,
+      validationData: tickets.validationData,
       status: tickets.status,
     })
     .from(tickets)
@@ -323,12 +319,41 @@ export async function getTicketDetails(orderId: string) {
 }
 
 /**
+ * Updates validation data for specific tickets
+ * @param ticketUpdates - Array of ticket ID and validation data pairs
+ * @returns Array of updated tickets
+ */
+export async function updateTicketValidationData(ticketUpdates: Array<{
+  ticketId: string;
+  validationData: string;
+}>) {
+  const updatePromises = ticketUpdates.map(({ ticketId, validationData }) => 
+    db.update(tickets)
+      .set({ validationData })
+      .where(eq(tickets.id, ticketId))
+      .returning()
+  );
+
+  const updatedTickets = await Promise.all(updatePromises);
+  return updatedTickets.flat();
+}
+
+/**
  * Executes atomic payment confirmation transaction
  * @param orderId - The ID of the order to confirm
  * @param userId - The ID of the user who owns the order
+ * @param ticketData - Pre-generated ticket data including validation data
  * @returns Object containing updated order and created tickets
  */
-export async function executePaymentTransaction(orderId: string, userId: string) {
+export async function executePaymentTransaction(
+  orderId: string, 
+  userId: string,
+  ticketData: Array<{
+    seatId: string;
+    validationData: string;
+    status: TicketStatus;
+  }>
+) {
   return db.transaction(async (tx) => {
     // 1. Update order status to paid
     const [updatedOrder] = await tx
@@ -378,27 +403,16 @@ export async function executePaymentTransaction(orderId: string, userId: string)
         )
       );
 
-    // 4. Generate tickets for each seat
-    const seatIds = userSeatHolds.map(hold => hold.seatId);
-    const ticketData = seatIds.map(seatId => ({
+    // 4. Create tickets with provided data
+    const ticketsToInsert = ticketData.map(data => ({
       orderId,
-      seatId,
-      qrCode: generateQRCode(`temp-${seatId}`, orderId),
-      status: "active" as const,
+      ...data,
     }));
 
     const createdTickets = await tx
       .insert(tickets)
-      .values(ticketData)
+      .values(ticketsToInsert)
       .returning();
-
-    // 5. Update QR codes with actual ticket IDs
-    for (const ticket of createdTickets) {
-      await tx
-        .update(tickets)
-        .set({ qrCode: generateQRCode(ticket.id, orderId) })
-        .where(eq(tickets.id, ticket.id));
-    }
 
     return {
       order: updatedOrder,

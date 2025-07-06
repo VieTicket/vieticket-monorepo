@@ -99,7 +99,7 @@ export const tickets = pgTable("tickets", {
   seatId: uuid("seat_id")
     .references(() => seats.id)
     .notNull(),
-  qrCode: varchar("qr_code", { length: 128 }).unique().notNull(),
+  validationData: varchar("validation_data", { length: 128 }).unique().notNull(),
   status: ticketStatusEnum("status").default("active"),
   purchasedAt: timestamp("purchased_at").defaultNow(),
 });
@@ -116,7 +116,7 @@ export const refunds = pgTable("refunds", {
   status: refundStatusEnum("status").default("requested"),
 });
 
-/** TODO
+/**
  * @todo Create a booking sessions table to manage temporary seat selection sessions
  * 
  * This table will track user sessions when customers navigate to the seat selection page,
