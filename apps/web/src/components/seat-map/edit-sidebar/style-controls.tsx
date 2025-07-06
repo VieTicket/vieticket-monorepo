@@ -7,6 +7,7 @@ import { Slider } from "../../ui/slider";
 import { Palette } from "lucide-react";
 import { Shape } from "@/types/seat-map-types";
 import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
+import { useDebounce, useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface StyleControlsProps {
   selectedShapes: Shape[];
@@ -36,6 +37,17 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
     return String(value);
   };
 
+  // FIX: Add debounced callbacks for color changes
+  const debouncedFillChange = useDebouncedCallback(
+    (value: string) => onBatchChange("fill", value),
+    300 // 300ms delay
+  );
+
+  const debouncedStrokeChange = useDebouncedCallback(
+    (value: string) => onBatchChange("stroke", value),
+    300 // 300ms delay
+  );
+
   const strokeWidthEdit = useStoreInlineEdit(
     `${editId}-strokeWidth`,
     safeFormatValue(batchValues.strokeWidth, 1),
@@ -62,7 +74,7 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
 
   return (
     <div className="space-y-4 text-white">
-      {/* Fill Color */}
+      {/* FIX: Fill Color with Debouncing */}
       <div>
         <Label className="text-xs flex items-center gap-1">
           <Palette className="w-3 h-3" />
@@ -71,7 +83,9 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
         <Input
           type="color"
           value={batchValues.fill || "#ffffff"}
-          onChange={(e) => onBatchChange("fill", e.target.value)}
+          onChange={(e) => {
+            debouncedFillChange(e.target.value);
+          }}
           className="h-10 mt-1"
           title="Fill Color"
           onMouseDown={(e) => e.stopPropagation()}
@@ -79,13 +93,15 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
         />
       </div>
 
-      {/* Stroke Color */}
+      {/* FIX: Stroke Color with Debouncing */}
       <div>
         <Label className="text-xs">Stroke Color</Label>
         <Input
           type="color"
           value={batchValues.stroke || "#000000"}
-          onChange={(e) => onBatchChange("stroke", e.target.value)}
+          onChange={(e) => {
+            debouncedStrokeChange(e.target.value);
+          }}
           className="h-10 mt-1"
           title="Stroke Color"
           onMouseDown={(e) => e.stopPropagation()}

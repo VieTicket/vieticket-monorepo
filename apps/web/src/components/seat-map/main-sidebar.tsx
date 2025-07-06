@@ -114,7 +114,7 @@ export default function MainSidebar() {
             textFills.length > 0 &&
             textFills.every((f) => f === textFills[0])
           ) {
-            commonValues.textFill = textFills[0];
+            commonValues.fill = textFills[0]; // FIX: Change from 'textFill' to 'fill'
           }
 
           const fontFamilies = textShapes.map((s) =>
@@ -366,11 +366,7 @@ export default function MainSidebar() {
                   opacity: singleShape.opacity ?? 1,
 
                   ...(isRectShape(singleShape) && {
-                    cornerRadius: safeGetProperty(
-                      singleShape,
-                      "cornerRadius",
-                      0
-                    ),
+                    cornerRadius: safeGetProperty(singleShape, "cornerRadius", 0),
                   }),
                   ...(isCircleShape(singleShape) && {
                     radius: safeGetProperty(singleShape, "radius", 50),
@@ -386,18 +382,17 @@ export default function MainSidebar() {
               <TextControls
                 selectedShapes={[singleShape]}
                 batchValues={{
-                  textFill: singleShape.fill,
+                  // FIX: Use 'fill' instead of 'textFill' and add all text properties
+                  fill: singleShape.fill,
+                  name: singleShape.name, // FIX: Add name property
                   fontSize: safeGetProperty(singleShape, "fontSize", 16),
-                  fontFamily: safeGetProperty(
-                    singleShape,
-                    "fontFamily",
-                    "Arial"
-                  ),
+                  fontFamily: safeGetProperty(singleShape, "fontFamily", "Arial"),
                   align: safeGetProperty(singleShape, "align", "left"),
+                  width: safeGetProperty(singleShape, "width", 200),
+                  height: safeGetProperty(singleShape, "height", 24),
                 }}
                 onBatchChange={(key, value) => {
-                  const updateKey = key === "textFill" ? "fill" : key;
-                  handleSingleShapeUpdate({ [updateKey]: value });
+                  handleSingleShapeUpdate({ [key]: value });
                   saveToHistory();
                 }}
               />
@@ -419,104 +414,6 @@ export default function MainSidebar() {
     );
   } else if (selectedShapeIds.length > 1 && activeTab === "props") {
     setActiveTab("style");
-  }
-
-  if (isInAreaMode && (selectedRowIds.length > 0 || selectedSeatIds.length > 0)) {
-    return (
-      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold">Area Selection</h2>
-          <Badge variant="secondary" className="text-xs">
-            {selectedRowIds.length > 0
-              ? `${selectedRowIds.length} rows`
-              : `${selectedSeatIds.length} seats`}
-          </Badge>
-        </div>
-
-        {/* Area mode selection info */}
-        <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
-            {selectedRowIds.length > 0 && (
-              <div className="mb-4">
-                <Label className="text-sm font-medium">Selected Rows</Label>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedRowIds.map((rowId) => {
-                    const row = zoomedArea?.rows?.find((r) => r.id === rowId);
-                    return (
-                      <Badge key={rowId} variant="outline" className="text-xs">
-                        {row?.name || rowId}
-                      </Badge>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {selectedSeatIds.length > 0 && (
-              <div className="mb-4">
-                <Label className="text-sm font-medium">Selected Seats</Label>
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {selectedSeatIds.slice(0, 10).map((seatId) => {
-                    const seat = zoomedArea?.rows
-                      ?.find((r) =>
-                        r.seats?.some((s) => s.id === seatId)
-                      )
-                      ?.seats?.find((s) => s.id === seatId);
-                    return (
-                      <Badge key={seatId} variant="outline" className="text-xs">
-                        {seat?.row}-{seat?.number || seatId}
-                      </Badge>
-                    );
-                  })}
-                  {selectedSeatIds.length > 10 && (
-                    <Badge variant="outline" className="text-xs">
-                      +{selectedSeatIds.length - 10} more
-                    </Badge>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Area mode actions */}
-            <div className="flex gap-2 mt-4">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  // TODO: Implement bulk edit for selected items
-                  console.log("Bulk edit area items");
-                }}
-              >
-                <Settings className="w-4 h-4 mr-2" />
-                Edit
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  // TODO: Implement duplicate for selected items
-                  console.log("Duplicate area items");
-                }}
-              >
-                <Copy className="w-4 h-4 mr-2" />
-                Duplicate
-              </Button>
-              <Button
-                size="sm"
-                variant="destructive"
-                onClick={() => {
-                  // TODO: Implement delete for selected items
-                  console.log("Delete area items");
-                }}
-              >
-                <Trash2 className="w-4 h-4 mr-2" />
-                Delete
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    );
   }
 
   return (

@@ -40,6 +40,9 @@ export interface TextShape extends BaseShape {
   fontStyle?: string;
   align?: string;
   width?: number;
+  height?: number;
+  lineHeight?: number;
+  text?: string;
 }
 
 // UPDATED: PolygonShape represents an Area

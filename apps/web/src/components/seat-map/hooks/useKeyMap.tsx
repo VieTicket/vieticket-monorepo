@@ -7,14 +7,12 @@ import { usePanZoom } from "./usePanZoom";
 
 export const useKeyMap = () => {
   const {
-    // Canvas operations
     zoom,
     pan,
     setZoom,
     currentTool,
     setCurrentTool,
 
-    // Shape operations
     selectedShapeIds,
     deleteSelectedShapes,
     undo,
@@ -23,31 +21,25 @@ export const useKeyMap = () => {
     canRedo,
     duplicateSelectedShapes,
 
-    // Selection operations
     selectAll,
     clearSelection,
 
-    // Editing operations
     isEditing,
     editingShapeId,
     startEditing,
     stopEditing,
 
-    // Save/Load operations
     saveToHistory,
   } = useCanvasStore();
 
-  // FIX: Get area mode state to switch tool mappings
   const { isInAreaMode } = useAreaMode();
 
   const { centerCanvas, fitToScreen, zoomIn, zoomOut, setBoundedPan } =
     usePanZoom();
 
-  // FIX: Define tool mappings for different modes
   const getToolMapping = useCallback(
     (key: string) => {
       if (isInAreaMode) {
-        // Area mode tool mappings
         switch (key) {
           case "1":
             return "select";
@@ -59,7 +51,6 @@ export const useKeyMap = () => {
             return null;
         }
       } else {
-        // Main mode tool mappings
         switch (key) {
           case "1":
             return "select";
@@ -85,35 +76,42 @@ export const useKeyMap = () => {
       const isShift = e.shiftKey;
       const isAlt = e.altKey;
 
-      // Prevent default for handled shortcuts
       const preventDefault = () => {
         e.preventDefault();
         e.stopPropagation();
       };
 
-      // Special handling when editing
       if (isEditing) {
+        const activeElement = document.activeElement;
+        const isTextarea =
+          activeElement && activeElement.tagName === "TEXTAREA";
+        const isInput = activeElement && activeElement.tagName === "INPUT";
+
         switch (e.key) {
           case "Escape":
             stopEditing();
             preventDefault();
             return;
           case "Enter":
-            if (!isShift) {
+            if (isTextarea) {
+              if (!isShift) {
+                return;
+              }
+
+              return;
+            } else if (isInput) {
               stopEditing();
               preventDefault();
               return;
             }
             break;
-          // Don't handle other shortcuts while editing (except Escape and Enter)
+
           default:
             return;
         }
       }
 
-      // FIX: Tool shortcuts (no modifiers) - UPDATED FOR AREA MODE
       if (!isCtrl && !isShift && !isAlt && !isEditing) {
-        // Check if it's a tool key (1-5)
         if (["1", "2", "3", "4", "5"].includes(e.key)) {
           const toolToSelect = getToolMapping(e.key);
           if (toolToSelect) {
@@ -123,7 +121,6 @@ export const useKeyMap = () => {
           }
         }
 
-        // Other non-tool shortcuts
         switch (e.key) {
           case "Escape":
             clearSelection();
@@ -138,7 +135,6 @@ export const useKeyMap = () => {
             }
             return;
           case "Enter":
-            // Start editing if single shape selected
             if (selectedShapeIds.length === 1) {
               startEditing(selectedShapeIds[0]);
               preventDefault();
@@ -147,13 +143,11 @@ export const useKeyMap = () => {
         }
       }
 
-      // Ctrl/Cmd shortcuts - STILL WORK WHEN EDITING (except tool shortcuts)
       if (isCtrl && !isShift && !isAlt) {
         switch (e.key) {
           case "z":
           case "Z":
             if (canUndo() && !isEditing) {
-              // Disable undo while editing
               undo();
               preventDefault();
             }
@@ -161,7 +155,6 @@ export const useKeyMap = () => {
           case "y":
           case "Y":
             if (canRedo() && !isEditing) {
-              // Disable redo while editing
               redo();
               preventDefault();
             }
@@ -169,7 +162,6 @@ export const useKeyMap = () => {
           case "a":
           case "A":
             if (!isEditing) {
-              // Disable select all while editing
               selectAll();
               preventDefault();
             }
@@ -177,7 +169,6 @@ export const useKeyMap = () => {
           case "d":
           case "D":
             if (selectedShapeIds.length > 0 && !isEditing) {
-              // Disable duplicate while editing
               duplicateSelectedShapes();
               preventDefault();
             }
@@ -194,19 +185,16 @@ export const useKeyMap = () => {
         }
       }
 
-      // Ctrl/Cmd + Shift shortcuts
       if (isCtrl && isShift && !isAlt) {
         switch (e.key) {
           case "Z":
             if (canRedo() && !isEditing) {
-              // Disable redo while editing
               redo();
               preventDefault();
             }
             return;
           case "D":
             if (!isEditing) {
-              // Disable clear selection while editing
               clearSelection();
               preventDefault();
             }
@@ -214,7 +202,6 @@ export const useKeyMap = () => {
         }
       }
 
-      // Navigation shortcuts (only in select mode and not editing)
       if (
         currentTool === "select" &&
         !isCtrl &&
@@ -244,7 +231,6 @@ export const useKeyMap = () => {
         }
       }
 
-      // Zoom shortcuts with Ctrl
       if (isCtrl && !isShift && !isAlt) {
         switch (e.key) {
           case "ArrowUp":
@@ -283,12 +269,11 @@ export const useKeyMap = () => {
       setBoundedPan,
       duplicateSelectedShapes,
       selectAll,
-      getToolMapping, // FIX: Add the new function to dependencies
-      isInAreaMode, // FIX: Add area mode to dependencies
+      getToolMapping,
+      isInAreaMode,
     ]
   );
 
-  // Auto-bind keyboard events
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
     return () => {
@@ -296,7 +281,6 @@ export const useKeyMap = () => {
     };
   }, [handleKeyDown]);
 
-  // FIX: Update getShortcuts to show different shortcuts based on mode
   const getShortcuts = useCallback(
     () => ({
       actions: {

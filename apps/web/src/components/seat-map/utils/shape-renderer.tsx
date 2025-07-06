@@ -7,7 +7,7 @@ export interface ShapeProps {
   shape: Shape;
   isSelected: boolean;
   commonProps: any;
-  // Area mode properties
+
   isInAreaMode?: boolean;
   zoomedAreaId?: string;
   selectedRowIds?: string[];
@@ -50,7 +50,7 @@ export const renderShape = ({
             dash={shape.dash || []}
             opacity={shape.opacity}
             hitFunc={hitFunc}
-            listening={!isInAreaMode} // FIX: Disable interaction in area mode
+            listening={!isInAreaMode}
           />
           {shape.name && (
             <Text
@@ -82,7 +82,7 @@ export const renderShape = ({
             dash={shape.dash || []}
             opacity={shape.opacity}
             hitFunc={hitFunc}
-            listening={!isInAreaMode} // FIX: Disable interaction in area mode
+            listening={!isInAreaMode}
           />
           {shape.name && (
             <Text
@@ -115,14 +115,12 @@ export const renderShape = ({
             y={0}
             points={shape.points}
             closed={shape.closed}
-            // FIX: Light gray background when in area mode and this is the current area
             fill={isCurrentArea ? "#f5f5f5" : shape.fill}
             stroke={isCurrentArea ? "#999999" : shape.stroke}
             strokeWidth={shape.strokeWidth || 1}
             dash={shape.dash || []}
             opacity={shape.opacity || 1}
             hitFunc={hitFunc}
-            // FIX: Disable polygon click events in area mode
             listening={!isInAreaMode}
           />
 
@@ -153,7 +151,7 @@ export const renderShape = ({
                 onSeatClick: isInAreaMode ? onSeatClick : undefined,
                 onRowDoubleClick: isInAreaMode ? onRowDoubleClick : undefined,
                 onSeatDoubleClick: isInAreaMode ? onSeatDoubleClick : undefined,
-                // FIX: Make seats non-interactive when not in area mode
+
                 isInteractive: isInAreaMode,
               })}
             </Group>
@@ -163,20 +161,29 @@ export const renderShape = ({
 
     case "text":
       return (
-        <Text
-          key={key}
-          {...restProps}
-          text={shape.name || "New Text"}
-          fontSize={shape.fontSize || 16}
-          fontFamily={shape.fontFamily || "Arial"}
-          fontStyle={shape.fontStyle || "normal"}
-          align={shape.align || "left"}
-          fill={shape.fill}
-          stroke={shape.stroke}
-          strokeWidth={shape.strokeWidth || 0}
-          listening={!isInAreaMode} // FIX: Disable interaction in area mode
-          hitFunc={hitFunc}
-        />
+        <Group key={key} x={shape.x} y={shape.y} {...restProps}>
+          <Text
+            // FIX: Use x={0}, y={0} since positioning is handled by Group
+            x={0}
+            y={0}
+            // FIX: Use proper text properties with multi-line support
+            text={shape.name || "New Text"}
+            fontSize={shape.fontSize || 16}
+            fontFamily={shape.fontFamily || "Arial"}
+            fontStyle={shape.fontStyle || "normal"}
+            align={shape.align || "left"}
+            fill={shape.fill || "#000000"}
+            stroke={shape.stroke}
+            strokeWidth={shape.strokeWidth || 0}
+            // FIX: Use the dynamic width/height from the shape
+            width={shape.width || 200}
+            height={shape.height || 24}
+            listening={!isInAreaMode}
+            hitFunc={hitFunc}
+            // FIX: Add text wrapping for multi-line support
+            wrap="none" // We handle line breaks manually with \n
+          />
+        </Group>
       );
 
     default:
@@ -184,7 +191,6 @@ export const renderShape = ({
   }
 };
 
-// Helper function
 const getPolygonCenter = (points: number[]) => {
   if (!points || points.length < 2) {
     return { x: 0, y: 0 };

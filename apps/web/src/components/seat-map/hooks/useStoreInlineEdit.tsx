@@ -32,7 +32,7 @@ export const useStoreInlineEdit = (
   );
 
   const saveAndStop = useCallback(() => {
-    if (editValue !== undefined && editValue !== null && editValue !== "") {
+    if (editValue !== undefined && editValue !== null) {
       onSave(editValue);
     }
     stopEditing();
@@ -44,6 +44,7 @@ export const useStoreInlineEdit = (
     onCancel?.();
   }, [initialValue, stopEditing, onCancel]);
 
+  // FIX: Update event handlers to better handle multi-line text
   const eventHandlers = {
     onClick: (e: React.MouseEvent) => {
       e.preventDefault();
@@ -56,7 +57,24 @@ export const useStoreInlineEdit = (
     },
     onBlur: saveAndStop,
     onKeyDown: (e: React.KeyboardEvent) => {
+      // FIX: Don't interfere with textarea's own key handling
+      const isTextarea = (e.target as HTMLElement).tagName === "TEXTAREA";
+
+      if (isTextarea) {
+        // For textareas, let the textarea handle its own key events
+        // Only handle Escape to cancel
+        if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          cancelAndStop();
+        }
+        // Don't handle other keys for textareas
+        return;
+      }
+
+      // For other inputs (not textareas)
       e.stopPropagation();
+
       if (e.key === "Enter") {
         e.preventDefault();
         saveAndStop();

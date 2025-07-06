@@ -60,19 +60,12 @@ export const createShapesSlice: StateCreator<
     }));
   },
 
-  // FIXED: Use the more flexible update type
   updateShape: (id, updates) => {
     set((state) => ({
       shapes: state.shapes.map((shape) =>
         shape.id === id ? { ...shape, ...updates } : shape
       ),
     }));
-
-    // Sync with area mode if updating the zoomed area
-    // const { zoomedArea, updateZoomedArea } = get();
-    // if (zoomedArea && id === zoomedArea.id) {
-    //   updateZoomedArea(updates);
-    // }
   },
 
   syncAreaToShape: () => {
@@ -94,13 +87,6 @@ export const createShapesSlice: StateCreator<
   },
 
   deleteShape: (id) => {
-    // const { exitAreaMode, zoomedArea } = get();
-
-    // // If deleting the currently zoomed area, exit area mode
-    // if (zoomedArea && id === zoomedArea.id) {
-    //   exitAreaMode();
-    // }
-
     set((state) => ({
       shapes: state.shapes.filter((shape) => shape.id !== id),
       selectedShapeIds: state.selectedShapeIds.filter(
@@ -111,12 +97,6 @@ export const createShapesSlice: StateCreator<
 
   deleteSelectedShapes: () => {
     const { selectedShapeIds } = get();
-
-    // // Check if the zoomed area is being deleted
-    // if (zoomedArea && selectedShapeIds.includes(zoomedArea.id)) {
-    //   exitAreaMode();
-    // }
-
     set((state) => ({
       shapes: state.shapes.filter(
         (shape) => !selectedShapeIds.includes(shape.id)

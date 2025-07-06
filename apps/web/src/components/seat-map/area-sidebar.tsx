@@ -28,6 +28,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
+import { useDebouncedCallback } from "@/hooks/useDebounce";
 
 interface AreaSidebarProps {
   inSidebar?: boolean;
@@ -266,6 +267,26 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
       }
     },
     [zoomedArea, updateShape, saveToHistory]
+  );
+
+  const debouncedColorChange = useDebouncedCallback(
+    (key: string, value: string) => {
+      if (singleRow) {
+        handleSingleRowUpdate({ [key]: value });
+      } else if (singleSeat) {
+        handleSingleSeatUpdate({ [key]: value });
+      } else if (selectedRows.length > 1) {
+        handleBatchRowUpdate(key, value);
+      } else if (selectedSeats.length > 1) {
+        handleBatchSeatUpdate(key, value);
+      }
+    },
+    300
+  );
+
+  const debouncedAreaColorChange = useDebouncedCallback(
+    (key: string, value: string) => handleAreaUpdate({ [key]: value }),
+    300
   );
 
   if (!isInAreaMode || totalSelected === 0) {
@@ -601,7 +622,7 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
         )}
 
         {activeTab === "style" && (
-          <Card className="bg-gray-800 border-gray-700 text-white">
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center">
                 <Palette className="w-4 h-4 mr-2" />
@@ -609,7 +630,7 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {/* Color controls */}
+              {/* FIX: Fill Color with Debouncing */}
               <div className="space-y-2">
                 <Label className="text-xs">Fill Color</Label>
                 <Input
@@ -621,20 +642,13 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
                     "#4CAF50"
                   }
                   onChange={(e) => {
-                    if (singleRow) {
-                      handleSingleRowUpdate({ rowColor: e.target.value });
-                    } else if (singleSeat) {
-                      handleSingleSeatUpdate({ fill: e.target.value });
-                    } else if (selectedRows.length > 1) {
-                      handleBatchRowUpdate("rowColor", e.target.value);
-                    } else if (selectedSeats.length > 1) {
-                      handleBatchSeatUpdate("fill", e.target.value);
-                    }
+                    debouncedColorChange("fill", e.target.value);
                   }}
                   className="h-8 bg-gray-700 border-gray-600"
                 />
               </div>
 
+              {/* FIX: Stroke Color with Debouncing */}
               <div className="space-y-2">
                 <Label className="text-xs">Stroke Color</Label>
                 <Input
@@ -646,15 +660,7 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
                     "#2E7D32"
                   }
                   onChange={(e) => {
-                    if (singleRow) {
-                      handleSingleRowUpdate({ stroke: e.target.value });
-                    } else if (singleSeat) {
-                      handleSingleSeatUpdate({ stroke: e.target.value });
-                    } else if (selectedRows.length > 1) {
-                      handleBatchRowUpdate("stroke", e.target.value);
-                    } else if (selectedSeats.length > 1) {
-                      handleBatchSeatUpdate("stroke", e.target.value);
-                    }
+                    debouncedColorChange("stroke", e.target.value);
                   }}
                   className="h-8 bg-gray-700 border-gray-600"
                 />
@@ -803,7 +809,7 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
 
         {/* Area-wide Settings */}
         {zoomedArea && (
-          <Card className="bg-gray-800 border-gray-700 text-white">
+          <Card className="bg-gray-800 border-gray-700">
             <CardHeader className="pb-3">
               <CardTitle className="text-sm flex items-center">
                 <Settings className="w-4 h-4 mr-2" />
@@ -849,14 +855,18 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
                 </div>
               </div>
 
+              {/* FIX: Default Seat Color with Debouncing */}
               <div className="space-y-2">
                 <Label className="text-xs">Default Seat Color</Label>
                 <Input
                   type="color"
                   value={zoomedArea.defaultSeatColor || "#4CAF50"}
-                  onChange={(e) =>
-                    handleAreaUpdate({ defaultSeatColor: e.target.value })
-                  }
+                  onChange={(e) => {
+                    debouncedAreaColorChange(
+                      "defaultSeatColor",
+                      e.target.value
+                    );
+                  }}
                   className="h-8 bg-gray-700 border-gray-600"
                 />
               </div>

@@ -7,6 +7,8 @@ import {
   ShapeWithoutMeta,
   TextShape,
 } from "@/types/seat-map-types";
+import { v4 as uuidv4 } from "uuid";
+import { useTextMeasure } from "@/hooks/useTextMeasure";
 
 export const useDrawingEvents = () => {
   const [isDrawing, setIsDrawing] = useState(false);
@@ -20,6 +22,7 @@ export const useDrawingEvents = () => {
   const [previewShape, setPreviewShape] = useState<any>(null);
 
   const { addShape, saveToHistory, currentTool } = useCanvasStore();
+  const { measureText } = useTextMeasure();
 
   const handleDrawingMouseDown = (canvasCoords: any, e: any) => {
     setIsDrawing(true);
@@ -67,7 +70,7 @@ export const useDrawingEvents = () => {
     const x = Math.min(start.x, end.x);
     const y = Math.min(start.y, end.y);
 
-    if (width < 5 && height < 5) return null;
+    if (width < 5 && height < 5 && shapeType !== "text") return null;
 
     switch (shapeType) {
       case "rect":
@@ -95,19 +98,46 @@ export const useDrawingEvents = () => {
         } satisfies Omit<CircleShape, "id" | "visible" | "draggable">;
 
       case "text":
-        return {
-          type: "text" as const,
-          x: start.x,
-          y: start.y,
-          name: "New Text",
-          fontSize: 16,
-          fill: "#000000",
-          width: Math.max(100, width),
-        } satisfies Omit<TextShape, "id" | "visible" | "draggable">;
+        return createTextShape(start);
 
       default:
         return null;
     }
+  };
+
+  // FIX: Update createTextShape to use dynamic sizing
+  const createTextShape = (canvasCoords: { x: number; y: number }) => {
+    const defaultText = "New Text";
+    const defaultFontSize = 16;
+    const defaultFontFamily = "Arial";
+
+    // Measure the default text
+    const dimensions = measureText(
+      defaultText,
+      defaultFontSize,
+      defaultFontFamily
+    );
+
+    return {
+      id: uuidv4(),
+      type: "text" as const,
+      name: defaultText,
+      x: canvasCoords.x,
+      y: canvasCoords.y,
+      fontSize: defaultFontSize,
+      fontFamily: defaultFontFamily,
+      fontStyle: "normal",
+      align: "left",
+      fill: "#000000",
+      width: dimensions.width,
+      height: dimensions.height,
+      visible: true,
+      draggable: true,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+    };
   };
 
   const resetDrawingState = () => {

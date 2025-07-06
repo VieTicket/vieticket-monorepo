@@ -340,9 +340,9 @@ export default function CanvasEditorClient() {
             shouldShowSelectionOverlay() && (
               <SelectionOverlay
                 selectedShapes={selectedShapes}
-                onResize={(shapeId, newBounds) => {
-                  console.log("Resize shape:", shapeId, newBounds);
-                }}
+                // onResize={(shapeId, newBounds) => {
+                //   console.log("Resize shape:", shapeId, newBounds);
+                // }}
               />
             )}
         </Layer>
