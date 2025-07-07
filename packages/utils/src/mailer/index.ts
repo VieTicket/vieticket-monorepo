@@ -17,7 +17,7 @@ interface SendMailOptions {
 }
 
 class MailSender {
-  private mg: any;
+  private mg: ReturnType<InstanceType<typeof Mailgun>['client']>;
   private config: MailerConfig;
 
   constructor(config: MailerConfig) {

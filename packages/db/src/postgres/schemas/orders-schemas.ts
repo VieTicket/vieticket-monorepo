@@ -99,7 +99,6 @@ export const tickets = pgTable("tickets", {
   seatId: uuid("seat_id")
     .references(() => seats.id)
     .notNull(),
-  validationData: varchar("validation_data", { length: 128 }).unique().notNull(),
   status: ticketStatusEnum("status").default("active"),
   purchasedAt: timestamp("purchased_at").defaultNow(),
 });

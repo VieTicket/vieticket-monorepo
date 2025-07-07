@@ -170,18 +170,18 @@ export async function getOrderByVNPayTxnRef(vnpTxnRef: string) {
  * @returns The updated order
  */
 export async function updateOrderStatus(
-  orderId: string, 
+  orderId: string,
   status: OrderStatus
 ) {
   const [updatedOrder] = await db
     .update(orders)
-    .set({ 
-      status, 
-      updatedAt: new Date() 
+    .set({
+      status,
+      updatedAt: new Date()
     })
     .where(eq(orders.id, orderId))
     .returning();
-  
+
   return updatedOrder;
 }
 
@@ -216,9 +216,9 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
 
     const updatedHolds = await db
       .update(seatHolds)
-      .set({ 
-        isConfirmed: true, 
-        isPaid: true 
+      .set({
+        isConfirmed: true,
+        isPaid: true
       })
       .where(
         and(
@@ -232,12 +232,12 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
   }
 
   const seatIds = orderSeats.map(seat => seat.seatId);
-  
+
   const updatedHolds = await db
     .update(seatHolds)
-    .set({ 
-      isConfirmed: true, 
-      isPaid: true 
+    .set({
+      isConfirmed: true,
+      isPaid: true
     })
     .where(
       and(
@@ -257,8 +257,8 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
  * @returns Array of created tickets
  */
 export async function createTickets(orderId: string, ticketData: Array<{
+  ticketId: string;
   seatId: string;
-  validationData: string;
   status: TicketStatus;
 }>) {
   if (ticketData.length === 0) {
@@ -266,8 +266,10 @@ export async function createTickets(orderId: string, ticketData: Array<{
   }
 
   const ticketsToInsert = ticketData.map(data => ({
+    id: data.ticketId,
     orderId,
-    ...data,
+    seatId: data.seatId,
+    status: data.status,
   }));
 
   const createdTickets = await db
@@ -296,49 +298,6 @@ export async function getUserUnconfirmedSeatHolds(userId: string) {
 }
 
 /**
- * Gets detailed ticket information with seat and area details
- * @param orderId - The ID of the order
- * @returns Array of tickets with seat and area information
- */
-export async function getTicketDetails(orderId: string) {
-  return db
-    .select({
-      ticketId: tickets.id,
-      seatId: tickets.seatId,
-      seatNumber: seats.seatNumber,
-      rowName: rows.rowName,
-      areaName: areas.name,
-      validationData: tickets.validationData,
-      status: tickets.status,
-    })
-    .from(tickets)
-    .innerJoin(seats, eq(tickets.seatId, seats.id))
-    .innerJoin(rows, eq(seats.rowId, rows.id))
-    .innerJoin(areas, eq(rows.areaId, areas.id))
-    .where(eq(tickets.orderId, orderId));
-}
-
-/**
- * Updates validation data for specific tickets
- * @param ticketUpdates - Array of ticket ID and validation data pairs
- * @returns Array of updated tickets
- */
-export async function updateTicketValidationData(ticketUpdates: Array<{
-  ticketId: string;
-  validationData: string;
-}>) {
-  const updatePromises = ticketUpdates.map(({ ticketId, validationData }) => 
-    db.update(tickets)
-      .set({ validationData })
-      .where(eq(tickets.id, ticketId))
-      .returning()
-  );
-
-  const updatedTickets = await Promise.all(updatePromises);
-  return updatedTickets.flat();
-}
-
-/**
  * Executes atomic payment confirmation transaction
  * @param orderId - The ID of the order to confirm
  * @param userId - The ID of the user who owns the order
@@ -346,11 +305,11 @@ export async function updateTicketValidationData(ticketUpdates: Array<{
  * @returns Object containing updated order and created tickets
  */
 export async function executePaymentTransaction(
-  orderId: string, 
+  orderId: string,
   userId: string,
   ticketData: Array<{
+    ticketId: string;
     seatId: string;
-    validationData: string;
     status: TicketStatus;
   }>
 ) {
@@ -358,9 +317,9 @@ export async function executePaymentTransaction(
     // 1. Update order status to paid
     const [updatedOrder] = await tx
       .update(orders)
-      .set({ 
-        status: "paid", 
-        updatedAt: new Date() 
+      .set({
+        status: "paid",
+        updatedAt: new Date()
       })
       .where(
         and(
@@ -392,9 +351,9 @@ export async function executePaymentTransaction(
     // 3. Confirm seat holds
     await tx
       .update(seatHolds)
-      .set({ 
-        isConfirmed: true, 
-        isPaid: true 
+      .set({
+        isConfirmed: true,
+        isPaid: true
       })
       .where(
         and(
@@ -405,8 +364,10 @@ export async function executePaymentTransaction(
 
     // 4. Create tickets with provided data
     const ticketsToInsert = ticketData.map(data => ({
+      id: data.ticketId,  // ❌ Missing ticketId field
       orderId,
-      ...data,
+      seatId: data.seatId,
+      status: data.status,
     }));
 
     const createdTickets = await tx
