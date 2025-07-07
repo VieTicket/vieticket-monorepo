@@ -7,7 +7,6 @@ import {
   ShapeWithoutMeta,
   TextShape,
 } from "@/types/seat-map-types";
-import { v4 as uuidv4 } from "uuid";
 import { useTextMeasure } from "@/hooks/useTextMeasure";
 
 export const useDrawingEvents = () => {
@@ -119,7 +118,6 @@ export const useDrawingEvents = () => {
     );
 
     return {
-      id: uuidv4(),
       type: "text" as const,
       name: defaultText,
       x: canvasCoords.x,

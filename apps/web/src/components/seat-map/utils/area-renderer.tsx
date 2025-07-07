@@ -28,47 +28,6 @@ export const renderAreaContent = ({
   const elements: JSX.Element[] = [];
 
   rows.forEach((row) => {
-    // FIX: Add row line for selection (make it more visible and clickable)
-    if (row.seats.length > 1) {
-      const firstSeat = row.seats[0];
-      const lastSeat = row.seats[row.seats.length - 1];
-
-      elements.push(
-        <Line
-          key={`row-line-${row.id}`}
-          points={[firstSeat.x, firstSeat.y, lastSeat.x, lastSeat.y]}
-          stroke={
-            selectedRowIds.includes(row.id)
-              ? "#FF6B6B"
-              : row.stroke || "#666666"
-          }
-          strokeWidth={
-            (row.strokeWidth || 2) + (selectedRowIds.includes(row.id) ? 2 : 0)
-          }
-          dash={[5, 5]}
-          opacity={isInteractive ? 0.7 : 0.3}
-          // FIX: Make row line clickable
-          listening={isInteractive}
-          onClick={
-            isInteractive
-              ? (e) => {
-                  e.cancelBubble = true;
-                  onRowClick?.(row.id, e);
-                }
-              : undefined
-          }
-          onDblClick={
-            isInteractive
-              ? (e) => {
-                  e.cancelBubble = true;
-                  onRowDoubleClick?.(row.id, e);
-                }
-              : undefined
-          }
-        />
-      );
-    }
-
     // Render row label - FIX: Make it more prominent when row is selected
     if (row.seats.length > 0) {
       const firstSeat = row.seats[0];
@@ -76,20 +35,6 @@ export const renderAreaContent = ({
 
       elements.push(
         <Group key={`row-label-group-${row.id}`}>
-          {/* FIX: Add background rectangle for row label when selected */}
-          {isRowSelected && (
-            <Rect
-              x={firstSeat.x - 35}
-              y={firstSeat.y - 15}
-              width={30}
-              height={20}
-              fill="#FF6B6B"
-              opacity={0.2}
-              cornerRadius={3}
-              listening={false}
-            />
-          )}
-
           <Text
             key={`row-label-${row.id}`}
             x={firstSeat.x - 25}
@@ -140,8 +85,8 @@ export const renderAreaContent = ({
               isSeatSelected
                 ? "#FF6B6B" // Red for selected seat
                 : isRowSelected
-                ? "#FFA500" // Orange for selected row
-                : seat.stroke || "#2E7D32"
+                  ? "#FFA500" // Orange for selected row
+                  : seat.stroke || "#2E7D32"
             }
             strokeWidth={
               (seat.strokeWidth || 1) +

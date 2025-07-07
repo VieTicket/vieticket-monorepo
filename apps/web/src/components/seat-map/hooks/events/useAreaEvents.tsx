@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 import { ShapeWithoutMeta, PolygonShape } from "@/types/seat-map-types";
 
-export const usePolygonEvents = () => {
+export const useAreaEvents = () => {
   const [isDrawingPolygon, setIsDrawingPolygon] = useState(false);
   const [polygonPoints, setPolygonPoints] = useState<number[]>([]);
   const [previewPolygonPoints, setPreviewPolygonPoints] = useState<number[]>(

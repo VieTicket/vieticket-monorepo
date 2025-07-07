@@ -27,13 +27,14 @@ export interface AreaSlice {
   exitAreaMode: () => void;
   updateZoomedArea: (updates: AnyShapeUpdate) => void;
 
-  addRowToArea: (row: Omit<RowShape, "id">) => void;
-  updateRow: (rowId: string, updates: Partial<RowShape>) => void;
-  deleteRow: (rowId: string) => void;
+  // FIX: Update CRUD methods to return IDs
+  addRowToArea: (row: Omit<RowShape, "id">) => string; // Return row ID
+  updateRow: (rowId: string, updates: Partial<RowShape>) => string; // Return row ID
+  deleteRow: (rowId: string) => string; // Return deleted row ID
 
-  addSeatToRow: (rowId: string, seat: Omit<SeatShape, "id">) => void;
-  updateSeat: (seatId: string, updates: Partial<SeatShape>) => void;
-  deleteSeat: (seatId: string) => void;
+  addSeatToRow: (rowId: string, seat: Omit<SeatShape, "id">) => string; // Return seat ID
+  updateSeat: (seatId: string, updates: Partial<SeatShape>) => string; // Return seat ID
+  deleteSeat: (seatId: string) => string; // Return deleted seat ID
 
   selectRow: (rowId: string, multiSelect?: boolean) => void;
   selectSeat: (seatId: string, multiSelect?: boolean) => void;
@@ -46,7 +47,16 @@ export interface AreaSlice {
 
   mergeRows: (primaryRowId: string, rowIdsToMerge: string[]) => void;
   mergeSeats: (primarySeatId: string, seatIdsToMerge: string[]) => void;
+
+  // FIX: Add batch operations that return arrays of IDs
+  addMultipleSeatsToRow: (rowId: string, seats: Omit<SeatShape, "id">[]) => string[]; // Return seat IDs
+  addMultipleRowsToArea: (rows: Omit<RowShape, "id">[]) => string[]; // Return row IDs
 }
+
+// FIX: Helper function to generate unique IDs (centralized)
+const generateUniqueId = (prefix: string = "item") => {
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+};
 
 export const createAreaSlice: StateCreator<
   ShapesSlice & HistorySlice & CanvasSlice & AreaSlice,
@@ -114,13 +124,15 @@ export const createAreaSlice: StateCreator<
     }
   },
 
+  // FIX: Update addRowToArea to return ID
   addRowToArea: (rowData) => {
     const { zoomedArea } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
+    const newRowId = generateUniqueId("row");
     const newRow: RowShape = {
       ...rowData,
-      id: `row_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: newRowId,
       area: zoomedArea.id,
       seats: rowData.seats || [],
     };
@@ -139,11 +151,14 @@ export const createAreaSlice: StateCreator<
 
     console.log("Row added:", newRow);
     console.log("Updated area:", updatedArea);
+    
+    return newRowId;
   },
 
+  // FIX: Update updateRow to return ID
   updateRow: (rowId, updates) => {
     const { zoomedArea } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
     const updatedRows = (zoomedArea.rows || []).map((row) =>
       row.id === rowId ? { ...row, ...updates } : row
@@ -160,11 +175,14 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    return rowId;
   },
 
+  // FIX: Update deleteRow to return ID
   deleteRow: (rowId) => {
     const { zoomedArea, selectedRowIds } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
     const updatedRows = (zoomedArea.rows || []).filter(
       (row) => row.id !== rowId
@@ -183,18 +201,22 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    return rowId;
   },
 
+  // FIX: Update addSeatToRow to return ID
   addSeatToRow: (rowId, seatData) => {
     const { zoomedArea } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
     console.log("Adding seat to row:", rowId);
     console.log("Seat data:", seatData);
 
+    const newSeatId = generateUniqueId("seat");
     const newSeat: SeatShape = {
       ...seatData,
-      id: `seat_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      id: newSeatId,
     };
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
@@ -222,11 +244,14 @@ export const createAreaSlice: StateCreator<
     console.log("Seat added:", newSeat);
     console.log("Updated rows:", updatedRows);
     console.log("Updated area:", updatedArea);
+
+    return newSeatId;
   },
 
+  // FIX: Update updateSeat to return ID
   updateSeat: (seatId, updates) => {
     const { zoomedArea } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (!Array.isArray(row.seats)) return row;
@@ -251,11 +276,14 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    return seatId;
   },
 
+  // FIX: Update deleteSeat to return ID
   deleteSeat: (seatId) => {
     const { zoomedArea, selectedSeatIds } = get();
-    if (!zoomedArea) return;
+    if (!zoomedArea) return "";
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (!Array.isArray(row.seats)) return row;
@@ -280,6 +308,78 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    return seatId;
+  },
+
+  // FIX: Add batch operations
+  addMultipleSeatsToRow: (rowId, seats) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return [];
+
+    console.log("Adding multiple seats to row:", rowId);
+    console.log("Seats data:", seats);
+
+    const newSeats: SeatShape[] = seats.map((seatData) => ({
+      ...seatData,
+      id: generateUniqueId("seat"),
+    }));
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      if (row.id === rowId) {
+        return {
+          ...row,
+          seats: Array.isArray(row.seats) ? [...row.seats, ...newSeats] : [...newSeats],
+        };
+      }
+      return row;
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    console.log("Multiple seats added:", newSeats);
+    console.log("Updated area:", updatedArea);
+
+    return newSeats.map(seat => seat.id);
+  },
+
+  addMultipleRowsToArea: (rows) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return [];
+
+    const newRows: RowShape[] = rows.map((rowData) => ({
+      ...rowData,
+      id: generateUniqueId("row"),
+      area: zoomedArea.id,
+      seats: rowData.seats || [],
+    }));
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: [...(zoomedArea.rows || []), ...newRows],
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    console.log("Multiple rows added:", newRows);
+    console.log("Updated area:", updatedArea);
+
+    return newRows.map(row => row.id);
   },
 
   selectRow: (rowId, multiSelect = false) => {
@@ -387,7 +487,7 @@ export const createAreaSlice: StateCreator<
       row.seats.forEach((seat) => {
         allSeats.push({
           ...seat,
-          id: `${primaryRowId}_seat_${maxSeatNumber + 1}`,
+          id: generateUniqueId("seat"),
           number: maxSeatNumber + 1,
           row: primaryRow.name,
         });

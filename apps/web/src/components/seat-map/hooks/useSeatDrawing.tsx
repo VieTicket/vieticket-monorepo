@@ -4,7 +4,6 @@ import {
   useCanvasStore,
 } from "@/components/seat-map/store/main-store";
 import { SeatShape, AreaConfig } from "@/types/seat-map-types";
-import { v4 as uuidv4 } from "uuid";
 import { useAreaZoom } from "./useAreaZoom";
 
 type SeatDrawingMode = "grid" | "row" | null;
@@ -37,7 +36,7 @@ export const useSeatDrawing = () => {
   });
 
   const { saveToHistory } = useCanvasStore();
-  const areaZoom = useAreaZoom(); // Get areaZoom from the hook
+  const areaZoom = useAreaZoom();
 
   const startSeatDrawing = useCallback(
     (canvasCoords: { x: number; y: number }, mode: SeatDrawingMode) => {
@@ -81,7 +80,6 @@ export const useSeatDrawing = () => {
     [isDrawing, startPoint, secondPoint, drawingMode, clickCount, areaConfig]
   );
 
-  // FIX: Update finishSeatDrawing to handle both single row and multi-row scenarios
   const finishSeatDrawing = useCallback(
     (callback: (data: any) => void) => {
       if (previewSeats.length > 0) {
@@ -138,7 +136,6 @@ export const useSeatDrawing = () => {
     setDrawingMode(null);
   }, []);
 
-  // FIX: Use area defaults when available
   const generateSeatGrid = useCallback(
     (
       start: { x: number; y: number },
@@ -147,11 +144,11 @@ export const useSeatDrawing = () => {
     ): SeatShape[] => {
       const seats: SeatShape[] = [];
 
-      // FIX: Use area defaults if available
       const defaultRadius =
         areaZoom.zoomedArea?.defaultSeatRadius || areaConfig.defaultSeatRadius;
       const defaultSpacing =
-        areaZoom.zoomedArea?.defaultSeatSpacing || areaConfig.defaultSeatSpacing;
+        areaZoom.zoomedArea?.defaultSeatSpacing ||
+        areaConfig.defaultSeatSpacing;
       const defaultColor =
         areaZoom.zoomedArea?.defaultSeatColor ||
         getSeatCategoryColor(areaConfig.defaultSeatCategory);
@@ -188,7 +185,7 @@ export const useSeatDrawing = () => {
         y: colDirection.y / colLength,
       };
 
-      // FIX: Create seats with proper row assignments
+      // FIX: Create seats without IDs (area slice will generate them)
       for (let row = 0; row < rowCount; row++) {
         const currentRowLabel = String.fromCharCode(
           startingRowLabel.charCodeAt(0) + row
@@ -206,7 +203,7 @@ export const useSeatDrawing = () => {
 
           seats.push({
             type: "seat" as const,
-            id: `temp-${row}-${col}`,
+            id: `temp-${row}-${col}`, // Temporary ID, will be replaced
             x: x,
             y: y,
             radius: defaultRadius,
@@ -214,7 +211,6 @@ export const useSeatDrawing = () => {
             stroke: "#2E7D32",
             strokeWidth: 1,
             number: col + startingSeatNumber,
-            // FIX: Each seat gets assigned to its proper row
             row: currentRowLabel,
             category: defaultSeatCategory,
             status: "available",
@@ -259,7 +255,7 @@ export const useSeatDrawing = () => {
 
         seats.push({
           type: "seat" as const,
-          id: `temp-row-${i}`,
+          id: `temp-row-${i}`, // Temporary ID, will be replaced
           x: x,
           y: y,
           radius: defaultSeatRadius,

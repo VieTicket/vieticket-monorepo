@@ -123,6 +123,10 @@ export const useSelectMultipleSeats = () =>
   useCanvasStore((state) => state.selectMultipleSeats);
 export const useSelectMultipleRows = () =>
   useCanvasStore((state) => state.selectMultipleRows);
+export const useAddMultipleSeatsToRow = () =>
+  useCanvasStore((state) => state.addMultipleSeatsToRow);
+export const useAddMultipleRowsToArea = () =>
+  useCanvasStore((state) => state.addMultipleRowsToArea);
 
 export const useAreaActions = () => {
   const enterAreaMode = useEnterAreaMode();
@@ -138,6 +142,8 @@ export const useAreaActions = () => {
   const deleteSeat = useDeleteSeat();
   const selectMultipleSeats = useSelectMultipleSeats();
   const selectMultipleRows = useSelectMultipleRows();
+  const addMultipleSeatsToRow = useAddMultipleSeatsToRow();
+  const addMultipleRowsToArea = useAddMultipleRowsToArea();
 
   return useMemo(
     () => ({
@@ -154,6 +160,8 @@ export const useAreaActions = () => {
       deleteSeat,
       selectMultipleSeats,
       selectMultipleRows,
+      addMultipleSeatsToRow,
+      addMultipleRowsToArea,
     }),
     [
       enterAreaMode,
@@ -169,6 +177,8 @@ export const useAreaActions = () => {
       deleteSeat,
       selectMultipleSeats,
       selectMultipleRows,
+      addMultipleSeatsToRow,
+      addMultipleRowsToArea,
     ]
   );
 };

@@ -20,8 +20,7 @@ export const useAreaZoom = () => {
 
   const { isInAreaMode, zoomedArea, selectedRowIds, selectedSeatIds } =
     useAreaMode();
-  const { enterAreaMode, exitAreaMode, addRowToArea, addSeatToRow } =
-    useAreaActions();
+  const { enterAreaMode, exitAreaMode, addSeatToRow } = useAreaActions();
 
   const saveCanvasState = useCallback(() => {
     return { zoom, pan };
@@ -151,7 +150,6 @@ export const useAreaZoom = () => {
     handleAreaDoubleClick,
     exitAreaMode: handleExitAreaMode,
     isPointInsidePolygon,
-    addRowToArea,
     addSeatToRow,
   };
 };
