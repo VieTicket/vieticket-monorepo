@@ -17,6 +17,7 @@ import { FileUploader } from "@/components/ui/file-uploader";
 import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchEventById } from "./action";
+import { AIImageGenerator } from "@/components/ai/AIImageGenerator";
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -249,9 +250,9 @@ export default function CreateEventPage() {
         );
       case 2: // Banner Step
         return (
-          <div className="space-y-6">
+          <div className="space-y-8">
             {/* Poster Upload Section */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Label className="text-base font-medium">
                 Event Poster
                 <span className="text-sm font-normal text-gray-500 ml-2">
@@ -259,44 +260,73 @@ export default function CreateEventPage() {
                 </span>
               </Label>
 
-              <div className="relative w-48 h-64 border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                {formData.posterUrl ? (
-                  <img
-                    src={formData.posterUrl}
-                    alt="Event poster preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center p-2">
-                    <FileUploader
-                      onUploadSuccess={handlePosterUpload}
-                      onUploadError={handleUploadError}
-                      folder="event-posters"
-                      mode="dropzone"
-                      buttonLabel="Upload Poster"
-                    />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                {/* Manual Upload */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Upload Your Own
+                  </h3>
+                  <div className="relative w-full aspect-[3/4] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {formData.posterUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={formData.posterUrl}
+                          alt="Event poster preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <FileUploader
+                          onUploadSuccess={handlePosterUpload}
+                          onUploadError={handleUploadError}
+                          folder="event-posters"
+                          mode="dropzone"
+                          buttonLabel="Upload Poster"
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
 
-              {formData.posterUrl && (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, posterUrl: "" }))
-                    }
-                  >
-                    Remove Poster
-                  </Button>
+                  {formData.posterUrl && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, posterUrl: "" }))
+                        }
+                      >
+                        Remove Poster
+                      </Button>
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* AI Generation */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Generate with AI
+                  </h3>
+                  <AIImageGenerator
+                    type="poster"
+                    onImageGenerated={(imageUrl) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        posterUrl: imageUrl,
+                      }))
+                    }
+                    eventName={formData.name}
+                    eventType={formData.type}
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Banner Upload Section */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <Label className="text-base font-medium">
                 Event Banner
                 <span className="text-sm font-normal text-gray-500 ml-2">
@@ -304,40 +334,71 @@ export default function CreateEventPage() {
                 </span>
               </Label>
 
-              <div className="relative w-full max-w-3xl aspect-[16/9] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
-                {formData.bannerUrl ? (
-                  <img
-                    src={formData.bannerUrl}
-                    alt="Event banner preview"
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center p-2">
-                    <FileUploader
-                      onUploadSuccess={handleBannerUpload}
-                      onUploadError={handleUploadError}
-                      folder="event-banners"
-                      mode="dropzone"
-                      buttonLabel="Upload Banner"
+              <div className="space-y-6">
+                {/* Manual Upload */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Upload Your Own
+                  </h3>
+                  <div className="relative w-full aspect-[16/9] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
+                    {formData.bannerUrl ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={formData.bannerUrl}
+                          alt="Event banner preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </>
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center p-4">
+                        <FileUploader
+                          onUploadSuccess={handleBannerUpload}
+                          onUploadError={handleUploadError}
+                          folder="event-banners"
+                          mode="dropzone"
+                          buttonLabel="Upload Banner"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {formData.bannerUrl && (
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setFormData((prev) => ({ ...prev, bannerUrl: "" }))
+                        }
+                      >
+                        Remove Banner
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* AI Generation for Banner */}
+                <div className="space-y-3">
+                  <h3 className="text-sm font-medium text-gray-700">
+                    Generate Banner with AI
+                  </h3>
+                  <div className="w-full">
+                    <AIImageGenerator
+                      type="banner"
+                      onImageGenerated={(imageUrl) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          bannerUrl: imageUrl,
+                        }))
+                      }
+                      eventName={formData.name}
+                      eventType={formData.type}
                     />
                   </div>
-                )}
-              </div>
-
-              {formData.bannerUrl && (
-                <div className="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, bannerUrl: "" }))
-                    }
-                  >
-                    Remove Banner
-                  </Button>
                 </div>
-              )}
+              </div>
             </div>
           </div>
         );

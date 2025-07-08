@@ -26,6 +26,7 @@ export default function TiptapEditorInput({ value, onChange, error }: Props) {
       TextAlign.configure({ types: ["heading", "paragraph"] }),
     ],
     content: value,
+    immediatelyRender: false, // Fix SSR hydration mismatch
     editorProps: {
       attributes: {
         class:
