@@ -161,7 +161,7 @@ export default function MainToolbar() {
             onClick={exitAreaMode}
             size="sm"
             variant="ghost"
-            className="text-gray-300 hover:text-white"
+            className="text-gray-300"
             title="Exit Area Mode"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -259,7 +259,6 @@ export default function MainToolbar() {
           Area Mode - {zoomedArea?.name || zoomedArea?.areaName || "Unnamed"}
         </div>
       )}
-      {/* Right Controls */}
       <div className="flex gap-2 items-center">
         <Button onClick={zoomOut} size="sm" variant="ghost" title="Zoom Out">
           <ZoomOut className="w-4 h-4" />

@@ -42,6 +42,11 @@ export interface AreaSlice {
   clearSeatSelection: () => void;
   clearAreaSelections: () => void;
 
+  updateRowPosition: (rowId: string, deltaX: number, deltaY: number) => void;
+  updateMultipleRowPositions: (
+    updates: { rowId: string; deltaX: number; deltaY: number }[]
+  ) => void;
+
   selectMultipleSeats: (seatIds: string[], multiSelect?: boolean) => void;
   selectMultipleRows: (rowIds: string[], multiSelect?: boolean) => void;
 
@@ -49,7 +54,10 @@ export interface AreaSlice {
   mergeSeats: (primarySeatId: string, seatIdsToMerge: string[]) => void;
 
   // FIX: Add batch operations that return arrays of IDs
-  addMultipleSeatsToRow: (rowId: string, seats: Omit<SeatShape, "id">[]) => string[]; // Return seat IDs
+  addMultipleSeatsToRow: (
+    rowId: string,
+    seats: Omit<SeatShape, "id">[]
+  ) => string[]; // Return seat IDs
   addMultipleRowsToArea: (rows: Omit<RowShape, "id">[]) => string[]; // Return row IDs
 }
 
@@ -89,11 +97,6 @@ export const createAreaSlice: StateCreator<
           shape.id === zoomedArea.id ? zoomedArea : shape
         ),
       });
-
-      console.log(
-        "Area changes saved to main shapes array before exit",
-        zoomedArea
-      );
     }
 
     if (originalCanvasState) {
@@ -124,17 +127,168 @@ export const createAreaSlice: StateCreator<
     }
   },
 
-  // FIX: Update addRowToArea to return ID
+  // FIX: Update updateRow to sync ALL properties between rows and seats
+  updateRow: (rowId, updates) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return "";
+
+    console.log("Updating row:", rowId, "with updates:", updates);
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      if (row.id === rowId) {
+        const updatedRow = { ...row, ...updates };
+
+        // FIX: Sync seat properties when row properties change
+        let updatedSeats = [...row.seats];
+
+        // FIX: Seat radius sync
+        if ("seatRadius" in updates && updates.seatRadius !== undefined) {
+          updatedSeats = updatedSeats.map((seat) => ({
+            ...seat,
+            radius: updates.seatRadius!,
+          }));
+        }
+
+        // FIX: Seat spacing sync with position recalculation
+        if ("seatSpacing" in updates && updates.seatSpacing !== undefined) {
+          const newSeatSpacing = updates.seatSpacing;
+          updatedSeats = updatedSeats.map((seat, index) => ({
+            ...seat,
+            x: row.startX + index * newSeatSpacing,
+            y: seat.y, // Keep same Y position
+          }));
+        }
+
+        // FIX: Visual properties sync (colors and strokes)
+        if ("fill" in updates && updates.fill !== undefined) {
+          updatedSeats = updatedSeats.map((seat) => ({
+            ...seat,
+            // Only update seat color if it doesn't have a custom color or matches the old row color
+            fill:
+              !seat.fill || seat.fill === row.fill ? updates.fill : seat.fill,
+          }));
+        }
+
+        if ("stroke" in updates && updates.stroke !== undefined) {
+          updatedSeats = updatedSeats.map((seat) => ({
+            ...seat,
+            stroke:
+              !seat.stroke || seat.stroke === row.stroke
+                ? updates.stroke
+                : seat.stroke,
+          }));
+        }
+
+        if ("strokeWidth" in updates && updates.strokeWidth !== undefined) {
+          updatedSeats = updatedSeats.map((seat) => ({
+            ...seat,
+            strokeWidth:
+              !seat.strokeWidth || seat.strokeWidth === row.strokeWidth
+                ? updates.strokeWidth
+                : seat.strokeWidth,
+          }));
+        }
+
+        // FIX: Rotation sync - apply rotation to seat positions
+        if ("rotation" in updates && updates.rotation !== undefined) {
+          const centerX =
+            row.startX + (row.seats.length * (row.seatSpacing || 20)) / 2;
+          const centerY = row.startY;
+          const rotationRad = (updates.rotation * Math.PI) / 180;
+
+          updatedSeats = updatedSeats.map((seat, index) => {
+            // Calculate original position relative to row start
+            const originalX = row.startX + index * (row.seatSpacing || 20);
+            const originalY = row.startY;
+
+            // Apply rotation around the row center
+            const relativeX = originalX - centerX;
+            const relativeY = originalY - centerY;
+
+            const rotatedX =
+              relativeX * Math.cos(rotationRad) -
+              relativeY * Math.sin(rotationRad);
+            const rotatedY =
+              relativeX * Math.sin(rotationRad) +
+              relativeY * Math.cos(rotationRad);
+
+            return {
+              ...seat,
+              x: centerX + rotatedX,
+              y: centerY + rotatedY,
+            };
+          });
+        }
+
+        // FIX: Opacity sync
+        // if ("opacity" in updates && updates.opacity !== undefined) {
+        //   updatedSeats = updatedSeats.map((seat) => ({
+        //     ...seat,
+        //     opacity: seat.opacity ?? updates.opacity,
+        //   }));
+        // }
+
+        // FIX: Category sync (if row category changes, update seat categories that match)
+        if ("rowCategory" in updates && updates.rowCategory !== undefined) {
+          updatedSeats = updatedSeats.map((seat) => ({
+            ...seat,
+            // Update seat category if it matches the old row category or is standard
+            category:
+              !seat.category ||
+              seat.category === "standard" ||
+              seat.category === row.rowCategory
+                ? updates.rowCategory
+                : seat.category,
+          }));
+        }
+
+        return {
+          ...updatedRow,
+          seats: updatedSeats,
+        };
+      }
+      return row;
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    console.log("Updated area:", updatedArea);
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    return rowId;
+  },
+
+  // FIX: Update addRowToArea with proper type safety
   addRowToArea: (rowData) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
 
     const newRowId = generateUniqueId("row");
+
+    // FIX: Ensure seats have consistent properties with row defaults and proper types
+    const processedSeats: SeatShape[] = (rowData.seats || []).map((seat) => ({
+      ...seat,
+      radius: seat.radius ?? rowData.seatRadius ?? 8, // FIX: Use nullish coalescing and ensure number type
+      fill:
+        seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
+      stroke: seat.stroke ?? rowData.stroke ?? "#2E7D32",
+      strokeWidth: seat.strokeWidth ?? rowData.strokeWidth ?? 1,
+    }));
+
     const newRow: RowShape = {
       ...rowData,
       id: newRowId,
       area: zoomedArea.id,
-      seats: rowData.seats || [],
+      seats: processedSeats,
     };
 
     const updatedArea = {
@@ -149,20 +303,42 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    console.log("Row added:", newRow);
-    console.log("Updated area:", updatedArea);
-    
     return newRowId;
   },
 
-  // FIX: Update updateRow to return ID
-  updateRow: (rowId, updates) => {
+  // FIX: Update addSeatToRow with proper type safety
+  addSeatToRow: (rowId, seatData) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
 
-    const updatedRows = (zoomedArea.rows || []).map((row) =>
-      row.id === rowId ? { ...row, ...updates } : row
-    );
+    // Find the target row to get its properties
+    const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
+    if (!targetRow) return "";
+
+    const newSeatId = generateUniqueId("seat");
+    const newSeat: SeatShape = {
+      ...seatData,
+      id: newSeatId,
+      // FIX: Use row's properties as defaults for new seats with proper types
+      radius: seatData.radius ?? targetRow.seatRadius ?? 8, // FIX: Ensure number type
+      fill:
+        seatData.fill ??
+        targetRow.fill ??
+        zoomedArea.defaultSeatColor ??
+        "#4CAF50",
+      stroke: seatData.stroke ?? targetRow.stroke ?? "#2E7D32",
+      strokeWidth: seatData.strokeWidth ?? targetRow.strokeWidth ?? 1,
+    };
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      if (row.id === rowId) {
+        return {
+          ...row,
+          seats: Array.isArray(row.seats) ? [...row.seats, newSeat] : [newSeat],
+        };
+      }
+      return row;
+    });
 
     const updatedArea = {
       ...zoomedArea,
@@ -176,7 +352,7 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    return rowId;
+    return newSeatId;
   },
 
   // FIX: Update deleteRow to return ID
@@ -205,53 +381,12 @@ export const createAreaSlice: StateCreator<
     return rowId;
   },
 
-  // FIX: Update addSeatToRow to return ID
-  addSeatToRow: (rowId, seatData) => {
-    const { zoomedArea } = get();
-    if (!zoomedArea) return "";
-
-    console.log("Adding seat to row:", rowId);
-    console.log("Seat data:", seatData);
-
-    const newSeatId = generateUniqueId("seat");
-    const newSeat: SeatShape = {
-      ...seatData,
-      id: newSeatId,
-    };
-
-    const updatedRows = (zoomedArea.rows || []).map((row) => {
-      if (row.id === rowId) {
-        return {
-          ...row,
-          seats: Array.isArray(row.seats) ? [...row.seats, newSeat] : [newSeat],
-        };
-      }
-      return row;
-    });
-
-    const updatedArea = {
-      ...zoomedArea,
-      rows: updatedRows,
-    };
-
-    set((state) => ({
-      zoomedArea: updatedArea,
-      shapes: state.shapes.map((shape) =>
-        shape.id === zoomedArea.id ? updatedArea : shape
-      ),
-    }));
-
-    console.log("Seat added:", newSeat);
-    console.log("Updated rows:", updatedRows);
-    console.log("Updated area:", updatedArea);
-
-    return newSeatId;
-  },
-
   // FIX: Update updateSeat to return ID
   updateSeat: (seatId, updates) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
+
+    console.log("Updating seat:", seatId, "with updates:", updates);
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (!Array.isArray(row.seats)) return row;
@@ -269,6 +404,8 @@ export const createAreaSlice: StateCreator<
       ...zoomedArea,
       rows: updatedRows,
     };
+
+    console.log("Updated area with seat changes:", updatedArea);
 
     set((state) => ({
       zoomedArea: updatedArea,
@@ -317,19 +454,31 @@ export const createAreaSlice: StateCreator<
     const { zoomedArea } = get();
     if (!zoomedArea) return [];
 
-    console.log("Adding multiple seats to row:", rowId);
-    console.log("Seats data:", seats);
+    // Find the target row to get its properties
+    const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
+    if (!targetRow) return [];
 
     const newSeats: SeatShape[] = seats.map((seatData) => ({
       ...seatData,
       id: generateUniqueId("seat"),
+      // FIX: Use row's properties as defaults for new seats with proper types
+      radius: seatData.radius ?? targetRow.seatRadius ?? 8, // FIX: Ensure number type
+      fill:
+        seatData.fill ??
+        targetRow.fill ??
+        zoomedArea.defaultSeatColor ??
+        "#4CAF50",
+      stroke: seatData.stroke ?? targetRow.stroke ?? "#2E7D32",
+      strokeWidth: seatData.strokeWidth ?? targetRow.strokeWidth ?? 1,
     }));
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (row.id === rowId) {
         return {
           ...row,
-          seats: Array.isArray(row.seats) ? [...row.seats, ...newSeats] : [...newSeats],
+          seats: Array.isArray(row.seats)
+            ? [...row.seats, ...newSeats]
+            : [...newSeats],
         };
       }
       return row;
@@ -347,10 +496,7 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    console.log("Multiple seats added:", newSeats);
-    console.log("Updated area:", updatedArea);
-
-    return newSeats.map(seat => seat.id);
+    return newSeats.map((seat) => seat.id);
   },
 
   addMultipleRowsToArea: (rows) => {
@@ -376,10 +522,7 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    console.log("Multiple rows added:", newRows);
-    console.log("Updated area:", updatedArea);
-
-    return newRows.map(row => row.id);
+    return newRows.map((row) => row.id);
   },
 
   selectRow: (rowId, multiSelect = false) => {
@@ -428,8 +571,6 @@ export const createAreaSlice: StateCreator<
       // Replace selection
       set({ selectedSeatIds: seatIds });
     }
-
-    console.log("Multi-select seats:", seatIds, "Multi:", multiSelect);
   },
 
   selectMultipleRows: (rowIds: string[], multiSelect: boolean = false) => {
@@ -448,8 +589,6 @@ export const createAreaSlice: StateCreator<
       // Replace selection
       set({ selectedRowIds: rowIds });
     }
-
-    console.log("Multi-select rows:", rowIds, "Multi:", multiSelect);
   },
 
   clearRowSelection: () => {
@@ -465,6 +604,85 @@ export const createAreaSlice: StateCreator<
       selectedRowIds: [],
       selectedSeatIds: [],
     });
+  },
+
+  updateRowPosition: (rowId, deltaX, deltaY) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return;
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      if (row.id === rowId) {
+        const newStartX = (row.startX || 0) + deltaX;
+        const newStartY = (row.startY || 0) + deltaY;
+
+        // FIX: Update all seats in the row to maintain their relative positions
+        const updatedSeats = row.seats.map((seat) => ({
+          ...seat,
+          x: seat.x + deltaX,
+          y: seat.y + deltaY,
+        }));
+
+        return {
+          ...row,
+          startX: newStartX,
+          startY: newStartY,
+          seats: updatedSeats,
+        };
+      }
+      return row;
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+  },
+
+  updateMultipleRowPositions: (updates) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return;
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      const update = updates.find((u) => u.rowId === row.id);
+      if (update) {
+        const newStartX = (row.startX || 0) + update.deltaX;
+        const newStartY = (row.startY || 0) + update.deltaY;
+
+        // FIX: Update all seats in the row to maintain their relative positions
+        const updatedSeats = row.seats.map((seat) => ({
+          ...seat,
+          x: seat.x + update.deltaX,
+          y: seat.y + update.deltaY,
+        }));
+
+        return {
+          ...row,
+          startX: newStartX,
+          startY: newStartY,
+          seats: updatedSeats,
+        };
+      }
+      return row;
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
   },
 
   mergeRows: (primaryRowId: string, rowIdsToMerge: string[]) => {

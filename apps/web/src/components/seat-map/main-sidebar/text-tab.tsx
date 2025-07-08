@@ -17,13 +17,13 @@ import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
 import { useDebouncedCallback } from "@/hooks/useDebounce";
 import { useTextMeasure } from "@/hooks/useTextMeasure";
 
-interface TextControlsProps {
+interface TextTabProps {
   selectedShapes: Shape[];
   batchValues: Record<string, any>;
   onBatchChange: (key: string, value: any) => void;
 }
 
-export const TextControls: React.FC<TextControlsProps> = ({
+export const TextTab: React.FC<TextTabProps> = ({
   selectedShapes,
   batchValues,
   onBatchChange,
@@ -215,7 +215,7 @@ export const TextControls: React.FC<TextControlsProps> = ({
           onChange={(e) => {
             debouncedTextColorChange(e.target.value);
           }}
-          className="h-10 mt-1"
+          className="border-gray-600 h-10 mt-1"
           title="Text Color"
         />
       </div>

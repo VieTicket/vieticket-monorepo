@@ -245,27 +245,6 @@ export const SingleShapeEditor: React.FC<SingleShapeEditorProps> = ({
         </div>
       )}
 
-      {/* Shape Type */}
-      <div>
-        <Label className="text-xs text-gray-400">Shape Type</Label>
-        <div className="text-sm mt-1 capitalize text-blue-400">
-          {shape.type}
-        </div>
-      </div>
-
-      {/* Shape ID */}
-      <div>
-        <Label className="text-xs text-gray-400">Shape ID</Label>
-        <div className="text-xs mt-1 font-mono text-gray-300 break-all overflow-hidden text-ellipsis">
-          {/* FIX: Truncate long IDs */}
-          {shape.id.length > 20 ? (
-            <span title={shape.id}>{shape.id.substring(0, 20)}...</span>
-          ) : (
-            shape.id
-          )}
-        </div>
-      </div>
-
       {/* FIX: Add text-specific properties display */}
       {isTextShape && (
         <>
@@ -289,11 +268,6 @@ export const SingleShapeEditor: React.FC<SingleShapeEditorProps> = ({
           </div>
         </>
       )}
-
-      <Button onClick={onSave} className="w-full mt-4" size="sm">
-        <Save className="w-3 h-3 mr-1" />
-        Save Changes
-      </Button>
     </div>
   );
 };

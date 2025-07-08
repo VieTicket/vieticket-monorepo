@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 import { useDragEvents } from "./events/useDragEvents";
-import { useDeletionEvents } from "./events/useDeletionEvents";
 import { useMouseEvents } from "./events/useMouseEvents";
 import { useAreaZoom } from "./useAreaZoom";
 
@@ -10,22 +9,39 @@ export const useCanvasEvents = () => {
 
   const mouseEvents = useMouseEvents();
   const dragEvents = useDragEvents();
-  const deletionEvents = useDeletionEvents();
   const areaZoom = useAreaZoom();
 
+  // Main event handlers
+  const handleShapeClick = useCallback(
+    (shapeId: string, e: any) => {
+      if (mouseEvents.clickEvents?.handleShapeClick) {
+        mouseEvents.clickEvents.handleShapeClick(shapeId, e);
+      }
+    },
+    [mouseEvents.clickEvents]
+  );
+
+  const handleStageClick = useCallback(
+    (e: any) => {
+      if (mouseEvents.clickEvents?.handleStageClick) {
+        mouseEvents.clickEvents.handleStageClick(e);
+      }
+      mouseEvents.inAreaEvents.handleStageClick(e);
+    },
+    [mouseEvents.clickEvents, mouseEvents.inAreaEvents]
+  );
+
   return {
-    // Unified event handlers
-    handleShapeClick: mouseEvents.clickEvents.handleShapeClick,
-    handleRowClick: mouseEvents.clickEvents.handleRowClick,
-    handleSeatClick: mouseEvents.clickEvents.handleSeatClick,
-    handleStageClick: mouseEvents.clickEvents.handleStageClick,
+    // General event handlers
+    handleShapeClick,
+    handleStageClick,
 
     // Mouse event handlers
     handleStageMouseDown: mouseEvents.handleStageMouseDown,
     handleStageMouseMove: mouseEvents.handleStageMouseMove,
     handleStageMouseUp: mouseEvents.handleStageMouseUp,
 
-    // Unified drag event handlers
+    // Drag event handlers (unified)
     handleShapeDragStart: dragEvents.handleShapeDragStart,
     handleShapeDragMove: dragEvents.handleShapeDragMove,
     handleShapeDragEnd: dragEvents.handleShapeDragEnd,
@@ -36,10 +52,6 @@ export const useCanvasEvents = () => {
     handleSeatDragMove: dragEvents.handleSeatDragMove,
     handleSeatDragEnd: dragEvents.handleSeatDragEnd,
 
-    // Unified deletion
-    handleDelete: deletionEvents.handleDelete,
-    handleDeleteKey: deletionEvents.handleDeleteKey,
-
     // Canvas coordinates helper
     getCanvasCoordinates: mouseEvents.getCanvasCoordinates,
 
@@ -48,24 +60,30 @@ export const useCanvasEvents = () => {
     isSelecting: mouseEvents.selectionEvents.isSelecting,
     previewShape: mouseEvents.getPreviewShape(),
     isDrawing: mouseEvents.drawingEvents.isDrawing,
-    isDrawingPolygon: mouseEvents.polygonEvents.isDrawingPolygon,
-    polygonPoints: mouseEvents.polygonEvents.polygonPoints,
+    isDrawingPolygon: mouseEvents.areaEvents.isDrawingPolygon,
+    polygonPoints: mouseEvents.areaEvents.polygonPoints,
     isDragging: dragEvents.isDragging,
     dragType: dragEvents.dragType,
+    draggedItemId: dragEvents.draggedItemId,
     currentTool,
 
     // Area functionality
     areaZoom,
     seatDrawing: mouseEvents.seatEvents.seatDrawing,
 
-    // Polygon methods
-    cancelPolygon: mouseEvents.polygonEvents.cancelPolygon,
-    finishPolygon: mouseEvents.polygonEvents.finishPolygon,
-    isNearFirstPoint: mouseEvents.polygonEvents.isNearFirstPoint,
+    // Area-specific handlers
+    handleRowClick: mouseEvents.inAreaEvents.handleRowClick,
+    handleSeatClick: mouseEvents.inAreaEvents.handleSeatClick,
+    handleSeatDoubleClick: mouseEvents.inAreaEvents.handleSeatDoubleClick,
+    handleRowDoubleClick: mouseEvents.inAreaEvents.handleRowDoubleClick,
 
-    // Expose unified event groups
+    // Polygon methods
+    cancelPolygon: mouseEvents.areaEvents.cancelPolygon,
+    finishPolygon: mouseEvents.areaEvents.finishPolygon,
+    isNearFirstPoint: mouseEvents.areaEvents.isNearFirstPoint,
+
+    // Expose event groups
     mouseEvents,
     dragEvents,
-    deletionEvents,
   };
 };

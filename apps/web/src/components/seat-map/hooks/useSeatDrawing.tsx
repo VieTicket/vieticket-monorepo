@@ -83,10 +83,6 @@ export const useSeatDrawing = () => {
   const finishSeatDrawing = useCallback(
     (callback: (data: any) => void) => {
       if (previewSeats.length > 0) {
-        console.log("=== FINISHING SEAT DRAWING ===");
-        console.log("Drawing mode:", drawingMode);
-        console.log("Preview seats count:", previewSeats.length);
-
         if (drawingMode === "grid") {
           // FIX: Group seats by row name for grid mode
           const seatsGroupedByRow: { [rowName: string]: SeatShape[] } = {};
@@ -99,18 +95,14 @@ export const useSeatDrawing = () => {
             seatsGroupedByRow[rowName].push(seat);
           });
 
-          console.log("Seats grouped by row:", seatsGroupedByRow);
-          console.log("Number of rows:", Object.keys(seatsGroupedByRow).length);
-
           // Call the callback with grouped seats
           callback(seatsGroupedByRow);
         } else if (drawingMode === "row") {
           // FIX: For row mode, pass the seats array directly
-          console.log("Single row seats:", previewSeats);
+
           callback(previewSeats);
         }
 
-        console.log("=== SEAT DRAWING FINISHED ===");
         saveToHistory();
       }
 
@@ -219,9 +211,6 @@ export const useSeatDrawing = () => {
           });
         }
       }
-
-      console.log("Generated grid seats:", seats.length);
-      console.log("Unique rows:", [...new Set(seats.map((s) => s.row))]);
 
       return seats;
     },

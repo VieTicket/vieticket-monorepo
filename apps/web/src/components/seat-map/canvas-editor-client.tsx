@@ -202,9 +202,15 @@ export default function CanvasEditorClient() {
         selectedSeatIds: eventHandlers.areaZoom.selectedSeatIds || [],
         onRowClick: eventHandlers.handleRowClick,
         onSeatClick: eventHandlers.handleSeatClick,
-        // FIX: Add the new double-click handlers
         onRowDoubleClick: eventHandlers.handleRowDoubleClick,
         onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
+        // FIX: Pass drag events to shape renderer
+        onRowDragStart: eventHandlers.handleRowDragStart,
+        onRowDragMove: eventHandlers.handleRowDragMove,
+        onRowDragEnd: eventHandlers.handleRowDragEnd,
+        onSeatDragStart: eventHandlers.handleSeatDragStart,
+        onSeatDragMove: eventHandlers.handleSeatDragMove,
+        onSeatDragEnd: eventHandlers.handleSeatDragEnd,
       });
     },
     [selectedShapeIds, currentTool, eventHandlers]

@@ -9,13 +9,13 @@ import { Shape } from "@/types/seat-map-types";
 import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
 import { useDebounce, useDebouncedCallback } from "@/hooks/useDebounce";
 
-interface StyleControlsProps {
+interface StyleTabProps {
   selectedShapes: Shape[];
   batchValues: Record<string, any>;
   onBatchChange: (key: string, value: any) => void;
 }
 
-export const StyleControls: React.FC<StyleControlsProps> = ({
+export const StyleTab: React.FC<StyleTabProps> = ({
   selectedShapes,
   batchValues,
   onBatchChange,
@@ -86,7 +86,7 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
           onChange={(e) => {
             debouncedFillChange(e.target.value);
           }}
-          className="h-10 mt-1"
+          className="border-gray-600 h-10 mt-1"
           title="Fill Color"
           onMouseDown={(e) => e.stopPropagation()}
           onFocus={(e) => e.stopPropagation()}
@@ -102,7 +102,7 @@ export const StyleControls: React.FC<StyleControlsProps> = ({
           onChange={(e) => {
             debouncedStrokeChange(e.target.value);
           }}
-          className="h-10 mt-1"
+          className="border-gray-600 h-10 mt-1"
           title="Stroke Color"
           onMouseDown={(e) => e.stopPropagation()}
           onFocus={(e) => e.stopPropagation()}

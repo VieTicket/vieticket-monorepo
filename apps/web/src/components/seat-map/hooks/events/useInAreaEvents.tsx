@@ -89,57 +89,32 @@ export const useInAreaEvents = () => {
     [clearAreaSelections, isInAreaMode]
   );
 
-  // FIX: Updated callback for handling seats that need to be added to multiple rows (grid)
+  // FIX: Remove conflicting drag handlers - let useDragEvents handle all dragging
   const handleAddSeatsToMultipleRows = useCallback(
     (seatsGroupedByRow: { [rowName: string]: SeatShape[] }) => {
       const createdRowIds: string[] = [];
       const createdSeatIds: string[] = [];
 
-      console.log("=== PROCESSING MULTIPLE ROWS ===");
-      console.log("Seats grouped by row:", seatsGroupedByRow);
-
       Object.entries(seatsGroupedByRow).forEach(([rowName, seats]) => {
-        // Find existing row or create new one
-        let existingRow = areaZoom.zoomedArea?.rows?.find(
-          (row) => row.name === rowName
-        );
+        let rowId: string = addRowToArea({
+          type: "row" as const,
+          name: rowName,
+          startX: seats[0]?.x || 0,
+          startY: seats[0]?.y || 0,
+          seatRadius: 8,
+          seatSpacing: 20,
+          rotation: 0,
+          area: areaZoom.zoomedArea?.id || "",
+          seats: [], // Empty seats array, will be populated below
+          fill: "#e0e0e0",
+          stroke: "#666666",
+          strokeWidth: 1,
+          visible: true,
+        });
+        createdRowIds.push(rowId);
 
-        let rowId: string;
-
-        if (!existingRow) {
-          // Create new row using the area slice method (no ID duplication)
-          console.log("Creating new row:", rowName);
-          rowId = addRowToArea({
-            type: "row" as const,
-            name: rowName,
-            startX: seats[0]?.x || 0,
-            startY: seats[0]?.y || 0,
-            seatRadius: 8,
-            seatSpacing: 20,
-            rotation: 0,
-            area: areaZoom.zoomedArea?.id || "",
-            seats: [], // Empty seats array, will be populated below
-            fill: "#e0e0e0",
-            stroke: "#666666",
-            strokeWidth: 1,
-            visible: true,
-          });
-          createdRowIds.push(rowId);
-          console.log("Created new row with ID:", rowId);
-        } else {
-          rowId = existingRow.id;
-          console.log("Using existing row with ID:", rowId);
-        }
-
-        // Add seats to the row using batch method (no ID duplication)
-        console.log(
-          "Adding seats to row:",
-          rowId,
-          "Seats count:",
-          seats.length
-        );
         const seatsToAdd = seats.map((seat) => {
-          const { id, ...seatData } = seat; // Remove the temporary ID
+          const { id, ...seatData } = seat;
           return {
             ...seatData,
             row: rowName,
@@ -148,17 +123,11 @@ export const useInAreaEvents = () => {
 
         const newSeatIds = addMultipleSeatsToRow(rowId, seatsToAdd);
         createdSeatIds.push(...newSeatIds);
-        console.log("Added seats with IDs:", newSeatIds);
       });
-
-      console.log("=== MULTIPLE ROWS PROCESSING COMPLETE ===");
-      console.log("Created rows:", createdRowIds);
-      console.log("Created seats:", createdSeatIds);
     },
     [areaZoom.zoomedArea, addRowToArea, addMultipleSeatsToRow]
   );
 
-  // FIX: Updated callback for handling seats that need to be added to a single row
   const handleAddSeatsToSingleRow = useCallback(
     (seats: SeatShape[]) => {
       if (seats.length === 0) return;
@@ -172,17 +141,15 @@ export const useInAreaEvents = () => {
         seatSpacing: 20,
         rotation: 0,
         area: areaZoom.zoomedArea?.id || "",
-        seats: [], // Empty seats array, will be populated below
+        seats: [],
         fill: "#e0e0e0",
         stroke: "#666666",
         strokeWidth: 1,
         visible: true,
       });
 
-      // Add seats to the row using batch method (no ID duplication)
-      console.log("Adding seats to row:", rowId, "Seats count:", seats.length);
       const seatsToAdd = seats.map((seat) => {
-        const { id, ...seatData } = seat; // Remove the temporary ID
+        const { id, ...seatData } = seat;
         return {
           ...seatData,
           row: seats[0].row,
@@ -190,9 +157,6 @@ export const useInAreaEvents = () => {
       });
 
       const newSeatIds = addMultipleSeatsToRow(rowId, seatsToAdd);
-      console.log("Added seats with IDs:", newSeatIds);
-
-      console.log("=== SINGLE ROW PROCESSING COMPLETE ===");
     },
     [areaZoom.zoomedArea, addRowToArea, addMultipleSeatsToRow]
   );

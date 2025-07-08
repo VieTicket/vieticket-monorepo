@@ -10,7 +10,7 @@ import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
 import { useCanvasEvents } from "../hooks/useCanvasEvents";
 import { useStageRef } from "../providers/stage-provider";
 
-interface TransformControlsProps {
+interface TransformTabProps {
   selectedShapes: Shape[];
   updateMultipleShapes: (
     updates: { id: string; updates: Partial<Shape> }[]
@@ -18,7 +18,7 @@ interface TransformControlsProps {
   saveToHistory: () => void;
 }
 
-export const TransformControls: React.FC<TransformControlsProps> = ({
+export const TransformTab: React.FC<TransformTabProps> = ({
   selectedShapes,
   updateMultipleShapes,
   saveToHistory,

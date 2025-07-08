@@ -4,6 +4,7 @@ import { useSelectionEvents } from "./useSelectionEvents";
 import { useClickEvents } from "./useClickEvents";
 import { useDrawingEvents } from "./useDrawingEvents";
 import { useAreaEvents } from "./useAreaEvents";
+import { useInAreaEvents } from "./useInAreaEvents";
 import { useSeatEvents } from "./useSeatEvents";
 
 export const useMouseEvents = () => {
@@ -12,7 +13,8 @@ export const useMouseEvents = () => {
   const selectionEvents = useSelectionEvents();
   const clickEvents = useClickEvents();
   const drawingEvents = useDrawingEvents();
-  const polygonEvents = useAreaEvents();
+  const areaEvents = useAreaEvents();
+  const inAreaEvents = useInAreaEvents();
   const seatEvents = useSeatEvents();
 
   const getCanvasCoordinates = useCallback(
@@ -34,7 +36,7 @@ export const useMouseEvents = () => {
       const isStageTarget = e.target === stage;
       const isPolygonPreview =
         currentTool === "polygon" &&
-        polygonEvents.isDrawingPolygon &&
+        areaEvents.isDrawingPolygon &&
         (e.target.constructor.name === "Line" ||
           e.target.attrs?.id === "preview" ||
           e.target.attrs?.id === "polygon-preview");
@@ -50,7 +52,7 @@ export const useMouseEvents = () => {
           }
           break;
         case "polygon":
-          polygonEvents.handlePolygonMouseDown(canvasCoords, e);
+          areaEvents.handlePolygonMouseDown(canvasCoords, e);
           break;
         case "seat-grid":
           if (isStageTarget) {
@@ -73,7 +75,7 @@ export const useMouseEvents = () => {
       currentTool,
       getCanvasCoordinates,
       selectionEvents,
-      polygonEvents,
+      areaEvents,
       seatEvents,
       drawingEvents,
     ]
@@ -87,8 +89,8 @@ export const useMouseEvents = () => {
 
       if (currentTool === "select" && selectionEvents.isSelecting) {
         selectionEvents.handleSelectionMouseMove(canvasCoords);
-      } else if (currentTool === "polygon" && polygonEvents.isDrawingPolygon) {
-        polygonEvents.handlePolygonMouseMove(canvasCoords);
+      } else if (currentTool === "polygon" && areaEvents.isDrawingPolygon) {
+        areaEvents.handlePolygonMouseMove(canvasCoords);
       } else if (currentTool === "seat-grid" || currentTool === "seat-row") {
         seatEvents.handleSeatMouseMove(canvasCoords);
       } else if (
@@ -105,7 +107,7 @@ export const useMouseEvents = () => {
       currentTool,
       getCanvasCoordinates,
       selectionEvents,
-      polygonEvents,
+      areaEvents,
       seatEvents,
       drawingEvents,
     ]
@@ -130,11 +132,11 @@ export const useMouseEvents = () => {
 
   const getPreviewShape = useCallback(() => {
     if (currentTool === "polygon") {
-      return polygonEvents.previewShape;
+      return areaEvents.previewShape;
     } else {
       return drawingEvents.previewShape;
     }
-  }, [currentTool, polygonEvents.previewShape, drawingEvents.previewShape]);
+  }, [currentTool, areaEvents.previewShape, drawingEvents.previewShape]);
 
   return {
     handleStageMouseDown,
@@ -143,11 +145,12 @@ export const useMouseEvents = () => {
     getCanvasCoordinates,
     getPreviewShape,
 
-    // Unified event handlers
+    // Event handlers
     clickEvents,
     selectionEvents,
     drawingEvents,
-    polygonEvents,
+    areaEvents,
+    inAreaEvents,
     seatEvents,
   };
 };

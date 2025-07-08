@@ -33,7 +33,6 @@ export interface ShapesSlice {
   startEditing: (shapeId: string) => void;
   stopEditing: () => void;
   isShapeEditing: (shapeId: string) => boolean;
-  syncAreaToShape: () => void;
 }
 
 export const createShapesSlice: StateCreator<
@@ -58,6 +57,7 @@ export const createShapesSlice: StateCreator<
     set((state) => ({
       shapes: [...state.shapes, newShape],
     }));
+    get().saveToHistory();
   },
 
   updateShape: (id, updates) => {
@@ -66,24 +66,7 @@ export const createShapesSlice: StateCreator<
         shape.id === id ? { ...shape, ...updates } : shape
       ),
     }));
-  },
-
-  syncAreaToShape: () => {
-    // const { zoomedArea } = get();
-    // if (zoomedArea) {
-    //   // Update the main shape with area data
-    //   set((state) => ({
-    //     shapes: state.shapes.map((shape) =>
-    //       shape.id === zoomedArea.id
-    //         ? {
-    //             ...shape,
-    //             rows: zoomedArea.rows,
-    //             seats: zoomedArea.seats,
-    //           }
-    //         : shape
-    //     ),
-    //   }));
-    // }
+    get().saveToHistory();
   },
 
   deleteShape: (id) => {
@@ -93,6 +76,7 @@ export const createShapesSlice: StateCreator<
         (selectedId) => selectedId !== id
       ),
     }));
+    get().saveToHistory();
   },
 
   deleteSelectedShapes: () => {
@@ -103,6 +87,7 @@ export const createShapesSlice: StateCreator<
       ),
       selectedShapeIds: [],
     }));
+    get().saveToHistory();
   },
 
   selectShape: (id, multiSelect = false) => {
@@ -136,6 +121,7 @@ export const createShapesSlice: StateCreator<
         shape.id === id ? { ...shape, x, y } : shape
       ),
     }));
+    get().saveToHistory();
   },
 
   duplicateShape: (id) => {
@@ -153,6 +139,7 @@ export const createShapesSlice: StateCreator<
         shapes: [...state.shapes, duplicatedShape],
         selectedShapeIds: [duplicatedShape.id],
       }));
+      get().saveToHistory();
     }
   },
 
@@ -214,6 +201,7 @@ export const createShapesSlice: StateCreator<
       shapes: [...state.shapes, ...newShapes],
       selectedShapeIds: newShapes.map((s) => s.id),
     }));
+    get().saveToHistory();
   },
 
   startEditing: (shapeId: string) => {

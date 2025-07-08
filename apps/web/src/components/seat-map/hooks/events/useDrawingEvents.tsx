@@ -54,6 +54,7 @@ export const useDrawingEvents = () => {
 
   const createFinalShape = (start: any, end: any) => {
     const shape = generateShapeFromCoords(start, end, currentTool);
+    console.log("Creating final shape:", shape);
     if (shape) {
       addShape(shape);
     }
@@ -69,7 +70,9 @@ export const useDrawingEvents = () => {
     const x = Math.min(start.x, end.x);
     const y = Math.min(start.y, end.y);
 
-    if (width < 5 && height < 5 && shapeType !== "text") return null;
+    console.log(width < 15, height < 15, shapeType);
+
+    if ((width < 10 || height < 10) && shapeType !== "text") return null;
 
     switch (shapeType) {
       case "rect":

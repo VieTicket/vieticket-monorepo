@@ -1,4 +1,3 @@
-// Create: utils/area-renderer.tsx
 import { Group, Circle, Line, Text, Rect } from "react-konva";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 import { JSX } from "react";
@@ -11,7 +10,12 @@ export interface AreaRenderProps {
   onSeatClick?: (seatId: string, e: any) => void;
   onRowDoubleClick?: (rowId: string, e: any) => void;
   onSeatDoubleClick?: (seatId: string, e: any) => void;
-  // FIX: Add interactive state control
+  onRowDragStart?: (rowId: string, e: any) => void;
+  onRowDragMove?: (rowId: string, e: any) => void;
+  onRowDragEnd?: (rowId: string, e: any) => void;
+  onSeatDragStart?: (seatId: string, e: any) => void;
+  onSeatDragMove?: (seatId: string, e: any) => void;
+  onSeatDragEnd?: (seatId: string, e: any) => void;
   isInteractive?: boolean;
 }
 
@@ -23,69 +27,65 @@ export const renderAreaContent = ({
   onSeatClick,
   onRowDoubleClick,
   onSeatDoubleClick,
+  onRowDragStart,
+  onRowDragMove,
+  onRowDragEnd,
+  onSeatDragStart,
+  onSeatDragMove,
+  onSeatDragEnd,
   isInteractive = true,
 }: AreaRenderProps) => {
   const elements: JSX.Element[] = [];
 
   rows.forEach((row) => {
-    // Render row label - FIX: Make it more prominent when row is selected
+    const isRowSelected = selectedRowIds.includes(row.id);
+    const rowElements: JSX.Element[] = [];
+
     if (row.seats.length > 0) {
       const firstSeat = row.seats[0];
-      const isRowSelected = selectedRowIds.includes(row.id);
 
-      elements.push(
-        <Group key={`row-label-group-${row.id}`}>
-          <Text
-            key={`row-label-${row.id}`}
-            x={firstSeat.x - 25}
-            y={firstSeat.y - 5}
-            text={row.name}
-            fontSize={isRowSelected ? 14 : 12}
-            fontFamily="Arial"
-            fill={isRowSelected ? "#FF6B6B" : "#000000"}
-            fontStyle={isRowSelected ? "bold" : "normal"}
-            opacity={isInteractive ? 1 : 0.6}
-            // FIX: Make row label clickable
-            listening={isInteractive}
-            onClick={
-              isInteractive
-                ? (e) => {
-                    e.cancelBubble = true;
-                    onRowClick?.(row.id, e);
-                  }
-                : undefined
-            }
-            onDblClick={
-              isInteractive
-                ? (e) => {
-                    e.cancelBubble = true;
-                    onRowDoubleClick?.(row.id, e);
-                  }
-                : undefined
-            }
-          />
-        </Group>
+      const labelX = firstSeat.x - (row.startX || 0) - 20 - row.name.length * 4;
+      const labelY = firstSeat.y - (row.startY || 0) - 5;
+
+      rowElements.push(
+        <Text
+          key={`row-label-${row.id}`}
+          x={labelX}
+          y={labelY}
+          text={row.name}
+          fontSize={12}
+          fontFamily="Arial"
+          fill={isRowSelected ? "#FF6B6B" : "#000000"}
+          fontStyle={"normal"}
+          opacity={isInteractive ? 1 : 0.6}
+          listening={false}
+        />
       );
     }
 
-    // Render seats - FIX: Better multi-select visual feedback
+    console.log(row);
     row.seats.forEach((seat) => {
       const isSeatSelected = selectedSeatIds.includes(seat.id);
-      const isRowSelected = selectedRowIds.includes(row.id);
 
-      elements.push(
-        <Group key={`seat-${seat.id}`}>
-          {/* Seat circle */}
+      const seatX = seat.x - (row.startX || 0);
+      const seatY = seat.y - (row.startY || 0);
+
+      // FIX: Use seat radius with fallback to row's seatRadius
+      const seatRadius = seat.radius || row.seatRadius || 8;
+
+      rowElements.push(
+        <Group key={`seat-group-${seat.id}`}>
           <Circle
-            x={seat.x}
-            y={seat.y}
-            radius={seat.radius}
+            id={`seat-${seat.id}`}
+            x={seatX}
+            y={seatY}
+            radius={seatRadius} // FIX: Use the calculated radius
             fill={seat.fill || getSeatStatusColor(seat.status, seat.category)}
             stroke={
               isSeatSelected
-                ? "#FF6B6B" // Red for selected seat
+                ? "#FF6B6B"
                 : isRowSelected
-                  ? "#FFA500" // Orange for selected row
+                  ? "#FFA500"
                   : seat.stroke || "#2E7D32"
             }
             strokeWidth={
@@ -94,7 +94,6 @@ export const renderAreaContent = ({
             }
             opacity={isInteractive ? 1 : 0.6}
             listening={isInteractive}
-            // FIX: Single click selects row, double click selects seat
             onClick={
               isInteractive
                 ? (e) => {
@@ -111,13 +110,13 @@ export const renderAreaContent = ({
                   }
                 : undefined
             }
+            draggable={false}
           />
 
-          {/* FIX: Add multi-select indicator */}
           {isSeatSelected && (
             <Circle
-              x={seat.x + seat.radius - 2}
-              y={seat.y - seat.radius + 2}
+              x={seatX + seatRadius - 2} // FIX: Use calculated radius
+              y={seatY - seatRadius + 2} // FIX: Use calculated radius
               radius={3}
               fill="#FF6B6B"
               stroke="#FFFFFF"
@@ -127,27 +126,25 @@ export const renderAreaContent = ({
             />
           )}
 
-          {/* Seat number */}
           <Text
-            x={seat.x}
-            y={seat.y}
+            x={seatX}
+            y={seatY}
             text={seat.number.toString()}
-            fontSize={8}
+            fontSize={Math.min(8, seatRadius / 1.1)} // FIX: Scale font size with radius
             fontFamily="Arial"
             fill="white"
             align="center"
             verticalAlign="middle"
             offsetX={seat.number.toString().length * 2}
-            offsetY={4}
+            offsetY={seatRadius / 2}
             opacity={isInteractive ? 1 : 0.6}
             listening={false}
           />
 
-          {/* Status indicator */}
           {seat.status !== "available" && (
             <Circle
-              x={seat.x + seat.radius - 3}
-              y={seat.y - seat.radius + 3}
+              x={seatX + seatRadius - 3} // FIX: Use calculated radius
+              y={seatY - seatRadius + 3} // FIX: Use calculated radius
               radius={2}
               fill={getStatusIndicatorColor(seat.status)}
               opacity={isInteractive ? 1 : 0.6}
@@ -157,12 +154,67 @@ export const renderAreaContent = ({
         </Group>
       );
     });
+
+    elements.push(
+      <Group
+        key={`row-${row.id}`}
+        id={`row-${row.id}`}
+        x={row.startX || 0}
+        y={row.startY || 0}
+        // FIX: Apply rotation to the entire row group
+        rotation={row.rotation || 0}
+        draggable={isInteractive}
+        listening={isInteractive}
+        onClick={
+          isInteractive
+            ? (e) => {
+                if (e.target === e.currentTarget) {
+                  e.cancelBubble = true;
+                  onRowClick?.(row.id, e);
+                }
+              }
+            : undefined
+        }
+        onDblClick={
+          isInteractive
+            ? (e) => {
+                if (e.target === e.currentTarget) {
+                  e.cancelBubble = true;
+                  onRowDoubleClick?.(row.id, e);
+                }
+              }
+            : undefined
+        }
+        onDragStart={
+          isInteractive
+            ? (e) => {
+                onRowDragStart?.(row.id, e);
+              }
+            : undefined
+        }
+        onDragMove={
+          isInteractive
+            ? (e) => {
+                onRowDragMove?.(row.id, e);
+              }
+            : undefined
+        }
+        onDragEnd={
+          isInteractive
+            ? (e) => {
+                onRowDragEnd?.(row.id, e);
+              }
+            : undefined
+        }
+      >
+        {rowElements}
+      </Group>
+    );
   });
 
   return elements;
 };
 
-// Helper functions
 const getSeatStatusColor = (status: string, category?: string) => {
   if (status !== "available") {
     switch (status) {

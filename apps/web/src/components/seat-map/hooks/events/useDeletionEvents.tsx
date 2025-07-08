@@ -53,7 +53,6 @@ export const useDeletionEvents = () => {
 
     if (deleted.length > 0) {
       handlers.saveToHistory();
-      console.log("Deleted items:", deleted);
     }
   }, [context, handlers]);
 

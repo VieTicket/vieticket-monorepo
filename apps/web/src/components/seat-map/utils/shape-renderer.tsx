@@ -16,6 +16,13 @@ export interface ShapeProps {
   onSeatClick?: (seatId: string, e: any) => void;
   onRowDoubleClick?: (rowId: string, e: any) => void;
   onSeatDoubleClick?: (seatId: string, e: any) => void;
+  // FIX: Add drag event handlers
+  onRowDragStart?: (rowId: string, e: any) => void;
+  onRowDragMove?: (rowId: string, e: any) => void;
+  onRowDragEnd?: (rowId: string, e: any) => void;
+  onSeatDragStart?: (seatId: string, e: any) => void;
+  onSeatDragMove?: (seatId: string, e: any) => void;
+  onSeatDragEnd?: (seatId: string, e: any) => void;
 }
 
 export const renderShape = ({
@@ -30,6 +37,13 @@ export const renderShape = ({
   onSeatClick,
   onRowDoubleClick,
   onSeatDoubleClick,
+  // FIX: Add drag event handlers
+  onRowDragStart,
+  onRowDragMove,
+  onRowDragEnd,
+  onSeatDragStart,
+  onSeatDragMove,
+  onSeatDragEnd,
 }: ShapeProps) => {
   const { key, ...restProps } = commonProps;
   const hitFunc = createHitFunc(shape);
@@ -109,7 +123,7 @@ export const renderShape = ({
 
       return (
         <Group key={key} {...restProps}>
-          {/* FIX: Polygon outline with area mode styling */}
+          {/* Polygon outline with area mode styling */}
           <Line
             x={0}
             y={0}
@@ -140,7 +154,7 @@ export const renderShape = ({
             />
           )}
 
-          {/* FIX: Area content (rows and seats) - only interactive in area mode */}
+          {/* FIX: Area content (rows and seats) - now with drag events */}
           {hasRows && (
             <Group>
               {renderAreaContent({
@@ -151,7 +165,13 @@ export const renderShape = ({
                 onSeatClick: isInAreaMode ? onSeatClick : undefined,
                 onRowDoubleClick: isInAreaMode ? onRowDoubleClick : undefined,
                 onSeatDoubleClick: isInAreaMode ? onSeatDoubleClick : undefined,
-
+                // FIX: Pass drag events to area content
+                onRowDragStart: isInAreaMode ? onRowDragStart : undefined,
+                onRowDragMove: isInAreaMode ? onRowDragMove : undefined,
+                onRowDragEnd: isInAreaMode ? onRowDragEnd : undefined,
+                onSeatDragStart: isInAreaMode ? onSeatDragStart : undefined,
+                onSeatDragMove: isInAreaMode ? onSeatDragMove : undefined,
+                onSeatDragEnd: isInAreaMode ? onSeatDragEnd : undefined,
                 isInteractive: isInAreaMode,
               })}
             </Group>
@@ -163,10 +183,8 @@ export const renderShape = ({
       return (
         <Group key={key} x={shape.x} y={shape.y} {...restProps}>
           <Text
-            // FIX: Use x={0}, y={0} since positioning is handled by Group
             x={0}
             y={0}
-            // FIX: Use proper text properties with multi-line support
             text={shape.name || "New Text"}
             fontSize={shape.fontSize || 16}
             fontFamily={shape.fontFamily || "Arial"}
@@ -175,13 +193,11 @@ export const renderShape = ({
             fill={shape.fill || "#000000"}
             stroke={shape.stroke}
             strokeWidth={shape.strokeWidth || 0}
-            // FIX: Use the dynamic width/height from the shape
             width={shape.width || 200}
             height={shape.height || 24}
             listening={!isInAreaMode}
             hitFunc={hitFunc}
-            // FIX: Add text wrapping for multi-line support
-            wrap="none" // We handle line breaks manually with \n
+            wrap="none"
           />
         </Group>
       );
