@@ -16,12 +16,80 @@ import {
   Link2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { AITextGenerator } from "@/components/ai/AITextGenerator";
 
-export function Toolbar({ editor }: { editor: Editor }) {
+interface ToolbarProps {
+  editor: Editor;
+  eventData?: {
+    name: string;
+    type: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    ticketSaleStart: string;
+    ticketSaleEnd: string;
+    ticketPrice?: string;
+  };
+  onContentChange?: (content: string) => void; // NEW: callback to update parent
+}
+
+export function Toolbar({ editor, eventData, onContentChange }: ToolbarProps) {
   if (!editor) return null;
+
+  const handleAITextGenerated = (htmlContent: string) => {
+    console.log("🤖 AI Text Generated:", htmlContent.substring(0, 100) + "...");
+
+    // Check if editor has existing content
+    const currentContent = editor.getHTML();
+    const isEmpty =
+      currentContent === "<p></p>" ||
+      currentContent === "" ||
+      !currentContent.trim();
+
+    let finalContent: string;
+
+    if (isEmpty) {
+      // Replace entire content if empty
+      editor.chain().focus().setContent(htmlContent).run();
+      finalContent = htmlContent;
+      console.log("📝 Replaced empty content");
+    } else {
+      // Append to existing content
+      const combinedContent = `${currentContent}<hr/>${htmlContent}`;
+      editor.chain().focus().setContent(combinedContent).run();
+      finalContent = combinedContent;
+      console.log("📝 Appended to existing content");
+    }
+
+    // Immediately trigger onChange callback to update formData
+    console.log(
+      "🔄 Triggering onChange with content length:",
+      finalContent.length
+    );
+    onContentChange?.(finalContent);
+
+    // Also trigger editor's internal update as backup
+    setTimeout(() => {
+      const editorContent = editor.getHTML();
+      if (editorContent !== finalContent) {
+        console.log("🔄 Backup onChange triggered");
+        onContentChange?.(editorContent);
+      }
+    }, 50);
+  };
 
   return (
     <div className="flex flex-wrap gap-1 border-b p-2">
+      {/* AI Text Generator */}
+      {eventData && (
+        <div className="mr-2 border-r pr-2">
+          <AITextGenerator
+            eventData={eventData}
+            onTextGenerated={handleAITextGenerated}
+          />
+        </div>
+      )}
+
       <Button
         variant="ghost"
         size="icon"
