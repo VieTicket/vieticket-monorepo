@@ -14,9 +14,24 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   error?: boolean;
+  eventData?: {
+    name: string;
+    type: string;
+    startTime: string;
+    endTime: string;
+    location: string;
+    ticketSaleStart: string;
+    ticketSaleEnd: string;
+    ticketPrice?: string;
+  };
 };
 
-export default function TiptapEditorInput({ value, onChange, error }: Props) {
+export default function TiptapEditorInput({
+  value,
+  onChange,
+  error,
+  eventData,
+}: Props) {
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -62,7 +77,7 @@ export default function TiptapEditorInput({ value, onChange, error }: Props) {
     if (editor && value !== editor.getHTML()) {
       editor.commands.setContent(value);
     }
-  }, [value]);
+  }, [value, editor]);
 
   return (
     <div className="space-y-2">
@@ -70,7 +85,13 @@ export default function TiptapEditorInput({ value, onChange, error }: Props) {
       <div
         className={`border rounded ${error ? "border-red-500" : "border-gray-300"}`}
       >
-        {editor && <Toolbar editor={editor} />}
+        {editor && (
+          <Toolbar
+            editor={editor}
+            eventData={eventData}
+            onContentChange={onChange}
+          />
+        )}
         <EditorContent editor={editor} />
       </div>
     </div>
