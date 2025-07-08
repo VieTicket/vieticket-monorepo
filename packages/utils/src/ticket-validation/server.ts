@@ -1,16 +1,39 @@
 import * as ed25519 from '@noble/ed25519';
-import type { SignedTicketData, TicketValidationPayload } from './types';
+import type { SignedTicketData, TicketValidationPayload, CompressedTicketPayload, CompressedSignedData } from './types';
 import { pack } from 'msgpackr/pack';
 
+// UUID compression utilities
+function uuidToBytes(uuid: string): Uint8Array {
+  const hex = uuid.replace(/-/g, '');
+  const bytes = new Uint8Array(16);
+  for (let i = 0; i < 16; i++) {
+    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+  }
+  return bytes;
+}
+
+// Convert public API format to compressed format
+function compressPayload(payload: TicketValidationPayload): CompressedTicketPayload {
+  return [
+    uuidToBytes(payload.ticketId),
+    payload.timestamp,
+    payload.visitorName,
+    [uuidToBytes(payload.event.id), payload.event.name],
+    [uuidToBytes(payload.seat.id), payload.seat.number],
+    [uuidToBytes(payload.row.id), payload.row.name],
+    [uuidToBytes(payload.area.id), payload.area.name]
+  ];
+}
+
 /**
- * Generates dynamic ticket QR data with Ed25519 signature
+ * Generates dynamic ticket QR data with Ed25519 signature (maximum compression)
  * @param ticketId - The unique identifier for the ticket
  * @param visitorName - Name of the ticket holder
  * @param event - Event information with id and name
  * @param seat - Seat information with id and number
  * @param row - Row information with id and name
  * @param area - Area information with id and name
- * @returns Base64url encoded BSON string containing signed ticket data
+ * @returns Uint8Array containing signed ticket data for QR byte mode
  */
 export function generateTicketQRData(
   ticketId: string,
@@ -36,19 +59,23 @@ export function generateTicketQRData(
     throw new Error('TICKET_SIGNING_PRIVATE_KEY environment variable not set');
   }
 
-  // Use MessagePack for signing instead of JSON
-  const message = pack(payload);
+  // Compress payload to array format with binary UUIDs
+  const compressedPayload = compressPayload(payload);
+
+  // Use MessagePack for signing
+  const message = pack(compressedPayload);
 
   // Create signature
   const signature = ed25519.sign(message, privateKeyHex);
 
-  const signedData: SignedTicketData = {
-    payload,
-    signature: Buffer.from(signature).toString('hex')
-  };
+  // Create compressed signed data (array format with binary signature)
+  const compressedSignedData: CompressedSignedData = [
+    compressedPayload,
+    new Uint8Array(signature)
+  ];
 
   // Serialize to MessagePack and return as binary
-  const packedData = pack(signedData);
+  const packedData = pack(compressedSignedData);
   return new Uint8Array(packedData);
 }
 

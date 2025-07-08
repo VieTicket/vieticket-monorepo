@@ -17,7 +17,7 @@
   },
   "include": [
     "src/**/*.ts",
-    "tests/vitest.setup.ts",
+    "tests/test.setup.ts",
     "tests/ticket-validation/ticket-validation.test.ts"
   ],
   "exclude": [

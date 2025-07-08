@@ -1,4 +1,3 @@
-import crypto from 'node:crypto';
 import { sha512 } from '@noble/hashes/sha2';
 import * as ed from '@noble/ed25519';
 

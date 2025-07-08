@@ -1,31 +1,48 @@
 import * as ed25519 from '@noble/ed25519';
-import type { TicketValidationPayload, SignedTicketData } from './types';
+import type { TicketValidationPayload, CompressedTicketPayload, CompressedSignedData } from './types';
 import QRCode, { QRCodeSegment } from 'qrcode';
 import { pack, unpack } from 'msgpackr';
 
-/**
- * Decodes and validates ticket QR data
- * @param qrData - Base64url encoded BSON string from QR code
- *
- * @returns Decoded ticket payload if valid, null if invalid or signature verification fails
- *
- * Safe to be used on client side
- */
+// UUID decompression utilities
+function bytesToUuid(bytes: Uint8Array): string {
+  const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+  return `${hex.substr(0, 8)}-${hex.substr(8, 4)}-${hex.substr(12, 4)}-${hex.substr(16, 4)}-${hex.substr(20, 12)}`;
+}
 
-export function decodeTicketQRData(qrData: Uint8Array | string): TicketValidationPayload | null {
-  try {
-    // Handle both binary and string formats
-    let binaryData: Uint8Array;
-    if (typeof qrData === 'string') {
-      // Legacy base64url format
-      binaryData = base64UrlToUint8Array(qrData);
-    } else {
-      // Binary format
-      binaryData = qrData;
+// Convert compressed format back to public API format
+function decompressPayload(compressed: CompressedTicketPayload): TicketValidationPayload {
+  return {
+    ticketId: bytesToUuid(compressed[0]),
+    timestamp: compressed[1],
+    visitorName: compressed[2],
+    event: {
+      id: bytesToUuid(compressed[3][0]),
+      name: compressed[3][1]
+    },
+    seat: {
+      id: bytesToUuid(compressed[4][0]),
+      number: compressed[4][1]
+    },
+    row: {
+      id: bytesToUuid(compressed[5][0]),
+      name: compressed[5][1]
+    },
+    area: {
+      id: bytesToUuid(compressed[6][0]),
+      name: compressed[6][1]
     }
+  };
+}
 
-    // Deserialize MessagePack
-    const signedData = unpack(binaryData) as SignedTicketData;
+/**
+ * Decodes and validates ticket QR data from binary format
+ * @param qrData - Uint8Array from QR code
+ * @returns Decoded ticket payload if valid, null if invalid or signature verification fails
+ */
+export function decodeTicketQRData(qrData: Uint8Array): TicketValidationPayload | null {
+  try {
+    // Deserialize MessagePack to compressed format
+    const [compressedPayload, signature] = unpack(qrData) as CompressedSignedData;
 
     // Get public key from environment (hex string)
     const publicKeyHex = process.env.NEXT_PUBLIC_TICKET_SIGNING_PUBLIC_KEY || process.env.TICKET_SIGNING_PUBLIC_KEY;
@@ -34,11 +51,10 @@ export function decodeTicketQRData(qrData: Uint8Array | string): TicketValidatio
       return null;
     }
 
-    // Convert payload to bytes for verification using MessagePack
-    const message = pack(signedData.payload);
-    const signature = new Uint8Array(Buffer.from(signedData.signature, 'hex'));
+    // Convert compressed payload to bytes for verification using MessagePack
+    const message = pack(compressedPayload);
 
-    // Verify signature
+    // Verify signature (signature is already Uint8Array)
     const isValid = ed25519.verify(signature, message, publicKeyHex);
 
     if (!isValid) {
@@ -46,7 +62,8 @@ export function decodeTicketQRData(qrData: Uint8Array | string): TicketValidatio
       return null;
     }
 
-    return signedData.payload;
+    // Decompress payload back to public API format
+    return decompressPayload(compressedPayload);
   } catch (error) {
     console.error('Error decoding ticket QR data:', error);
     return null;
@@ -61,8 +78,8 @@ export function decodeTicketQRData(qrData: Uint8Array | string): TicketValidatio
 export async function generateQRCodeImage(qrData: Uint8Array | string): Promise<string> {
   try {
     // Pass raw binary data directly for byte mode, or string for other modes
-    const dataToEncode: string | QRCodeSegment[] = typeof qrData === 'string' 
-      ? qrData 
+    const dataToEncode: string | QRCodeSegment[] = typeof qrData === 'string'
+      ? qrData
       : [{ data: qrData, mode: 'byte' }];
 
     return await QRCode.toDataURL(dataToEncode, {
@@ -84,25 +101,4 @@ export async function generateQRCodeImage(qrData: Uint8Array | string): Promise<
       </svg>
     `).toString('base64')}`;
   }
-}
-
-/**
- * Helper to convert a base64url string to a Uint8Array.
- * This replaces the need for Buffer.from(str, 'base64url').
- * @param input The base64url encoded string
- * @returns A Uint8Array
- */
-function base64UrlToUint8Array(input: string): Uint8Array {
-  // Replace URL-safe characters with standard Base64 characters
-  const base64 = input.replace(/-/g, '+').replace(/_/g, '/');
-  // Pad with '=' characters if necessary
-  const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
-  // Decode from base64 to a binary string
-  const binaryString = atob(padded);
-  // Convert the binary string to a Uint8Array
-  const uint8Array = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    uint8Array[i] = binaryString.charCodeAt(i);
-  }
-  return uint8Array;
 }
