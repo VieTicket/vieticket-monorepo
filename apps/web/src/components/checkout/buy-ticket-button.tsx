@@ -63,7 +63,7 @@ export function BuyTicketButton({
       // Navigate to ticket purchase page with the fetched data
       // We could:
       // use Tanstack Query
-      router.push(`/events/${eventSlug}/tickets`);
+      router.push(`/events/${eventSlug}/seat-selection`);
       
     } catch (error) {
       console.error("Error fetching ticket data:", error);

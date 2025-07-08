@@ -4,17 +4,21 @@
     "target": "ES2020",
     "module": "esnext",
     "moduleResolution": "bundler",
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "declaration": true,
     "outDir": "./dist",
-    "rootDir": "./src",
+    // "rootDir": "./src",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
   "include": [
-    "src/**/*.ts"
+    "src/**/*.ts",
+    "tests/vitest.setup.ts",
+    "tests/ticket-validation/ticket-validation.test.ts"
   ],
   "exclude": [
     "node_modules",

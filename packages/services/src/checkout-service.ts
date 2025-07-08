@@ -13,7 +13,8 @@ import {
 import { getEventByTicketId, getTicketDetails } from "@vieticket/repos/orders";
 import { findEventById, getEventSeatingStructure } from "@vieticket/repos/events";
 import { generatePaymentUrl, ReturnQueryFromVNPay, verifyVNPayResponse } from "@vieticket/utils/vnpay";
-import { generateQRCodeImage, generateTicketQRData } from "@vieticket/utils/ticket-validation";
+import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
+import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
 
 export async function getTicketData(
@@ -358,7 +359,7 @@ async function sendOrderConfirmationEmail(
         // Generate QR codes for all tickets with complete data
         const ticketsWithQR = await Promise.all(
             tickets.map(async (ticket) => {
-                const qrData = await generateTicketQRData(
+                const qrData = generateTicketQRData(
                     ticket.ticketId,
                     user.name, // Will be replaced with actual user name
                     {
