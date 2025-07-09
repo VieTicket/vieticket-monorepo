@@ -2,10 +2,8 @@ import { Group, Circle, Line, Text, Rect } from "react-konva";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 import { JSX } from "react";
 
-export interface AreaRenderProps {
-  rows: RowShape[];
-  selectedRowIds: string[];
-  selectedSeatIds: string[];
+// FIX: Create consolidated area event props interface
+export interface AreaEventProps {
   onRowClick?: (rowId: string, e: any) => void;
   onSeatClick?: (seatId: string, e: any) => void;
   onRowDoubleClick?: (rowId: string, e: any) => void;
@@ -16,6 +14,14 @@ export interface AreaRenderProps {
   onSeatDragStart?: (seatId: string, e: any) => void;
   onSeatDragMove?: (seatId: string, e: any) => void;
   onSeatDragEnd?: (seatId: string, e: any) => void;
+}
+
+export interface AreaRenderProps {
+  rows: RowShape[];
+  selectedRowIds: string[];
+  selectedSeatIds: string[];
+  // FIX: Replace individual event props with consolidated interface
+  areaEvents?: AreaEventProps;
   isInteractive?: boolean;
 }
 
@@ -23,16 +29,7 @@ export const renderAreaContent = ({
   rows,
   selectedRowIds,
   selectedSeatIds,
-  onRowClick,
-  onSeatClick,
-  onRowDoubleClick,
-  onSeatDoubleClick,
-  onRowDragStart,
-  onRowDragMove,
-  onRowDragEnd,
-  onSeatDragStart,
-  onSeatDragMove,
-  onSeatDragEnd,
+  areaEvents,
   isInteractive = true,
 }: AreaRenderProps) => {
   const elements: JSX.Element[] = [];
@@ -63,7 +60,6 @@ export const renderAreaContent = ({
       );
     }
 
-    console.log(row);
     row.seats.forEach((seat) => {
       const isSeatSelected = selectedSeatIds.includes(seat.id);
 
@@ -79,7 +75,7 @@ export const renderAreaContent = ({
             id={`seat-${seat.id}`}
             x={seatX}
             y={seatY}
-            radius={seatRadius} // FIX: Use the calculated radius
+            radius={seatRadius}
             fill={seat.fill || getSeatStatusColor(seat.status, seat.category)}
             stroke={
               isSeatSelected
@@ -95,18 +91,18 @@ export const renderAreaContent = ({
             opacity={isInteractive ? 1 : 0.6}
             listening={isInteractive}
             onClick={
-              isInteractive
+              isInteractive && areaEvents?.onSeatClick
                 ? (e) => {
                     e.cancelBubble = true;
-                    onSeatClick?.(seat.id, e);
+                    areaEvents.onSeatClick!(seat.id, e);
                   }
                 : undefined
             }
             onDblClick={
-              isInteractive
+              isInteractive && areaEvents?.onSeatDoubleClick
                 ? (e) => {
                     e.cancelBubble = true;
-                    onSeatDoubleClick?.(seat.id, e);
+                    areaEvents.onSeatDoubleClick!(seat.id, e);
                   }
                 : undefined
             }
@@ -115,8 +111,8 @@ export const renderAreaContent = ({
 
           {isSeatSelected && (
             <Circle
-              x={seatX + seatRadius - 2} // FIX: Use calculated radius
-              y={seatY - seatRadius + 2} // FIX: Use calculated radius
+              x={seatX + seatRadius - 2}
+              y={seatY - seatRadius + 2}
               radius={3}
               fill="#FF6B6B"
               stroke="#FFFFFF"
@@ -130,7 +126,7 @@ export const renderAreaContent = ({
             x={seatX}
             y={seatY}
             text={seat.number.toString()}
-            fontSize={Math.min(8, seatRadius / 1.1)} // FIX: Scale font size with radius
+            fontSize={Math.min(8, seatRadius / 1.1)}
             fontFamily="Arial"
             fill="white"
             align="center"
@@ -143,8 +139,8 @@ export const renderAreaContent = ({
 
           {seat.status !== "available" && (
             <Circle
-              x={seatX + seatRadius - 3} // FIX: Use calculated radius
-              y={seatY - seatRadius + 3} // FIX: Use calculated radius
+              x={seatX + seatRadius - 3}
+              y={seatY - seatRadius + 3}
               radius={2}
               fill={getStatusIndicatorColor(seat.status)}
               opacity={isInteractive ? 1 : 0.6}
@@ -166,43 +162,43 @@ export const renderAreaContent = ({
         draggable={isInteractive}
         listening={isInteractive}
         onClick={
-          isInteractive
+          isInteractive && areaEvents?.onRowClick
             ? (e) => {
                 if (e.target === e.currentTarget) {
                   e.cancelBubble = true;
-                  onRowClick?.(row.id, e);
+                  areaEvents.onRowClick!(row.id, e);
                 }
               }
             : undefined
         }
         onDblClick={
-          isInteractive
+          isInteractive && areaEvents?.onRowDoubleClick
             ? (e) => {
                 if (e.target === e.currentTarget) {
                   e.cancelBubble = true;
-                  onRowDoubleClick?.(row.id, e);
+                  areaEvents.onRowDoubleClick!(row.id, e);
                 }
               }
             : undefined
         }
         onDragStart={
-          isInteractive
+          isInteractive && areaEvents?.onRowDragStart
             ? (e) => {
-                onRowDragStart?.(row.id, e);
+                areaEvents.onRowDragStart!(row.id, e);
               }
             : undefined
         }
         onDragMove={
-          isInteractive
+          isInteractive && areaEvents?.onRowDragMove
             ? (e) => {
-                onRowDragMove?.(row.id, e);
+                areaEvents.onRowDragMove!(row.id, e);
               }
             : undefined
         }
         onDragEnd={
-          isInteractive
+          isInteractive && areaEvents?.onRowDragEnd
             ? (e) => {
-                onRowDragEnd?.(row.id, e);
+                areaEvents.onRowDragEnd!(row.id, e);
               }
             : undefined
         }

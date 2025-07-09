@@ -411,16 +411,16 @@ const getLargestInnerRectangle = (shape: Shape) => {
       break;
 
     case "polygon":
-      if (shape.points && shape.points.length >= 2) {
-        // For polygons, find the bounding box of all points first
-        let minX = shape.x + shape.points[0];
-        let maxX = shape.x + shape.points[0];
-        let minY = shape.y + shape.points[1];
-        let maxY = shape.y + shape.points[1];
+      if (shape.points && shape.points.length >= 1) {
+        // FIX: For polygons, find the bounding box of all points first with 2D array
+        let minX = shape.x + shape.points[0].x;
+        let maxX = shape.x + shape.points[0].x;
+        let minY = shape.y + shape.points[0].y;
+        let maxY = shape.y + shape.points[0].y;
 
-        for (let i = 2; i < shape.points.length; i += 2) {
-          const pointX = shape.x + shape.points[i];
-          const pointY = shape.y + shape.points[i + 1];
+        for (let i = 1; i < shape.points.length; i++) {
+          const pointX = shape.x + shape.points[i].x;
+          const pointY = shape.y + shape.points[i].y;
 
           minX = Math.min(minX, pointX);
           maxX = Math.max(maxX, pointX);
@@ -433,10 +433,11 @@ const getLargestInnerRectangle = (shape: Shape) => {
           const center = { x: shape.x, y: shape.y };
           const polygonPoints = [];
 
-          for (let i = 0; i < shape.points.length; i += 2) {
+          // FIX: Convert 2D points array
+          for (let i = 0; i < shape.points.length; i++) {
             polygonPoints.push({
-              x: shape.x + shape.points[i],
-              y: shape.y + shape.points[i + 1],
+              x: shape.x + shape.points[i].x,
+              y: shape.y + shape.points[i].y,
             });
           }
 

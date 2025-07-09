@@ -59,13 +59,14 @@ const createCircleHitFunc = (shape: any) => {
 const createPolygonHitFunc = (shape: any) => {
   return (context: any, shapeNode?: any) => {
     const points = shape.points;
-    if (!points || points.length < 4) return; // Need at least 2 points (4 values)
+    if (!points || points.length < 2) return; // FIX: Need at least 2 points
 
     context.beginPath();
-    context.moveTo(points[0], points[1]);
+    // FIX: Handle 2D points array
+    context.moveTo(points[0].x, points[0].y);
 
-    for (let i = 2; i < points.length; i += 2) {
-      context.lineTo(points[i], points[i + 1]);
+    for (let i = 1; i < points.length; i++) {
+      context.lineTo(points[i].x, points[i].y);
     }
 
     if (shape.closed !== false) {

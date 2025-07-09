@@ -15,19 +15,22 @@ interface AreaSettingsCardProps {
 
 export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
   const { zoomedArea } = useAreaMode();
-  
+
   // FIX: Use shape if provided (for polygon mode), otherwise use zoomedArea
   const targetArea = shape || zoomedArea;
 
   // FIX: For polygon shapes, we need to ensure they have area properties
-  const defaultSeatRadius = targetArea?.defaultSeatRadius || targetArea?.seatRadius || 8;
-  const defaultSeatSpacing = targetArea?.defaultSeatSpacing || targetArea?.seatSpacing || 20;
-  const defaultSeatColor = targetArea?.defaultSeatColor || targetArea?.fill || "#4CAF50";
+  const defaultSeatRadius =
+    targetArea?.defaultSeatRadius || targetArea?.seatRadius || 8;
+  const defaultSeatSpacing =
+    targetArea?.defaultSeatSpacing || targetArea?.seatSpacing || 20;
+  const defaultSeatColor =
+    targetArea?.defaultSeatColor || targetArea?.fill || "#4CAF50";
 
   // FIX: Add debounced callback for color changes
   const debouncedColorChange = useDebouncedCallback(
     (value: string) => {
-      const updates = shape 
+      const updates = shape
         ? { defaultSeatColor: value, fill: value } // For polygon shapes, update both
         : { defaultSeatColor: value };
       handlers.handleAreaUpdate(updates);
@@ -41,7 +44,7 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
     defaultSeatRadius,
     (value) => {
       const numValue = parseInt(value) || 8;
-      const updates = shape 
+      const updates = shape
         ? { defaultSeatRadius: numValue, seatRadius: numValue } // For polygon shapes
         : { defaultSeatRadius: numValue };
       handlers.handleAreaUpdate(updates);
@@ -53,7 +56,7 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
     defaultSeatSpacing,
     (value) => {
       const numValue = parseInt(value) || 20;
-      const updates = shape 
+      const updates = shape
         ? { defaultSeatSpacing: numValue, seatSpacing: numValue } // For polygon shapes
         : { defaultSeatSpacing: numValue };
       handlers.handleAreaUpdate(updates);
@@ -91,9 +94,7 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
               className="h-8 mt-1 px-3 py-1 border border-gray-600 rounded-md cursor-pointer hover:border-gray-500 bg-gray-800 flex items-center transition-colors"
               {...defaultSeatRadiusEdit.eventHandlers}
             >
-              <span className="text-gray-300">
-                {defaultSeatRadius}px
-              </span>
+              <span className="text-gray-300">{defaultSeatRadius}px</span>
             </div>
           )}
         </div>
@@ -118,9 +119,7 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
               className="h-8 mt-1 px-3 py-1 border border-gray-600 rounded-md cursor-pointer hover:border-gray-500 bg-gray-800 flex items-center transition-colors"
               {...defaultSeatSpacingEdit.eventHandlers}
             >
-              <span className="text-gray-300">
-                {defaultSeatSpacing}px
-              </span>
+              <span className="text-gray-300">{defaultSeatSpacing}px</span>
             </div>
           )}
         </div>

@@ -188,6 +188,20 @@ export default function CanvasEditorClient() {
 
       const shapeKey = isPreview ? `preview-${shape.id}` : shape.id;
 
+      // FIX: Create consolidated area events object
+      const areaEvents = {
+        onRowClick: eventHandlers.handleRowClick,
+        onSeatClick: eventHandlers.handleSeatClick,
+        onRowDoubleClick: eventHandlers.handleRowDoubleClick,
+        onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
+        onRowDragStart: eventHandlers.handleRowDragStart,
+        onRowDragMove: eventHandlers.handleRowDragMove,
+        onRowDragEnd: eventHandlers.handleRowDragEnd,
+        onSeatDragStart: eventHandlers.handleSeatDragStart,
+        onSeatDragMove: eventHandlers.handleSeatDragMove,
+        onSeatDragEnd: eventHandlers.handleSeatDragEnd,
+      };
+
       return renderShape({
         shape,
         isSelected,
@@ -200,17 +214,8 @@ export default function CanvasEditorClient() {
         zoomedAreaId: zoomedAreaId,
         selectedRowIds: eventHandlers.areaZoom.selectedRowIds || [],
         selectedSeatIds: eventHandlers.areaZoom.selectedSeatIds || [],
-        onRowClick: eventHandlers.handleRowClick,
-        onSeatClick: eventHandlers.handleSeatClick,
-        onRowDoubleClick: eventHandlers.handleRowDoubleClick,
-        onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
-        // FIX: Pass drag events to shape renderer
-        onRowDragStart: eventHandlers.handleRowDragStart,
-        onRowDragMove: eventHandlers.handleRowDragMove,
-        onRowDragEnd: eventHandlers.handleRowDragEnd,
-        onSeatDragStart: eventHandlers.handleSeatDragStart,
-        onSeatDragMove: eventHandlers.handleSeatDragMove,
-        onSeatDragEnd: eventHandlers.handleSeatDragEnd,
+        // FIX: Pass consolidated area events
+        areaEvents: areaEvents,
       });
     },
     [selectedShapeIds, currentTool, eventHandlers]

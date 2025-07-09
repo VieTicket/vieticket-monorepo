@@ -34,11 +34,12 @@ export const useAreaZoom = () => {
       const points = polygon.points;
       let inside = false;
 
-      for (let i = 0, j = points.length - 2; i < points.length; j = i, i += 2) {
-        const xi = polygon.x + points[i];
-        const yi = polygon.y + points[i + 1];
-        const xj = polygon.x + points[j];
-        const yj = polygon.y + points[j + 1];
+      // FIX: Update to work with 2D points array
+      for (let i = 0, j = points.length - 1; i < points.length; j = i, i++) {
+        const xi = polygon.x + points[i].x;
+        const yi = polygon.y + points[i].y;
+        const xj = polygon.x + points[j].x;
+        const yj = polygon.y + points[j].y;
 
         if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) {
           inside = !inside;
@@ -51,18 +52,23 @@ export const useAreaZoom = () => {
   );
 
   const getPolygonBounds = useCallback((polygon: Shape) => {
-    if (polygon.type !== "polygon" || !polygon.points) {
+    if (
+      polygon.type !== "polygon" ||
+      !polygon.points ||
+      polygon.points.length === 0
+    ) {
       return { minX: 0, minY: 0, maxX: 100, maxY: 100 };
     }
 
-    let minX = polygon.x + polygon.points[0];
-    let maxX = polygon.x + polygon.points[0];
-    let minY = polygon.y + polygon.points[1];
-    let maxY = polygon.y + polygon.points[1];
+    // FIX: Update to work with 2D points array
+    let minX = polygon.x + polygon.points[0].x;
+    let maxX = polygon.x + polygon.points[0].x;
+    let minY = polygon.y + polygon.points[0].y;
+    let maxY = polygon.y + polygon.points[0].y;
 
-    for (let i = 2; i < polygon.points.length; i += 2) {
-      const x = polygon.x + polygon.points[i];
-      const y = polygon.y + polygon.points[i + 1];
+    for (let i = 1; i < polygon.points.length; i++) {
+      const x = polygon.x + polygon.points[i].x;
+      const y = polygon.y + polygon.points[i].y;
       minX = Math.min(minX, x);
       maxX = Math.max(maxX, x);
       minY = Math.min(minY, y);

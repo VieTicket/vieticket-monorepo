@@ -48,7 +48,8 @@ export interface TextShape extends BaseShape {
 // UPDATED: PolygonShape represents an Area
 export interface PolygonShape extends BaseShape {
   type: "polygon";
-  points: number[];
+  // FIX: Change from number[] to Point[]
+  points: { x: number; y: number }[];
   closed?: boolean;
   // Area-specific properties
   areaName?: string;
@@ -140,7 +141,7 @@ export type AnyShapeUpdate = Partial<Omit<BaseShape, "id" | "type">> & {
   fontStyle?: string;
   align?: string;
   // Polygon/Area-specific
-  points?: number[];
+  points?: { x: number; y: number }[]; // FIX: Updated type
   closed?: boolean;
   areaName?: string;
   capacity?: number;

@@ -127,7 +127,7 @@ export const createAreaSlice: StateCreator<
     }
   },
 
-  // FIX: Update updateRow to sync ALL properties between rows and seats
+  // FIX: Update updateRow to properly sync ALL properties between rows and seats
   updateRow: (rowId, updates) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
@@ -159,52 +159,53 @@ export const createAreaSlice: StateCreator<
           }));
         }
 
-        // FIX: Visual properties sync (colors and strokes)
+        // FIX: Visual properties sync (colors and strokes) - FIXED LOGIC
         if ("fill" in updates && updates.fill !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            // Only update seat color if it doesn't have a custom color or matches the old row color
-            fill:
-              !seat.fill || seat.fill === row.fill ? updates.fill : seat.fill,
+            // Update seat fill if it matches row fill or has no custom fill
+            fill: updates.fill,
           }));
         }
 
         if ("stroke" in updates && updates.stroke !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            stroke:
-              !seat.stroke || seat.stroke === row.stroke
-                ? updates.stroke
-                : seat.stroke,
+            // Update seat stroke if it matches row stroke or has no custom stroke
+            stroke: updates.stroke,
           }));
         }
 
         if ("strokeWidth" in updates && updates.strokeWidth !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            strokeWidth:
-              !seat.strokeWidth || seat.strokeWidth === row.strokeWidth
-                ? updates.strokeWidth
-                : seat.strokeWidth,
+            // Update seat strokeWidth if it matches row strokeWidth or has no custom strokeWidth
+            strokeWidth: updates.strokeWidth,
           }));
         }
 
-        // FIX: Rotation sync - apply rotation to seat positions
-        if ("rotation" in updates && updates.rotation !== undefined) {
-          const centerX =
-            row.startX + (row.seats.length * (row.seatSpacing || 20)) / 2;
-          const centerY = row.startY;
+        // FIX: Rotation sync - use first seat center as rotation point
+        if (
+          "rotation" in updates &&
+          updates.rotation !== undefined &&
+          row.seats.length > 0
+        ) {
+          const firstSeat = row.seats[0];
+          // FIX: Use first seat position as rotation center
+          const centerX = firstSeat.x;
+          const centerY = firstSeat.y;
           const rotationRad = (updates.rotation * Math.PI) / 180;
 
           updatedSeats = updatedSeats.map((seat, index) => {
-            // Calculate original position relative to row start
-            const originalX = row.startX + index * (row.seatSpacing || 20);
-            const originalY = row.startY;
+            // Get the seat's current position
+            const currentX = seat.x;
+            const currentY = seat.y;
 
-            // Apply rotation around the row center
-            const relativeX = originalX - centerX;
-            const relativeY = originalY - centerY;
+            // Calculate position relative to first seat (rotation center)
+            const relativeX = currentX - centerX;
+            const relativeY = currentY - centerY;
 
+            // Apply rotation around the first seat center
             const rotatedX =
               relativeX * Math.cos(rotationRad) -
               relativeY * Math.sin(rotationRad);
@@ -219,14 +220,6 @@ export const createAreaSlice: StateCreator<
             };
           });
         }
-
-        // FIX: Opacity sync
-        // if ("opacity" in updates && updates.opacity !== undefined) {
-        //   updatedSeats = updatedSeats.map((seat) => ({
-        //     ...seat,
-        //     opacity: seat.opacity ?? updates.opacity,
-        //   }));
-        // }
 
         // FIX: Category sync (if row category changes, update seat categories that match)
         if ("rowCategory" in updates && updates.rowCategory !== undefined) {

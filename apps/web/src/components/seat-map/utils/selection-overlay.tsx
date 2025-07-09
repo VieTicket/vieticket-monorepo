@@ -176,19 +176,20 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
         }
 
       case "polygon":
-        if (!shape.points || shape.points.length < 2) {
+        if (!shape.points || shape.points.length < 1) {
+          // FIX: Changed from 2 to 1
           return { x: shape.x, y: shape.y, width: 50, height: 50 };
         }
 
-        // Calculate polygon bounds
-        let minX = shape.x + shape.points[0];
-        let maxX = shape.x + shape.points[0];
-        let minY = shape.y + shape.points[1];
-        let maxY = shape.y + shape.points[1];
+        // FIX: Calculate polygon bounds with 2D points array
+        let minX = shape.x + shape.points[0].x;
+        let maxX = shape.x + shape.points[0].x;
+        let minY = shape.y + shape.points[0].y;
+        let maxY = shape.y + shape.points[0].y;
 
-        for (let i = 2; i < shape.points.length; i += 2) {
-          const pointX = shape.x + shape.points[i];
-          const pointY = shape.y + shape.points[i + 1];
+        for (let i = 1; i < shape.points.length; i++) {
+          const pointX = shape.x + shape.points[i].x;
+          const pointY = shape.y + shape.points[i].y;
           minX = Math.min(minX, pointX);
           maxX = Math.max(maxX, pointX);
           minY = Math.min(minY, pointY);
@@ -201,10 +202,11 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           const rotationOrigin = { x: shape.x, y: shape.y };
           const polygonPoints = [];
 
-          for (let i = 0; i < shape.points.length; i += 2) {
+          // FIX: Convert 2D points array
+          for (let i = 0; i < shape.points.length; i++) {
             polygonPoints.push({
-              x: shape.x + shape.points[i],
-              y: shape.y + shape.points[i + 1],
+              x: shape.x + shape.points[i].x,
+              y: shape.y + shape.points[i].y,
             });
           }
 

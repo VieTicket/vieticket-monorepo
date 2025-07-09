@@ -1,28 +1,19 @@
+import React from "react";
 import { Circle, Group, Line, Rect, Text } from "react-konva";
 import { Shape, PolygonShape } from "@/types/seat-map-types";
 import { createHitFunc } from "./shape-hit-detection";
-import { renderAreaContent } from "./area-renderer";
+import { renderAreaContent, AreaEventProps } from "./area-renderer";
 
 export interface ShapeProps {
   shape: Shape;
   isSelected: boolean;
   commonProps: any;
-
   isInAreaMode?: boolean;
   zoomedAreaId?: string;
   selectedRowIds?: string[];
   selectedSeatIds?: string[];
-  onRowClick?: (rowId: string, e: any) => void;
-  onSeatClick?: (seatId: string, e: any) => void;
-  onRowDoubleClick?: (rowId: string, e: any) => void;
-  onSeatDoubleClick?: (seatId: string, e: any) => void;
-  // FIX: Add drag event handlers
-  onRowDragStart?: (rowId: string, e: any) => void;
-  onRowDragMove?: (rowId: string, e: any) => void;
-  onRowDragEnd?: (rowId: string, e: any) => void;
-  onSeatDragStart?: (seatId: string, e: any) => void;
-  onSeatDragMove?: (seatId: string, e: any) => void;
-  onSeatDragEnd?: (seatId: string, e: any) => void;
+  // FIX: Use consolidated area events interface
+  areaEvents?: AreaEventProps;
 }
 
 export const renderShape = ({
@@ -33,17 +24,7 @@ export const renderShape = ({
   zoomedAreaId,
   selectedRowIds = [],
   selectedSeatIds = [],
-  onRowClick,
-  onSeatClick,
-  onRowDoubleClick,
-  onSeatDoubleClick,
-  // FIX: Add drag event handlers
-  onRowDragStart,
-  onRowDragMove,
-  onRowDragEnd,
-  onSeatDragStart,
-  onSeatDragMove,
-  onSeatDragEnd,
+  areaEvents,
 }: ShapeProps) => {
   const { key, ...restProps } = commonProps;
   const hitFunc = createHitFunc(shape);
@@ -121,14 +102,21 @@ export const renderShape = ({
       const hasRows =
         Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
 
+      // FIX: Convert 2D points array to flat array for Konva Line component
+      const flatPoints =
+        shape.points?.reduce((acc, point) => {
+          acc.push(point.x, point.y);
+          return acc;
+        }, [] as number[]) || [];
+
       return (
         <Group key={key} {...restProps}>
           {/* Polygon outline with area mode styling */}
           <Line
             x={0}
             y={0}
-            points={shape.points}
-            closed={shape.closed}
+            points={flatPoints} // FIX: Use converted flat points array
+            closed={shape.closed !== false} // Default to true if not specified
             fill={isCurrentArea ? "#f5f5f5" : shape.fill}
             stroke={isCurrentArea ? "#999999" : shape.stroke}
             strokeWidth={shape.strokeWidth || 1}
@@ -138,40 +126,32 @@ export const renderShape = ({
             listening={!isInAreaMode}
           />
 
-          {/* Area name */}
+          {/* Area name - FIX: Use 2D points for center calculation */}
           {shape.name && (
             <Text
               x={getPolygonCenter(shape.points).x}
               y={getPolygonCenter(shape.points).y}
               text={shape.name}
-              fontSize={12}
-              fill="#000"
+              fontSize={14}
+              fontFamily="Arial"
+              fill={isCurrentArea ? "#333" : "#000"}
               align="center"
               verticalAlign="middle"
-              offsetX={shape.name.length * 3}
-              offsetY={6}
+              offsetX={shape.name.length * 3.5}
+              offsetY={7}
               listening={false}
+              perfectDrawEnabled={false}
             />
           )}
 
-          {/* FIX: Area content (rows and seats) - now with drag events */}
+          {/* Area content (rows and seats) when in area mode */}
           {hasRows && (
             <Group>
               {renderAreaContent({
-                rows: polygonShape.rows ? polygonShape.rows : [],
+                rows: polygonShape.rows || [],
                 selectedRowIds,
                 selectedSeatIds,
-                onRowClick: isInAreaMode ? onRowClick : undefined,
-                onSeatClick: isInAreaMode ? onSeatClick : undefined,
-                onRowDoubleClick: isInAreaMode ? onRowDoubleClick : undefined,
-                onSeatDoubleClick: isInAreaMode ? onSeatDoubleClick : undefined,
-                // FIX: Pass drag events to area content
-                onRowDragStart: isInAreaMode ? onRowDragStart : undefined,
-                onRowDragMove: isInAreaMode ? onRowDragMove : undefined,
-                onRowDragEnd: isInAreaMode ? onRowDragEnd : undefined,
-                onSeatDragStart: isInAreaMode ? onSeatDragStart : undefined,
-                onSeatDragMove: isInAreaMode ? onSeatDragMove : undefined,
-                onSeatDragEnd: isInAreaMode ? onSeatDragEnd : undefined,
+                areaEvents, // FIX: Pass consolidated area events
                 isInteractive: isInAreaMode,
               })}
             </Group>
@@ -181,11 +161,11 @@ export const renderShape = ({
 
     case "text":
       return (
-        <Group key={key} x={shape.x} y={shape.y} {...restProps}>
+        <Group key={key} {...restProps}>
           <Text
             x={0}
             y={0}
-            text={shape.name || "New Text"}
+            text={shape.text || shape.name || "New Text"}
             fontSize={shape.fontSize || 16}
             fontFamily={shape.fontFamily || "Arial"}
             fontStyle={shape.fontStyle || "normal"}
@@ -198,34 +178,83 @@ export const renderShape = ({
             listening={!isInAreaMode}
             hitFunc={hitFunc}
             wrap="none"
+            perfectDrawEnabled={false}
           />
         </Group>
       );
 
     default:
+      console.warn(`Unknown shape type: ${(shape as any).type}`);
       return null;
   }
 };
 
-const getPolygonCenter = (points: number[]) => {
-  if (!points || points.length < 2) {
+// FIX: Update getPolygonCenter to work with 2D points array
+const getPolygonCenter = (points: { x: number; y: number }[] = []) => {
+  if (!points || points.length === 0) {
     return { x: 0, y: 0 };
   }
 
-  let minX = points[0];
-  let maxX = points[0];
-  let minY = points[1];
-  let maxY = points[1];
+  // Calculate the bounding box center
+  let minX = points[0].x;
+  let maxX = points[0].x;
+  let minY = points[0].y;
+  let maxY = points[0].y;
 
-  for (let i = 2; i < points.length; i += 2) {
-    minX = Math.min(minX, points[i]);
-    maxX = Math.max(maxX, points[i]);
-    minY = Math.min(minY, points[i + 1]);
-    maxY = Math.max(maxY, points[i + 1]);
+  for (let i = 1; i < points.length; i++) {
+    minX = Math.min(minX, points[i].x);
+    maxX = Math.max(maxX, points[i].x);
+    minY = Math.min(minY, points[i].y);
+    maxY = Math.max(maxY, points[i].y);
   }
 
   return {
     x: (minX + maxX) / 2,
     y: (minY + maxY) / 2,
   };
+};
+
+// FIX: Alternative centroid calculation (more accurate for irregular polygons)
+const getPolygonCentroid = (points: { x: number; y: number }[] = []) => {
+  if (!points || points.length === 0) {
+    return { x: 0, y: 0 };
+  }
+
+  if (points.length === 1) {
+    return { x: points[0].x, y: points[0].y };
+  }
+
+  if (points.length === 2) {
+    return {
+      x: (points[0].x + points[1].x) / 2,
+      y: (points[0].y + points[1].y) / 2,
+    };
+  }
+
+  // Calculate polygon centroid using the standard formula
+  let area = 0;
+  let centroidX = 0;
+  let centroidY = 0;
+
+  for (let i = 0; i < points.length; i++) {
+    const j = (i + 1) % points.length;
+    const factor = points[i].x * points[j].y - points[j].x * points[i].y;
+    area += factor;
+    centroidX += (points[i].x + points[j].x) * factor;
+    centroidY += (points[i].y + points[j].y) * factor;
+  }
+
+  area *= 0.5;
+
+  if (Math.abs(area) < 0.0001) {
+    // Fallback to simple average if area is too small
+    const avgX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
+    const avgY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+    return { x: avgX, y: avgY };
+  }
+
+  centroidX /= 6 * area;
+  centroidY /= 6 * area;
+
+  return { x: centroidX, y: centroidY };
 };
