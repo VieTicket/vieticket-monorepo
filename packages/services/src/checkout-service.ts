@@ -285,7 +285,6 @@ export async function processPaymentResult(
         }
 
         const ticketData = seatHolds.map((hold) => ({
-            ticketId: crypto.randomUUID(),
             seatId: hold.seatId,
             status: "active" as const
         }));

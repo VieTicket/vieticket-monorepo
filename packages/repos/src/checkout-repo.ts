@@ -308,7 +308,6 @@ export async function executePaymentTransaction(
   orderId: string,
   userId: string,
   ticketData: Array<{
-    ticketId: string;
     seatId: string;
     status: TicketStatus;
   }>
@@ -364,7 +363,6 @@ export async function executePaymentTransaction(
 
     // 4. Create tickets with provided data
     const ticketsToInsert = ticketData.map(data => ({
-      id: data.ticketId, 
       orderId,
       seatId: data.seatId,
       status: data.status,
