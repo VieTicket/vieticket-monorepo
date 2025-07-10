@@ -243,8 +243,24 @@ export default function CreateEventPage() {
 
             <TiptapEditorInput
               value={formData.description}
-              onChange={(v) => setFormData({ ...formData, description: v })}
+              onChange={(v) => {
+                console.log(
+                  "📄 TipTap onChange triggered, content length:",
+                  v.length
+                );
+                setFormData({ ...formData, description: v });
+              }}
               error={!!errors.description}
+              eventData={{
+                name: formData.name,
+                type: formData.type,
+                startTime: formData.startTime,
+                endTime: formData.endTime,
+                location: formData.location,
+                ticketSaleStart: formData.ticketSaleStart,
+                ticketSaleEnd: formData.ticketSaleEnd,
+                ticketPrice: areas[0]?.ticketPrice || "", // Get price from first area
+              }}
             />
           </>
         );
@@ -318,7 +334,6 @@ export default function CreateEventPage() {
                         posterUrl: imageUrl,
                       }))
                     }
-                    eventName={formData.name}
                     eventType={formData.type}
                   />
                 </div>
@@ -393,7 +408,6 @@ export default function CreateEventPage() {
                           bannerUrl: imageUrl,
                         }))
                       }
-                      eventName={formData.name}
                       eventType={formData.type}
                     />
                   </div>
@@ -535,6 +549,15 @@ export default function CreateEventPage() {
         return null;
     }
   };
+
+  // Debug logging for formData changes
+  useEffect(() => {
+    console.log(
+      "🔍 FormData.description updated:",
+      formData.description.length,
+      "chars"
+    );
+  }, [formData.description]);
 
   return (
     <div className="max-w-6xl mx-auto p-6">

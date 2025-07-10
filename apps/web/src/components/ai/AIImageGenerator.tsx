@@ -20,20 +20,18 @@ import { uploadFileToCloudinary } from "../ui/file-uploader";
 interface AIImageGeneratorProps {
   type: "poster" | "banner";
   onImageGenerated: (imageUrl: string) => void;
-  eventName?: string;
   eventType?: string;
 }
 
 export function AIImageGenerator({
   type,
   onImageGenerated,
-  eventName = "",
   eventType = "",
 }: AIImageGeneratorProps) {
   const [prompt, setPrompt] = useState(
-    "A confident muscle Cristial Ronaldo holding a microphone on stage during a live concert, wearing a stylish tanktop and have a lot of yakuza tattoos, surrounded by colorful stage lights and smoke effects. Shot in dynamic low angle, emphasizing her power and energy. Professional concert photography style, sharp focus, high contrast, rich colors, bokeh background, dramatic lighting, 16:9 aspect ratio."
+    "Modern abstract background with vibrant colorful lights, dynamic energy rays, professional event atmosphere, high-quality digital art, contemporary design elements, perfect for concert or entertainment events"
   );
-  const [textPrompt, setTextPrompt] = useState("Music Night"); // NEW
+  const [textPrompt, setTextPrompt] = useState("EVENT 2025"); // NEW
   const [style, setStyle] = useState("modern");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
@@ -52,7 +50,6 @@ export function AIImageGenerator({
         textPrompt,
         type,
         style,
-        eventName,
         eventType
       );
 
@@ -85,7 +82,6 @@ export function AIImageGenerator({
     text: string,
     type: "poster" | "banner",
     style: string,
-    eventName: string,
     eventType: string
   ): string => {
     const basePrompt =
@@ -108,11 +104,11 @@ export function AIImageGenerator({
       ? `Overlay elegant, artistic typography with bold, stylish text: "${text}". Center aligned. Decorative font with clear readability. Professionally composed, balanced layout. High contrast for visual impact.`
       : "";
 
-    const eventInfo = `${eventName ? `for ${eventName}` : ""} ${
-      eventType ? `${eventType} event` : ""
-    }`.trim();
+    const eventInfo = eventType
+      ? `${eventType} event atmosphere`
+      : "professional event atmosphere";
 
-    return `${background} ${eventInfo}, ${basePrompt}, ${stylePrompts[style]}, ${formattedText}, high resolution, digital art`;
+    return `${background}, ${eventInfo}, ${basePrompt}, ${stylePrompts[style]}, ${formattedText}, high resolution, digital art, professional quality`;
   };
 
   async function cropAndResizeImage(blob: Blob): Promise<string> {
