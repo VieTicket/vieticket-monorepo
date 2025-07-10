@@ -364,7 +364,7 @@ export async function executePaymentTransaction(
 
     // 4. Create tickets with provided data
     const ticketsToInsert = ticketData.map(data => ({
-      id: data.ticketId,  // ❌ Missing ticketId field
+      id: data.ticketId, 
       orderId,
       seatId: data.seatId,
       status: data.status,

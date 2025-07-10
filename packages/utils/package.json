@@ -12,7 +12,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "dev": "tsc --watch"
+    "dev": "tsc --watch",
+    "test": "bun test"
   },
   "devDependencies": {
     "@types/bun": "latest",
@@ -25,6 +26,7 @@
     "@noble/ed25519": "^2.3.0",
     "@noble/hashes": "^1.8.0",
     "bson": "^6.10.4",
+    "date-fns-tz": "^3.2.0",
     "form-data": "^4.0.3",
     "mailgun.js": "^12.0.3",
     "msgpackr": "^1.11.4",

@@ -12,7 +12,7 @@ describe('ticket-validation', () => {
     let sampleTicketData: {
         ticketId: string;
         visitorName: string;
-        event: { id: string; name: string };
+        eventId: string; // Changed from event object to eventId
         seat: { id: string; number: string };
         row: { id: string; name: string };
         area: { id: string; name: string };
@@ -40,11 +40,11 @@ describe('ticket-validation', () => {
             publicKey: testKeys.publicKey
         });
 
-        // Sample ticket data
+        // Sample ticket data - updated to use eventId instead of event object
         sampleTicketData = {
             ticketId: crypto.randomUUID(),
             visitorName: 'Ngo Tran Xuan Hoa',
-            event: { id: crypto.randomUUID(), name: 'Festival Thanh Hoa 36' },
+            eventId: crypto.randomUUID(), 
             seat: { id: crypto.randomUUID(), number: '07' },
             row: { id: crypto.randomUUID(), name: 'R17A' },
             area: { id: crypto.randomUUID(), name: 'Premium Economy' }
@@ -118,7 +118,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId, // Just eventId now
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -135,7 +135,7 @@ describe('ticket-validation', () => {
             const qrData1 = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -147,7 +147,7 @@ describe('ticket-validation', () => {
             const qrData2 = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -169,7 +169,7 @@ describe('ticket-validation', () => {
                 generateTicketQRData(
                     sampleTicketData.ticketId,
                     sampleTicketData.visitorName,
-                    sampleTicketData.event,
+                    sampleTicketData.eventId,
                     sampleTicketData.seat,
                     sampleTicketData.row,
                     sampleTicketData.area
@@ -184,7 +184,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -194,7 +194,7 @@ describe('ticket-validation', () => {
             const [compressedPayload, signature] = unpack(qrData) as any;
             console.log('📋 Decoded compressed structure - payload length:', compressedPayload.length, 'signature length:', signature.length);
 
-            // Verify compressed payload structure: [ticketId, timestamp, visitorName, event, seat, row, area]
+            // Verify compressed payload structure: [ticketId, timestamp, visitorName, eventId, seat, row, area]
             expect(Array.isArray(compressedPayload)).toBe(true);
             expect(compressedPayload).toHaveLength(7);
 
@@ -207,10 +207,10 @@ describe('ticket-validation', () => {
             expect(compressedPayload[0]).toHaveLength(16); // UUID is 16 bytes
             expect(typeof compressedPayload[1]).toBe('number'); // timestamp
             expect(typeof compressedPayload[2]).toBe('string'); // visitorName
-            expect(Array.isArray(compressedPayload[3])).toBe(true); // event array
-            expect(compressedPayload[3]).toHaveLength(2); // [eventId, eventName]
-            expect(compressedPayload[3][0]).toBeInstanceOf(Uint8Array); // eventId as binary
-            expect(typeof compressedPayload[3][1]).toBe('string'); // eventName
+            expect(compressedPayload[3]).toBeInstanceOf(Uint8Array); // eventId as binary UUID (no name)
+            expect(compressedPayload[3]).toHaveLength(16); // UUID is 16 bytes
+            expect(Array.isArray(compressedPayload[4])).toBe(true); // seat array
+            expect(compressedPayload[4]).toHaveLength(2); // [seatId, seatNumber]
 
             console.log('✅ Compressed payload structure validation passed');
         });
@@ -220,7 +220,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -248,7 +248,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -261,7 +261,7 @@ describe('ticket-validation', () => {
             expect(decoded).not.toBeNull();
             expect(decoded!.ticketId).toBe(sampleTicketData.ticketId);
             expect(decoded!.visitorName).toBe(sampleTicketData.visitorName);
-            expect(decoded!.event).toEqual(sampleTicketData.event);
+            expect(decoded!.eventId).toBe(sampleTicketData.eventId); // Just eventId now
             expect(decoded!.seat).toEqual(sampleTicketData.seat);
             expect(decoded!.row).toEqual(sampleTicketData.row);
             expect(decoded!.area).toEqual(sampleTicketData.area);
@@ -284,7 +284,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -304,7 +304,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -343,7 +343,7 @@ describe('ticket-validation', () => {
             const qrDataWithDifferentKey = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -368,7 +368,7 @@ describe('ticket-validation', () => {
             const compressedData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -377,6 +377,8 @@ describe('ticket-validation', () => {
 
             const qrImage = await generateQRCodeImage(compressedData);
             console.log('🖼️ Generated QR image (first 100 chars):', qrImage.substring(0, 100) + '...');
+
+            console.log('\n\n' + qrImage);
 
             expect(typeof qrImage).toBe('string');
             expect(qrImage).toMatch(/^data:image\/png;base64,/);
@@ -393,7 +395,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -408,7 +410,7 @@ describe('ticket-validation', () => {
             expect(decoded).not.toBeNull();
             expect(decoded!.ticketId).toBe(sampleTicketData.ticketId);
             expect(decoded!.visitorName).toBe(sampleTicketData.visitorName);
-            expect(decoded!.event).toEqual(sampleTicketData.event);
+            expect(decoded!.eventId).toBe(sampleTicketData.eventId);
             expect(decoded!.seat).toEqual(sampleTicketData.seat);
             expect(decoded!.row).toEqual(sampleTicketData.row);
             expect(decoded!.area).toEqual(sampleTicketData.area);
@@ -423,7 +425,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 specialName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -438,29 +440,6 @@ describe('ticket-validation', () => {
             console.log('✅ Special characters handled correctly in compression');
         });
 
-        it('should handle long event names', () => {
-            console.log('🧪 Testing long event names...');
-            const longEventName = 'This is a very long event name that might cause issues with QR code generation if not handled properly - Annual Music Festival 2024';
-            console.log('🎫 Long event name:', longEventName);
-
-            const qrData = generateTicketQRData(
-                sampleTicketData.ticketId,
-                sampleTicketData.visitorName,
-                { id: sampleTicketData.event.id, name: longEventName },
-                sampleTicketData.seat,
-                sampleTicketData.row,
-                sampleTicketData.area
-            );
-            console.log('📱 Generated compressed QR data with long event name, length:', qrData.length);
-
-            const decoded = decodeTicketQRData(qrData);
-            console.log('📋 Decoded long event name result:', JSON.stringify(decoded, null, 2));
-
-            expect(decoded).not.toBeNull();
-            expect(decoded!.event.name).toBe(longEventName);
-            console.log('✅ Long event name handled correctly in compression');
-        });
-
         it('should verify timestamp is recent', () => {
             console.log('🧪 Testing timestamp accuracy...');
             const beforeGeneration = Date.now();
@@ -469,7 +448,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -488,13 +467,13 @@ describe('ticket-validation', () => {
             console.log('✅ Timestamp accuracy verified');
         });
 
-        it('should verify maximum compression benefits', () => {
-            console.log('🧪 Testing maximum compression benefits...');
+        it('should verify maximum compression benefits with event name removal', () => {
+            console.log('🧪 Testing maximum compression benefits with event name removal...');
 
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
@@ -505,76 +484,74 @@ describe('ticket-validation', () => {
             console.log('  ✅ Binary signature (32 bytes vs 64 hex chars)');
             console.log('  ✅ Array format (no field names)');
             console.log('  ✅ UUID compression (16 bytes vs 36 chars each)');
+            console.log('  ✅ Event name removal (ID only, inspector looks up name)');
             console.log('  ✅ MessagePack encoding');
             console.log('  ✅ QR byte mode');
 
-            // Should be very compact (typically under 200 bytes for this payload)
-            expect(qrData.length).toBeLessThan(250);
-            console.log('✅ Maximum compression achieved');
+            // Should be even more compact now (typically under 180 bytes)
+            expect(qrData.length).toBeLessThan(220);
+            console.log('✅ Maximum compression with event name removal achieved');
         });
 
-        it('should handle edge case: all minimum length UUIDs', () => {
-            console.log('🧪 Testing edge case with various UUID formats...');
+        it('should handle edge case: minimal data', () => {
+            console.log('🧪 Testing edge case with minimal data...');
 
-            // Use different UUID formats to test compression
-            const edgeCaseData = {
+            // Use minimal data to test compression
+            const minimalData = {
                 ticketId: '00000000-0000-0000-0000-000000000001',
-                visitorName: 'A', // Minimal name
-                event: { id: '00000000-0000-0000-0000-000000000002', name: 'E' },
+                visitorName: 'A',
+                eventId: '00000000-0000-0000-0000-000000000002',
                 seat: { id: '00000000-0000-0000-0000-000000000003', number: '1' },
                 row: { id: '00000000-0000-0000-0000-000000000004', name: 'A' },
                 area: { id: '00000000-0000-0000-0000-000000000005', name: 'X' }
             };
 
             const qrData = generateTicketQRData(
-                edgeCaseData.ticketId,
-                edgeCaseData.visitorName,
-                edgeCaseData.event,
-                edgeCaseData.seat,
-                edgeCaseData.row,
-                edgeCaseData.area
+                minimalData.ticketId,
+                minimalData.visitorName,
+                minimalData.eventId,
+                minimalData.seat,
+                minimalData.row,
+                minimalData.area
             );
 
             const decoded = decodeTicketQRData(qrData);
 
             expect(decoded).not.toBeNull();
-            expect(decoded!.ticketId).toBe(edgeCaseData.ticketId);
-            expect(decoded!.visitorName).toBe(edgeCaseData.visitorName);
-            console.log('📱 Edge case compressed size:', qrData.length, 'bytes');
-            console.log('✅ Edge case compression handled correctly');
+            expect(decoded!.ticketId).toBe(minimalData.ticketId);
+            expect(decoded!.visitorName).toBe(minimalData.visitorName);
+            expect(decoded!.eventId).toBe(minimalData.eventId);
+            console.log('📱 Minimal data compressed size:', qrData.length, 'bytes');
+            console.log('✅ Minimal data compression handled correctly');
         });
     });
 
     describe('Edge cases (maximum compression)', () => {
-        it('should handle empty strings in data', () => {
-            console.log('🧪 Testing empty strings handling...');
-            const emptyData = {
-                ticketId: '00000000-0000-0000-0000-000000000000', // Valid UUID format but zeros
+        it('should handle empty visitor name', () => {
+            console.log('🧪 Testing empty visitor name handling...');
+            const emptyNameData = {
+                ticketId: '00000000-0000-0000-0000-000000000001',
                 visitorName: '',
-                event: { id: '00000000-0000-0000-0000-000000000000', name: '' },
-                seat: { id: '00000000-0000-0000-0000-000000000000', number: '' },
-                row: { id: '00000000-0000-0000-0000-000000000000', name: '' },
-                area: { id: '00000000-0000-0000-0000-000000000000', name: '' }
+                eventId: '00000000-0000-0000-0000-000000000002',
+                seat: { id: '00000000-0000-0000-0000-000000000003', number: '07' },
+                row: { id: '00000000-0000-0000-0000-000000000004', name: 'R17A' },
+                area: { id: '00000000-0000-0000-0000-000000000005', name: 'Premium' }
             };
-            console.log('📋 Empty data being tested:', JSON.stringify(emptyData, null, 2));
 
             const qrData = generateTicketQRData(
-                emptyData.ticketId,
-                emptyData.visitorName,
-                emptyData.event,
-                emptyData.seat,
-                emptyData.row,
-                emptyData.area
+                emptyNameData.ticketId,
+                emptyNameData.visitorName,
+                emptyNameData.eventId,
+                emptyNameData.seat,
+                emptyNameData.row,
+                emptyNameData.area
             );
-            console.log('📱 Generated compressed QR data with empty strings, length:', qrData.length);
 
             const decoded = decodeTicketQRData(qrData);
-            console.log('📋 Decoded empty strings data:', JSON.stringify(decoded, null, 2));
 
             expect(decoded).not.toBeNull();
-            expect(decoded!.ticketId).toBe(emptyData.ticketId);
             expect(decoded!.visitorName).toBe('');
-            console.log('✅ Empty strings handled correctly in compression');
+            console.log('✅ Empty visitor name handled correctly');
         });
 
         it('should handle very large seat numbers', () => {
@@ -585,7 +562,7 @@ describe('ticket-validation', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
-                sampleTicketData.event,
+                sampleTicketData.eventId,
                 { id: sampleTicketData.seat.id, number: largeSeatNumber },
                 sampleTicketData.row,
                 sampleTicketData.area

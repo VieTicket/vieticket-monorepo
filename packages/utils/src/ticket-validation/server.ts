@@ -1,13 +1,17 @@
 import * as ed25519 from '@noble/ed25519';
-import type { SignedTicketData, TicketValidationPayload, CompressedTicketPayload, CompressedSignedData } from './types';
+import type { TicketValidationPayload, CompressedTicketPayload, CompressedSignedData } from './types';
 import { pack } from 'msgpackr/pack';
+import { sha512 } from '@noble/hashes/sha2';
+
+// Configure synchronous SHA-512 for ed25519
+ed25519.etc.sha512Sync = (...m) => sha512(ed25519.etc.concatBytes(...m));
 
 // UUID compression utilities
 function uuidToBytes(uuid: string): Uint8Array {
   const hex = uuid.replace(/-/g, '');
   const bytes = new Uint8Array(16);
   for (let i = 0; i < 16; i++) {
-    bytes[i] = parseInt(hex.substr(i * 2, 2), 16);
+    bytes[i] = parseInt(hex.substring(i * 2, 2), 16);
   }
   return bytes;
 }
@@ -18,7 +22,7 @@ function compressPayload(payload: TicketValidationPayload): CompressedTicketPayl
     uuidToBytes(payload.ticketId),
     payload.timestamp,
     payload.visitorName,
-    [uuidToBytes(payload.event.id), payload.event.name],
+    uuidToBytes(payload.eventId), // Just store eventId as binary, no name
     [uuidToBytes(payload.seat.id), payload.seat.number],
     [uuidToBytes(payload.row.id), payload.row.name],
     [uuidToBytes(payload.area.id), payload.area.name]
@@ -29,7 +33,7 @@ function compressPayload(payload: TicketValidationPayload): CompressedTicketPayl
  * Generates dynamic ticket QR data with Ed25519 signature (maximum compression)
  * @param ticketId - The unique identifier for the ticket
  * @param visitorName - Name of the ticket holder
- * @param event - Event information with id and name
+ * @param eventId - Event identifier (name can be looked up by inspector)
  * @param seat - Seat information with id and number
  * @param row - Row information with id and name
  * @param area - Area information with id and name
@@ -38,7 +42,7 @@ function compressPayload(payload: TicketValidationPayload): CompressedTicketPayl
 export function generateTicketQRData(
   ticketId: string,
   visitorName: string,
-  event: { id: string; name: string },
+  eventId: string, // Changed from event object to just eventId
   seat: { id: string; number: string },
   row: { id: string; name: string },
   area: { id: string; name: string }
@@ -47,7 +51,7 @@ export function generateTicketQRData(
     ticketId,
     timestamp: Date.now(),
     visitorName,
-    event,
+    eventId, // Just store the ID
     seat,
     row,
     area

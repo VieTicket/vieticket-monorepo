@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
 import { getTicketsAction } from "@/lib/actions/customer/checkout-actions";
-import { useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 interface BuyTicketButtonProps {
   eventSlug: string;
@@ -25,7 +25,28 @@ export function BuyTicketButton({
 }: BuyTicketButtonProps) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const [isLoading, setIsLoading] = useState(false);
+  const queryClient = useQueryClient();
+
+  const fetchTicketsMutation = useMutation({
+    mutationFn: async (eventId: string) => {
+      const result = await getTicketsAction(eventId);
+      if (!result.success) {
+        throw new Error(result.error || "Failed to load ticket information");
+      }
+      return result;
+    },
+    onSuccess: (data, eventId) => {
+      // Cache the ticket data with the query key for the seat selection page
+      queryClient.setQueryData(['tickets', eventId], data);
+
+      // Navigate to seat selection page WITH eventId as search param
+      router.push(`/events/${eventSlug}/seat-selection?eventId=${eventId}`);
+    },
+    onError: (error) => {
+      console.error("Error fetching ticket data:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to load ticket information");
+    },
+  });
 
   const handleClick = async () => {
     if (isPreview) {
@@ -49,39 +70,23 @@ export function BuyTicketButton({
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // Call the server action to get ticket data
-      const result = await getTicketsAction(eventId);
-      console.log(JSON.stringify(result, null, 3));
-      
-      if (!result.success) {
-        toast.error(result.error || "Failed to load ticket information");
-        return;
-      }
-
-      // Navigate to ticket purchase page with the fetched data
-      // We could:
-      // use Tanstack Query
-      router.push(`/events/${eventSlug}/seat-selection`);
-      
-    } catch (error) {
-      console.error("Error fetching ticket data:", error);
-      toast.error("Failed to load ticket information");
-    } finally {
-      setIsLoading(false);
-    }
+    fetchTicketsMutation.mutate(eventId);
   };
 
   return (
     <Button
       type="button"
       onClick={handleClick}
-      disabled={disabled || isLoading}
+      disabled={disabled || fetchTicketsMutation.isPending}
       className={className}
     >
       <Ticket className="w-5 h-5" />
-      {isLoading ? "Loading..." : isPreview ? "Buy Tickets (Preview)" : "Buy Tickets"}
+      {fetchTicketsMutation.isPending
+        ? "Loading..."
+        : isPreview
+          ? "Buy Tickets (Preview)"
+          : "Buy Tickets"
+      }
     </Button>
   );
 }

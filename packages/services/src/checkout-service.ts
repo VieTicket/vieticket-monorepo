@@ -125,14 +125,20 @@ export async function createPendingOrder(
     );
 
     // 4. Generate VNPay payment URL
-    const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay-return`;
+    const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
+    const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS ?
+        parseInt(process.env.PAYMENT_TTL_SECONDS, 10) : 900; // Default 15 minutes
+
     const { vnp_TxnRef, paymentURL } = generatePaymentUrl({
         amount: totalAmount,
         ipAddr: clientIp,
         orderId: newOrder.id,
         orderInfo: `Thanh toan don hang ${newOrder.id}`,
         returnUrl,
+        paymentExpirationSeconds
     });
+
+    console.log(paymentURL);
 
     // 5. Store VNPay transaction reference (optional, but good practice)
     await updateOrderVNPayData(newOrder.id, { vnp_TxnRef });
@@ -278,7 +284,6 @@ export async function processPaymentResult(
             throw new Error("No seat holds found for this user");
         }
 
-
         const ticketData = seatHolds.map((hold) => ({
             ticketId: crypto.randomUUID(),
             seatId: hold.seatId,
@@ -362,10 +367,7 @@ async function sendOrderConfirmationEmail(
                 const qrData = generateTicketQRData(
                     ticket.ticketId,
                     user.name, // Will be replaced with actual user name
-                    {
-                        id: eventInfo.eventId,
-                        name: eventInfo.eventName
-                    },
+                    eventInfo.eventId,
                     {
                         id: ticket.seatId,
                         number: ticket.seatNumber

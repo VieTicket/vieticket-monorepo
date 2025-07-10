@@ -2,11 +2,15 @@ import * as ed25519 from '@noble/ed25519';
 import type { TicketValidationPayload, CompressedTicketPayload, CompressedSignedData } from './types';
 import QRCode, { QRCodeSegment } from 'qrcode';
 import { pack, unpack } from 'msgpackr';
+import { sha512 } from '@noble/hashes/sha2';
+
+// Configure synchronous SHA-512 for ed25519
+ed25519.etc.sha512Sync = (...m) => sha512(ed25519.etc.concatBytes(...m));
 
 // UUID decompression utilities
 function bytesToUuid(bytes: Uint8Array): string {
   const hex = Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-  return `${hex.substr(0, 8)}-${hex.substr(8, 4)}-${hex.substr(12, 4)}-${hex.substr(16, 4)}-${hex.substr(20, 12)}`;
+  return `${hex.substring(0, 8)}-${hex.substring(8, 4)}-${hex.substring(12, 4)}-${hex.substring(16, 4)}-${hex.substring(20, 12)}`;
 }
 
 // Convert compressed format back to public API format
@@ -15,10 +19,7 @@ function decompressPayload(compressed: CompressedTicketPayload): TicketValidatio
     ticketId: bytesToUuid(compressed[0]),
     timestamp: compressed[1],
     visitorName: compressed[2],
-    event: {
-      id: bytesToUuid(compressed[3][0]),
-      name: compressed[3][1]
-    },
+    eventId: bytesToUuid(compressed[3]), // Just return the eventId
     seat: {
       id: bytesToUuid(compressed[4][0]),
       number: compressed[4][1]
@@ -72,15 +73,13 @@ export function decodeTicketQRData(qrData: Uint8Array): TicketValidationPayload 
 
 /**
  * Generates a QR code image from ticket data (optimized for byte mode)
- * @param qrData - The ticket QR data (Uint8Array or string)
+ * @param qrData - The ticket QR data (Uint8Array)
  * @returns Promise<string> - Data URL of the QR code image
  */
-export async function generateQRCodeImage(qrData: Uint8Array | string): Promise<string> {
+export async function generateQRCodeImage(qrData: Uint8Array): Promise<string> {
   try {
-    // Pass raw binary data directly for byte mode, or string for other modes
-    const dataToEncode: string | QRCodeSegment[] = typeof qrData === 'string'
-      ? qrData
-      : [{ data: qrData, mode: 'byte' }];
+    // For binary data, wrap in segment with byte mode
+    const dataToEncode: QRCodeSegment[] = [{ data: qrData, mode: 'byte' as const }];
 
     return await QRCode.toDataURL(dataToEncode, {
       width: 200,
