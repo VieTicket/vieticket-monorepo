@@ -1,0 +1,37 @@
+{
+  "name": "@vieticket/utils",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    "./vnpay": "./src/vnpay/public.ts",
+    "./mailer": "./src/mailer/index.ts",
+    "./ticket-validation/*": "./src/ticket-validation/*.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "bun test"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/qrcode": "^1.5.5"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@noble/ed25519": "^2.3.0",
+    "@noble/hashes": "^1.8.0",
+    "bson": "^6.10.4",
+    "date-fns-tz": "^3.2.0",
+    "form-data": "^4.0.3",
+    "mailgun.js": "^12.0.3",
+    "msgpackr": "^1.11.4",
+    "qrcode": "^1.5.4",
+    "vnpay": "^2.4.0"
+  },
+  "private": true
+}

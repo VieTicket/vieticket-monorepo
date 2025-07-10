@@ -36,7 +36,7 @@ export const ticketStatusEnum = pgEnum("ticket_status", TICKET_STATUS_VALUES);
 export const ORDER_STATUS_VALUES = [
   "pending",
   "paid",
-  "cancelled",
+  "failed",
   "refunded",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];

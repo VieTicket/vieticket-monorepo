@@ -7,7 +7,7 @@
   "types": "./dist/index.d.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./users": "./src/users-repo.ts"
+    "./*": "./src/*-repo.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",

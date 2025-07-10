@@ -426,6 +426,7 @@ export default function CreateEventPage() {
                 slug: `${slugify(formData.name)}-preview`,
                 organizer: null,
                 areas: [],
+                isPreview: true
               }}
             />
           </div>

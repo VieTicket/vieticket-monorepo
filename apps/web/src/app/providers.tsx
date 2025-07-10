@@ -7,6 +7,7 @@ import type { ReactNode } from "react";
 
 import { authClient } from "@/lib/auth/auth-client";
 import { LayoutProvider } from "@/providers/LayoutProvider";
+import QueryProvider from "@/providers/query-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -25,7 +26,9 @@ export function Providers({ children }: { children: ReactNode }) {
         providers={["google"]}
         emailVerification={true}
       >
-        {children}
+        <QueryProvider>
+          {children}
+        </QueryProvider>
       </AuthUIProvider>
     </LayoutProvider>
   );

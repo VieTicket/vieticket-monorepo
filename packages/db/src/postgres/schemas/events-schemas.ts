@@ -4,17 +4,16 @@ import {
   relations,
 } from "drizzle-orm";
 import {
-  boolean,
   integer,
   pgTable,
   text,
   timestamp,
   uuid,
-  varchar,
+  varchar
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
-import { organizers } from "./users-schemas";
 import { eventApprovalStatusEnum } from "../enums";
+import { organizers } from "./users-schemas";
 
 // Schemas
 export const events = pgTable("events", {

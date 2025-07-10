@@ -1,8 +1,9 @@
-"use client";
+"use client"; // Why
 
 import React from "react";
-import { Ticket, MapPin, Building2, Globe, Landmark } from "lucide-react"; // Cài: npm install lucide-react
+import { Ticket, MapPin, Building2, Globe, Landmark } from "lucide-react";
 import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
+import { BuyTicketButton } from "../checkout/buy-ticket-button";
 
 export type EventPreviewData = {
   bannerUrl: string;
@@ -29,6 +30,8 @@ export type EventPreviewData = {
     name: string;
     price: number;
   }[];
+  isPreview?: boolean;
+  eventId?: string;
 };
 
 type Props = {
@@ -39,7 +42,6 @@ export function PreviewEvent({ data }: Props) {
   return (
     <>
       <header className="relative flex flex-col md:flex-row bg-white rounded-xl overflow-hidden ">
-        {/* Rãnh xé trên: nửa dưới hình tròn */}
         {/* Rãnh xé trên: nửa dưới hình tròn */}
         <div className="absolute left-[30%] -top-5 transform -translate-x-1/2 w-10 h-10 bg-white rounded-full border border-black-600 z-20 overflow-hidden" />
 
@@ -71,22 +73,20 @@ export function PreviewEvent({ data }: Props) {
               <span className="text-[#ffdf20]">
                 {data.areas?.length > 0
                   ? formatCurrencyVND(
-                      data.areas.reduce(
-                        (min, area) => (area.price < min ? area.price : min),
-                        data.areas[0].price
-                      )
+                    data.areas.reduce(
+                      (min, area) => (area.price < min ? area.price : min),
+                      data.areas[0].price
                     )
+                  )
                   : "XX.XXX.XXX ₫"}
               </span>
             </p>
 
-            <button
-              type="button"
-              className="flex items-center justify-center gap-2 bg-[#ffdf20] text-[#2a273f] px-6 py-3 rounded-xl font-semibold hover:bg-yellow-300 transition-colors duration-200 w-full"
-            >
-              <Ticket className="w-5 h-5" />
-              Buy Tickets
-            </button>
+            <BuyTicketButton
+              eventSlug={data.slug}
+              eventId={data.eventId}
+              isPreview={data.isPreview}
+            />
           </div>
         </div>
 
