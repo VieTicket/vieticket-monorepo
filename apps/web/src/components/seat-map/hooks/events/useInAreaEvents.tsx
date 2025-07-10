@@ -96,11 +96,18 @@ export const useInAreaEvents = () => {
       const createdSeatIds: string[] = [];
 
       Object.entries(seatsGroupedByRow).forEach(([rowName, seats]) => {
+        if (seats.length === 0) return;
+
+        // FIX: Use the first seat's position as row start (already relative)
+        const firstSeat = seats[0];
+        const relativeStartX = firstSeat.x; // Already relative from useSeatDrawing
+        const relativeStartY = firstSeat.y; // Already relative from useSeatDrawing
+
         let rowId: string = addRowToArea({
           type: "row" as const,
           name: rowName,
-          startX: seats[0]?.x || 0,
-          startY: seats[0]?.y || 0,
+          startX: relativeStartX, // FIX: Pass relative position directly
+          startY: relativeStartY, // FIX: Pass relative position directly
           seatRadius: 8,
           seatSpacing: 20,
           rotation: 0,
@@ -118,6 +125,7 @@ export const useInAreaEvents = () => {
           return {
             ...seatData,
             row: rowName,
+            // FIX: Positions are already relative from useSeatDrawing
           };
         });
 
@@ -132,11 +140,16 @@ export const useInAreaEvents = () => {
     (seats: SeatShape[]) => {
       if (seats.length === 0) return;
 
+      // FIX: Use the first seat's position as row start (already relative)
+      const firstSeat = seats[0];
+      const relativeStartX = firstSeat.x; // Already relative from useSeatDrawing
+      const relativeStartY = firstSeat.y; // Already relative from useSeatDrawing
+
       let rowId: string = addRowToArea({
         type: "row" as const,
         name: seats[0].row,
-        startX: seats[0]?.x || 0,
-        startY: seats[0]?.y || 0,
+        startX: relativeStartX, // FIX: Pass relative position directly
+        startY: relativeStartY, // FIX: Pass relative position directly
         seatRadius: 8,
         seatSpacing: 20,
         rotation: 0,
@@ -153,6 +166,7 @@ export const useInAreaEvents = () => {
         return {
           ...seatData,
           row: seats[0].row,
+          // FIX: Positions are already relative from useSeatDrawing
         };
       });
 

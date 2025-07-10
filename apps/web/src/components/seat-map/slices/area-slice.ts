@@ -260,17 +260,23 @@ export const createAreaSlice: StateCreator<
     return rowId;
   },
 
-  // FIX: Update addRowToArea with proper type safety
   addRowToArea: (rowData) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
 
     const newRowId = generateUniqueId("row");
+    
+    // FIX: Don't double-convert coordinates - they're already relative from useSeatDrawing
+    const relativeStartX = rowData.startX || 0; // Already relative
+    const relativeStartY = rowData.startY || 0; // Already relative
 
-    // FIX: Ensure seats have consistent properties with row defaults and proper types
+    // FIX: Process seats without modifying their positions (already relative)
     const processedSeats: SeatShape[] = (rowData.seats || []).map((seat) => ({
       ...seat,
-      radius: seat.radius ?? rowData.seatRadius ?? 8, // FIX: Use nullish coalescing and ensure number type
+      // FIX: Don't modify seat positions - they're already relative
+      x: seat.x, // Already relative from useSeatDrawing
+      y: seat.y, // Already relative from useSeatDrawing
+      radius: seat.radius ?? rowData.seatRadius ?? 8,
       fill:
         seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
       stroke: seat.stroke ?? rowData.stroke ?? "#2E7D32",
@@ -281,6 +287,8 @@ export const createAreaSlice: StateCreator<
       ...rowData,
       id: newRowId,
       area: zoomedArea.id,
+      startX: relativeStartX, // FIX: Use as-is (already relative)
+      startY: relativeStartY, // FIX: Use as-is (already relative)
       seats: processedSeats,
     };
 
@@ -299,21 +307,27 @@ export const createAreaSlice: StateCreator<
     return newRowId;
   },
 
-  // FIX: Update addSeatToRow with proper type safety
+  // NEW: Update addSeatToRow to handle relative positioning
   addSeatToRow: (rowId, seatData) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
 
-    // Find the target row to get its properties
     const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
     if (!targetRow) return "";
 
     const newSeatId = generateUniqueId("seat");
+    const polygonCenter = zoomedArea.center || { x: 0, y: 0 };
+
+    // NEW: Ensure seat position is relative to polygon center
+    const relativeSeatX = seatData.x; // Should already be relative
+    const relativeSeatY = seatData.y; // Should already be relative
+
     const newSeat: SeatShape = {
       ...seatData,
       id: newSeatId,
-      // FIX: Use row's properties as defaults for new seats with proper types
-      radius: seatData.radius ?? targetRow.seatRadius ?? 8, // FIX: Ensure number type
+      x: relativeSeatX, // NEW: Store relative position
+      y: relativeSeatY, // NEW: Store relative position
+      radius: seatData.radius ?? targetRow.seatRadius ?? 8,
       fill:
         seatData.fill ??
         targetRow.fill ??
@@ -346,6 +360,59 @@ export const createAreaSlice: StateCreator<
     }));
 
     return newSeatId;
+  },
+
+  // NEW: Update addMultipleSeatsToRow to handle relative positioning
+  addMultipleSeatsToRow: (rowId, seats) => {
+    const { zoomedArea } = get();
+    if (!zoomedArea) return [];
+
+    const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
+    if (!targetRow) return [];
+
+    const polygonCenter = zoomedArea.center || { x: 0, y: 0 };
+
+    const newSeats: SeatShape[] = seats.map((seatData) => ({
+      ...seatData,
+      id: generateUniqueId("seat"),
+      // NEW: Ensure positions are relative (should already be from useSeatDrawing)
+      x: seatData.x, // Should already be relative
+      y: seatData.y, // Should already be relative
+      radius: seatData.radius ?? targetRow.seatRadius ?? 8,
+      fill:
+        seatData.fill ??
+        targetRow.fill ??
+        zoomedArea.defaultSeatColor ??
+        "#4CAF50",
+      stroke: seatData.stroke ?? targetRow.stroke ?? "#2E7D32",
+      strokeWidth: seatData.strokeWidth ?? targetRow.strokeWidth ?? 1,
+    }));
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      if (row.id === rowId) {
+        return {
+          ...row,
+          seats: Array.isArray(row.seats)
+            ? [...row.seats, ...newSeats]
+            : [...newSeats],
+        };
+      }
+      return row;
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    return newSeats.map((seat) => seat.id);
   },
 
   // FIX: Update deleteRow to return ID
@@ -440,56 +507,6 @@ export const createAreaSlice: StateCreator<
     }));
 
     return seatId;
-  },
-
-  // FIX: Add batch operations
-  addMultipleSeatsToRow: (rowId, seats) => {
-    const { zoomedArea } = get();
-    if (!zoomedArea) return [];
-
-    // Find the target row to get its properties
-    const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
-    if (!targetRow) return [];
-
-    const newSeats: SeatShape[] = seats.map((seatData) => ({
-      ...seatData,
-      id: generateUniqueId("seat"),
-      // FIX: Use row's properties as defaults for new seats with proper types
-      radius: seatData.radius ?? targetRow.seatRadius ?? 8, // FIX: Ensure number type
-      fill:
-        seatData.fill ??
-        targetRow.fill ??
-        zoomedArea.defaultSeatColor ??
-        "#4CAF50",
-      stroke: seatData.stroke ?? targetRow.stroke ?? "#2E7D32",
-      strokeWidth: seatData.strokeWidth ?? targetRow.strokeWidth ?? 1,
-    }));
-
-    const updatedRows = (zoomedArea.rows || []).map((row) => {
-      if (row.id === rowId) {
-        return {
-          ...row,
-          seats: Array.isArray(row.seats)
-            ? [...row.seats, ...newSeats]
-            : [...newSeats],
-        };
-      }
-      return row;
-    });
-
-    const updatedArea = {
-      ...zoomedArea,
-      rows: updatedRows,
-    };
-
-    set((state) => ({
-      zoomedArea: updatedArea,
-      shapes: state.shapes.map((shape) =>
-        shape.id === zoomedArea.id ? updatedArea : shape
-      ),
-    }));
-
-    return newSeats.map((seat) => seat.id);
   },
 
   addMultipleRowsToArea: (rows) => {

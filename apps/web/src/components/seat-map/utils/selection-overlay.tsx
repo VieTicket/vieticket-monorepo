@@ -196,30 +196,6 @@ export const SelectionOverlay: React.FC<SelectionOverlayProps> = ({
           maxY = Math.max(maxY, pointY);
         }
 
-        // Apply rotation if present
-        if (rotation !== 0) {
-          // FIXED: For polygons, rotation origin is at (shape.x, shape.y)
-          const rotationOrigin = { x: shape.x, y: shape.y };
-          const polygonPoints = [];
-
-          // FIX: Convert 2D points array
-          for (let i = 0; i < shape.points.length; i++) {
-            polygonPoints.push({
-              x: shape.x + shape.points[i].x,
-              y: shape.y + shape.points[i].y,
-            });
-          }
-
-          const rotatedPoints = polygonPoints.map((point) =>
-            rotatePoint(point, rotationOrigin, rotation)
-          );
-
-          minX = Math.min(...rotatedPoints.map((p) => p.x));
-          maxX = Math.max(...rotatedPoints.map((p) => p.x));
-          minY = Math.min(...rotatedPoints.map((p) => p.y));
-          maxY = Math.max(...rotatedPoints.map((p) => p.y));
-        }
-
         return {
           x: minX,
           y: minY,

@@ -3,12 +3,14 @@ import { v4 as uuidv4 } from "uuid";
 import {
   Shape,
   ShapeWithoutMeta,
-  AnyShapeUpdate, // Use the more flexible type
+  AnyShapeUpdate,
+  PolygonShape, // Use the more flexible type
 } from "@/types/seat-map-types";
 
 import type { HistorySlice } from "./history-slice";
 import type { CanvasSlice } from "./canvas-slice";
 import type { AreaSlice } from "./area-slice";
+import { calculatePolygonCenter } from "../utils/polygon-utils";
 
 export interface ShapesSlice {
   shapes: Shape[];
@@ -54,6 +56,13 @@ export const createShapesSlice: StateCreator<
       ...shapeData,
     };
 
+    if (newShape.type === "polygon") {
+      const polygonShape = newShape as PolygonShape;
+      if (polygonShape.points && !polygonShape.center) {
+        polygonShape.center = calculatePolygonCenter(polygonShape.points);
+      }
+    }
+
     set((state) => ({
       shapes: [...state.shapes, newShape],
     }));
@@ -62,9 +71,47 @@ export const createShapesSlice: StateCreator<
 
   updateShape: (id, updates) => {
     set((state) => ({
-      shapes: state.shapes.map((shape) =>
-        shape.id === id ? { ...shape, ...updates } : shape
-      ),
+      shapes: state.shapes.map((shape) => {
+        if (shape.id === id) {
+          // NEW: Special handling for polygon shapes
+          if (shape.type === "polygon") {
+            const polygonShape = shape as PolygonShape;
+
+            // If this is a drag operation (x, y changes), update center instead
+            if (
+              (updates.x !== undefined || updates.y !== undefined) &&
+              !updates.points &&
+              !updates.center
+            ) {
+              const deltaX = (updates.x || 0) - (shape.x || 0);
+              const deltaY = (updates.y || 0) - (shape.y || 0);
+
+              return {
+                ...shape,
+                center: {
+                  x: polygonShape.center.x + deltaX,
+                  y: polygonShape.center.y + deltaY,
+                },
+                // Keep the original x, y for compatibility but don't change points
+                x: updates.x || shape.x,
+                y: updates.y || shape.y,
+              };
+            }
+
+            // If points are being updated, recalculate center
+            if (updates.points) {
+              return {
+                ...shape,
+                ...updates,
+                center: calculatePolygonCenter(updates.points),
+              };
+            }
+          }
+
+          return { ...shape, ...updates };
+        }
+        return shape;
+      }),
     }));
     get().saveToHistory();
   },

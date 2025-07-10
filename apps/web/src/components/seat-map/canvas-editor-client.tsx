@@ -241,11 +241,17 @@ export default function CanvasEditorClient() {
   const renderSeatPreviews = useCallback(() => {
     if (!eventHandlers.seatDrawing.previewSeats.length) return null;
 
+    // FIX: Get polygon center to position preview seats correctly
+    const polygonCenter = eventHandlers.areaZoom.zoomedArea?.center || {
+      x: 0,
+      y: 0,
+    };
+
     return eventHandlers.seatDrawing.previewSeats.map((seat, index) => (
       <Circle
         key={`preview-seat-${index}`}
-        x={seat.x}
-        y={seat.y}
+        x={polygonCenter.x + seat.x} // FIX: Add polygon center offset
+        y={polygonCenter.y + seat.y} // FIX: Add polygon center offset
         radius={seat.radius}
         fill={seat.fill}
         stroke={seat.stroke}
@@ -254,7 +260,10 @@ export default function CanvasEditorClient() {
         listening={false}
       />
     ));
-  }, [eventHandlers.seatDrawing.previewSeats]);
+  }, [
+    eventHandlers.seatDrawing.previewSeats,
+    eventHandlers.areaZoom.zoomedArea,
+  ]);
 
   const selectedShapes = shapes.filter((shape) =>
     selectedShapeIds.includes(shape.id)

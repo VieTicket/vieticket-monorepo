@@ -19,7 +19,6 @@ export interface BaseShape {
   dash?: number[];
 }
 
-// Main stage shapes
 export interface RectShape extends BaseShape {
   type: "rect";
   width: number;
@@ -45,28 +44,27 @@ export interface TextShape extends BaseShape {
   text?: string;
 }
 
-// UPDATED: PolygonShape represents an Area
 export interface PolygonShape extends BaseShape {
   type: "polygon";
-  // FIX: Change from number[] to Point[]
+
   points: { x: number; y: number }[];
   closed?: boolean;
-  // Area-specific properties
+  center: { x: number; y: number };
+
   areaName?: string;
   capacity?: number;
   areaType?: "seating" | "stage" | "entrance" | "facilities" | "custom";
-  // NEW: Default settings for consistency across the area
+
   defaultSeatRadius?: number;
   defaultSeatSpacing?: number;
   defaultRowSpacing?: number;
   defaultSeatCategory?: "standard" | "premium" | "accessible" | "restricted";
   defaultSeatColor?: string;
-  // Contains rows and seats
+
   rows?: RowShape[];
-  seats?: SeatShape[]; // Standalone seats not in rows
+  seats?: SeatShape[];
 }
 
-// NEW: Row shape for area mode - updated with more properties
 export interface RowShape {
   id: string;
   type: "row";
@@ -76,34 +74,33 @@ export interface RowShape {
   seatRadius: number;
   seatSpacing: number;
   rotation: number;
-  area: string; // Reference to parent area
+  area: string;
   seats: SeatShape[];
-  // NEW: Additional properties for editing
+
   rowColor?: string;
   rowCategory?: "standard" | "premium" | "accessible" | "restricted";
-  // Visual properties
+
   fill?: string;
   stroke?: string;
   strokeWidth?: number;
   visible?: boolean;
 }
 
-// NEW: Seat shape for area mode - updated with more properties
 export interface SeatShape {
   id: string;
   type: "seat";
-  row: string; // Row identifier
-  number: number; // Seat number in row
+  row: string;
+  number: number;
   x: number;
   y: number;
   radius: number;
   status: "available" | "sold" | "reserved" | "blocked";
-  // Additional properties
+
   price?: number;
   category?: "standard" | "premium" | "accessible" | "restricted";
-  // NEW: Individual seat properties
-  seatLabel?: string; // Custom seat label
-  // Visual properties
+
+  seatLabel?: string;
+
   fill?: string;
   stroke?: string;
   strokeWidth?: number;
@@ -113,36 +110,33 @@ export interface SeatShape {
 export type Shape = RectShape | CircleShape | TextShape | PolygonShape;
 export type AreaShape = RowShape | SeatShape;
 
-// FIXED: Create individual shape update types
 export type RectShapeUpdate = Partial<Omit<RectShape, "id" | "type">>;
 export type CircleShapeUpdate = Partial<Omit<CircleShape, "id" | "type">>;
 export type TextShapeUpdate = Partial<Omit<TextShape, "id" | "type">>;
 export type PolygonShapeUpdate = Partial<Omit<PolygonShape, "id" | "type">>;
 
-// FIXED: Union type for all possible shape updates
 export type ShapeUpdate =
   | RectShapeUpdate
   | CircleShapeUpdate
   | TextShapeUpdate
   | PolygonShapeUpdate;
 
-// FIXED: More flexible update type that includes all possible properties
 export type AnyShapeUpdate = Partial<Omit<BaseShape, "id" | "type">> & {
-  // Rectangle-specific
   width?: number;
   height?: number;
   cornerRadius?: number;
-  // Circle-specific
+
   radius?: number;
-  // Text-specific
+
   text?: string;
   fontSize?: number;
   fontFamily?: string;
   fontStyle?: string;
   align?: string;
-  // Polygon/Area-specific
-  points?: { x: number; y: number }[]; // FIX: Updated type
+
+  points?: { x: number; y: number }[];
   closed?: boolean;
+  center?: { x: number; y: number };
   areaName?: string;
   capacity?: number;
   areaType?: "seating" | "stage" | "entrance" | "facilities" | "custom";
@@ -167,7 +161,6 @@ export interface CanvasState {
   pan: { x: number; y: number };
 }
 
-// NEW: Area-specific configuration
 export interface AreaConfig {
   defaultSeatRadius: number;
   defaultSeatSpacing: number;

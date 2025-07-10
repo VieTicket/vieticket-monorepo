@@ -17,10 +17,11 @@ export interface AreaEventProps {
 }
 
 export interface AreaRenderProps {
+  offSetX?: number;
+  offSetY?: number;
   rows: RowShape[];
   selectedRowIds: string[];
   selectedSeatIds: string[];
-  // FIX: Replace individual event props with consolidated interface
   areaEvents?: AreaEventProps;
   isInteractive?: boolean;
 }
@@ -39,10 +40,8 @@ export const renderAreaContent = ({
     const rowElements: JSX.Element[] = [];
 
     if (row.seats.length > 0) {
-      const firstSeat = row.seats[0];
-
-      const labelX = firstSeat.x - (row.startX || 0) - 20 - row.name.length * 4;
-      const labelY = firstSeat.y - (row.startY || 0) - 5;
+      const labelX = -20 - row.name.length * 4;
+      const labelY = -5;
 
       rowElements.push(
         <Text
@@ -63,10 +62,10 @@ export const renderAreaContent = ({
     row.seats.forEach((seat) => {
       const isSeatSelected = selectedSeatIds.includes(seat.id);
 
-      const seatX = seat.x - (row.startX || 0);
-      const seatY = seat.y - (row.startY || 0);
+      // FIX: Position seats relative to row start position, not directly
+      const seatX = seat.x - (row.startX || 0); // Seat position relative to row
+      const seatY = seat.y - (row.startY || 0); // Seat position relative to row
 
-      // FIX: Use seat radius with fallback to row's seatRadius
       const seatRadius = seat.radius || row.seatRadius || 8;
 
       rowElements.push(
@@ -155,9 +154,8 @@ export const renderAreaContent = ({
       <Group
         key={`row-${row.id}`}
         id={`row-${row.id}`}
-        x={row.startX || 0}
-        y={row.startY || 0}
-        // FIX: Apply rotation to the entire row group
+        x={row.startX || 0} // NEW: Use relative position directly
+        y={row.startY || 0} // NEW: Use relative position directly
         rotation={row.rotation || 0}
         draggable={isInteractive}
         listening={isInteractive}

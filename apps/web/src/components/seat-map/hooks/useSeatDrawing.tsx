@@ -153,6 +153,9 @@ export const useSeatDrawing = () => {
         defaultPrice,
       } = areaConfig;
 
+      // NEW: Get polygon center for relative positioning
+      const polygonCenter = areaZoom.zoomedArea?.center || { x: 0, y: 0 };
+
       const rowDirection = {
         x: second.x - start.x,
         y: second.y - start.y,
@@ -177,27 +180,32 @@ export const useSeatDrawing = () => {
         y: colDirection.y / colLength,
       };
 
-      // FIX: Create seats without IDs (area slice will generate them)
+      // NEW: Create seats with positions relative to polygon center
       for (let row = 0; row < rowCount; row++) {
         const currentRowLabel = String.fromCharCode(
           startingRowLabel.charCodeAt(0) + row
         );
 
         for (let col = 0; col < colCount; col++) {
-          const x =
+          // Calculate absolute position
+          const absoluteX =
             start.x +
             rowUnit.x * col * defaultSpacing +
             colUnit.x * row * defaultRowSpacing;
-          const y =
+          const absoluteY =
             start.y +
             rowUnit.y * col * defaultSpacing +
             colUnit.y * row * defaultRowSpacing;
 
+          // NEW: Convert to relative position from polygon center
+          const relativeX = absoluteX - polygonCenter.x;
+          const relativeY = absoluteY - polygonCenter.y;
+
           seats.push({
             type: "seat" as const,
             id: `temp-${row}-${col}`, // Temporary ID, will be replaced
-            x: x,
-            y: y,
+            x: relativeX, // NEW: Store relative position
+            y: relativeY, // NEW: Store relative position
             radius: defaultRadius,
             fill: defaultColor,
             stroke: "#2E7D32",
@@ -232,6 +240,9 @@ export const useSeatDrawing = () => {
         defaultPrice,
       } = areaConfig;
 
+      // NEW: Get polygon center for relative positioning
+      const polygonCenter = areaZoom.zoomedArea?.center || { x: 0, y: 0 };
+
       const direction = { x: end.x - start.x, y: end.y - start.y };
       const length = Math.sqrt(direction.x ** 2 + direction.y ** 2);
       const seatCount = Math.max(1, Math.floor(length / defaultSeatSpacing));
@@ -239,14 +250,19 @@ export const useSeatDrawing = () => {
       const unit = { x: direction.x / length, y: direction.y / length };
 
       for (let i = 0; i < seatCount; i++) {
-        const x = start.x + unit.x * i * defaultSeatSpacing;
-        const y = start.y + unit.y * i * defaultSeatSpacing;
+        // Calculate absolute position
+        const absoluteX = start.x + unit.x * i * defaultSeatSpacing;
+        const absoluteY = start.y + unit.y * i * defaultSeatSpacing;
+
+        // NEW: Convert to relative position from polygon center
+        const relativeX = absoluteX - polygonCenter.x;
+        const relativeY = absoluteY - polygonCenter.y;
 
         seats.push({
           type: "seat" as const,
           id: `temp-row-${i}`, // Temporary ID, will be replaced
-          x: x,
-          y: y,
+          x: relativeX, // NEW: Store relative position
+          y: relativeY, // NEW: Store relative position
           radius: defaultSeatRadius,
           fill: getSeatCategoryColor(defaultSeatCategory),
           stroke: "#2E7D32",
@@ -262,7 +278,7 @@ export const useSeatDrawing = () => {
 
       return seats;
     },
-    [areaConfig]
+    [areaConfig, areaZoom.zoomedArea]
   );
 
   const getSeatCategoryColor = useCallback((category: string) => {
