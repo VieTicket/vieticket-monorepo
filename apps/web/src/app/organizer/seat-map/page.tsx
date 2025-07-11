@@ -1,0 +1,316 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import { Search, Plus, Star, Clock, Grid, List, PenSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
+
+// Mock data - replace with your actual data fetching logic
+const MOCK_DRAFTS = [
+  {
+    id: "draft1",
+    name: "Stadium Layout Draft",
+    updatedAt: "2025-07-10T10:00:00Z",
+  },
+  { id: "draft2", name: "Concert Hall", updatedAt: "2025-07-08T15:30:00Z" },
+  { id: "draft3", name: "Theater Seating", updatedAt: "2025-07-05T09:45:00Z" },
+];
+
+const MOCK_PUBLISHED = [
+  {
+    id: "pub1",
+    name: "Main Stadium",
+    updatedAt: "2025-07-01T10:00:00Z",
+    thumbnail: "/images/seatmap-1.jpg",
+  },
+  {
+    id: "pub2",
+    name: "Conference Hall",
+    updatedAt: "2025-06-28T15:30:00Z",
+    thumbnail: "/images/seatmap-2.jpg",
+  },
+  {
+    id: "pub3",
+    name: "Jazz Theater",
+    updatedAt: "2025-06-25T09:45:00Z",
+    thumbnail: "/images/seatmap-3.jpg",
+  },
+  {
+    id: "pub4",
+    name: "Stadium Section A",
+    updatedAt: "2025-06-20T11:20:00Z",
+    thumbnail: "/images/seatmap-4.jpg",
+  },
+];
+
+type SeatMapItem = {
+  id: string;
+  name: string;
+  updatedAt: string;
+  thumbnail?: string;
+};
+
+export default function SeatMapDirectory() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [drafts, setDrafts] = useState<SeatMapItem[]>(MOCK_DRAFTS);
+  const [published, setPublished] = useState<SeatMapItem[]>(MOCK_PUBLISHED);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedTab, setSelectedTab] = useState("all");
+  const [selectedDraft, setSelectedDraft] = useState<string | null>(null);
+
+  // Filter published maps based on search query
+  const filteredPublished = published.filter((item) =>
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
+
+  return (
+    <div className="flex h-[calc(100vh-6rem)]">
+      {/* Left Sidebar - Drafts */}
+      <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800 flex flex-col">
+        <div className="p-4 border-b dark:border-gray-800">
+          <h2 className="font-semibold text-lg mb-2">Drafts</h2>
+          <Input
+            placeholder="Search drafts..."
+            className="w-full"
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+        </div>
+
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-2">
+            <Link
+              href="/seat-map"
+              className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
+            >
+              <Plus size={18} />
+              <span>Create new</span>
+            </Link>
+          </div>
+
+          <div className="px-2">
+            {drafts
+              .filter((draft) =>
+                draft.name.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((draft) => (
+                <button
+                  key={draft.id}
+                  className={cn(
+                    "w-full text-left flex flex-col p-3 rounded-lg transition-colors",
+                    selectedDraft === draft.id
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                  )}
+                  onClick={() => setSelectedDraft(draft.id)}
+                >
+                  <span className="font-medium truncate">{draft.name}</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">
+                    Edited {formatDate(draft.updatedAt)}
+                  </span>
+                </button>
+              ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Top Bar */}
+        <div className="border-b dark:border-gray-800 p-4 flex justify-between items-center">
+          <div className="flex-1 max-w-md">
+            <div className="relative">
+              <Search
+                className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                size={18}
+              />
+              <Input
+                placeholder="Search published seat maps..."
+                className="w-full pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 ml-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="Grid view"
+              onClick={() => setViewMode("grid")}
+              className={
+                viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : ""
+              }
+            >
+              <Grid size={18} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              aria-label="List view"
+              onClick={() => setViewMode("list")}
+              className={
+                viewMode === "list" ? "bg-gray-100 dark:bg-gray-800" : ""
+              }
+            >
+              <List size={18} />
+            </Button>
+          </div>
+        </div>
+
+        {/* Tabs and Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <Tabs
+            defaultValue="all"
+            className="w-full"
+            onValueChange={setSelectedTab}
+          >
+            <TabsList className="mb-6">
+              <TabsTrigger value="all">All Seat Maps</TabsTrigger>
+              <TabsTrigger value="recent">Recent</TabsTrigger>
+              <TabsTrigger value="starred">Starred</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="all" className="mt-0">
+              {filteredPublished.length > 0 ? (
+                <div
+                  className={cn(
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+                      : "flex flex-col gap-4"
+                  )}
+                >
+                  {filteredPublished.map((item) => (
+                    <SeatMapCard
+                      key={item.id}
+                      item={item}
+                      viewMode={viewMode}
+                      formatDate={formatDate}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    {searchQuery
+                      ? "No seat maps match your search"
+                      : "No published seat maps yet"}
+                  </p>
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="recent" className="mt-0">
+              <div
+                className={cn(
+                  viewMode === "grid"
+                    ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+                    : "flex flex-col gap-4"
+                )}
+              >
+                {filteredPublished
+                  .sort(
+                    (a, b) =>
+                      new Date(b.updatedAt).getTime() -
+                      new Date(a.updatedAt).getTime()
+                  )
+                  .slice(0, 5)
+                  .map((item) => (
+                    <SeatMapCard
+                      key={item.id}
+                      item={item}
+                      viewMode={viewMode}
+                      formatDate={formatDate}
+                    />
+                  ))}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="starred" className="mt-0">
+              <div className="text-center py-10">
+                <Star className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">
+                  You haven't starred any seat maps yet
+                </p>
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type SeatMapCardProps = {
+  item: SeatMapItem;
+  viewMode: "grid" | "list";
+  formatDate: (date: string) => string;
+};
+
+function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
+  const placeholderImage =
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Cpath d='M30,30 L70,70 M30,70 L70,30' stroke='%23cccccc' stroke-width='2'/%3E%3C/svg%3E";
+
+  if (viewMode === "grid") {
+    return (
+      <div className="group rounded-xl overflow-hidden border dark:border-gray-800 transition-all hover:shadow-md dark:hover:border-gray-700">
+        <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
+          <img
+            src={item.thumbnail || placeholderImage}
+            alt={item.name}
+            className="w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+            <Button variant="secondary" size="sm" asChild>
+              <Link href={`/seat-map?id=${item.id}`}>
+                <PenSquare size={16} className="mr-2" />
+                Edit
+              </Link>
+            </Button>
+          </div>
+        </div>
+        <div className="p-4">
+          <h3 className="font-medium truncate">{item.name}</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
+            <Clock size={14} className="mr-1" />
+            {formatDate(item.updatedAt)}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-4 p-3 rounded-lg border dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
+      <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0">
+        <img
+          src={item.thumbnail || placeholderImage}
+          alt={item.name}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <div className="flex-1 min-w-0">
+        <h3 className="font-medium truncate">{item.name}</h3>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          Updated {formatDate(item.updatedAt)}
+        </p>
+      </div>
+      <Button variant="outline" size="sm" asChild>
+        <Link href={`/seat-map?id=${item.id}`}>Edit</Link>
+      </Button>
+    </div>
+  );
+}

@@ -11,7 +11,7 @@ export default function OrganizerLayout({
   return (
     <div className="flex min-h-screen">
       <Sidebar />
-      <div className="flex-1 p-6 bg-white dark:bg-background">{children}</div>
+      <div className="flex-1 bg-white dark:bg-background">{children}</div>
     </div>
   );
 }
