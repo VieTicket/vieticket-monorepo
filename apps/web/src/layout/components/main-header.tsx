@@ -73,10 +73,6 @@ export default function Header() {
             <span>Interested</span>
           </div>
           <div className="flex flex-col group items-center relative cursor-pointer">
-            <div className="flex flex-col items-center ">
-              <UserIcon className="w-5 h-5" />
-              <span>Profile</span>
-            </div>
             <ProfileDropdown />
           </div>
         </div>
