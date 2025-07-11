@@ -1,3 +1,5 @@
+"use client";
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -6,40 +8,50 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { authClient } from "@/lib/auth/auth-client";
 import { UserIcon } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 export function ProfileDropdown() {
+  const [open, setOpen] = useState(false);
   const router = useRouter();
   return (
-    <div className="absolute top-full left-1/2 transform -translate-x-3/4 mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
-      <div className="bg-white text-gray-800 rounded-xl shadow-lg border min-w-[150px] py-1">
-        <div
-          className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm hover:rounded-tl rounded-tl-full hover:rounded-tr rounded-tr-full"
-          onClick={() => router.push("/interests")}
+    <div
+      onClick={() => {
+        setOpen(!open);
+      }}
+      className="relative"
+    >
+      <DropdownMenu open={open} onOpenChange={setOpen}>
+        <DropdownMenuTrigger asChild>
+          <div className="flex flex-col items-center space-x-1 cursor-pointer">
+            <UserIcon className="w-5 h-5" />
+            <span>Profile</span>
+          </div>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent
+          className="mt-2 rounded-xl shadow-lg border bg-white text-gray-800"
+          align="end"
         >
-          Interests
-        </div>
-        <div
-          className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm"
-          onClick={() => router.push("/profile")}
-        >
-          Account Settings
-        </div>
-        <div
-          className="px-3 py-2 hover:bg-gray-100 cursor-pointer text-sm hover:rounded-bl rounded-bl-full hover:rounded-br rounded-br-full"
-          onClick={() => {
-            authClient.signOut({
-              fetchOptions: {
-                onSuccess: () => {
-                  router.push("/auth/sign-in");
+          <DropdownMenuItem>Interests</DropdownMenuItem>
+          <DropdownMenuItem>
+            <Link href={"/profile/edit"}>Account Settings</Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={() => {
+              authClient.signOut({
+                fetchOptions: {
+                  onSuccess: () => {
+                    router.push("/auth/sign-in");
+                  },
                 },
-              },
-            });
-          }}
-        >
-          Log Out
-        </div>
-      </div>
+              });
+            }}
+          >
+            Log Out
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

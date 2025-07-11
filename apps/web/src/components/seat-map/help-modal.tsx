@@ -6,7 +6,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog";
+} from "@/components/ui/custom-dialog";
 import { HelpCircle } from "lucide-react";
 import { useKeyMap } from "./hooks/useKeyMap";
 import { useAreaMode } from "./store/main-store";

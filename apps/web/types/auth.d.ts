@@ -8,6 +8,7 @@ declare module "better-auth" {
     emailVerified?: boolean;
     image?: string | null;
     createdAt?: Date;
+    updatedAt?: Date;
     role?: "organizer" | "customer" | "admin";
     banned?: boolean;
     banReason?: string | null;

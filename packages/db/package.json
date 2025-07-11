@@ -1,14 +1,16 @@
 {
   "name": "@vieticket/db",
   "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "type": "module",
+  "module": "src/index.ts",
   "exports": {
     "./postgres": "./src/postgres/connection.ts",
-    "./postgres/schema": "./src/postgres/schema.ts"
+    "./postgres/schema": "./src/postgres/schema.ts",
+    "./schemas/*": "./src/postgres/schemas/*-schemas.ts",
+    "./models/*": "./src/postgres/models/*-models.ts"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "tsc -p tsconfig.json --watch",
     "build": "tsc -p tsconfig.json",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
@@ -21,12 +23,13 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "dotenv": "^16.5.0",
-    "drizzle-kit": "^0.31.1",
-    "tsx": "^4.20.1"
+    "dotenv": "^16.6.1",
+    "drizzle-kit": "^0.31.4",
+    "tsx": "^4.20.3"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@vieticket/utils": "*",
     "drizzle-orm": "^0.44.2"
   }
 }

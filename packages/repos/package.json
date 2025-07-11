@@ -1,0 +1,26 @@
+{
+  "name": "@vieticket/repos",
+  "version": "1.0.0",
+  "module": "src/index.ts",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./*": "./src/*-repo.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "@vieticket/db": "*",
+    "drizzle-orm": "^0.44.2"
+  }
+}

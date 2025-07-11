@@ -6,8 +6,10 @@ import {
   session,
   user,
   verification,
+  Role
 } from "@vieticket/db/postgres/schema";
 import { sendMail } from "../mail-sender";
+import { Session } from "better-auth/types";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -24,7 +26,7 @@ export const auth = betterAuth({
       role: {
         type: "string",
         defaultValue: "customer",
-        required: false,
+        required: true,
         input: true,
         output: true,
       },
@@ -79,4 +81,19 @@ export const auth = betterAuth({
       });
     },
   },
+  session: {
+    cookieCache: {
+      enabled: true,
+    },
+  },
 });
+
+type UserWithRole = Omit<User, "role"> & { role: Role };
+
+export async function getAuthSession(headers: Headers): Promise<{
+  session: Session;
+  user: UserWithRole;
+} | null> {
+  const session = await auth.api.getSession({headers});
+  return session as { session: Session; user: UserWithRole } | null;
+}

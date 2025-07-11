@@ -7,6 +7,11 @@ interface CategoryCardProps {
   imageUrl: string;
 }
 
+interface Props {
+  selectedCategory: string;
+  onCategorySelect: (category: string) => void;
+}
+
 const CategoryCard: React.FC<CategoryCardProps> = ({ title, imageUrl }) => (
   <div className="flex flex-col items-center text-center w-28 md:w-32">
     <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden">
@@ -77,4 +82,6 @@ export default function CategoryList() {
       </div>
     </section>
   );
+
 }
+
