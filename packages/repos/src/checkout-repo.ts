@@ -30,7 +30,7 @@ export async function getSeatStatus(eventId: string) {
     .where(
       and(
         eq(seatHolds.eventId, eventId),
-        gt(seatHolds.holdExpires, new Date()),
+        gt(seatHolds.expiresAt, new Date()),
         // Exclude seats that are already confirmed in a paid order
         paidSeatIds.length > 0
           ? notInArray(seatHolds.seatId, paidSeatIds)
@@ -94,7 +94,7 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     .where(
       and(
         inArray(seatHolds.seatId, selectedSeatIds),
-        gt(seatHolds.holdExpires, new Date())
+        gt(seatHolds.expiresAt, new Date())
       )
     );
 

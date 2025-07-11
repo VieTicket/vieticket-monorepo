@@ -2,10 +2,10 @@ export interface TicketValidationPayload {
   ticketId: string;
   timestamp: number;
   visitorName: string;
-  eventId: string; // Changed from event object to just eventId
-  seat: { id: string; number: string };
-  row: { id: string; name: string };
-  area: { id: string; name: string };
+  eventId: string; 
+  seat: string; // Just seat number, e.g., "07"
+  row: string;  // Just row name, e.g., "R17A"
+  area: string; // Just area name, e.g., "Premium Economy"
 }
 
 // Internal compressed format (array-based with binary UUIDs)
@@ -13,10 +13,10 @@ export type CompressedTicketPayload = [
   Uint8Array, // ticketId (UUID as 16 bytes)
   number,     // timestamp
   string,     // visitorName
-  Uint8Array, // eventId (UUID as 16 bytes) - removed eventName
-  [Uint8Array, string], // [seatId (UUID as 16 bytes), seatNumber]
-  [Uint8Array, string], // [rowId (UUID as 16 bytes), rowName]
-  [Uint8Array, string]  // [areaId (UUID as 16 bytes), areaName]
+  Uint8Array, // eventId (UUID as 16 bytes)
+  string,     // seat (just the number/name)
+  string,     // row (just the name)
+  string      // area (just the name)
 ];
 
 // Internal signed data format (array-based)
