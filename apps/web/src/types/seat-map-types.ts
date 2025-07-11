@@ -52,17 +52,15 @@ export interface PolygonShape extends BaseShape {
   center: { x: number; y: number };
 
   areaName?: string;
-  capacity?: number;
-  areaType?: "seating" | "stage" | "entrance" | "facilities" | "custom";
 
   defaultSeatRadius?: number;
   defaultSeatSpacing?: number;
   defaultRowSpacing?: number;
   defaultSeatCategory?: "standard" | "premium" | "accessible" | "restricted";
   defaultSeatColor?: string;
+  defaultPrice?: number;
 
   rows?: RowShape[];
-  seats?: SeatShape[];
 }
 
 export interface RowShape {

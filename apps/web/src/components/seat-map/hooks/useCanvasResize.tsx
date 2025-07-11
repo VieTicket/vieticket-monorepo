@@ -30,7 +30,7 @@ export const useCanvasResize = () => {
     handleResize();
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [setCanvasSize, setViewportSize]); // Remove setBoundedPan from dependencies
+  }, []);
 
   return { isInitialLoad: isInitialLoad.current };
 };

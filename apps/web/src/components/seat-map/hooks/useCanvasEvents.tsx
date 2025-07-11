@@ -85,5 +85,6 @@ export const useCanvasEvents = () => {
     // Expose event groups
     mouseEvents,
     dragEvents,
+    guideLines: mouseEvents.areaEvents.guideLines,
   };
 };

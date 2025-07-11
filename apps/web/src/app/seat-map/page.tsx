@@ -24,16 +24,34 @@ const AreaSidebar = dynamic(
   { ssr: false }
 );
 
+const CanvasInventory = dynamic(
+  () => import("@/components/seat-map/main-sidebar/canvas-inventory"),
+  { ssr: false }
+);
+
 function PageContent() {
   const { isInAreaMode } = useAreaMode();
 
   return (
-    <div className="overflow-hidden w-screen">
+    <div className="overflow-hidden w-screen h-screen flex flex-col">
       <MainToolbar />
-      <div className="flex h-[calc(100vh-64px)]">
-        <CanvasEditorClient />
-        {/* FIX: Conditionally render sidebar based on mode */}
-        {isInAreaMode ? <AreaSidebar /> : <MainSidebar />}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left sidebar - Canvas inventory */}
+        {!isInAreaMode && (
+          <div className="bg-gray-900 text-white p-3 shadow z-10 w-64 overflow-y-auto border border-gray-700">
+            <CanvasInventory />
+          </div>
+        )}
+
+        {/* Main canvas area */}
+        <div className="flex-1 relative bg-gray-950">
+          <CanvasEditorClient />
+        </div>
+
+        {/* Right sidebar - Properties editor */}
+        <div className="bg-gray-900 text-white shadow z-10 w-72 overflow-y-auto border border-gray-700">
+          {isInAreaMode ? <AreaSidebar /> : <MainSidebar />}
+        </div>
       </div>
     </div>
   );

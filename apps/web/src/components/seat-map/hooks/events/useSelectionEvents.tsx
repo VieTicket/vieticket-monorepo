@@ -177,17 +177,43 @@ const processAreaSelection = (
   const seatsInSelection: string[] = [];
   const rowsInSelection: string[] = [];
 
+  // Get polygon center for coordinate translation
+  const polygonCenter = context.zoomedArea?.center || { x: 0, y: 0 };
+
   context.zoomedArea.rows?.forEach((row: any) => {
     let rowHasSeatsInSelection = false;
 
+    // Get row's absolute position by adding row's relative position to polygon center
+    const rowAbsoluteX = polygonCenter.x + (row.startX || 0);
+    const rowAbsoluteY = polygonCenter.y + (row.startY || 0);
+
+    // Check if any seats in this row are within the selection rectangle
     row.seats?.forEach((seat: any) => {
-      if (isSeatInRectangle(seat, rect)) {
+      // Calculate absolute seat position
+      // Seat's position is stored relative to row's startX/startY, which is relative to polygon center
+      const seatAbsoluteX = polygonCenter.x + seat.x;
+      const seatAbsoluteY = polygonCenter.y + seat.y;
+
+      if (
+        isSeatInRectangle(
+          {
+            ...seat,
+            x: seatAbsoluteX,
+            y: seatAbsoluteY,
+          },
+          rect
+        )
+      ) {
         seatsInSelection.push(seat.id);
         rowHasSeatsInSelection = true;
       }
     });
 
-    if (rowHasSeatsInSelection || isRowInRectangle(row, rect)) {
+    // Check if the row itself is in the selection rectangle
+    if (
+      rowHasSeatsInSelection ||
+      isRowInRectangleAbsolute(row, rect, polygonCenter)
+    ) {
       rowsInSelection.push(row.id);
     }
   });
@@ -226,7 +252,6 @@ const processShapeSelection = (
   }
 };
 
-// Selection Detection Functions
 const isSeatInRectangle = (seat: any, rect: any) => {
   const seatBounds = {
     left: seat.x - seat.radius,
@@ -243,17 +268,20 @@ const isSeatInRectangle = (seat: any, rect: any) => {
   );
 };
 
-const isRowInRectangle = (row: any, rect: any) => {
+const isRowInRectangleAbsolute = (row: any, rect: any, polygonCenter: any) => {
   if (!row.seats || row.seats.length === 0) return false;
 
-  const firstSeat = row.seats[0];
-  const lastSeat = row.seats[row.seats.length - 1];
+  // Calculate absolute positions of first and last seat
+  const firstSeatX = polygonCenter.x + row.seats[0].x;
+  const firstSeatY = polygonCenter.y + row.seats[0].y;
+  const lastSeatX = polygonCenter.x + row.seats[row.seats.length - 1].x;
+  const lastSeatY = polygonCenter.y + row.seats[row.seats.length - 1].y;
 
   const rowLineBounds = {
-    left: Math.min(firstSeat.x, lastSeat.x),
-    right: Math.max(firstSeat.x, lastSeat.x),
-    top: Math.min(firstSeat.y, lastSeat.y),
-    bottom: Math.max(firstSeat.y, lastSeat.y),
+    left: Math.min(firstSeatX, lastSeatX),
+    right: Math.max(firstSeatX, lastSeatX),
+    top: Math.min(firstSeatY, lastSeatY),
+    bottom: Math.max(firstSeatY, lastSeatY),
   };
 
   return !(

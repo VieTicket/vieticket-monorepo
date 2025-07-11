@@ -2,16 +2,13 @@ import { StateCreator } from "zustand";
 import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
 import { ToolType } from "../main-toolbar";
-import { AreaToolType } from "../area-toolbar";
 
 export interface CanvasSlice {
   canvasSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   zoom: number;
   pan: { x: number; y: number };
-  currentTool: ToolType | AreaToolType;
-  showGrid: boolean;
-  showHitCanvas: boolean;
+  currentTool: ToolType;
 
   setCanvasSize: (width: number, height: number) => void;
   setViewportSize: (width: number, height: number) => void;
@@ -21,8 +18,6 @@ export interface CanvasSlice {
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
-  setShowGrid: (show: boolean) => void;
-  setShowHitCanvas: (show: boolean) => void;
 
   updateMultipleShapes: (
     updates: Array<{ id: string; updates: Record<string, any> }>
@@ -42,8 +37,6 @@ export const createCanvasSlice: StateCreator<
   viewportSize: { width: 800, height: 600 },
   zoom: 1,
   pan: { x: 0, y: 0 },
-  showGrid: false,
-  showHitCanvas: false,
 
   setCurrentTool: (tool) => {
     set({ currentTool: tool });
@@ -67,9 +60,6 @@ export const createCanvasSlice: StateCreator<
   setPan: (x, y) => {
     set({ pan: { x, y } });
   },
-
-  setShowGrid: (show) => set({ showGrid: show }),
-  setShowHitCanvas: (show) => set({ showHitCanvas: show }),
 
   resetView: () => {
     const { viewportSize } = get();
@@ -103,9 +93,53 @@ export const createCanvasSlice: StateCreator<
     set((state) => ({
       shapes: state.shapes.map((shape) => {
         const update = updates.find((u) => u.id === shape.id);
-        return update ? { ...shape, ...update.updates } : shape;
+        if (!update) return shape;
+
+        // Special handling for polygon shapes
+        if (shape.type === "polygon") {
+          const polygonShape = shape as any; // Type as any to access center
+          const updateData = update.updates;
+
+          // If this is a drag operation (x, y changes), update center instead
+          if (
+            (updateData.x !== undefined || updateData.y !== undefined) &&
+            !updateData.points &&
+            !updateData.center
+          ) {
+            const deltaX = (updateData.x || 0) - (shape.x || 0);
+            const deltaY = (updateData.y || 0) - (shape.y || 0);
+
+            return {
+              ...shape,
+              ...updateData,
+              center: {
+                x: polygonShape.center.x + deltaX,
+                y: polygonShape.center.y + deltaY,
+              },
+            };
+          }
+
+          // If points are being updated, recalculate center
+          if (updateData.points) {
+            // Import calculatePolygonCenter from where it's defined
+            const {
+              calculatePolygonCenter,
+            } = require("../utils/polygon-utils");
+            return {
+              ...shape,
+              ...updateData,
+              center: calculatePolygonCenter(updateData.points),
+            };
+          }
+        }
+
+        // Default case for non-polygon shapes
+        return { ...shape, ...update.updates };
       }),
     }));
+
+    // Save to history after updates
+    get().saveToHistory();
   },
 
   duplicateShapes: () => {
@@ -124,6 +158,7 @@ export const createCanvasSlice: StateCreator<
       shapes: [...state.shapes, ...newShapes],
       selectedShapeIds: newShapes.map((s) => s.id),
     }));
+    get().saveToHistory();
   },
 
   deleteShapes: (shapeIds) => {
@@ -131,5 +166,6 @@ export const createCanvasSlice: StateCreator<
       shapes: state.shapes.filter((s) => !shapeIds.includes(s.id)),
       selectedShapeIds: [],
     }));
+    get().saveToHistory();
   },
 });

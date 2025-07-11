@@ -2,7 +2,6 @@ import { Group, Circle, Line, Text, Rect } from "react-konva";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 import { JSX } from "react";
 
-// FIX: Create consolidated area event props interface
 export interface AreaEventProps {
   onRowClick?: (rowId: string, e: any) => void;
   onSeatClick?: (seatId: string, e: any) => void;
@@ -62,9 +61,8 @@ export const renderAreaContent = ({
     row.seats.forEach((seat) => {
       const isSeatSelected = selectedSeatIds.includes(seat.id);
 
-      // FIX: Position seats relative to row start position, not directly
-      const seatX = seat.x - (row.startX || 0); // Seat position relative to row
-      const seatY = seat.y - (row.startY || 0); // Seat position relative to row
+      const seatX = seat.x - (row.startX || 0);
+      const seatY = seat.y - (row.startY || 0);
 
       const seatRadius = seat.radius || row.seatRadius || 8;
 
@@ -107,20 +105,6 @@ export const renderAreaContent = ({
             }
             draggable={false}
           />
-
-          {isSeatSelected && (
-            <Circle
-              x={seatX + seatRadius - 2}
-              y={seatY - seatRadius + 2}
-              radius={3}
-              fill="#FF6B6B"
-              stroke="#FFFFFF"
-              strokeWidth={1}
-              opacity={0.9}
-              listening={false}
-            />
-          )}
-
           <Text
             x={seatX}
             y={seatY}
@@ -135,17 +119,6 @@ export const renderAreaContent = ({
             opacity={isInteractive ? 1 : 0.6}
             listening={false}
           />
-
-          {seat.status !== "available" && (
-            <Circle
-              x={seatX + seatRadius - 3}
-              y={seatY - seatRadius + 3}
-              radius={2}
-              fill={getStatusIndicatorColor(seat.status)}
-              opacity={isInteractive ? 1 : 0.6}
-              listening={false}
-            />
-          )}
         </Group>
       );
     });
@@ -154,8 +127,8 @@ export const renderAreaContent = ({
       <Group
         key={`row-${row.id}`}
         id={`row-${row.id}`}
-        x={row.startX || 0} // NEW: Use relative position directly
-        y={row.startY || 0} // NEW: Use relative position directly
+        x={row.startX || 0}
+        y={row.startY || 0}
         rotation={row.rotation || 0}
         draggable={isInteractive}
         listening={isInteractive}

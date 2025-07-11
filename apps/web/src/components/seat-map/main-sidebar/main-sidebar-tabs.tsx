@@ -81,7 +81,7 @@ export function MainSidebarTabs({
       {/* Tab Content */}
       <div className="space-y-4">
         <Card className="bg-gray-800 border-gray-700">
-          <CardContent className="p-4">
+          <CardContent>
             {activeTab === "props" && isSingleShape && (
               <SingleShapeEditor
                 shape={singleShape!}
@@ -100,7 +100,6 @@ export function MainSidebarTabs({
                   isSingleShape
                     ? (key, value) => {
                         handlers.handleSingleShapeUpdate({ [key]: value });
-                        handlers.saveToHistory();
                       }
                     : handlers.handleBatchChange
                 }
@@ -117,7 +116,6 @@ export function MainSidebarTabs({
                   isSingleShape
                     ? (key, value) => {
                         handlers.handleSingleShapeUpdate({ [key]: value });
-                        handlers.saveToHistory();
                       }
                     : handlers.handleBatchChange
                 }
@@ -147,7 +145,6 @@ export function MainSidebarTabs({
             handlers={{
               handleAreaUpdate: (updates: any) => {
                 handlers.handleSingleShapeUpdate(updates);
-                handlers.saveToHistory();
               },
             }}
           />

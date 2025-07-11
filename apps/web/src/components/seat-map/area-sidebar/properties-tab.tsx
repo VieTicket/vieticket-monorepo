@@ -1,7 +1,13 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Label } from "../../ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../../ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../ui/select";
 import { Edit3 } from "lucide-react";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
@@ -33,13 +39,15 @@ export function PropertiesTab({
   const seatRadiusEdit = useStoreInlineEdit(
     `seat-radius-${singleRow?.id}`,
     singleRow?.seatRadius || 8,
-    (value) => handlers.handleSingleRowUpdate({ seatRadius: parseInt(value) || 8 })
+    (value) =>
+      handlers.handleSingleRowUpdate({ seatRadius: parseInt(value) || 8 })
   );
 
   const seatSpacingEdit = useStoreInlineEdit(
     `seat-spacing-${singleRow?.id}`,
     singleRow?.seatSpacing || 20,
-    (value) => handlers.handleSingleRowUpdate({ seatSpacing: parseInt(value) || 20 })
+    (value) =>
+      handlers.handleSingleRowUpdate({ seatSpacing: parseInt(value) || 20 })
   );
 
   // Inline edit hooks for single seat
@@ -55,12 +63,6 @@ export function PropertiesTab({
     (value) => handlers.handleSingleSeatUpdate({ seatLabel: value })
   );
 
-  const seatPriceEdit = useStoreInlineEdit(
-    `seat-price-${singleSeat?.id}`,
-    singleSeat?.price || 0,
-    (value) => handlers.handleSingleSeatUpdate({ price: parseFloat(value) || 0 })
-  );
-
   // Inline edit hooks for batch editing
   const batchSeatRadiusEdit = useStoreInlineEdit(
     `batch-seat-radius`,
@@ -71,13 +73,8 @@ export function PropertiesTab({
   const batchSeatSpacingEdit = useStoreInlineEdit(
     `batch-seat-spacing`,
     batchValues.seatSpacing || 20,
-    (value) => handlers.handleBatchRowUpdate("seatSpacing", parseInt(value) || 20)
-  );
-
-  const batchSeatPriceEdit = useStoreInlineEdit(
-    `batch-seat-price`,
-    batchValues.price || "",
-    (value) => handlers.handleBatchSeatUpdate("price", parseFloat(value) || 0)
+    (value) =>
+      handlers.handleBatchRowUpdate("seatSpacing", parseInt(value) || 20)
   );
 
   return (
@@ -229,30 +226,6 @@ export function PropertiesTab({
             </div>
 
             <div className="space-y-2">
-              <Label className="text-xs">Price</Label>
-              {seatPriceEdit.isEditing ? (
-                <input
-                  type="number"
-                  value={seatPriceEdit.editValue}
-                  onChange={(e) => seatPriceEdit.setEditValue(e.target.value)}
-                  className="h-8 bg-gray-700 border-gray-600 text-white px-2 rounded w-full"
-                  step="0.01"
-                  min="0"
-                  placeholder="0"
-                  autoFocus
-                  {...seatPriceEdit.eventHandlers}
-                />
-              ) : (
-                <div
-                  className="h-8 bg-gray-700 border border-gray-600 text-white px-2 rounded flex items-center cursor-pointer hover:bg-gray-600"
-                  {...seatPriceEdit.eventHandlers}
-                >
-                  ${singleSeat.price || 0}
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
               <Label className="text-xs">Category</Label>
               <Select
                 value={singleSeat.category || "standard"}
@@ -305,7 +278,9 @@ export function PropertiesTab({
                 <input
                   type="number"
                   value={batchSeatRadiusEdit.editValue}
-                  onChange={(e) => batchSeatRadiusEdit.setEditValue(e.target.value)}
+                  onChange={(e) =>
+                    batchSeatRadiusEdit.setEditValue(e.target.value)
+                  }
                   className="h-8 bg-gray-700 border-gray-600 text-white px-2 rounded w-full"
                   min="4"
                   max="20"
@@ -328,7 +303,9 @@ export function PropertiesTab({
                 <input
                   type="number"
                   value={batchSeatSpacingEdit.editValue}
-                  onChange={(e) => batchSeatSpacingEdit.setEditValue(e.target.value)}
+                  onChange={(e) =>
+                    batchSeatSpacingEdit.setEditValue(e.target.value)
+                  }
                   className="h-8 bg-gray-700 border-gray-600 text-white px-2 rounded w-full"
                   min="10"
                   max="50"
@@ -369,30 +346,6 @@ export function PropertiesTab({
                   <SelectItem value="restricted">Restricted</SelectItem>
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs">Price</Label>
-              {batchSeatPriceEdit.isEditing ? (
-                <input
-                  type="number"
-                  value={batchSeatPriceEdit.editValue}
-                  onChange={(e) => batchSeatPriceEdit.setEditValue(e.target.value)}
-                  className="h-8 bg-gray-700 border-gray-600 text-white px-2 rounded w-full"
-                  step="0.01"
-                  min="0"
-                  placeholder="Set price for all"
-                  autoFocus
-                  {...batchSeatPriceEdit.eventHandlers}
-                />
-              ) : (
-                <div
-                  className="h-8 bg-gray-700 border border-gray-600 text-white px-2 rounded flex items-center cursor-pointer hover:bg-gray-600"
-                  {...batchSeatPriceEdit.eventHandlers}
-                >
-                  {batchValues.price ? `$${batchValues.price}` : "Click to set price for all"}
-                </div>
-              )}
             </div>
           </div>
         )}

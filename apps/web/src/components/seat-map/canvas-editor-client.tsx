@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useMemo } from "react";
 import { Stage, Layer, Rect, Line, Group, Circle } from "react-konva";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 import { useCanvasEvents } from "./hooks/useCanvasEvents";
@@ -15,19 +15,9 @@ import { useStageRef } from "./providers/stage-provider";
 export default function CanvasEditorClient() {
   const hasInitialized = useRef(false);
   const stageRef = useStageRef();
-  const hitCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  const {
-    shapes,
-    selectedShapeIds,
-    canvasSize,
-    viewportSize,
-    zoom,
-    pan,
-    currentTool,
-    showGrid,
-    showHitCanvas,
-  } = useCanvasStore();
+  const { shapes, selectedShapeIds, viewportSize, zoom, pan, currentTool } =
+    useCanvasStore();
 
   const eventHandlers = useCanvasEvents();
   const panZoomHandlers = usePanZoom();
@@ -48,103 +38,9 @@ export default function CanvasEditorClient() {
     }
   }, [viewportSize.width, viewportSize.height]);
 
-  useEffect(() => {
-    if (showHitCanvas && stageRef.current) {
-      const timer = setTimeout(() => {
-        const stage = stageRef.current;
-        const layer = stage?.getLayers()[0];
-        if (layer) {
-          const hitCanvas = layer.getHitCanvas();
-          if (hitCanvas && hitCanvas._canvas) {
-            const canvas = hitCanvas._canvas;
-
-            const existingDebugCanvas =
-              document.getElementById("debug-hit-canvas");
-            if (existingDebugCanvas) {
-              existingDebugCanvas.remove();
-            }
-
-            const debugCanvas = document.createElement("canvas");
-            debugCanvas.id = "debug-hit-canvas";
-            debugCanvas.width = canvas.width;
-            debugCanvas.height = canvas.height;
-            debugCanvas.style.position = "absolute";
-            debugCanvas.style.top = "0";
-            debugCanvas.style.left = "0";
-            debugCanvas.style.pointerEvents = "none";
-            debugCanvas.style.opacity = "0.5";
-            debugCanvas.style.zIndex = "1000";
-            debugCanvas.style.border = "2px solid red";
-
-            const debugCtx = debugCanvas.getContext("2d");
-            if (debugCtx && canvas) {
-              debugCtx.drawImage(canvas, 0, 0);
-            }
-
-            const canvasContainer = document.querySelector(".canvas-container");
-            if (canvasContainer) {
-              canvasContainer.appendChild(debugCanvas);
-            }
-          }
-        }
-      }, 100);
-
-      return () => clearTimeout(timer);
-    } else {
-      const existingDebugCanvas = document.getElementById("debug-hit-canvas");
-      if (existingDebugCanvas) {
-        existingDebugCanvas.remove();
-      }
-    }
-  }, [showHitCanvas, shapes, zoom, pan]);
-
-  const renderGrid = useCallback(() => {
-    if (!showGrid) return null;
-
-    const gridSize = 50;
-    const lines = [];
-
-    const startX = Math.floor(-pan.x / zoom / gridSize) * gridSize;
-    const endX =
-      Math.ceil((viewportSize.width - pan.x) / zoom / gridSize) * gridSize;
-    const startY = Math.floor(-pan.y / zoom / gridSize) * gridSize;
-    const endY =
-      Math.ceil((viewportSize.height - pan.y) / zoom / gridSize) * gridSize;
-
-    for (let x = startX; x <= endX; x += gridSize) {
-      lines.push(
-        <Line
-          key={`v-${x}`}
-          points={[x, startY, x, endY]}
-          stroke="#e0e0e0"
-          strokeWidth={1 / zoom}
-          listening={false}
-          perfectDrawEnabled={false}
-        />
-      );
-    }
-
-    for (let y = startY; y <= endY; y += gridSize) {
-      lines.push(
-        <Line
-          key={`h-${y}`}
-          points={[startX, y, endX, y]}
-          stroke="#e0e0e0"
-          strokeWidth={1 / zoom}
-          listening={false}
-          perfectDrawEnabled={false}
-        />
-      );
-    }
-
-    return lines;
-  }, [showGrid, viewportSize, zoom, pan]);
-
-  // FIX: Update selection rectangle rendering to work in area mode
-  const renderSelectionRectangle = useCallback(() => {
+  const renderSelectionRectangle = useMemo(() => {
     if (!eventHandlers.selectionRect || !eventHandlers.isSelecting) return null;
 
-    // FIX: Show selection rectangle in both main mode and area mode
     return (
       <Rect
         x={eventHandlers.selectionRect.x}
@@ -231,14 +127,12 @@ export default function CanvasEditorClient() {
         return "crosshair";
       case "text":
         return "text";
-      case "row":
-        return "crosshair";
       default:
         return "default";
     }
   };
 
-  const renderSeatPreviews = useCallback(() => {
+  const renderSeatPreviews = useMemo(() => {
     if (!eventHandlers.seatDrawing.previewSeats.length) return null;
 
     // FIX: Get polygon center to position preview seats correctly
@@ -265,8 +159,9 @@ export default function CanvasEditorClient() {
     eventHandlers.areaZoom.zoomedArea,
   ]);
 
-  const selectedShapes = shapes.filter((shape) =>
-    selectedShapeIds.includes(shape.id)
+  const selectedShapes = useMemo(
+    () => shapes.filter((shape) => selectedShapeIds.includes(shape.id)),
+    [shapes, selectedShapeIds]
   );
 
   const shouldShowSelectionOverlay = () => {
@@ -280,6 +175,34 @@ export default function CanvasEditorClient() {
 
     return true;
   };
+
+  // Add this function to render guide lines
+  const renderGuideLines = useMemo(() => {
+    if (!eventHandlers?.guideLines || eventHandlers.guideLines.length === 0) {
+      return null;
+    }
+
+    return eventHandlers.guideLines.map((line, index) => (
+      <Line
+        key={`guide-line-${index}`}
+        points={[line.start.x, line.start.y, line.end.x, line.end.y]}
+        stroke={
+          line.type === "horizontal"
+            ? "#3498db"
+            : line.type === "vertical"
+              ? "#2ecc71"
+              : line.type === "perpendicular"
+                ? "#9b59b6"
+                : "#e74c3c"
+        }
+        strokeWidth={1 / zoom}
+        dash={[5, 5]}
+        opacity={0.7}
+        listening={false}
+        perfectDrawEnabled={false}
+      />
+    ));
+  }, [eventHandlers.guideLines, zoom]);
 
   return (
     <div
@@ -333,8 +256,6 @@ export default function CanvasEditorClient() {
         style={{ cursor: getCursor() }}
       >
         <Layer clearBeforeDraw={true}>
-          {showGrid && !eventHandlers.areaZoom.isInAreaMode && renderGrid()}
-
           {shapes
             .filter((shape) => {
               if (!eventHandlers.areaZoom.isInAreaMode) return true;
@@ -352,27 +273,20 @@ export default function CanvasEditorClient() {
               true
             )}
 
-          {eventHandlers.areaZoom.isInAreaMode && renderSeatPreviews()}
+          {currentTool === "polygon" && renderGuideLines}
 
-          {renderSelectionRectangle()}
+          {eventHandlers.areaZoom.isInAreaMode && renderSeatPreviews}
+
+          {renderSelectionRectangle}
 
           {!eventHandlers.areaZoom.isInAreaMode &&
             shouldShowSelectionOverlay() && (
-              <SelectionOverlay
-                selectedShapes={selectedShapes}
-                // onResize={(shapeId, newBounds) => {
-                //   console.log("Resize shape:", shapeId, newBounds);
-                // }}
-              />
+              <SelectionOverlay selectedShapes={selectedShapes} />
             )}
         </Layer>
       </Stage>
 
-      <div className="absolute bottom-20 left-20 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm">
-        Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
-        {Math.round(pan.y)}
-        {showGrid && <span className="text-green-600 ml-2">Grid ON</span>}
-      </div>
+      {/* Rest of the component */}
     </div>
   );
 }

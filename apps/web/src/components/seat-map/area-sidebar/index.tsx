@@ -14,7 +14,9 @@ interface AreaSidebarProps {
   inSidebar?: boolean;
 }
 
-export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
+const AreaSidebar = React.memo(function AreaSidebar({
+  inSidebar = false,
+}: AreaSidebarProps) {
   const { isInAreaMode, selectedRowIds, selectedSeatIds } = useAreaMode();
   const [activeTab, setActiveTab] = useState<
     "properties" | "style" | "transform"
@@ -78,4 +80,6 @@ export default function AreaSidebar({ inSidebar = false }: AreaSidebarProps) {
       />
     </div>
   );
-}
+});
+
+export default AreaSidebar;

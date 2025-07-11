@@ -7,8 +7,6 @@ import { Label } from "../../ui/label";
 import { Move3D, RotateCw, Layers } from "lucide-react";
 import { Shape } from "@/types/seat-map-types";
 import { useStoreInlineEdit } from "../hooks/useStoreInlineEdit";
-import { useCanvasEvents } from "../hooks/useCanvasEvents";
-import { useStageRef } from "../providers/stage-provider";
 
 interface TransformTabProps {
   selectedShapes: Shape[];
@@ -21,7 +19,6 @@ interface TransformTabProps {
 export const TransformTab: React.FC<TransformTabProps> = ({
   selectedShapes,
   updateMultipleShapes,
-  saveToHistory,
 }) => {
   const editId =
     selectedShapes.length === 1
@@ -49,7 +46,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
       }));
       if (updates.length > 0) {
         updateMultipleShapes(updates);
-        saveToHistory();
       }
     }
   );
@@ -61,7 +57,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
     }));
     if (updates.length > 0) {
       updateMultipleShapes(updates);
-      saveToHistory();
     }
   };
 
@@ -72,7 +67,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
     }));
     if (updates.length > 0) {
       updateMultipleShapes(updates);
-      saveToHistory();
     }
   };
 
@@ -97,7 +91,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { x: shape.x - 10 },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             ← 10px
@@ -112,7 +105,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { x: shape.x + 10 },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             → 10px
@@ -127,7 +119,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { y: shape.y - 10 },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             ↑ 10px
@@ -142,7 +133,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { y: shape.y + 10 },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             ↓ 10px
@@ -244,7 +234,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { x: leftmostX },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             Align Left
@@ -260,7 +249,6 @@ export const TransformTab: React.FC<TransformTabProps> = ({
                 updates: { y: topmostY },
               }));
               updateMultipleShapes(updates);
-              saveToHistory();
             }}
           >
             Align Top

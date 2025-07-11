@@ -177,9 +177,6 @@ export const useDragEvents = () => {
         context
       );
 
-      // Save to history
-      handlers.saveToHistory();
-
       // Reset drag state
       resetDragState();
     },
@@ -307,26 +304,6 @@ const updateOtherRowVisualPositions = (
     // FIX: Don't update individual seat positions during drag
     // They will move with their parent row group automatically
   });
-};
-
-// FIX: Keep the original updateRowVisualPositions but remove seat updates
-const updateRowVisualPositions = (
-  itemId: string,
-  deltaX: number,
-  deltaY: number,
-  initialPositions: Map<string, { x: number; y: number }>,
-  e: any,
-  context: DragContext
-) => {
-  // FIX: Use the new function instead
-  updateOtherRowVisualPositions(
-    itemId,
-    deltaX,
-    deltaY,
-    initialPositions,
-    e,
-    context
-  );
 };
 
 const updateVisualPositions = (

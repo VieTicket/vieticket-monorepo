@@ -151,7 +151,6 @@ export function useMainSidebarLogic() {
             updates: { fill: value },
           }));
           updateMultipleShapes(shapeUpdates);
-          saveToHistory();
         }
       } else if (key === "cornerRadius") {
         const rectShapeIds = selectedShapes
@@ -164,7 +163,6 @@ export function useMainSidebarLogic() {
             updates: { cornerRadius: value },
           }));
           updateMultipleShapes(shapeUpdates);
-          saveToHistory();
         }
       } else if (key === "radius") {
         const circleShapeIds = selectedShapes
@@ -177,7 +175,6 @@ export function useMainSidebarLogic() {
             updates: { radius: value },
           }));
           updateMultipleShapes(shapeUpdates);
-          saveToHistory();
         }
       } else if (
         key === "fontSize" ||
@@ -194,7 +191,6 @@ export function useMainSidebarLogic() {
             updates: { [key]: value },
           }));
           updateMultipleShapes(shapeUpdates);
-          saveToHistory();
         }
       } else {
         const shapeUpdates = selectedShapeIds.map((id) => ({
@@ -202,7 +198,6 @@ export function useMainSidebarLogic() {
           updates: { [key]: value },
         }));
         updateMultipleShapes(shapeUpdates);
-        saveToHistory();
       }
     },
     [selectedShapes, selectedShapeIds, updateMultipleShapes, saveToHistory]
@@ -282,7 +277,7 @@ export function useMainSidebarLogic() {
       align: safeGetProperty(singleShape, "align", "left"),
       width: safeGetProperty(singleShape, "width", 200),
       height: safeGetProperty(singleShape, "height", 24),
-      
+
       ...(isRectShape(singleShape) && {
         cornerRadius: safeGetProperty(singleShape, "cornerRadius", 0),
       }),

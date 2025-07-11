@@ -106,9 +106,7 @@ export function useAreaSidebarLogic() {
   const handleSingleRowUpdate = useCallback(
     (updates: Partial<RowShape>) => {
       if (selectedRows.length === 1) {
-        console.log("Updating single row:", selectedRows[0].id, updates);
         updateRow(selectedRows[0].id, updates);
-        saveToHistory();
       }
     },
     [selectedRows, updateRow, saveToHistory]
@@ -117,9 +115,7 @@ export function useAreaSidebarLogic() {
   const handleSingleSeatUpdate = useCallback(
     (updates: Partial<SeatShape>) => {
       if (selectedSeats.length === 1) {
-        console.log("Updating single seat:", selectedSeats[0].id, updates);
         updateSeat(selectedSeats[0].id, updates);
-        saveToHistory();
       }
     },
     [selectedSeats, updateSeat, saveToHistory]
@@ -128,8 +124,6 @@ export function useAreaSidebarLogic() {
   // Handle batch editing
   const handleBatchRowUpdate = useCallback(
     (key: string, value: any) => {
-      console.log("Batch updating rows:", key, value);
-
       selectedRows.forEach((row) => {
         // Create updates object for the row
         const rowUpdates: Record<string, any> = { [key]: value };
@@ -139,19 +133,16 @@ export function useAreaSidebarLogic() {
       });
 
       setBatchValues((prev) => ({ ...prev, [key]: value }));
-      saveToHistory();
     },
     [selectedRows, updateRow, saveToHistory]
   );
 
   const handleBatchSeatUpdate = useCallback(
     (key: string, value: any) => {
-      console.log("Batch updating seats:", key, value);
       selectedSeats.forEach((seat) => {
         updateSeat(seat.id, { [key]: value });
       });
       setBatchValues((prev) => ({ ...prev, [key]: value }));
-      saveToHistory();
     },
     [selectedSeats, updateSeat, saveToHistory]
   );
@@ -160,8 +151,6 @@ export function useAreaSidebarLogic() {
   const handleAreaUpdate = useCallback(
     (updates: Partial<any>) => {
       if (zoomedArea) {
-        console.log("Updating area:", zoomedArea.id, updates);
-
         // FIX: For polygon shapes, also update existing rows with new defaults
         if (updates.defaultSeatRadius && zoomedArea.rows) {
           zoomedArea.rows.forEach((row) => {
@@ -182,7 +171,6 @@ export function useAreaSidebarLogic() {
         }
 
         updateShape(zoomedArea.id, updates);
-        saveToHistory();
       }
     },
     [zoomedArea, updateShape, updateRow, saveToHistory]
@@ -225,7 +213,6 @@ export function useAreaSidebarLogic() {
     // Select only the merged row
     clearAreaSelections();
     selectRow(primaryRow.id, false);
-    saveToHistory();
   }, [
     selectedRows,
     updateRow,
@@ -254,7 +241,6 @@ export function useAreaSidebarLogic() {
     // Select only the merged seat
     clearAreaSelections();
     selectSeat(primarySeat.id, false);
-    saveToHistory();
   }, [
     selectedSeats,
     updateSeat,
@@ -268,8 +254,14 @@ export function useAreaSidebarLogic() {
     selectedRows.forEach((row) => deleteRow(row.id));
     selectedSeats.forEach((seat) => deleteSeat(seat.id));
     clearAreaSelections();
-    saveToHistory();
-  }, [selectedRows, selectedSeats, deleteRow, deleteSeat, clearAreaSelections, saveToHistory]);
+  }, [
+    selectedRows,
+    selectedSeats,
+    deleteRow,
+    deleteSeat,
+    clearAreaSelections,
+    saveToHistory,
+  ]);
 
   return {
     selectedRows,

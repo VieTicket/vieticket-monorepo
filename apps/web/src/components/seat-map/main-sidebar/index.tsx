@@ -7,7 +7,7 @@ import { MainSidebarTabs } from "./main-sidebar-tabs";
 import { ShapeTypeSummary } from "./shape-type-summary";
 import { useMainSidebarLogic } from "./use-main-sidebar-logic";
 
-export default function MainSidebar() {
+const MainSidebar = React.memo(function MainSidebar() {
   const {
     selectedShapes,
     selectedShapeIds,
@@ -67,4 +67,6 @@ export default function MainSidebar() {
       <ShapeTypeSummary shapeTypeSummary={shapeTypeSummary} />
     </div>
   );
-}
+});
+
+export default MainSidebar;

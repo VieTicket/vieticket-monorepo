@@ -52,19 +52,14 @@ export type ToolType =
   | "seat-grid"
   | "seat-row";
 
-export default function MainToolbar() {
+const MainToolbar = React.memo(function MainToolbar() {
   const fileMenuRef = useRef<HTMLButtonElement>(null);
-  const debugMenuRef = useRef<HTMLButtonElement>(null);
 
   const currentTool = useCurrentTool();
   const zoom = useZoom();
-  const showGrid = useShowGrid();
-  const showHitCanvas = useShowHitCanvas();
 
   const {
     setCurrentTool,
-    setShowGrid,
-    setShowHitCanvas,
     undo,
     redo,
     canUndo,
@@ -110,14 +105,6 @@ export default function MainToolbar() {
   const handleExit = useCallback(() => {
     console.log("Exit");
   }, []);
-
-  const toggleGrid = useCallback(() => {
-    setShowGrid(!showGrid);
-  }, [showGrid, setShowGrid]);
-
-  const toggleHitCanvas = useCallback(() => {
-    setShowHitCanvas(!showHitCanvas);
-  }, [showHitCanvas, setShowHitCanvas]);
 
   const handleToolSelect = useCallback(
     (toolId: ToolType) => {
@@ -222,32 +209,6 @@ export default function MainToolbar() {
         >
           <Save className="w-5 h-5" />
         </Button>
-
-        <div className="border-l mx-2 h-6" />
-
-        {/* Debug Tools - FIX: Use uncontrolled dropdown */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              title="Debug Tools"
-              ref={debugMenuRef}
-            >
-              <Bug className="w-5 h-5" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem onClick={toggleGrid}>
-              <Grid3X3 className="w-4 h-4 mr-2" />
-              Show Grid {showGrid && "✓"}
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={toggleHitCanvas}>
-              <Eye className="w-4 h-4 mr-2" />
-              Show Hit Canvas {showHitCanvas && "✓"}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {!isInAreaMode ? (
@@ -286,4 +247,6 @@ export default function MainToolbar() {
       </div>
     </div>
   );
-}
+});
+
+export default MainToolbar;

@@ -102,8 +102,6 @@ export const renderShape = ({
       const hasRows =
         Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
 
-      console.log(restProps);
-      console.log("Polygon Shape:", polygonShape);
       const centerX = polygonShape.center?.x || 0;
       const centerY = polygonShape.center?.y || 0;
       const flatPoints =
@@ -113,7 +111,7 @@ export const renderShape = ({
         }, [] as number[]) || [];
 
       return (
-        <Group key={key} {...restProps} x={0} y={0}>
+        <Group key={key} {...restProps}>
           <Line
             x={0}
             y={0}

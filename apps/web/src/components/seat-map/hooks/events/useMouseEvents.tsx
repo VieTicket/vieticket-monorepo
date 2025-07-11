@@ -96,8 +96,6 @@ export const useMouseEvents = () => {
       } else if (
         currentTool !== "select" &&
         currentTool !== "polygon" &&
-        currentTool !== "seat-grid" &&
-        currentTool !== "seat-row" &&
         drawingEvents.isDrawing
       ) {
         drawingEvents.handleDrawingMouseMove(canvasCoords);

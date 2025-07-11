@@ -2,8 +2,6 @@ import React from "react";
 import { PropertiesTab } from "./properties-tab";
 import { StyleTab } from "./style-tab";
 import { TransformTab } from "./transform-tab";
-import { AreaSettingsCard } from "./area-settings-card";
-import { ActionButtonsCard } from "./action-buttons-card";
 import { SelectionSummaryCard } from "./selection-summary-card";
 import { RowShape, SeatShape } from "@/types/seat-map-types";
 
@@ -102,14 +100,6 @@ export function AreaSidebarTabs({
             handlers={handlers}
           />
         )}
-
-        <ActionButtonsCard
-          totalSelected={totalSelected}
-          selectedRows={selectedRows}
-          selectedSeats={selectedSeats}
-          handlers={handlers}
-          setIsMerging={setIsMerging}
-        />
 
         <SelectionSummaryCard
           selectedRows={selectedRows}

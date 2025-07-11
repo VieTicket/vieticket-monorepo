@@ -79,6 +79,9 @@ export const createAreaSlice: StateCreator<
   selectedSeatIds: [],
 
   enterAreaMode: (area, originalState) => {
+    // FIX: Save state before entering area mode
+    get().saveToHistory();
+
     set({
       isInAreaMode: true,
       zoomedArea: area,
@@ -111,6 +114,9 @@ export const createAreaSlice: StateCreator<
       selectedRowIds: [],
       selectedSeatIds: [],
     });
+
+    // FIX: Save state after exiting area mode
+    get().saveToHistory();
   },
 
   updateZoomedArea: (updates) => {
@@ -124,6 +130,9 @@ export const createAreaSlice: StateCreator<
           shape.id === zoomedArea.id ? updatedArea : shape
         ),
       }));
+
+      // FIX: Save to history after area updates
+      get().saveToHistory();
     }
   },
 
@@ -131,8 +140,6 @@ export const createAreaSlice: StateCreator<
   updateRow: (rowId, updates) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
-
-    console.log("Updating row:", rowId, "with updates:", updates);
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (row.id === rowId) {
@@ -248,14 +255,15 @@ export const createAreaSlice: StateCreator<
       rows: updatedRows,
     };
 
-    console.log("Updated area:", updatedArea);
-
     set((state) => ({
       zoomedArea: updatedArea,
       shapes: state.shapes.map((shape) =>
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    // FIX: Save to history after row updates
+    get().saveToHistory();
 
     return rowId;
   },
@@ -265,17 +273,14 @@ export const createAreaSlice: StateCreator<
     if (!zoomedArea) return "";
 
     const newRowId = generateUniqueId("row");
-    
-    // FIX: Don't double-convert coordinates - they're already relative from useSeatDrawing
-    const relativeStartX = rowData.startX || 0; // Already relative
-    const relativeStartY = rowData.startY || 0; // Already relative
 
-    // FIX: Process seats without modifying their positions (already relative)
+    const relativeStartX = rowData.startX || 0;
+    const relativeStartY = rowData.startY || 0;
+
     const processedSeats: SeatShape[] = (rowData.seats || []).map((seat) => ({
       ...seat,
-      // FIX: Don't modify seat positions - they're already relative
-      x: seat.x, // Already relative from useSeatDrawing
-      y: seat.y, // Already relative from useSeatDrawing
+      x: seat.x,
+      y: seat.y,
       radius: seat.radius ?? rowData.seatRadius ?? 8,
       fill:
         seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
@@ -287,8 +292,8 @@ export const createAreaSlice: StateCreator<
       ...rowData,
       id: newRowId,
       area: zoomedArea.id,
-      startX: relativeStartX, // FIX: Use as-is (already relative)
-      startY: relativeStartY, // FIX: Use as-is (already relative)
+      startX: relativeStartX,
+      startY: relativeStartY,
       seats: processedSeats,
     };
 
@@ -304,6 +309,9 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
+    // FIX: Save to history after adding row
+    get().saveToHistory();
+
     return newRowId;
   },
 
@@ -316,17 +324,12 @@ export const createAreaSlice: StateCreator<
     if (!targetRow) return "";
 
     const newSeatId = generateUniqueId("seat");
-    const polygonCenter = zoomedArea.center || { x: 0, y: 0 };
-
-    // NEW: Ensure seat position is relative to polygon center
-    const relativeSeatX = seatData.x; // Should already be relative
-    const relativeSeatY = seatData.y; // Should already be relative
 
     const newSeat: SeatShape = {
       ...seatData,
       id: newSeatId,
-      x: relativeSeatX, // NEW: Store relative position
-      y: relativeSeatY, // NEW: Store relative position
+      x: seatData.x,
+      y: seatData.y,
       radius: seatData.radius ?? targetRow.seatRadius ?? 8,
       fill:
         seatData.fill ??
@@ -359,6 +362,9 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
+    // FIX: Save to history after adding seat
+    get().saveToHistory();
+
     return newSeatId;
   },
 
@@ -370,14 +376,11 @@ export const createAreaSlice: StateCreator<
     const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
     if (!targetRow) return [];
 
-    const polygonCenter = zoomedArea.center || { x: 0, y: 0 };
-
     const newSeats: SeatShape[] = seats.map((seatData) => ({
       ...seatData,
       id: generateUniqueId("seat"),
-      // NEW: Ensure positions are relative (should already be from useSeatDrawing)
-      x: seatData.x, // Should already be relative
-      y: seatData.y, // Should already be relative
+      x: seatData.x,
+      y: seatData.y,
       radius: seatData.radius ?? targetRow.seatRadius ?? 8,
       fill:
         seatData.fill ??
@@ -412,6 +415,9 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
+    // FIX: Save to history after adding multiple seats
+    get().saveToHistory();
+
     return newSeats.map((seat) => seat.id);
   },
 
@@ -438,6 +444,9 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
+    // FIX: Save to history after deleting row
+    get().saveToHistory();
+
     return rowId;
   },
 
@@ -445,8 +454,6 @@ export const createAreaSlice: StateCreator<
   updateSeat: (seatId, updates) => {
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
-
-    console.log("Updating seat:", seatId, "with updates:", updates);
 
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (!Array.isArray(row.seats)) return row;
@@ -465,14 +472,15 @@ export const createAreaSlice: StateCreator<
       rows: updatedRows,
     };
 
-    console.log("Updated area with seat changes:", updatedArea);
-
     set((state) => ({
       zoomedArea: updatedArea,
       shapes: state.shapes.map((shape) =>
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    // FIX: Save to history after updating seat
+    get().saveToHistory();
 
     return seatId;
   },
@@ -505,6 +513,9 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    // FIX: Save to history after deleting seat
+    get().saveToHistory();
 
     return seatId;
   },
@@ -653,6 +664,9 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    // FIX: Save to history after position updates
+    get().saveToHistory();
   },
 
   updateMultipleRowPositions: (updates) => {
@@ -693,6 +707,9 @@ export const createAreaSlice: StateCreator<
         shape.id === zoomedArea.id ? updatedArea : shape
       ),
     }));
+
+    // FIX: Save to history after multiple position updates
+    get().saveToHistory();
   },
 
   mergeRows: (primaryRowId: string, rowIdsToMerge: string[]) => {
@@ -736,6 +753,9 @@ export const createAreaSlice: StateCreator<
       ),
       selectedRowIds: [primaryRowId],
     }));
+
+    // FIX: Save to history after merging rows
+    get().saveToHistory();
   },
 
   mergeSeats: (primarySeatId: string, seatIdsToMerge: string[]) => {
@@ -777,12 +797,14 @@ export const createAreaSlice: StateCreator<
         .map((seat) => (seat.id === primarySeatId ? updatedPrimarySeat : seat)),
     }));
 
-    // Update the shape
     set((state) => ({
       shapes: state.shapes.map((s) =>
         s.id === area.id ? { ...s, rows: updatedRows } : s
       ),
       selectedSeatIds: [primarySeatId],
     }));
+
+    // FIX: Save to history after merging seats
+    get().saveToHistory();
   },
 });

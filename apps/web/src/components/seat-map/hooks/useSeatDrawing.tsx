@@ -102,8 +102,6 @@ export const useSeatDrawing = () => {
 
           callback(previewSeats);
         }
-
-        saveToHistory();
       }
 
       // Reset state
