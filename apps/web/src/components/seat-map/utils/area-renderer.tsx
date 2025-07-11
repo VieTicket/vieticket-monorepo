@@ -35,6 +35,7 @@ export const renderAreaContent = ({
   const elements: JSX.Element[] = [];
 
   rows.forEach((row) => {
+    console.log(row);
     const isRowSelected = selectedRowIds.includes(row.id);
     const rowElements: JSX.Element[] = [];
 
@@ -129,7 +130,7 @@ export const renderAreaContent = ({
         id={`row-${row.id}`}
         x={row.startX || 0}
         y={row.startY || 0}
-        rotation={row.rotation || 0}
+        rotation={0}
         draggable={isInteractive}
         listening={isInteractive}
         onClick={

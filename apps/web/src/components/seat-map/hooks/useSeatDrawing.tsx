@@ -1,8 +1,4 @@
-import { useState, useCallback } from "react";
-import {
-  useAreaActions,
-  useCanvasStore,
-} from "@/components/seat-map/store/main-store";
+import { useState, useCallback, useEffect } from "react";
 import { SeatShape, AreaConfig } from "@/types/seat-map-types";
 import { useAreaZoom } from "./useAreaZoom";
 
@@ -27,16 +23,43 @@ export const useSeatDrawing = () => {
 
   const [areaConfig, setAreaConfig] = useState<AreaConfig>({
     defaultSeatRadius: 8,
-    defaultSeatSpacing: 25,
+    defaultSeatSpacing: 20,
     defaultRowSpacing: 30,
     startingRowLabel: "A",
     startingSeatNumber: 1,
     defaultSeatCategory: "standard",
     defaultPrice: 50,
   });
-
-  const { saveToHistory } = useCanvasStore();
   const areaZoom = useAreaZoom();
+
+  useEffect(() => {
+    if (areaZoom.zoomedArea) {
+      setAreaConfig((prevConfig) => ({
+        ...prevConfig,
+        defaultSeatRadius:
+          areaZoom.zoomedArea!.defaultSeatRadius ||
+          prevConfig.defaultSeatRadius,
+        defaultSeatSpacing:
+          areaZoom.zoomedArea!.defaultSeatSpacing ||
+          prevConfig.defaultSeatSpacing,
+        defaultRowSpacing:
+          areaZoom.zoomedArea!.defaultRowSpacing ||
+          prevConfig.defaultRowSpacing,
+        defaultSeatCategory:
+          areaZoom.zoomedArea!.defaultSeatCategory ||
+          prevConfig.defaultSeatCategory,
+        defaultPrice:
+          areaZoom.zoomedArea!.defaultPrice || prevConfig.defaultPrice,
+      }));
+    }
+  }, [
+    areaZoom.zoomedArea?.defaultSeatRadius,
+    areaZoom.zoomedArea?.defaultSeatSpacing,
+    areaZoom.zoomedArea?.defaultRowSpacing,
+    areaZoom.zoomedArea?.defaultSeatCategory,
+    areaZoom.zoomedArea?.defaultPrice,
+    areaZoom.zoomedArea?.defaultSeatColor,
+  ]);
 
   const startSeatDrawing = useCallback(
     (canvasCoords: { x: number; y: number }, mode: SeatDrawingMode) => {
@@ -67,44 +90,64 @@ export const useSeatDrawing = () => {
       setCurrentPoint(canvasCoords);
 
       if (drawingMode === "grid" && clickCount === 2 && secondPoint) {
-        const seats = generateSeatGrid(startPoint, secondPoint, canvasCoords);
+        const { seats } = generateSeatGrid(
+          startPoint,
+          secondPoint,
+          canvasCoords
+        );
         setPreviewSeats(seats);
       } else if (drawingMode === "grid" && clickCount === 1) {
-        const seats = generateSeatRow(startPoint, canvasCoords);
+        const { seats } = generateSeatRow(startPoint, canvasCoords);
         setPreviewSeats(seats);
       } else if (drawingMode === "row" && clickCount === 1) {
-        const seats = generateSeatRow(startPoint, canvasCoords);
+        const { seats } = generateSeatRow(startPoint, canvasCoords);
         setPreviewSeats(seats);
       }
     },
-    [isDrawing, startPoint, secondPoint, drawingMode, clickCount, areaConfig]
+    [isDrawing, startPoint, secondPoint, drawingMode, clickCount]
   );
 
   const finishSeatDrawing = useCallback(
     (callback: (data: any) => void) => {
       if (previewSeats.length > 0) {
-        if (drawingMode === "grid") {
-          // FIX: Group seats by row name for grid mode
-          const seatsGroupedByRow: { [rowName: string]: SeatShape[] } = {};
+        if (
+          drawingMode === "grid" &&
+          secondPoint &&
+          startPoint &&
+          currentPoint
+        ) {
+          const { seats, rowRotations } = generateSeatGrid(
+            startPoint,
+            secondPoint,
+            currentPoint
+          );
 
-          previewSeats.forEach((seat) => {
+          const seatsGroupedByRow: {
+            [rowName: string]: {
+              seats: SeatShape[];
+              rotation: number;
+            };
+          } = {};
+
+          seats.forEach((seat) => {
             const rowName = seat.row;
             if (!seatsGroupedByRow[rowName]) {
-              seatsGroupedByRow[rowName] = [];
+              seatsGroupedByRow[rowName] = {
+                seats: [],
+                rotation: rowRotations[rowName] || 0,
+              };
             }
-            seatsGroupedByRow[rowName].push(seat);
+            seatsGroupedByRow[rowName].seats.push(seat);
           });
 
-          // Call the callback with grouped seats
           callback(seatsGroupedByRow);
-        } else if (drawingMode === "row") {
-          // FIX: For row mode, pass the seats array directly
+        } else if (drawingMode === "row" && startPoint && currentPoint) {
+          const { seats, rotation } = generateSeatRow(startPoint, currentPoint);
 
-          callback(previewSeats);
+          callback({ seats, rotation });
         }
       }
 
-      // Reset state
       setIsDrawing(false);
       setClickCount(0);
       setStartPoint(null);
@@ -113,7 +156,7 @@ export const useSeatDrawing = () => {
       setPreviewSeats([]);
       setDrawingMode(null);
     },
-    [previewSeats, drawingMode, saveToHistory]
+    [previewSeats, drawingMode, startPoint, secondPoint, currentPoint]
   );
 
   const cancelSeatDrawing = useCallback(() => {
@@ -131,27 +174,28 @@ export const useSeatDrawing = () => {
       start: { x: number; y: number },
       second: { x: number; y: number },
       end: { x: number; y: number }
-    ): SeatShape[] => {
+    ): { seats: SeatShape[]; rowRotations: Record<string, number> } => {
       const seats: SeatShape[] = [];
+      const rowRotations: Record<string, number> = {};
 
       const defaultRadius =
         areaZoom.zoomedArea?.defaultSeatRadius || areaConfig.defaultSeatRadius;
       const defaultSpacing =
         areaZoom.zoomedArea?.defaultSeatSpacing ||
         areaConfig.defaultSeatSpacing;
+      const defaultRowSpacing =
+        areaZoom.zoomedArea?.defaultRowSpacing || areaConfig.defaultRowSpacing;
+      const defaultPrice =
+        areaZoom.zoomedArea?.defaultPrice || areaConfig.defaultPrice;
+      const defaultCategory =
+        areaZoom.zoomedArea?.defaultSeatCategory ||
+        areaConfig.defaultSeatCategory;
       const defaultColor =
         areaZoom.zoomedArea?.defaultSeatColor ||
-        getSeatCategoryColor(areaConfig.defaultSeatCategory);
+        getSeatCategoryColor(defaultCategory);
 
-      const {
-        defaultRowSpacing,
-        startingRowLabel,
-        startingSeatNumber,
-        defaultSeatCategory,
-        defaultPrice,
-      } = areaConfig;
+      const { startingRowLabel, startingSeatNumber } = areaConfig;
 
-      // NEW: Get polygon center for relative positioning
       const polygonCenter = areaZoom.zoomedArea?.center || { x: 0, y: 0 };
 
       const rowDirection = {
@@ -178,14 +222,18 @@ export const useSeatDrawing = () => {
         y: colDirection.y / colLength,
       };
 
-      // NEW: Create seats with positions relative to polygon center
+      const rowRotationDegrees = Math.round(
+        (Math.atan2(rowDirection.y, rowDirection.x) * 180) / Math.PI
+      );
+
       for (let row = 0; row < rowCount; row++) {
         const currentRowLabel = String.fromCharCode(
           startingRowLabel.charCodeAt(0) + row
         );
 
+        rowRotations[currentRowLabel] = rowRotationDegrees;
+
         for (let col = 0; col < colCount; col++) {
-          // Calculate absolute position
           const absoluteX =
             start.x +
             rowUnit.x * col * defaultSpacing +
@@ -195,22 +243,21 @@ export const useSeatDrawing = () => {
             rowUnit.y * col * defaultSpacing +
             colUnit.y * row * defaultRowSpacing;
 
-          // NEW: Convert to relative position from polygon center
           const relativeX = absoluteX - polygonCenter.x;
           const relativeY = absoluteY - polygonCenter.y;
 
           seats.push({
             type: "seat" as const,
-            id: `temp-${row}-${col}`, // Temporary ID, will be replaced
-            x: relativeX, // NEW: Store relative position
-            y: relativeY, // NEW: Store relative position
+            id: `temp-${row}-${col}`,
+            x: relativeX,
+            y: relativeY,
             radius: defaultRadius,
             fill: defaultColor,
             stroke: "#2E7D32",
             strokeWidth: 1,
             number: col + startingSeatNumber,
             row: currentRowLabel,
-            category: defaultSeatCategory,
+            category: defaultCategory,
             status: "available",
             price: defaultPrice,
             visible: true,
@@ -218,7 +265,7 @@ export const useSeatDrawing = () => {
         }
       }
 
-      return seats;
+      return { seats, rowRotations };
     },
     [areaConfig, areaZoom.zoomedArea]
   );
@@ -227,54 +274,63 @@ export const useSeatDrawing = () => {
     (
       start: { x: number; y: number },
       end: { x: number; y: number }
-    ): SeatShape[] => {
+    ): { seats: SeatShape[]; rotation: number } => {
       const seats: SeatShape[] = [];
-      const {
-        defaultSeatRadius,
-        defaultSeatSpacing,
-        startingRowLabel,
-        startingSeatNumber,
-        defaultSeatCategory,
-        defaultPrice,
-      } = areaConfig;
 
-      // NEW: Get polygon center for relative positioning
+      const defaultRadius =
+        areaZoom.zoomedArea?.defaultSeatRadius || areaConfig.defaultSeatRadius;
+      const defaultSpacing =
+        areaZoom.zoomedArea?.defaultSeatSpacing ||
+        areaConfig.defaultSeatSpacing;
+      const defaultPrice =
+        areaZoom.zoomedArea?.defaultPrice || areaConfig.defaultPrice;
+      const defaultCategory =
+        areaZoom.zoomedArea?.defaultSeatCategory ||
+        areaConfig.defaultSeatCategory;
+      const defaultColor =
+        areaZoom.zoomedArea?.defaultSeatColor ||
+        getSeatCategoryColor(defaultCategory);
+
+      const { startingRowLabel, startingSeatNumber } = areaConfig;
+
       const polygonCenter = areaZoom.zoomedArea?.center || { x: 0, y: 0 };
 
       const direction = { x: end.x - start.x, y: end.y - start.y };
       const length = Math.sqrt(direction.x ** 2 + direction.y ** 2);
-      const seatCount = Math.max(1, Math.floor(length / defaultSeatSpacing));
+      const seatCount = Math.max(1, Math.floor(length / defaultSpacing));
 
       const unit = { x: direction.x / length, y: direction.y / length };
 
-      for (let i = 0; i < seatCount; i++) {
-        // Calculate absolute position
-        const absoluteX = start.x + unit.x * i * defaultSeatSpacing;
-        const absoluteY = start.y + unit.y * i * defaultSeatSpacing;
+      const rowRotationDegrees = Math.round(
+        (Math.atan2(direction.y, direction.x) * 180) / Math.PI
+      );
 
-        // NEW: Convert to relative position from polygon center
+      for (let i = 0; i < seatCount; i++) {
+        const absoluteX = start.x + unit.x * i * defaultSpacing;
+        const absoluteY = start.y + unit.y * i * defaultSpacing;
+
         const relativeX = absoluteX - polygonCenter.x;
         const relativeY = absoluteY - polygonCenter.y;
 
         seats.push({
           type: "seat" as const,
-          id: `temp-row-${i}`, // Temporary ID, will be replaced
-          x: relativeX, // NEW: Store relative position
-          y: relativeY, // NEW: Store relative position
-          radius: defaultSeatRadius,
-          fill: getSeatCategoryColor(defaultSeatCategory),
+          id: `temp-row-${i}`,
+          x: relativeX,
+          y: relativeY,
+          radius: defaultRadius,
+          fill: defaultColor,
           stroke: "#2E7D32",
           strokeWidth: 1,
           number: i + startingSeatNumber,
           row: startingRowLabel,
-          category: defaultSeatCategory,
+          category: defaultCategory,
           status: "available",
           price: defaultPrice,
           visible: true,
         });
       }
 
-      return seats;
+      return { seats, rotation: rowRotationDegrees };
     },
     [areaConfig, areaZoom.zoomedArea]
   );

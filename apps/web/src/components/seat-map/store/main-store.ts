@@ -50,11 +50,6 @@ export const useCurrentTool = () =>
 
 export const useZoom = () => useCanvasStore((state) => state.zoom);
 
-export const useShowGrid = () => useCanvasStore((state) => state.showGrid);
-
-export const useShowHitCanvas = () =>
-  useCanvasStore((state) => state.showHitCanvas);
-
 export const useIsInAreaMode = () =>
   useCanvasStore((state) => state.isInAreaMode);
 export const useZoomedArea = () => useCanvasStore((state) => state.zoomedArea);
@@ -98,8 +93,8 @@ export const useCanvasActions = () => {
     duplicateShapes: useCanvasStore.getState().duplicateSelectedShapes,
     deleteSelectedShapes: useCanvasStore.getState().deleteSelectedShapes,
     setCurrentTool: useCanvasStore.getState().setCurrentTool,
-    setShowGrid: useCanvasStore.getState().setShowGrid,
-    setShowHitCanvas: useCanvasStore.getState().setShowHitCanvas,
+    loadFromStorage: useCanvasStore.getState().loadFromStorage,
+    clearStorage: useCanvasStore.getState().clearStorage,
   };
 };
 
@@ -131,6 +126,12 @@ export const useUpdateRowPosition = () =>
   useCanvasStore((state) => state.updateRowPosition);
 export const useUpdateMultipleRowPositions = () =>
   useCanvasStore((state) => state.updateMultipleRowPositions);
+export const useDeleteSelectedRows = () =>
+  useCanvasStore((state) => state.deleteSelectedRows);
+export const useDeleteSelectedSeats = () =>
+  useCanvasStore((state) => state.deleteSelectedSeats);
+export const useDeleteSelectedAreaItems = () =>
+  useCanvasStore((state) => state.deleteSelectedAreaItems);
 
 export const useAreaActions = () => {
   const enterAreaMode = useEnterAreaMode();
@@ -151,6 +152,10 @@ export const useAreaActions = () => {
   const updateRowPosition = useUpdateRowPosition();
   const updateMultipleRowPositions = useUpdateMultipleRowPositions();
 
+  const deleteSelectedRows = useDeleteSelectedRows();
+  const deleteSelectedSeats = useDeleteSelectedSeats();
+  const deleteSelectedAreaItems = useDeleteSelectedAreaItems();
+
   return useMemo(
     () => ({
       enterAreaMode,
@@ -170,6 +175,9 @@ export const useAreaActions = () => {
       addMultipleRowsToArea,
       updateRowPosition,
       updateMultipleRowPositions,
+      deleteSelectedRows,
+      deleteSelectedSeats,
+      deleteSelectedAreaItems,
     }),
     [
       enterAreaMode,
@@ -189,6 +197,15 @@ export const useAreaActions = () => {
       addMultipleRowsToArea,
       updateRowPosition,
       updateMultipleRowPositions,
+      deleteSelectedRows,
+      deleteSelectedSeats,
+      deleteSelectedAreaItems,
     ]
   );
 };
+
+export const useLoadFromStorage = () => 
+  useCanvasStore((state) => state.loadFromStorage);
+
+export const useClearStorage = () => 
+  useCanvasStore((state) => state.clearStorage);

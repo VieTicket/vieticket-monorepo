@@ -183,14 +183,7 @@ const processAreaSelection = (
   context.zoomedArea.rows?.forEach((row: any) => {
     let rowHasSeatsInSelection = false;
 
-    // Get row's absolute position by adding row's relative position to polygon center
-    const rowAbsoluteX = polygonCenter.x + (row.startX || 0);
-    const rowAbsoluteY = polygonCenter.y + (row.startY || 0);
-
-    // Check if any seats in this row are within the selection rectangle
     row.seats?.forEach((seat: any) => {
-      // Calculate absolute seat position
-      // Seat's position is stored relative to row's startX/startY, which is relative to polygon center
       const seatAbsoluteX = polygonCenter.x + seat.x;
       const seatAbsoluteY = polygonCenter.y + seat.y;
 
@@ -210,10 +203,7 @@ const processAreaSelection = (
     });
 
     // Check if the row itself is in the selection rectangle
-    if (
-      rowHasSeatsInSelection ||
-      isRowInRectangleAbsolute(row, rect, polygonCenter)
-    ) {
+    if (rowHasSeatsInSelection) {
       rowsInSelection.push(row.id);
     }
   });
@@ -265,30 +255,6 @@ const isSeatInRectangle = (seat: any, rect: any) => {
     seatBounds.left > rect.x + rect.width ||
     seatBounds.bottom < rect.y ||
     seatBounds.top > rect.y + rect.height
-  );
-};
-
-const isRowInRectangleAbsolute = (row: any, rect: any, polygonCenter: any) => {
-  if (!row.seats || row.seats.length === 0) return false;
-
-  // Calculate absolute positions of first and last seat
-  const firstSeatX = polygonCenter.x + row.seats[0].x;
-  const firstSeatY = polygonCenter.y + row.seats[0].y;
-  const lastSeatX = polygonCenter.x + row.seats[row.seats.length - 1].x;
-  const lastSeatY = polygonCenter.y + row.seats[row.seats.length - 1].y;
-
-  const rowLineBounds = {
-    left: Math.min(firstSeatX, lastSeatX),
-    right: Math.max(firstSeatX, lastSeatX),
-    top: Math.min(firstSeatY, lastSeatY),
-    bottom: Math.max(firstSeatY, lastSeatY),
-  };
-
-  return !(
-    rowLineBounds.right < rect.x ||
-    rowLineBounds.left > rect.x + rect.width ||
-    rowLineBounds.bottom < rect.y ||
-    rowLineBounds.top > rect.y + rect.height
   );
 };
 

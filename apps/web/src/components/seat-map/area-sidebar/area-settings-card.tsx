@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "../../ui/card";
 import { Label } from "../../ui/label";
 import { Input } from "../../ui/input";
@@ -16,28 +16,25 @@ import {
 
 interface AreaSettingsCardProps {
   handlers: any;
-  // FIX: Add optional shape prop for polygon mode
+  // For polygon mode
   shape?: any;
 }
 
 export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
   const { zoomedArea } = useAreaMode();
 
-  // FIX: Use shape if provided (for polygon mode), otherwise use zoomedArea
+  // Use shape if provided (for polygon mode), otherwise use zoomedArea
   const targetArea = shape || zoomedArea;
 
-  // FIX: For polygon shapes, we need to ensure they have area properties
-  const defaultSeatRadius =
-    targetArea?.defaultSeatRadius || targetArea?.seatRadius || 8;
-  const defaultSeatSpacing =
-    targetArea?.defaultSeatSpacing || targetArea?.seatSpacing || 20;
+  // Extract area settings with proper fallbacks
+  const defaultSeatRadius = targetArea?.defaultSeatRadius || 8;
+  const defaultSeatSpacing = targetArea?.defaultSeatSpacing || 20;
   const defaultRowSpacing = targetArea?.defaultRowSpacing || 30;
   const defaultSeatCategory = targetArea?.defaultSeatCategory || "standard";
-  const defaultSeatColor =
-    targetArea?.defaultSeatColor || targetArea?.fill || "#4CAF50";
+  const defaultSeatColor = targetArea?.defaultSeatColor || "#4CAF50";
   const defaultPrice = targetArea?.defaultPrice || 50;
 
-  // FIX: Add debounced callback for color changes
+  // Debounced callback for color changes
   const debouncedColorChange = useDebouncedCallback(
     (value: string) => {
       handlers.handleAreaUpdate({ defaultSeatColor: value });
@@ -54,7 +51,7 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
     300 // 300ms delay
   );
 
-  // Inline edit hooks for area settings (keep as click-to-edit for numbers)
+  // Inline edit hooks for area settings
   const defaultSeatRadiusEdit = useStoreInlineEdit(
     `area-default-seat-radius-${targetArea?.id}`,
     defaultSeatRadius,
@@ -91,6 +88,13 @@ export function AreaSettingsCard({ handlers, shape }: AreaSettingsCardProps) {
         | "restricted",
     });
   };
+
+  // Reset edit values when area changes
+  useEffect(() => {
+    defaultSeatRadiusEdit.setEditValue(defaultSeatRadius.toString());
+    defaultSeatSpacingEdit.setEditValue(defaultSeatSpacing.toString());
+    defaultRowSpacingEdit.setEditValue(defaultRowSpacing.toString());
+  }, [targetArea?.id]);
 
   if (!targetArea) return null;
 

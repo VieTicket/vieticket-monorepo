@@ -1,4 +1,4 @@
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
 
 export const usePanZoom = () => {
@@ -6,6 +6,8 @@ export const usePanZoom = () => {
     useCanvasStore();
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const isDragginCanvas = useRef(false);
+  const panRef = useRef(pan);
+  const zoomRef = useRef(zoom);
 
   const clampPan = useCallback(
     (x: number, y: number, currentZoom: number = zoom) => {
@@ -96,18 +98,23 @@ export const usePanZoom = () => {
     [pan, setBoundedPan, zoom, setZoom] // Update dependencies
   );
 
+  // Update refs when values change
+  useEffect(() => {
+    panRef.current = pan;
+    zoomRef.current = zoom;
+  }, [pan, zoom]);
+
   const handleZoom = useCallback(
     (deltaY: number, pointer: any) => {
       const scaleBy = 1.1;
-      const oldScale = zoom;
+      const oldScale = zoomRef.current;
       const newScale = deltaY > 0 ? oldScale / scaleBy : oldScale * scaleBy;
-
       const clampedScale = Math.max(0.1, Math.min(5, newScale));
 
       if (clampedScale !== oldScale) {
         const mousePointTo = {
-          x: (pointer.x - pan.x) / oldScale,
-          y: (pointer.y - pan.y) / oldScale,
+          x: (pointer.x - panRef.current.x) / oldScale,
+          y: (pointer.y - panRef.current.y) / oldScale,
         };
 
         const newPos = {
@@ -119,7 +126,7 @@ export const usePanZoom = () => {
         setPan(newPos.x, newPos.y);
       }
     },
-    [zoom, pan, setZoom, setPan]
+    [setZoom, setPan] // Only stable state setters
   );
 
   const handleHorizontalPan = useCallback(
@@ -150,12 +157,15 @@ export const usePanZoom = () => {
         e.evt.preventDefault();
         const stage = e.target.getStage();
         const pos = stage.getPointerPosition();
-        dragStartPos.current = { x: pos.x - pan.x, y: pos.y - pan.y };
+        dragStartPos.current = {
+          x: pos.x - panRef.current.x,
+          y: pos.y - panRef.current.y,
+        };
         isDragginCanvas.current = true;
         stage.container().style.cursor = "grabbing";
       }
     },
-    [pan]
+    [] // No dependencies needed
   );
 
   const handleMouseMove = useCallback(

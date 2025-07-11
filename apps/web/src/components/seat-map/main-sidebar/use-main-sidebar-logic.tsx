@@ -249,19 +249,6 @@ export function useMainSidebarLogic() {
     [singleShape, updateShape]
   );
 
-  // Calculate shape type summary
-  const shapeTypeSummary = useMemo(() => {
-    return Object.entries(
-      selectedShapes.reduce(
-        (acc, shape) => {
-          acc[shape.type] = (acc[shape.type] || 0) + 1;
-          return acc;
-        },
-        {} as Record<string, number>
-      )
-    );
-  }, [selectedShapes]);
-
   // Get single shape batch values for tabs
   const getSingleShapeBatchValues = useCallback(() => {
     if (!singleShape) return {};
@@ -293,7 +280,6 @@ export function useMainSidebarLogic() {
     singleShape,
     isPolygonSelected,
     batchValues,
-    shapeTypeSummary,
     isInAreaMode,
     selectedRowIds,
     selectedSeatIds,

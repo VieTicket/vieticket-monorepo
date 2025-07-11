@@ -29,15 +29,15 @@ import {
   Grid,
   Minus,
   Plus,
+  Paperclip,
 } from "lucide-react";
 import {
   useCurrentTool,
   useZoom,
-  useShowGrid,
-  useShowHitCanvas,
   useAreaMode,
   useAreaActions,
   useCanvasActions,
+  useCanvasStore,
 } from "@/components/seat-map/store/main-store";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { FaDrawPolygon } from "react-icons/fa";
@@ -68,11 +68,18 @@ const MainToolbar = React.memo(function MainToolbar() {
     zoomOut,
     duplicateShapes,
     deleteSelectedShapes,
+    clearStorage,
   } = useCanvasActions();
 
   const { centerCanvas } = usePanZoom();
   const { isInAreaMode, zoomedArea } = useAreaMode();
-  const { exitAreaMode } = useAreaActions();
+  const {
+    exitAreaMode,
+    deleteSelectedRows,
+    deleteSelectedSeats,
+    deleteSelectedAreaItems,
+  } = useAreaActions();
+  const { saveToHistory } = useCanvasStore();
 
   const mainTools = [
     { id: "select", icon: MousePointer, label: "Select" },
@@ -91,15 +98,26 @@ const MainToolbar = React.memo(function MainToolbar() {
   const currentTools = isInAreaMode ? areaTools : mainTools;
 
   const handleSave = useCallback(() => {
-    console.log("Save");
+    saveToHistory();
+    alert(
+      "Canvas state saved to session storage. Your work will be available if you reload the page."
+    );
+  }, []);
+
+  const handleNewCanvas = useCallback(() => {
+    if (
+      window.confirm(
+        "Are you sure you want to create a new canvas? All unsaved changes will be lost."
+      )
+    ) {
+      // Clear storage and reset state
+      clearStorage();
+      window.location.reload();
+    }
   }, []);
 
   const handleLoad = useCallback(() => {
     console.log("Load");
-  }, []);
-
-  const handleSearch = useCallback(() => {
-    console.log("Search");
   }, []);
 
   const handleExit = useCallback(() => {
@@ -112,6 +130,10 @@ const MainToolbar = React.memo(function MainToolbar() {
     },
     [setCurrentTool]
   );
+
+  const handleAreaDelete = useCallback(() => {
+    deleteSelectedAreaItems();
+  }, [deleteSelectedAreaItems]);
 
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
@@ -133,9 +155,9 @@ const MainToolbar = React.memo(function MainToolbar() {
                 <FolderOpen className="w-4 h-4 mr-2" />
                 Load
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleSearch}>
-                <Search className="w-4 h-4 mr-2" />
-                Search
+              <DropdownMenuItem onClick={handleNewCanvas}>
+                <Paperclip className="w-4 h-4 mr-2" />
+                Blank
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleExit}>
                 <LogOut className="w-4 h-4 mr-2" />
@@ -194,7 +216,7 @@ const MainToolbar = React.memo(function MainToolbar() {
           <Redo2 className="w-5 h-5" />
         </Button>
         <Button
-          onClick={deleteSelectedShapes}
+          onClick={!isInAreaMode ? deleteSelectedShapes : handleAreaDelete}
           variant="ghost"
           size="icon"
           title="Delete"

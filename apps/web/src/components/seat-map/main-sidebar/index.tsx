@@ -4,7 +4,6 @@ import React, { useState, useEffect } from "react";
 import { Settings } from "lucide-react";
 import { MainSidebarHeader } from "./main-sidebar-header";
 import { MainSidebarTabs } from "./main-sidebar-tabs";
-import { ShapeTypeSummary } from "./shape-type-summary";
 import { useMainSidebarLogic } from "./use-main-sidebar-logic";
 
 const MainSidebar = React.memo(function MainSidebar() {
@@ -14,7 +13,6 @@ const MainSidebar = React.memo(function MainSidebar() {
     singleShape,
     isPolygonSelected,
     batchValues,
-    shapeTypeSummary,
     handlers,
   } = useMainSidebarLogic();
 
@@ -63,8 +61,6 @@ const MainSidebar = React.memo(function MainSidebar() {
         handlers={handlers}
         isSingleShape={isSingleShape}
       />
-
-      <ShapeTypeSummary shapeTypeSummary={shapeTypeSummary} />
     </div>
   );
 });

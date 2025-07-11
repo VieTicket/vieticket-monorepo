@@ -29,8 +29,9 @@ export const useKeyMap = () => {
     saveToHistory,
   } = useCanvasStore();
 
-  const { isInAreaMode } = useAreaMode();
-  const { centerCanvas, fitToScreen, zoomIn, zoomOut, setBoundedPan } = usePanZoom();
+  const { isInAreaMode, selectedRowIds, selectedSeatIds } = useAreaMode();
+  const { centerCanvas, fitToScreen, zoomIn, zoomOut, setBoundedPan } =
+    usePanZoom();
 
   // Store all these references in a ref to access their latest values
   // without having to add them as dependencies to the useCallback
@@ -60,6 +61,8 @@ export const useKeyMap = () => {
     duplicateSelectedShapes,
     selectAll,
     isInAreaMode,
+    selectedRowIds,
+    selectedSeatIds,
   });
 
   // Keep the ref updated with the latest values
@@ -90,6 +93,8 @@ export const useKeyMap = () => {
       duplicateSelectedShapes,
       selectAll,
       isInAreaMode,
+      selectedRowIds,
+      selectedSeatIds,
     };
   }, [
     zoom,
@@ -117,6 +122,8 @@ export const useKeyMap = () => {
     duplicateSelectedShapes,
     selectAll,
     isInAreaMode,
+    selectedRowIds,
+    selectedSeatIds,
   ]);
 
   const getToolMapping = useCallback((key: string) => {
@@ -207,9 +214,22 @@ export const useKeyMap = () => {
           return;
         case "Delete":
         case "Backspace":
-          if (store.selectedShapeIds.length > 0) {
-            store.deleteSelectedShapes();
-            preventDefault();
+          if (store.isInAreaMode) {
+            // Handle deletion in area mode
+            if (
+              store.selectedRowIds.length > 0 ||
+              store.selectedSeatIds.length > 0
+            ) {
+              const areaActions = useCanvasStore.getState();
+              areaActions.deleteSelectedAreaItems();
+              preventDefault();
+            }
+          } else {
+            // Handle deletion in regular mode (existing code)
+            if (store.selectedShapeIds.length > 0) {
+              store.deleteSelectedShapes();
+              preventDefault();
+            }
           }
           return;
         case "Enter":
@@ -330,29 +350,32 @@ export const useKeyMap = () => {
     };
   }, [handleKeyDown]);
 
-  const getShortcuts = useCallback(() => ({
-    actions: {
-      "Ctrl+Z": "Undo",
-      "Ctrl+Y / Ctrl+Shift+Z": "Redo",
-      "Ctrl+A": "Select All",
-      "Ctrl+D": "Duplicate",
-      "Delete/Backspace": "Delete Selected",
-      Enter: "Start Editing (if one shape selected)",
-      Escape: "Cancel Edit / Clear Selection & Select Tool",
-    },
-    editing: {
-      Enter: "Save Edit",
-      Escape: "Cancel Edit",
-    },
-    navigation: {
-      "Ctrl+0": "Center Canvas",
-      "Arrow Keys": "Pan Canvas (Select Mode)",
-      "Ctrl+Arrow Up/Down": "Zoom In/Out",
-    },
-    file: {
-      "Ctrl+S": "Save",
-    },
-  }), []);
+  const getShortcuts = useCallback(
+    () => ({
+      actions: {
+        "Ctrl+Z": "Undo",
+        "Ctrl+Y / Ctrl+Shift+Z": "Redo",
+        "Ctrl+A": "Select All",
+        "Ctrl+D": "Duplicate",
+        "Delete/Backspace": "Delete Selected",
+        Enter: "Start Editing (if one shape selected)",
+        Escape: "Cancel Edit / Clear Selection & Select Tool",
+      },
+      editing: {
+        Enter: "Save Edit",
+        Escape: "Cancel Edit",
+      },
+      navigation: {
+        "Ctrl+0": "Center Canvas",
+        "Arrow Keys": "Pan Canvas (Select Mode)",
+        "Ctrl+Arrow Up/Down": "Zoom In/Out",
+      },
+      file: {
+        "Ctrl+S": "Save",
+      },
+    }),
+    []
+  );
 
   return {
     handleKeyDown,

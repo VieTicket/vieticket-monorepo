@@ -89,16 +89,22 @@ export const useInAreaEvents = () => {
     [clearAreaSelections, isInAreaMode]
   );
 
-  // FIX: Remove conflicting drag handlers - let useDragEvents handle all dragging
   const handleAddSeatsToMultipleRows = useCallback(
-    (seatsGroupedByRow: { [rowName: string]: SeatShape[] }) => {
+    (seatsGroupedByRow: {
+      [rowName: string]: {
+        seats: SeatShape[];
+        rotation: number;
+      };
+    }) => {
       const createdRowIds: string[] = [];
       const createdSeatIds: string[] = [];
 
-      Object.entries(seatsGroupedByRow).forEach(([rowName, seats]) => {
+      Object.entries(seatsGroupedByRow).forEach(([rowName, data]) => {
+        const { seats, rotation } = data;
+
         if (seats.length === 0) return;
 
-        // FIX: Use the first seat's position as row start (already relative)
+        // Use the first seat's position as row start (already relative)
         const firstSeat = seats[0];
         const relativeStartX = firstSeat.x; // Already relative from useSeatDrawing
         const relativeStartY = firstSeat.y; // Already relative from useSeatDrawing
@@ -106,11 +112,11 @@ export const useInAreaEvents = () => {
         let rowId: string = addRowToArea({
           type: "row" as const,
           name: rowName,
-          startX: relativeStartX, // FIX: Pass relative position directly
-          startY: relativeStartY, // FIX: Pass relative position directly
-          seatRadius: 8,
-          seatSpacing: 20,
-          rotation: 0,
+          startX: relativeStartX, // Pass relative position directly
+          startY: relativeStartY, // Pass relative position directly
+          seatRadius: areaZoom.zoomedArea?.defaultSeatRadius || 8,
+          seatSpacing: areaZoom.zoomedArea?.defaultSeatSpacing || 20,
+          rotation: rotation, // Use the calculated rotation
           area: areaZoom.zoomedArea?.id || "",
           seats: [], // Empty seats array, will be populated below
           fill: "#e0e0e0",
@@ -125,7 +131,7 @@ export const useInAreaEvents = () => {
           return {
             ...seatData,
             row: rowName,
-            // FIX: Positions are already relative from useSeatDrawing
+            // Positions are already relative from useSeatDrawing
           };
         });
 
@@ -137,10 +143,12 @@ export const useInAreaEvents = () => {
   );
 
   const handleAddSeatsToSingleRow = useCallback(
-    (seats: SeatShape[]) => {
+    (data: { seats: SeatShape[]; rotation: number }) => {
+      const { seats, rotation } = data;
+
       if (seats.length === 0) return;
 
-      // FIX: Use the first seat's position as row start (already relative)
+      // Use the first seat's position as row start (already relative)
       const firstSeat = seats[0];
       const relativeStartX = firstSeat.x; // Already relative from useSeatDrawing
       const relativeStartY = firstSeat.y; // Already relative from useSeatDrawing
@@ -148,11 +156,11 @@ export const useInAreaEvents = () => {
       let rowId: string = addRowToArea({
         type: "row" as const,
         name: seats[0].row,
-        startX: relativeStartX, // FIX: Pass relative position directly
-        startY: relativeStartY, // FIX: Pass relative position directly
-        seatRadius: 8,
-        seatSpacing: 20,
-        rotation: 0,
+        startX: relativeStartX, // Pass relative position directly
+        startY: relativeStartY, // Pass relative position directly
+        seatRadius: areaZoom.zoomedArea?.defaultSeatRadius || 8,
+        seatSpacing: areaZoom.zoomedArea?.defaultSeatSpacing || 20,
+        rotation: rotation, // Use the calculated rotation
         area: areaZoom.zoomedArea?.id || "",
         seats: [],
         fill: "#e0e0e0",
@@ -166,7 +174,7 @@ export const useInAreaEvents = () => {
         return {
           ...seatData,
           row: seats[0].row,
-          // FIX: Positions are already relative from useSeatDrawing
+          // Positions are already relative from useSeatDrawing
         };
       });
 

@@ -59,6 +59,11 @@ export interface AreaSlice {
     seats: Omit<SeatShape, "id">[]
   ) => string[]; // Return seat IDs
   addMultipleRowsToArea: (rows: Omit<RowShape, "id">[]) => string[]; // Return row IDs
+
+  // Add these functions to the AreaSlice interface
+  deleteSelectedRows: () => void;
+  deleteSelectedSeats: () => void;
+  deleteSelectedAreaItems: () => void;
 }
 
 // FIX: Helper function to generate unique IDs (centralized)
@@ -131,8 +136,7 @@ export const createAreaSlice: StateCreator<
         ),
       }));
 
-      // FIX: Save to history after area updates
-      get().saveToHistory();
+      // Don't call saveToHistory here anymore - caller should decide
     }
   },
 
@@ -144,11 +148,9 @@ export const createAreaSlice: StateCreator<
     const updatedRows = (zoomedArea.rows || []).map((row) => {
       if (row.id === rowId) {
         const updatedRow = { ...row, ...updates };
-
-        // FIX: Sync seat properties when row properties change
         let updatedSeats = [...row.seats];
 
-        // FIX: Seat radius sync
+        // Seat radius sync
         if ("seatRadius" in updates && updates.seatRadius !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
@@ -156,7 +158,7 @@ export const createAreaSlice: StateCreator<
           }));
         }
 
-        // FIX: Seat spacing sync with position recalculation
+        // Seat spacing sync with position recalculation
         if ("seatSpacing" in updates && updates.seatSpacing !== undefined) {
           const newSeatSpacing = updates.seatSpacing;
           updatedSeats = updatedSeats.map((seat, index) => ({
@@ -166,11 +168,10 @@ export const createAreaSlice: StateCreator<
           }));
         }
 
-        // FIX: Visual properties sync (colors and strokes) - FIXED LOGIC
+        // Visual properties sync
         if ("fill" in updates && updates.fill !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            // Update seat fill if it matches row fill or has no custom fill
             fill: updates.fill,
           }));
         }
@@ -178,7 +179,6 @@ export const createAreaSlice: StateCreator<
         if ("stroke" in updates && updates.stroke !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            // Update seat stroke if it matches row stroke or has no custom stroke
             stroke: updates.stroke,
           }));
         }
@@ -186,53 +186,76 @@ export const createAreaSlice: StateCreator<
         if ("strokeWidth" in updates && updates.strokeWidth !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            // Update seat strokeWidth if it matches row strokeWidth or has no custom strokeWidth
             strokeWidth: updates.strokeWidth,
           }));
         }
 
-        // FIX: Rotation sync - use first seat center as rotation point
+        // Improved rotation calculation
         if (
           "rotation" in updates &&
           updates.rotation !== undefined &&
           row.seats.length > 0
         ) {
-          const firstSeat = row.seats[0];
-          // FIX: Use first seat position as rotation center
-          const centerX = firstSeat.x;
-          const centerY = firstSeat.y;
-          const rotationRad = (updates.rotation * Math.PI) / 180;
+          // Use absolute rotation instead of delta rotation
+          const newRotation = updates.rotation;
+          const oldRotation = row.rotation || 0;
 
-          updatedSeats = updatedSeats.map((seat, index) => {
-            // Get the seat's current position
-            const currentX = seat.x;
-            const currentY = seat.y;
+          // Apply rotation to all seats based on first seat position
+          const centerX = row.startX || 0;
+          const centerY = row.startY || 0;
 
-            // Calculate position relative to first seat (rotation center)
-            const relativeX = currentX - centerX;
-            const relativeY = currentY - centerY;
+          // Convert old positions back to unrotated coordinates first
+          let unrotatedSeats = [...row.seats];
+          if (oldRotation !== 0) {
+            const oldRotationRad = (-oldRotation * Math.PI) / 180;
+            const oldCos = Math.cos(oldRotationRad);
+            const oldSin = Math.sin(oldRotationRad);
 
-            // Apply rotation around the first seat center
-            const rotatedX =
-              relativeX * Math.cos(rotationRad) -
-              relativeY * Math.sin(rotationRad);
-            const rotatedY =
-              relativeX * Math.sin(rotationRad) +
-              relativeY * Math.cos(rotationRad);
+            unrotatedSeats = unrotatedSeats.map((seat) => {
+              const relX = seat.x - centerX;
+              const relY = seat.y - centerY;
 
-            return {
-              ...seat,
-              x: centerX + rotatedX,
-              y: centerY + rotatedY,
-            };
-          });
+              // Apply inverse rotation
+              const unrotatedX = relX * oldCos - relY * oldSin;
+              const unrotatedY = relX * oldSin + relY * oldCos;
+
+              return {
+                ...seat,
+                x: centerX + unrotatedX,
+                y: centerY + unrotatedY,
+              };
+            });
+          }
+
+          // Now apply the new rotation
+          if (newRotation !== 0) {
+            const newRotationRad = (newRotation * Math.PI) / 180;
+            const newCos = Math.cos(newRotationRad);
+            const newSin = Math.sin(newRotationRad);
+
+            updatedSeats = unrotatedSeats.map((seat) => {
+              const relX = seat.x - centerX;
+              const relY = seat.y - centerY;
+
+              // Apply new rotation
+              const rotatedX = relX * newCos - relY * newSin;
+              const rotatedY = relX * newSin + relY * newCos;
+
+              return {
+                ...seat,
+                x: centerX + rotatedX,
+                y: centerY + rotatedY,
+              };
+            });
+          } else {
+            updatedSeats = unrotatedSeats;
+          }
         }
 
-        // FIX: Category sync (if row category changes, update seat categories that match)
+        // Category sync
         if ("rowCategory" in updates && updates.rowCategory !== undefined) {
           updatedSeats = updatedSeats.map((seat) => ({
             ...seat,
-            // Update seat category if it matches the old row category or is standard
             category:
               !seat.category ||
               seat.category === "standard" ||
@@ -262,7 +285,7 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    // FIX: Save to history after row updates
+    // Only save history once at the end
     get().saveToHistory();
 
     return rowId;
@@ -277,15 +300,17 @@ export const createAreaSlice: StateCreator<
     const relativeStartX = rowData.startX || 0;
     const relativeStartY = rowData.startY || 0;
 
+    // Use area defaults for all new seats
     const processedSeats: SeatShape[] = (rowData.seats || []).map((seat) => ({
       ...seat,
       x: seat.x,
       y: seat.y,
-      radius: seat.radius ?? rowData.seatRadius ?? 8,
-      fill:
-        seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
+      radius: seat.radius ?? rowData.seatRadius ?? zoomedArea.defaultSeatRadius ?? 8,
+      fill: seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
       stroke: seat.stroke ?? rowData.stroke ?? "#2E7D32",
       strokeWidth: seat.strokeWidth ?? rowData.strokeWidth ?? 1,
+      category: seat.category ?? zoomedArea.defaultSeatCategory ?? "standard",
+      price: seat.price ?? zoomedArea.defaultPrice ?? 50,
     }));
 
     const newRow: RowShape = {
@@ -295,6 +320,9 @@ export const createAreaSlice: StateCreator<
       startX: relativeStartX,
       startY: relativeStartY,
       seats: processedSeats,
+      // Also set row defaults from area
+      seatRadius: rowData.seatRadius ?? zoomedArea.defaultSeatRadius ?? 8,
+      seatSpacing: rowData.seatSpacing ?? zoomedArea.defaultSeatSpacing ?? 20,
     };
 
     const updatedArea = {
@@ -309,7 +337,7 @@ export const createAreaSlice: StateCreator<
       ),
     }));
 
-    // FIX: Save to history after adding row
+    // Save to history after adding row
     get().saveToHistory();
 
     return newRowId;
@@ -806,5 +834,71 @@ export const createAreaSlice: StateCreator<
 
     // FIX: Save to history after merging seats
     get().saveToHistory();
+  },
+
+  // Add these new methods
+  deleteSelectedRows: () => {
+    const { zoomedArea, selectedRowIds } = get();
+    if (!zoomedArea || selectedRowIds.length === 0) return;
+
+    const updatedRows = (zoomedArea.rows || []).filter(
+      (row) => !selectedRowIds.includes(row.id)
+    );
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      selectedRowIds: [],
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    get().saveToHistory();
+  },
+
+  deleteSelectedSeats: () => {
+    const { zoomedArea, selectedSeatIds } = get();
+    if (!zoomedArea || selectedSeatIds.length === 0) return;
+
+    const updatedRows = (zoomedArea.rows || []).map((row) => {
+      // Filter out selected seats from each row
+      return {
+        ...row,
+        seats: row.seats.filter((seat) => !selectedSeatIds.includes(seat.id)),
+      };
+    });
+
+    const updatedArea = {
+      ...zoomedArea,
+      rows: updatedRows,
+    };
+
+    set((state) => ({
+      zoomedArea: updatedArea,
+      selectedSeatIds: [],
+      shapes: state.shapes.map((shape) =>
+        shape.id === zoomedArea.id ? updatedArea : shape
+      ),
+    }));
+
+    get().saveToHistory();
+  },
+
+  deleteSelectedAreaItems: () => {
+    const { selectedRowIds, selectedSeatIds } = get();
+
+    // Delete rows first (which will also delete their seats)
+    if (selectedRowIds.length > 0) {
+      get().deleteSelectedRows();
+    }
+    // Then delete any individually selected seats
+    else if (selectedSeatIds.length > 0) {
+      get().deleteSelectedSeats();
+    }
   },
 });

@@ -36,7 +36,7 @@ export default function CanvasEditorClient() {
         hasInitialized.current = true;
       }, 100);
     }
-  }, [viewportSize.width, viewportSize.height]);
+  }, []);
 
   const renderSelectionRectangle = useMemo(() => {
     if (!eventHandlers.selectionRect || !eventHandlers.isSelecting) return null;
@@ -56,66 +56,89 @@ export default function CanvasEditorClient() {
     );
   }, [eventHandlers.selectionRect, eventHandlers.isSelecting]);
 
-  const renderShapeWithProps = useCallback(
-    (shape: any, isPreview = false) => {
-      const isSelected = !isPreview && selectedShapeIds.includes(shape.id);
+  const { isInAreaMode, zoomedArea, selectedRowIds, selectedSeatIds } = useMemo(
+    () => ({
+      isInAreaMode: eventHandlers.areaZoom.isInAreaMode,
+      zoomedArea: eventHandlers.areaZoom.zoomedArea,
+      selectedRowIds: eventHandlers.areaZoom.selectedRowIds || [],
+      selectedSeatIds: eventHandlers.areaZoom.selectedSeatIds || [],
+    }),
+    [
+      eventHandlers.areaZoom.isInAreaMode,
+      eventHandlers.areaZoom.zoomedArea,
+      eventHandlers.areaZoom.selectedRowIds,
+      eventHandlers.areaZoom.selectedSeatIds,
+    ]
+  );
 
-      const isInAreaMode = eventHandlers.areaZoom.isInAreaMode;
-      const zoomedAreaId = eventHandlers.areaZoom.zoomedArea?.id;
-      const isCurrentZoomedArea = isInAreaMode && shape.id === zoomedAreaId;
+  const areaEvents = useMemo(
+    () => ({
+      onRowClick: eventHandlers.handleRowClick,
+      onSeatClick: eventHandlers.handleSeatClick,
+      onRowDoubleClick: eventHandlers.handleRowDoubleClick,
+      onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
+      onRowDragStart: eventHandlers.handleRowDragStart,
+      onRowDragMove: eventHandlers.handleRowDragMove,
+      onRowDragEnd: eventHandlers.handleRowDragEnd,
+      onSeatDragStart: eventHandlers.handleSeatDragStart,
+      onSeatDragMove: eventHandlers.handleSeatDragMove,
+      onSeatDragEnd: eventHandlers.handleSeatDragEnd,
+    }),
+    [
+      eventHandlers.handleRowClick,
+      eventHandlers.handleSeatClick,
+      eventHandlers.handleRowDoubleClick,
+      eventHandlers.handleSeatDoubleClick,
+      eventHandlers.handleRowDragStart,
+      eventHandlers.handleRowDragMove,
+      eventHandlers.handleRowDragEnd,
+      eventHandlers.handleSeatDragStart,
+      eventHandlers.handleSeatDragMove,
+      eventHandlers.handleSeatDragEnd,
+    ]
+  );
+
+  const renderShapeWithProps = (shape: any, isPreview = false) => {
+    const isSelected = !isPreview && selectedShapeIds.includes(shape.id);
+    const zoomedAreaId = zoomedArea?.id;
+    const isCurrentZoomedArea = isInAreaMode && shape.id === zoomedAreaId;
+
+    if (isInAreaMode && !isCurrentZoomedArea) {
+      return null;
+    }
+
+    const commonProps = buildShapeProps(shape, isSelected, eventHandlers);
+
+    if (isPreview || currentTool !== "select" || isInAreaMode) {
+      commonProps.draggable = false;
+
+      commonProps.onClick = () => {};
+      commonProps.onDragStart = () => {};
+      commonProps.onDragMove = () => {};
+      commonProps.onDragEnd = () => {};
 
       if (isInAreaMode && !isCurrentZoomedArea) {
-        return null; // Don't render other shapes in area mode
+        commonProps.listening = false;
       }
+    }
 
-      const commonProps = buildShapeProps(shape, isSelected, eventHandlers);
+    const shapeKey = isPreview ? `preview-${shape.id}` : shape.id;
 
-      if (isPreview || currentTool !== "select" || isInAreaMode) {
-        commonProps.draggable = false;
-        commonProps.onClick = () => {};
-        commonProps.onDragStart = () => {};
-        commonProps.onDragMove = () => {};
-        commonProps.onDragEnd = () => {};
-
-        if (isInAreaMode && !isCurrentZoomedArea) {
-          commonProps.listening = false;
-        }
-      }
-
-      const shapeKey = isPreview ? `preview-${shape.id}` : shape.id;
-
-      // FIX: Create consolidated area events object
-      const areaEvents = {
-        onRowClick: eventHandlers.handleRowClick,
-        onSeatClick: eventHandlers.handleSeatClick,
-        onRowDoubleClick: eventHandlers.handleRowDoubleClick,
-        onSeatDoubleClick: eventHandlers.handleSeatDoubleClick,
-        onRowDragStart: eventHandlers.handleRowDragStart,
-        onRowDragMove: eventHandlers.handleRowDragMove,
-        onRowDragEnd: eventHandlers.handleRowDragEnd,
-        onSeatDragStart: eventHandlers.handleSeatDragStart,
-        onSeatDragMove: eventHandlers.handleSeatDragMove,
-        onSeatDragEnd: eventHandlers.handleSeatDragEnd,
-      };
-
-      return renderShape({
-        shape,
-        isSelected,
-        commonProps: {
-          ...commonProps,
-          key: shapeKey,
-          perfectDrawEnabled: false,
-        },
-        isInAreaMode: isInAreaMode,
-        zoomedAreaId: zoomedAreaId,
-        selectedRowIds: eventHandlers.areaZoom.selectedRowIds || [],
-        selectedSeatIds: eventHandlers.areaZoom.selectedSeatIds || [],
-        // FIX: Pass consolidated area events
-        areaEvents: areaEvents,
-      });
-    },
-    [selectedShapeIds, currentTool, eventHandlers]
-  );
+    return renderShape({
+      shape,
+      isSelected,
+      commonProps: {
+        ...commonProps,
+        key: shapeKey,
+        perfectDrawEnabled: false,
+      },
+      isInAreaMode,
+      zoomedAreaId,
+      selectedRowIds,
+      selectedSeatIds,
+      areaEvents,
+    });
+  };
 
   const getCursor = () => {
     switch (currentTool) {
@@ -135,7 +158,6 @@ export default function CanvasEditorClient() {
   const renderSeatPreviews = useMemo(() => {
     if (!eventHandlers.seatDrawing.previewSeats.length) return null;
 
-    // FIX: Get polygon center to position preview seats correctly
     const polygonCenter = eventHandlers.areaZoom.zoomedArea?.center || {
       x: 0,
       y: 0,
@@ -144,8 +166,8 @@ export default function CanvasEditorClient() {
     return eventHandlers.seatDrawing.previewSeats.map((seat, index) => (
       <Circle
         key={`preview-seat-${index}`}
-        x={polygonCenter.x + seat.x} // FIX: Add polygon center offset
-        y={polygonCenter.y + seat.y} // FIX: Add polygon center offset
+        x={polygonCenter.x + seat.x}
+        y={polygonCenter.y + seat.y}
         radius={seat.radius}
         fill={seat.fill}
         stroke={seat.stroke}
@@ -176,7 +198,6 @@ export default function CanvasEditorClient() {
     return true;
   };
 
-  // Add this function to render guide lines
   const renderGuideLines = useMemo(() => {
     if (!eventHandlers?.guideLines || eventHandlers.guideLines.length === 0) {
       return null;
@@ -285,8 +306,10 @@ export default function CanvasEditorClient() {
             )}
         </Layer>
       </Stage>
-
-      {/* Rest of the component */}
+      <div className="absolute bottom-16 left-4 bg-white/90 backdrop-blur px-3 py-2 rounded-lg text-sm">
+        Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
+        {Math.round(pan.y)}
+      </div>
     </div>
   );
 }
