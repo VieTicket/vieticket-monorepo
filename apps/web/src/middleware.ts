@@ -1,38 +1,211 @@
-// middleware.ts
+
+import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
-export async function middleware(req: NextRequest) {
-  const data = await auth.api.getSession({
-    query: {
-      disableCookieCache: true,
+import { db } from "./lib/db";
+import { user } from "@vieticket/db/postgres/schema";
+import { Role } from "@vieticket/db/postgres/schema";
+
+// Type for role-based endpoint configuration
+type PermissionMap = {
+    role: Role;
+    endpoints: string[];
+}[];
+
+const permissionMap: PermissionMap = [
+    {
+        role: 'admin',
+        endpoints: ['/admin/*']
     },
-    headers: req.headers,
-  });
-
-  const pathname = req.nextUrl.pathname;
-
-  const role = (data?.user as { role?: string })?.role;
-
-  if (pathname.startsWith("/organizer") && !data) {
-    if (role === "customer") {
-      return NextResponse.redirect(new URL("/", req.url));
+    {
+        role: 'organizer',
+        endpoints: ['/organizer/*']
+    },
+    {
+        role: 'customer',
+        endpoints: ['/profile/*', '/orders/*', '/checkout/*']
     }
-    if (role === "admin") {
-      return NextResponse.redirect(new URL("/admin", req.url));
-    }
-  }
-  if (pathname.startsWith("/admin") && !data) {
-    if (role === "customer") {
-      return NextResponse.redirect(new URL("/", req.url));
-    }
-    if (role === "organizer") {
-      return NextResponse.redirect(new URL("/organizer", req.url));
-    }
-  }
+];
 
-  return NextResponse.next();
+// Public routes that don't require authentication
+const publicRoutes = [
+    '/',
+    '/events/*',
+    '/event/*',
+    '/auth/*',
+    '/api/auth/*',
+    '/error',
+    '/about',
+    '/contact',
+    '/search',
+];
+
+// Routes that require authentication but no specific role
+const protectedRoutes = [
+    '/profile/*',
+    '/orders/*',
+    '/checkout/*',
+    '/api/checkout/*',
+    '/api/profile/*',
+    '/api/sign-cloudinary-params',
+];
+
+function isPublicRoute(pathname: string): boolean {
+    return publicRoutes.some(route => {
+        if (route.endsWith('/*')) {
+            return pathname.startsWith(route.slice(0, -2));
+        }
+        return pathname === route;
+    });
 }
 
+function isProtectedRoute(pathname: string): boolean {
+    return protectedRoutes.some(route => {
+        if (route.endsWith('/*')) {
+            return pathname.startsWith(route.slice(0, -2));
+        }
+        return pathname === route;
+    });
+}
+
+function getRequiredRole(pathname: string): Role | null {
+    for (const { role, endpoints } of permissionMap) {
+        for (const endpoint of endpoints) {
+            if (endpoint.endsWith('/*')) {
+                if (pathname.startsWith(endpoint.slice(0, -2))) {
+                    return role;
+                }
+            } else if (pathname === endpoint) {
+                return role;
+            }
+        }
+    }
+    return null;
+}
+
+export async function middleware(request: NextRequest) {
+    const { pathname } = request.nextUrl;
+
+    // Skip middleware for API routes that better-auth handles
+    if (['/api/auth/'].some(prefix => pathname.startsWith(prefix))) {
+        return NextResponse.next();
+    }
+
+    let response: NextResponse = NextResponse.next();
+
+    try {
+        // Get session from better-auth
+        const session = await auth.api.getSession({
+            query: {
+                disableCookieCache: true,
+            },
+            headers: request.headers,
+        });
+
+        // If no session, handle based on route type
+        if (!session) {
+            // Allow public routes without authentication
+            if (isPublicRoute(pathname)) {
+                response = NextResponse.next();
+            }
+            // Redirect to login for protected routes
+            else if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+                const loginUrl = new URL('/auth/sign-in', request.url);
+                loginUrl.searchParams.set('redirectTo', request.url);
+                response = NextResponse.redirect(loginUrl);
+            }
+            else {
+                response = NextResponse.next();
+            }
+        } else {
+            // User is authenticated - get their role from database
+            const userData = await db.query.user.findFirst({
+                columns: { role: true, banned: true },
+                where: eq(user.id, session.user.id)
+            });
+
+            if (!userData) {
+                // User exists in session but not in our DB - redirect to error
+                response = NextResponse.redirect(
+                    new URL('/error?error=User not found', request.url)
+                );
+            }
+            // Check if user is banned
+            else if (userData.banned) {
+                response = NextResponse.redirect(
+                    new URL('/error?error=Account banned', request.url)
+                );
+            }
+            // Redirect admins from home page to admin dashboard
+            else if (pathname === '/' && userData.role === 'admin') {
+                response = NextResponse.redirect(
+                    new URL('/admin', request.url)
+                );
+            }
+            // Redirect organizers from home page to organizer dashboard
+            else if (pathname === '/' && userData.role === 'organizer') {
+                response = NextResponse.redirect(
+                    new URL('/organizer', request.url)
+                );
+            }
+            // For public routes with authenticated users, allow access
+            else if (isPublicRoute(pathname)) {
+                response = NextResponse.next();
+            }
+            else {
+                // Check if route requires specific role
+                const requiredRole = getRequiredRole(pathname);
+                if (requiredRole) {
+                    if (userData.role !== requiredRole) {
+                        // User doesn't have required role - redirect based on their role
+                        if (userData.role === 'admin') {
+                            response = NextResponse.redirect(
+                                new URL('/admin', request.url)
+                            );
+                        } else if (userData.role === 'organizer') {
+                            response = NextResponse.redirect(
+                                new URL('/organizer', request.url)
+                            );
+                        } else {
+                            response = NextResponse.redirect(
+                                new URL('/', request.url)
+                            );
+                        }
+                    } else {
+                        response = NextResponse.next();
+                    }
+                } else {
+                    response = NextResponse.next();
+                }
+            }
+        }
+
+    } catch (error) {
+        console.error('Middleware error:', error);
+
+        // If there's an error checking auth, redirect to login for protected routes
+        if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+            const loginUrl = new URL('/auth/sign-in', request.url);
+            loginUrl.searchParams.set('redirectTo', request.url);
+            response = NextResponse.redirect(loginUrl);
+        } else {
+            response = NextResponse.next();
+        }
+    }
+
+    return response;
+}
+
+// Specify the paths that the middleware should apply to
 export const config = {
-  matcher: ["/organizer/:path*", "/admin/:path*"],
-};
+    matcher: [
+        /*
+         * Match all request paths except for the ones starting with:
+         * - _next/static (static files)
+         * - _next/image (image optimization files)
+         * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+         * - _vercel/speed-insights (Vercel Speed Insights)
+         */
+        "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|_vercel/speed-insights).*)",
+    ],
+}

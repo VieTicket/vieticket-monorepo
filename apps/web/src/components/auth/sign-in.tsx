@@ -35,10 +35,15 @@ export default function SignIn() {
   useEffect(() => {
     if (session?.user) {
       const role = (session.user as { role?: string })?.role;
-      if (role === "organizer") {
-        router.replace("/organizer");
-      } else {
-        router.replace("/");
+      switch (role) {
+        case "admin":
+          router.replace("/admin");
+          break;
+        case "organizer":
+          router.replace("/organizer");
+          break;
+        default:
+          router.replace("/");
       }
     }
   }, [session, router]);

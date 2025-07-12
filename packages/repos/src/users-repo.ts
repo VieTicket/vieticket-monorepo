@@ -2,6 +2,13 @@ import { eq } from "drizzle-orm";
 import { db } from "@vieticket/db/postgres"
 import { organizers, user, type OrganizerProfileData, type UserProfileData } from "@vieticket/db/postgres/schema";
 
+export async function doesUserExist(id: string) {
+    return !!(await db.query.user.findFirst({
+        columns: {id: true},
+        where: eq(user.id, id)
+    }));
+}
+
 export async function getOrganizerById(id: string) {
     return db.query.organizers.findFirst({
         where: eq(organizers.id, id),
