@@ -18,14 +18,6 @@ const nextConfig: NextConfig = {
         ]
       : [{ protocol: "https", hostname: "**" }],
   },
-  webpack(config) {
-    // Prevent bundling Node-only canvas in client-side bundle
-    config.externals = [
-      ...(config.externals || []),
-      { canvas: "commonjs canvas" },
-    ];
-    return config;
-  },
   // Ensure `canvas` stays server-only in Server Components
   serverExternalPackages: ["canvas"],
 };

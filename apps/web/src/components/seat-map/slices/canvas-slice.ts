@@ -1,19 +1,29 @@
 import { StateCreator } from "zustand";
 import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
+import { ToolType } from "../main-toolbar";
 
 export interface CanvasSlice {
   canvasSize: { width: number; height: number };
   viewportSize: { width: number; height: number };
   zoom: number;
   pan: { x: number; y: number };
+  currentTool: ToolType;
+
   setCanvasSize: (width: number, height: number) => void;
   setViewportSize: (width: number, height: number) => void;
   setZoom: (zoom: number) => void;
   setPan: (x: number, y: number) => void;
+  setCurrentTool: (tool: ToolType) => void;
   resetView: () => void;
   zoomIn: () => void;
   zoomOut: () => void;
+
+  updateMultipleShapes: (
+    updates: Array<{ id: string; updates: Record<string, any> }>
+  ) => void;
+  duplicateShapes: () => void;
+  deleteShapes: (shapeIds: string[]) => void;
 }
 
 export const createCanvasSlice: StateCreator<
@@ -22,10 +32,18 @@ export const createCanvasSlice: StateCreator<
   [],
   CanvasSlice
 > = (set, get) => ({
-  canvasSize: { width: 4000, height: 3000 }, // Large default size
+  currentTool: "select",
+  canvasSize: { width: 4000, height: 3000 },
   viewportSize: { width: 800, height: 600 },
   zoom: 1,
   pan: { x: 0, y: 0 },
+
+  setCurrentTool: (tool) => {
+    set({ currentTool: tool });
+    if (tool !== "select") {
+      set({ selectedShapeIds: [] });
+    }
+  },
 
   setCanvasSize: (width, height) => {
     set({ canvasSize: { width, height } });
@@ -60,12 +78,94 @@ export const createCanvasSlice: StateCreator<
   },
 
   zoomIn: () => {
-    const { zoom } = get();
-    set({ zoom: Math.min(5, zoom * 1.2) });
+    const { zoom, setZoom } = get();
+    const newZoom = Math.min(zoom * 1.2, 10); // Max zoom 10x
+    setZoom(newZoom);
   },
 
   zoomOut: () => {
-    const { zoom } = get();
-    set({ zoom: Math.max(0.1, zoom / 1.2) });
+    const { zoom, setZoom } = get();
+    const newZoom = Math.max(zoom / 1.2, 0.1); // Min zoom 0.1x
+    setZoom(newZoom);
+  },
+
+  updateMultipleShapes: (updates) => {
+    set((state) => ({
+      shapes: state.shapes.map((shape) => {
+        const update = updates.find((u) => u.id === shape.id);
+        if (!update) return shape;
+
+        // Special handling for polygon shapes
+        if (shape.type === "polygon") {
+          const polygonShape = shape as any; // Type as any to access center
+          const updateData = update.updates;
+
+          // If this is a drag operation (x, y changes), update center instead
+          if (
+            (updateData.x !== undefined || updateData.y !== undefined) &&
+            !updateData.points &&
+            !updateData.center
+          ) {
+            const deltaX = (updateData.x || 0) - (shape.x || 0);
+            const deltaY = (updateData.y || 0) - (shape.y || 0);
+
+            return {
+              ...shape,
+              ...updateData,
+              center: {
+                x: polygonShape.center.x + deltaX,
+                y: polygonShape.center.y + deltaY,
+              },
+            };
+          }
+
+          // If points are being updated, recalculate center
+          if (updateData.points) {
+            // Import calculatePolygonCenter from where it's defined
+            const {
+              calculatePolygonCenter,
+            } = require("../utils/polygon-utils");
+            return {
+              ...shape,
+              ...updateData,
+              center: calculatePolygonCenter(updateData.points),
+            };
+          }
+        }
+
+        // Default case for non-polygon shapes
+        return { ...shape, ...update.updates };
+      }),
+    }));
+
+    // Save to history after updates
+    get().saveToHistory();
+  },
+
+  duplicateShapes: () => {
+    const state = get();
+    const shapesToDuplicate = state.shapes.filter((s) =>
+      state.selectedShapeIds.includes(s.id)
+    );
+    const newShapes = shapesToDuplicate.map((shape) => ({
+      ...shape,
+      id: `shape_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+      x: shape.x + 20,
+      y: shape.y + 20,
+    }));
+
+    set((state) => ({
+      shapes: [...state.shapes, ...newShapes],
+      selectedShapeIds: newShapes.map((s) => s.id),
+    }));
+    get().saveToHistory();
+  },
+
+  deleteShapes: (shapeIds) => {
+    set((state) => ({
+      shapes: state.shapes.filter((s) => !shapeIds.includes(s.id)),
+      selectedShapeIds: [],
+    }));
+    get().saveToHistory();
   },
 });

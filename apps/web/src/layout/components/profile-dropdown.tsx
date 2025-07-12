@@ -34,7 +34,9 @@ export function ProfileDropdown() {
           align="end"
         >
           <DropdownMenuItem>Interests</DropdownMenuItem>
-          <DropdownMenuItem><Link href={'/profile/edit'}>Account Settings</Link></DropdownMenuItem>
+          <DropdownMenuItem>
+            <Link href={"/profile/edit"}>Account Settings</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem
             onClick={() => {
               authClient.signOut({

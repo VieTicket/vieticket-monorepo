@@ -1,302 +1,142 @@
-import { useState, useRef } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useCanvasStore } from "@/components/seat-map/store/main-store";
-import { Shape } from "@/types/seat-map-types";
+import { useDragEvents } from "./events/useDragEvents";
+import { useMouseEvents } from "./events/useMouseEvents";
+import { useAreaZoom } from "./useAreaZoom";
 
 export const useCanvasEvents = () => {
-  const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(
-    null
+  const { currentTool } = useCanvasStore();
+
+  const mouseEvents = useMouseEvents();
+  const dragEvents = useDragEvents();
+  const areaZoom = useAreaZoom();
+
+  // Keep track of previous event handlers for stable references
+  const previousHandlersRef = useRef({
+    handleShapeClick: (shapeId: string, e: any) => {},
+    handleStageClick: (e: any) => {},
+    // Initialize with empty functions
+  });
+
+  // Main event handlers with proper memoization
+  const handleShapeClick = useCallback(
+    (shapeId: string, e: any) => {
+      if (mouseEvents.clickEvents?.handleShapeClick) {
+        mouseEvents.clickEvents.handleShapeClick(shapeId, e);
+      }
+    },
+    [mouseEvents.clickEvents]
   );
-  const [isDragging, setIsDragging] = useState(false);
-  const [draggedShapeId, setDraggedShapeId] = useState<string | null>(null);
-  const [initialShapePositions, setInitialShapePositions] = useState<
-    Map<string, { x: number; y: number }>
-  >(new Map());
 
-  // Selection rectangle state
-  const [isSelecting, setIsSelecting] = useState(false);
-  const [selectionStart, setSelectionStart] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [selectionEnd, setSelectionEnd] = useState<{
-    x: number;
-    y: number;
-  } | null>(null);
-  const [selectionRect, setSelectionRect] = useState<{
-    x: number;
-    y: number;
-    width: number;
-    height: number;
-  } | null>(null);
-
-  const stageRef = useRef<any>(null);
-
-  const {
-    shapes,
-    selectedShapeIds,
-    updateShape,
-    selectShape,
-    clearSelection,
-    saveToHistory,
-    selectMultipleShapes,
-    zoom,
-    pan,
-  } = useCanvasStore();
-
-  const handleShapeClick = (shapeId: string, e: any) => {
-    e.cancelBubble = true;
-    const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
-    selectShape(shapeId, multiSelect);
-  };
-
-  const handleStageClick = (e: any) => {
-    if (e.target === e.target.getStage()) {
-      clearSelection();
-    }
-  };
-
-  const handleContextMenu = (e: any) => {
-    e.evt.preventDefault();
-  };
-
-  // Selection rectangle handlers
-  const handleStageMouseDown = (e: any) => {
-    // Only start selection if clicking on empty space (stage)
-    if (e.target !== e.target.getStage()) {
-      return;
-    }
-
-    // Get pointer position relative to stage
-    const stage = e.target.getStage();
-    const pointerPosition = stage.getPointerPosition();
-
-    // Adjust for zoom and pan
-    const x = (pointerPosition.x - pan.x) / zoom;
-    const y = (pointerPosition.y - pan.y) / zoom;
-
-    setIsSelecting(true);
-    setSelectionStart({ x, y });
-    setSelectionEnd({ x, y });
-    setSelectionRect({ x, y, width: 0, height: 0 });
-
-    // Clear selection if not holding Ctrl/Cmd
-    if (!e.evt.ctrlKey && !e.evt.metaKey) {
-      clearSelection();
-    }
-  };
-
-  const handleStageMouseMove = (e: any) => {
-    if (!isSelecting || !selectionStart) {
-      return;
-    }
-
-    const stage = e.target.getStage();
-    const pointerPosition = stage.getPointerPosition();
-
-    // Adjust for zoom and pan
-    const x = (pointerPosition.x - pan.x) / zoom;
-    const y = (pointerPosition.y - pan.y) / zoom;
-
-    setSelectionEnd({ x, y });
-
-    // Calculate rectangle bounds
-    const rect = {
-      x: Math.min(selectionStart.x, x),
-      y: Math.min(selectionStart.y, y),
-      width: Math.abs(x - selectionStart.x),
-      height: Math.abs(y - selectionStart.y),
-    };
-
-    setSelectionRect(rect);
-  };
-
-  const handleStageMouseUp = (e: any) => {
-    if (!isSelecting || !selectionRect) {
-      setIsSelecting(false);
-      setSelectionStart(null);
-      setSelectionEnd(null);
-      setSelectionRect(null);
-      return;
-    }
-
-    // Find shapes within selection rectangle
-    const shapesInSelection = shapes.filter((shape) => {
-      return isShapeInRectangle(shape, selectionRect);
-    });
-
-    // Select the shapes
-    if (shapesInSelection.length > 0) {
-      const shapeIds = shapesInSelection.map((shape) => shape.id);
-      const multiSelect = e.evt.ctrlKey || e.evt.metaKey;
-
-      if (multiSelect) {
-        // Add to existing selection
-        shapeIds.forEach((id) => {
-          if (!selectedShapeIds.includes(id)) {
-            selectShape(id, true);
-          }
-        });
-      } else {
-        // Replace selection
-        selectMultipleShapes(shapeIds);
+  const handleStageClick = useCallback(
+    (e: any) => {
+      if (mouseEvents.clickEvents?.handleStageClick) {
+        mouseEvents.clickEvents.handleStageClick(e);
       }
-    }
+      mouseEvents.inAreaEvents.handleStageClick(e);
+    },
+    [mouseEvents.clickEvents, mouseEvents.inAreaEvents]
+  );
 
-    // Reset selection state
-    setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectionEnd(null);
-    setSelectionRect(null);
-  };
+  // Update refs for stable references
+  previousHandlersRef.current.handleShapeClick = handleShapeClick;
+  previousHandlersRef.current.handleStageClick = handleStageClick;
 
-  // Helper function to check if shape is within rectangle
-  const isShapeInRectangle = (
-    shape: Shape,
-    rect: { x: number; y: number; width: number; height: number }
-  ) => {
-    let shapeLeft = shape.x;
-    let shapeTop = shape.y;
-    let shapeRight = shape.x;
-    let shapeBottom = shape.y;
+  // Return a stable object reference with memoized sub-objects
+  return useMemo(
+    () => ({
+      // General event handlers
+      handleShapeClick,
+      handleStageClick,
 
-    // Calculate shape bounds based on type
-    switch (shape.type) {
-      case "rect":
-        shapeRight = shape.x + shape.width;
-        shapeBottom = shape.y + shape.height;
-        break;
-      case "circle":
-        shapeLeft = shape.x - shape.radius;
-        shapeTop = shape.y - shape.radius;
-        shapeRight = shape.x + shape.radius;
-        shapeBottom = shape.y + shape.radius;
-        break;
-      case "text":
-        shapeRight = shape.x + (shape.width || 100);
-        shapeBottom = shape.y + (shape.fontSize || 16);
-        break;
-      case "polygon":
-        if (shape.points && shape.points.length >= 2) {
-          let minX = shape.x + shape.points[0];
-          let maxX = shape.x + shape.points[0];
-          let minY = shape.y + shape.points[1];
-          let maxY = shape.y + shape.points[1];
+      // Mouse event handlers
+      handleStageMouseDown: mouseEvents.handleStageMouseDown,
+      handleStageMouseMove: mouseEvents.handleStageMouseMove,
+      handleStageMouseUp: mouseEvents.handleStageMouseUp,
 
-          for (let i = 2; i < shape.points.length; i += 2) {
-            minX = Math.min(minX, shape.x + shape.points[i]);
-            maxX = Math.max(maxX, shape.x + shape.points[i]);
-            minY = Math.min(minY, shape.y + shape.points[i + 1]);
-            maxY = Math.max(maxY, shape.y + shape.points[i + 1]);
-          }
+      // Drag event handlers (unified)
+      handleShapeDragStart: dragEvents.handleShapeDragStart,
+      handleShapeDragMove: dragEvents.handleShapeDragMove,
+      handleShapeDragEnd: dragEvents.handleShapeDragEnd,
+      handleRowDragStart: dragEvents.handleRowDragStart,
+      handleRowDragMove: dragEvents.handleRowDragMove,
+      handleRowDragEnd: dragEvents.handleRowDragEnd,
+      handleSeatDragStart: dragEvents.handleSeatDragStart,
+      handleSeatDragMove: dragEvents.handleSeatDragMove,
+      handleSeatDragEnd: dragEvents.handleSeatDragEnd,
 
-          shapeLeft = minX;
-          shapeTop = minY;
-          shapeRight = maxX;
-          shapeBottom = maxY;
-        }
-        break;
-    }
+      // Canvas coordinates helper
+      getCanvasCoordinates: mouseEvents.getCanvasCoordinates,
 
-    // Check if shape intersects with selection rectangle
-    return !(
-      shapeRight < rect.x ||
-      shapeLeft > rect.x + rect.width ||
-      shapeBottom < rect.y ||
-      shapeTop > rect.y + rect.height
-    );
-  };
+      // States - group into sub-objects for better memoization
+      selectionRect: mouseEvents.selectionEvents.selectionRect,
+      isSelecting: mouseEvents.selectionEvents.isSelecting,
+      previewShape: mouseEvents.getPreviewShape(),
+      isDrawing: mouseEvents.drawingEvents.isDrawing,
+      isDrawingPolygon: mouseEvents.areaEvents.isDrawingPolygon,
+      polygonPoints: mouseEvents.areaEvents.polygonPoints,
+      isDragging: dragEvents.isDragging,
+      dragType: dragEvents.dragType,
+      draggedItemId: dragEvents.draggedItemId,
+      currentTool,
 
-  // Shape drag handlers - FIXED VERSION
-  const handleShapeDragStart = (shapeId: string, e: any) => {
-    // If shape is not selected, select it first
-    if (!selectedShapeIds.includes(shapeId)) {
-      selectShape(shapeId, false); // Select only this shape
-    }
+      // Area functionality
+      areaZoom,
+      seatDrawing: mouseEvents.seatEvents.seatDrawing,
 
-    setIsDragging(true);
-    setDraggedShapeId(shapeId);
+      // Area-specific handlers
+      handleRowClick: mouseEvents.inAreaEvents.handleRowClick,
+      handleSeatClick: mouseEvents.inAreaEvents.handleSeatClick,
+      handleSeatDoubleClick: mouseEvents.inAreaEvents.handleSeatDoubleClick,
+      handleRowDoubleClick: mouseEvents.inAreaEvents.handleRowDoubleClick,
 
-    // Store the initial position of the dragged shape
-    setDragStart({
-      x: e.target.x(),
-      y: e.target.y(),
-    });
+      // Polygon methods
+      cancelPolygon: mouseEvents.areaEvents.cancelPolygon,
+      finishPolygon: mouseEvents.areaEvents.finishPolygon,
+      isNearFirstPoint: mouseEvents.areaEvents.isNearFirstPoint,
 
-    // Store initial positions of ALL selected shapes (including the newly selected one if applicable)
-    const currentSelectedIds = selectedShapeIds.includes(shapeId)
-      ? selectedShapeIds
-      : [shapeId]; // If shape wasn't selected, only this shape will be moved
-
-    const positions = new Map<string, { x: number; y: number }>();
-    currentSelectedIds.forEach((id: string) => {
-      const shape = shapes.find((s: Shape) => s.id === id);
-      if (shape) {
-        positions.set(id, { x: shape.x, y: shape.y });
-      }
-    });
-    setInitialShapePositions(positions);
-  };
-
-  const handleShapeDragMove = (shapeId: string, e: any) => {
-    if (!isDragging || !dragStart || draggedShapeId !== shapeId) {
-      return;
-    }
-
-    // Calculate the delta from the initial drag position
-    const deltaX = e.target.x() - dragStart.x;
-    const deltaY = e.target.y() - dragStart.y;
-
-    // Update all shapes that were selected when drag started (excluding the dragged shape itself)
-    initialShapePositions.forEach((initialPos, id) => {
-      if (id !== shapeId) {
-        updateShape(id, {
-          x: initialPos.x + deltaX,
-          y: initialPos.y + deltaY,
-        });
-      }
-    });
-  };
-
-  const handleShapeDragEnd = (shapeId: string, e: any) => {
-    if (!isDragging || !dragStart || draggedShapeId !== shapeId) {
-      return;
-    }
-
-    // Update the dragged shape's position in the store
-    // (Konva updates the shape's visual position, but we need to update our store)
-    updateShape(shapeId, {
-      x: e.target.x(),
-      y: e.target.y(),
-    });
-
-    // The other selected shapes were already updated in handleShapeDragMove
-
-    setIsDragging(false);
-    setDragStart(null);
-    setDraggedShapeId(null);
-    setInitialShapePositions(new Map());
-    saveToHistory();
-  };
-
-  return {
-    // Shape handlers
-    handleShapeClick,
-    handleStageClick,
-    handleContextMenu,
-    handleShapeDragStart,
-    handleShapeDragMove,
-    handleShapeDragEnd,
-
-    // Selection rectangle handlers
-    handleStageMouseDown,
-    handleStageMouseMove,
-    handleStageMouseUp,
-
-    // Selection rectangle state
-    selectionRect,
-    isSelecting,
-
-    // Refs
-    stageRef,
-  };
+      // Expose event groups
+      mouseEvents,
+      dragEvents,
+      guideLines: mouseEvents.areaEvents.guideLines,
+    }),
+    [
+      // Only include dependencies that should trigger a recreation of this object
+      handleShapeClick,
+      handleStageClick,
+      mouseEvents.handleStageMouseDown,
+      mouseEvents.handleStageMouseMove,
+      mouseEvents.handleStageMouseUp,
+      dragEvents.handleShapeDragStart,
+      dragEvents.handleShapeDragMove,
+      dragEvents.handleShapeDragEnd,
+      dragEvents.handleRowDragStart,
+      dragEvents.handleRowDragMove,
+      dragEvents.handleRowDragEnd,
+      dragEvents.handleSeatDragStart,
+      dragEvents.handleSeatDragMove,
+      dragEvents.handleSeatDragEnd,
+      mouseEvents.getCanvasCoordinates,
+      mouseEvents.selectionEvents.selectionRect,
+      mouseEvents.selectionEvents.isSelecting,
+      mouseEvents.getPreviewShape(),
+      mouseEvents.drawingEvents.isDrawing,
+      mouseEvents.areaEvents.isDrawingPolygon,
+      mouseEvents.areaEvents.polygonPoints,
+      dragEvents.isDragging,
+      dragEvents.dragType,
+      dragEvents.draggedItemId,
+      currentTool,
+      areaZoom,
+      mouseEvents.seatEvents.seatDrawing,
+      mouseEvents.inAreaEvents.handleRowClick,
+      mouseEvents.inAreaEvents.handleSeatClick,
+      mouseEvents.inAreaEvents.handleSeatDoubleClick,
+      mouseEvents.inAreaEvents.handleRowDoubleClick,
+      mouseEvents.areaEvents.cancelPolygon,
+      mouseEvents.areaEvents.finishPolygon,
+      mouseEvents.areaEvents.isNearFirstPoint,
+      mouseEvents.areaEvents.guideLines,
+    ]
+  );
 };

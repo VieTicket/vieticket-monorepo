@@ -18,7 +18,7 @@ import { useEffect, useState } from "react";
 const navItems = [
   { label: "General", href: "/organizer/general", icon: Home },
   { label: "Create Event", href: "/organizer/event/create", icon: NotebookPen },
-  { label: "SeatMap", href: "/organizer/seatmap", icon: Map },
+  { label: "SeatMap", href: "/organizer/seat-map", icon: Map },
   { label: "List Event", href: "/organizer", icon: Calendar },
   { label: "Rating", href: "/organizer/rating", icon: Star },
   { label: "Request Payment", href: "/organizer/payments", icon: Wallet },
