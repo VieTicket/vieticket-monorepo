@@ -92,6 +92,8 @@ interface FileUploaderProps {
   maxSize?: number;
   mode?: "dropzone" | "button" | "both";
   buttonLabel?: string;
+  /** Custom className for the component */
+  className?: string;
 }
 
 export function FileUploader({
@@ -101,6 +103,7 @@ export function FileUploader({
   maxSize = 8 * 1024 * 1024,
   mode = "both",
   buttonLabel = "Upload Image",
+  className = "",
 }: FileUploaderProps) {
   const [file, setFile] = useState<File | null>(null);
   const [progress, setProgress] = useState(0);
@@ -191,7 +194,7 @@ export function FileUploader({
   });
 
   return (
-    <div className="w-full">
+    <div className={`w-full ${className}`}>
       {/* Only show dropzone if mode is not "button" */}
       {mode !== "button" && (!file || !isUploading) && (
         <div
@@ -201,7 +204,7 @@ export function FileUploader({
           }`}
         >
           <input {...getInputProps()} />
-          <ImageUp className="mb-2 h-10 w-10 text-gray-500 dark:text-gray-400" />
+          <ImageUp className="mb-4 h-16 w-16 text-gray-400 dark:text-gray-500" />
           <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
             <span className="font-semibold">Click to upload</span> or drag and
             drop

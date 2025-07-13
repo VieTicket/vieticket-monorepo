@@ -12,6 +12,7 @@ import {
   Map,
   Menu,
   X,
+  MessageCircle
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -21,7 +22,16 @@ const navItems = [
   { label: "SeatMap", href: "/organizer/seat-map", icon: Map },
   { label: "List Event", href: "/organizer", icon: Calendar },
   { label: "Rating", href: "/organizer/rating", icon: Star },
-  { label: "Request Payment", href: "/organizer/payments", icon: Wallet },
+  {
+    label: "Request Payment",
+    href: "/organizer/payments",
+    icon: Wallet,
+  },
+  {
+    label: "Chat with Admin",
+    href: "/organizer/chat?recipientId=admin",
+    icon: MessageCircle, // import from lucide-react or similar
+  },
 ];
 
 export default function Sidebar() {
