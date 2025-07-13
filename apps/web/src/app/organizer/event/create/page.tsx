@@ -300,6 +300,7 @@ export default function CreateEventPage() {
                           folder="event-posters"
                           mode="dropzone"
                           buttonLabel="Upload Poster"
+                          className="h-[100%]"
                         />
                       </div>
                     )}
@@ -373,6 +374,7 @@ export default function CreateEventPage() {
                           folder="event-banners"
                           mode="dropzone"
                           buttonLabel="Upload Banner"
+                          className="h-[100%]"
                         />
                       </div>
                     )}
@@ -426,7 +428,7 @@ export default function CreateEventPage() {
                 slug: `${slugify(formData.name)}-preview`,
                 organizer: null,
                 areas: [],
-                isPreview: true
+                isPreview: true,
               }}
             />
           </div>

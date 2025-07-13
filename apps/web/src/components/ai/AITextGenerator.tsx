@@ -52,7 +52,7 @@ export function AITextGenerator({
 
       // Gọi Pollinations AI để tạo text
       const response = await fetch(
-        `https://text.pollinations.ai/${encodeURIComponent(eventInfo)}?model=openai-large&json=false`
+        `https://text.pollinations.ai/${encodeURIComponent(eventInfo)}?json=false`
       );
 
       if (!response.ok) {
@@ -222,7 +222,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
           size="sm"
           className="gap-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100 text-purple-700 font-medium"
         >
-          <Sparkles className="h-4 w-4" />✨ AI Mô Tả
+          <Sparkles className="h-4 w-4" />✨ AI Description
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
