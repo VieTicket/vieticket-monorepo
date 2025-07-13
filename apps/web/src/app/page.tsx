@@ -1,4 +1,4 @@
-import CategoryList from "@/components/events/catetory-cards";
+import CategoryList from "@/components/events/category-cards";
 import { EventGridSection } from "@/components/events/event-grid";
 import SearchBar from "@/components/ui/search-bar";
 import { getEventSummaries } from "@/lib/queries/events";
