@@ -9,12 +9,15 @@ ed25519.etc.sha512Sync = (...m) => sha512(ed25519.etc.concatBytes(...m));
 
 // Base64URL decoding utilities
 function base64UrlToUint8Array(base64Url: string): Uint8Array {
-  // Restore padding
-  let base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  while (base64.length % 4) {
-    base64 += '=';
-  }
-  return new Uint8Array(Buffer.from(base64, 'base64'));
+  // Restore padding and convert to base64 in one operation
+  const base64 = base64Url
+    .replace(/-/g, '+')
+    .replace(/_/g, '/')
+    .padEnd(base64Url.length + (4 - base64Url.length % 4) % 4, '=');
+  
+  // Use browser-compatible base64 decoding
+  const binaryString = atob(base64);
+  return Uint8Array.from(binaryString, char => char.charCodeAt(0));
 }
 
 // UUID decompression utilities
@@ -50,9 +53,9 @@ export function decodeTicketQRData(qrData: string): TicketValidationPayload | nu
         const [compressedPayload, signature] = unpack(binaryData) as CompressedSignedData;
 
         // Get public key from environment (hex string)
-        const publicKeyHex = process.env.NEXT_PUBLIC_TICKET_SIGNING_PUBLIC_KEY || process.env.TICKET_SIGNING_PUBLIC_KEY;
+        const publicKeyHex = process.env.NEXT_PUBLIC_TICKET_SIGNING_PUBLIC_KEY || import.meta.env.VITE_TICKET_SIGNING_PUBLIC_KEY || process.env.TICKET_SIGNING_PUBLIC_KEY;
         if (!publicKeyHex) {
-            console.error('NEXT_PUBLIC_TICKET_SIGNING_PUBLIC_KEY environment variable not set');
+            console.error('*_PUBLIC_TICKET_SIGNING_PUBLIC_KEY environment variable not set');
             return null;
         }
 
