@@ -6,17 +6,11 @@ import {
 import { generateQRCodeImage } from '../src/ticket-validation/client';
 import { decodeTicketQRData } from '../src/ticket-validation/client';
 import { unpack, pack } from 'msgpackr';
+import { TicketValidationPayload } from '../src/ticket-validation/types';
 
 describe('ticket-validation', () => {
     let testKeys: { privateKey: string; publicKey: string };
-    let sampleTicketData: {
-        ticketId: string;
-        visitorName: string;
-        eventId: string;
-        seat: { id: string; number: string };
-        row: { id: string; name: string };
-        area: { id: string; name: string };
-    };
+    let sampleTicketData: Omit<TicketValidationPayload, 'timestamp'>;
 
     // Store original environment variables
     let originalEnv: {
@@ -39,9 +33,9 @@ describe('ticket-validation', () => {
             ticketId: crypto.randomUUID(),
             visitorName: 'Ngo Tran Xuan Hoa',
             eventId: crypto.randomUUID(), 
-            seat: { id: crypto.randomUUID(), number: '07' },
-            row: { id: crypto.randomUUID(), name: 'R17A' },
-            area: { id: crypto.randomUUID(), name: 'Premium Economy' }
+            seat: '07',           // Just seat number
+            row: 'R17A',          // Just row name
+            area: 'Premium Economy' // Just area name
         };
     });
 
@@ -67,7 +61,7 @@ describe('ticket-validation', () => {
     });
 
     describe('generateEd25519KeyPair', () => {
-        it('should generate valid key pair', () => {
+        it('generates valid key pair', () => {
             const keyPair = generateEd25519KeyPair();
 
             expect(keyPair).toHaveProperty('privateKey');
@@ -82,7 +76,7 @@ describe('ticket-validation', () => {
             expect(() => Buffer.from(keyPair.publicKey, 'hex')).not.toThrow();
         });
 
-        it('should generate different keys on each call', () => {
+        it('generates different keys on each call', () => {
             const keyPair1 = generateEd25519KeyPair();
             const keyPair2 = generateEd25519KeyPair();
 
@@ -91,8 +85,8 @@ describe('ticket-validation', () => {
         });
     });
 
-    describe('generateTicketQRData (maximum compression)', () => {
-        it('should generate valid compressed binary QR data', () => {
+    describe('generateTicketQRData (Base64URL format)', () => {
+        it('generates valid Base64URL QR data string', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -102,11 +96,17 @@ describe('ticket-validation', () => {
                 sampleTicketData.area
             );
 
-            expect(qrData).toBeInstanceOf(Uint8Array);
+            expect(typeof qrData).toBe('string');
             expect(qrData.length).toBeGreaterThan(0);
+            
+            // Should be valid Base64URL (no +, /, or = characters)
+            expect(qrData).not.toMatch(/[+/=]/);
+            
+            // Should only contain Base64URL characters
+            expect(qrData).toMatch(/^[A-Za-z0-9_-]+$/);
         });
 
-        it('should generate different QR data on each call (due to timestamp)', async () => {
+        it('generates different QR data on each call due to timestamp', async () => {
             const qrData1 = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -128,10 +128,10 @@ describe('ticket-validation', () => {
                 sampleTicketData.area
             );
 
-            expect(qrData1).not.toEqual(qrData2);
+            expect(qrData1).not.toBe(qrData2);
         });
 
-        it('should throw error when private key is missing', () => {
+        it('throws error when private key is missing', () => {
             delete process.env.TICKET_SIGNING_PRIVATE_KEY;
 
             expect(() => {
@@ -146,7 +146,7 @@ describe('ticket-validation', () => {
             }).toThrow('TICKET_SIGNING_PRIVATE_KEY environment variable not set');
         });
 
-        it('should include all required data in compressed payload', () => {
+        it('includes all required data in compressed payload', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -154,10 +154,13 @@ describe('ticket-validation', () => {
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
-            );
+            ).substring(3);
 
-            // Decode to verify compressed payload structure
-            const [compressedPayload, signature] = unpack(qrData) as any;
+            // Decode Base64URL to binary, then MessagePack to verify structure
+            const base64 = qrData.replace(/-/g, '+').replace(/_/g, '/');
+            const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+            const binaryData = new Uint8Array(Buffer.from(paddedBase64, 'base64'));
+            const [compressedPayload, signature] = unpack(binaryData) as any;
 
             // Verify compressed payload structure: [ticketId, timestamp, visitorName, eventId, seat, row, area]
             expect(Array.isArray(compressedPayload)).toBe(true);
@@ -174,11 +177,12 @@ describe('ticket-validation', () => {
             expect(typeof compressedPayload[2]).toBe('string'); // visitorName
             expect(compressedPayload[3]).toBeInstanceOf(Uint8Array); // eventId as binary UUID
             expect(compressedPayload[3]).toHaveLength(16); // UUID is 16 bytes
-            expect(Array.isArray(compressedPayload[4])).toBe(true); // seat array
-            expect(compressedPayload[4]).toHaveLength(2); // [seatId, seatNumber]
+            expect(typeof compressedPayload[4]).toBe('string'); // seat (just string)
+            expect(typeof compressedPayload[5]).toBe('string'); // row (just string)
+            expect(typeof compressedPayload[6]).toBe('string'); // area (just string)
         });
 
-        it('should be significantly smaller than uncompressed format', () => {
+        it('produces significantly smaller output than uncompressed format', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -194,13 +198,13 @@ describe('ticket-validation', () => {
                 signature: 'a'.repeat(128) // 64-byte signature as hex string
             }).length;
 
-            // Should be at least 50% smaller
-            expect(qrData.length).toBeLessThan(uncompressedSize * 0.5);
+            // Base64URL adds 33% overhead, but should still be smaller than uncompressed JSON
+            expect(qrData.length).toBeLessThan(uncompressedSize * 0.7);
         });
     });
 
-    describe('decodeTicketQRData (maximum compression)', () => {
-        it('should decode compressed QR data correctly and return public API format', () => {
+    describe('decodeTicketQRData (Base64URL format)', () => {
+        it('decodes Base64URL QR data correctly and returns public API format', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -216,19 +220,19 @@ describe('ticket-validation', () => {
             expect(decoded!.ticketId).toBe(sampleTicketData.ticketId);
             expect(decoded!.visitorName).toBe(sampleTicketData.visitorName);
             expect(decoded!.eventId).toBe(sampleTicketData.eventId);
-            expect(decoded!.seat).toEqual(sampleTicketData.seat);
-            expect(decoded!.row).toEqual(sampleTicketData.row);
-            expect(decoded!.area).toEqual(sampleTicketData.area);
+            expect(decoded!.seat).toBe(sampleTicketData.seat);
+            expect(decoded!.row).toBe(sampleTicketData.row);
+            expect(decoded!.area).toBe(sampleTicketData.area);
             expect(typeof decoded!.timestamp).toBe('number');
         });
 
-        it('should return null for invalid compressed binary data', () => {
-            const invalidBinary = new Uint8Array([1, 2, 3, 4, 5]); // Invalid MessagePack
-            const decoded = decodeTicketQRData(invalidBinary);
+        it('returns null for invalid Base64URL string', () => {
+            const invalidString = 'invalid-base64url-string-with-invalid-chars@#$';
+            const decoded = decodeTicketQRData(invalidString);
             expect(decoded).toBeNull();
         });
 
-        it('should return null when public key is missing', () => {
+        it('returns null when public key is missing', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -244,7 +248,7 @@ describe('ticket-validation', () => {
             expect(decoded).toBeNull();
         });
 
-        it('should return null for tampered compressed data (invalid signature)', () => {
+        it('returns null for tampered Base64URL data with invalid signature', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -252,20 +256,27 @@ describe('ticket-validation', () => {
                 sampleTicketData.seat,
                 sampleTicketData.row,
                 sampleTicketData.area
-            );
+            ).substring(3);
 
-            // Decode, tamper with compressed payload, and re-encode
-            const [compressedPayload, signature] = unpack(qrData) as any;
+            // Decode Base64URL to binary, then MessagePack
+            const base64 = qrData.replace(/-/g, '+').replace(/_/g, '/');
+            const paddedBase64 = base64 + '='.repeat((4 - base64.length % 4) % 4);
+            const binaryData = new Uint8Array(Buffer.from(paddedBase64, 'base64'));
+            const [compressedPayload, signature] = unpack(binaryData) as any;
+            
+            // Tamper with payload
             compressedPayload[2] = 'tampered-visitor-name';
 
+            // Re-encode to Base64URL
             const tamperedPacked = pack([compressedPayload, signature]);
-            const tamperedQrData = new Uint8Array(tamperedPacked);
+            const tamperedBase64 = Buffer.from(tamperedPacked).toString('base64');
+            const tamperedQrData = tamperedBase64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
 
             const decoded = decodeTicketQRData(tamperedQrData);
             expect(decoded).toBeNull();
         });
 
-        it('should return null for data signed with different key', () => {
+        it('returns null for data signed with different key', () => {
             // Generate different key pair
             const differentKeys = generateEd25519KeyPair();
 
@@ -291,9 +302,9 @@ describe('ticket-validation', () => {
         });
     });
 
-    describe('generateQRCodeImage (compressed)', () => {
-        it('should generate QR code image from compressed binary data', async () => {
-            const compressedData = generateTicketQRData(
+    describe('generateQRCodeImage (Base64URL)', () => {
+        it('generates QR code image from Base64URL string', async () => {
+            const base64UrlData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
                 sampleTicketData.eventId,
@@ -302,16 +313,16 @@ describe('ticket-validation', () => {
                 sampleTicketData.area
             );
 
-            const qrImage = await generateQRCodeImage(compressedData);
+            const qrImage = await generateQRCodeImage(base64UrlData);
 
             expect(typeof qrImage).toBe('string');
             expect(qrImage).toMatch(/^data:image\/png;base64,/);
         });
     });
 
-    describe('Integration tests (maximum compression)', () => {
-        it('should complete full compressed encode/decode cycle successfully', () => {
-            // Generate compressed QR data
+    describe('Integration tests (Base64URL format)', () => {
+        it('completes full Base64URL encode decode cycle successfully', () => {
+            // Generate Base64URL QR data
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -321,7 +332,7 @@ describe('ticket-validation', () => {
                 sampleTicketData.area
             );
 
-            // Decode compressed QR data
+            // Decode Base64URL QR data
             const decoded = decodeTicketQRData(qrData);
 
             // Verify all data matches original input exactly
@@ -329,12 +340,12 @@ describe('ticket-validation', () => {
             expect(decoded!.ticketId).toBe(sampleTicketData.ticketId);
             expect(decoded!.visitorName).toBe(sampleTicketData.visitorName);
             expect(decoded!.eventId).toBe(sampleTicketData.eventId);
-            expect(decoded!.seat).toEqual(sampleTicketData.seat);
-            expect(decoded!.row).toEqual(sampleTicketData.row);
-            expect(decoded!.area).toEqual(sampleTicketData.area);
+            expect(decoded!.seat).toBe(sampleTicketData.seat);
+            expect(decoded!.row).toBe(sampleTicketData.row);
+            expect(decoded!.area).toBe(sampleTicketData.area);
         });
 
-        it('should handle special characters in visitor names', () => {
+        it('handles special characters in visitor names', () => {
             const specialName = 'Ngô Trần Xuân Hoà & Sarah O\'Connor';
 
             const qrData = generateTicketQRData(
@@ -352,7 +363,7 @@ describe('ticket-validation', () => {
             expect(decoded!.visitorName).toBe(specialName);
         });
 
-        it('should verify timestamp is recent', () => {
+        it('verifies timestamp is recent', () => {
             const beforeGeneration = Date.now();
 
             const qrData = generateTicketQRData(
@@ -372,7 +383,7 @@ describe('ticket-validation', () => {
             expect(decoded!.timestamp).toBeLessThanOrEqual(afterGeneration);
         });
 
-        it('should verify maximum compression benefits with event name removal', () => {
+        it('verifies Base64URL compression benefits with event name removal', () => {
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
@@ -382,19 +393,19 @@ describe('ticket-validation', () => {
                 sampleTicketData.area
             );
 
-            // Should be compact (typically under 220 bytes)
-            expect(qrData.length).toBeLessThan(220);
+            // Should be compact (typically under 300 characters for Base64URL)
+            expect(qrData.length).toBeLessThan(300);
         });
 
-        it('should handle edge case: minimal data', () => {
+        it('handles edge case with minimal data', () => {
             // Use minimal data to test compression
             const minimalData = {
                 ticketId: '00000000-0000-0000-0000-000000000001',
                 visitorName: 'A',
                 eventId: '00000000-0000-0000-0000-000000000002',
-                seat: { id: '00000000-0000-0000-0000-000000000003', number: '1' },
-                row: { id: '00000000-0000-0000-0000-000000000004', name: 'A' },
-                area: { id: '00000000-0000-0000-0000-000000000005', name: 'X' }
+                seat: '1',
+                row: 'A',
+                area: 'X'
             };
 
             const qrData = generateTicketQRData(
@@ -415,15 +426,15 @@ describe('ticket-validation', () => {
         });
     });
 
-    describe('Edge cases (maximum compression)', () => {
-        it('should handle empty visitor name', () => {
+    describe('Edge cases (Base64URL format)', () => {
+        it('handles empty visitor name', () => {
             const emptyNameData = {
                 ticketId: '00000000-0000-0000-0000-000000000001',
                 visitorName: '',
                 eventId: '00000000-0000-0000-0000-000000000002',
-                seat: { id: '00000000-0000-0000-0000-000000000003', number: '07' },
-                row: { id: '00000000-0000-0000-0000-000000000004', name: 'R17A' },
-                area: { id: '00000000-0000-0000-0000-000000000005', name: 'Premium' }
+                seat: '07',
+                row: 'R17A',
+                area: 'Premium'
             };
 
             const qrData = generateTicketQRData(
@@ -441,14 +452,14 @@ describe('ticket-validation', () => {
             expect(decoded!.visitorName).toBe('');
         });
 
-        it('should handle very large seat numbers', () => {
+        it('handles very large seat numbers', () => {
             const largeSeatNumber = '99999999';
 
             const qrData = generateTicketQRData(
                 sampleTicketData.ticketId,
                 sampleTicketData.visitorName,
                 sampleTicketData.eventId,
-                { id: sampleTicketData.seat.id, number: largeSeatNumber },
+                largeSeatNumber,
                 sampleTicketData.row,
                 sampleTicketData.area
             );
@@ -456,7 +467,24 @@ describe('ticket-validation', () => {
             const decoded = decodeTicketQRData(qrData);
 
             expect(decoded).not.toBeNull();
-            expect(decoded!.seat.number).toBe(largeSeatNumber);
+            expect(decoded!.seat).toBe(largeSeatNumber);
+        });
+
+        it('validates Base64URL format requirements', () => {
+            const qrData = generateTicketQRData(
+                sampleTicketData.ticketId,
+                sampleTicketData.visitorName,
+                sampleTicketData.eventId,
+                sampleTicketData.seat,
+                sampleTicketData.row,
+                sampleTicketData.area
+            );
+
+            // Should not contain Base64 padding or unsafe characters
+            expect(qrData).not.toMatch(/[+=\/]/);
+            
+            // Should only contain URL-safe Base64 characters
+            expect(qrData).toMatch(/^[A-Za-z0-9_-]+$/);
         });
     });
 });

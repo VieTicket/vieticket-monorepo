@@ -7,7 +7,7 @@ import {
   areas,
   rows,
   seats,
-} from "@vieticket/db/postgres/schema";
+} from "@vieticket/db/pg/schema";
 
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();

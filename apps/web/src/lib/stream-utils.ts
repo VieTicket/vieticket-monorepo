@@ -1,6 +1,6 @@
 "use server"
 
-import { User } from "@vieticket/db/models/users";
+import { User } from "@vieticket/db/pg/models/users";
 import { StreamChat } from "stream-chat";
 
 export async function generateStreamToken(user: User) {

@@ -7,7 +7,7 @@ import {
   user,
   verification,
   Role
-} from "@vieticket/db/postgres/schema";
+} from "@vieticket/db/pg/schema";
 import { sendMail } from "../mail-sender";
 import { Session } from "better-auth/types";
 

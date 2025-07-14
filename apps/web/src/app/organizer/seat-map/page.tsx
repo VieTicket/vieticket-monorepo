@@ -7,64 +7,101 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-
-// Mock data - replace with your actual data fetching logic
-const MOCK_DRAFTS = [
-  {
-    id: "draft1",
-    name: "Stadium Layout Draft",
-    updatedAt: "2025-07-10T10:00:00Z",
-  },
-  { id: "draft2", name: "Concert Hall", updatedAt: "2025-07-08T15:30:00Z" },
-  { id: "draft3", name: "Theater Seating", updatedAt: "2025-07-05T09:45:00Z" },
-];
-
-const MOCK_PUBLISHED = [
-  {
-    id: "pub1",
-    name: "Main Stadium",
-    updatedAt: "2025-07-01T10:00:00Z",
-    thumbnail: "/images/seatmap-1.jpg",
-  },
-  {
-    id: "pub2",
-    name: "Conference Hall",
-    updatedAt: "2025-06-28T15:30:00Z",
-    thumbnail: "/images/seatmap-2.jpg",
-  },
-  {
-    id: "pub3",
-    name: "Jazz Theater",
-    updatedAt: "2025-06-25T09:45:00Z",
-    thumbnail: "/images/seatmap-3.jpg",
-  },
-  {
-    id: "pub4",
-    name: "Stadium Section A",
-    updatedAt: "2025-06-20T11:20:00Z",
-    thumbnail: "/images/seatmap-4.jpg",
-  },
-];
+import {
+  getUserSeatMapsAction,
+  searchSeatMapsAction,
+} from "@/lib/actions/organizer/seat-map-actions";
+import { toast } from "sonner";
 
 type SeatMapItem = {
   id: string;
   name: string;
   updatedAt: string;
-  thumbnail?: string;
+  createdAt: string;
+  image?: string;
+  createdBy: string;
 };
 
 export default function SeatMapDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [drafts, setDrafts] = useState<SeatMapItem[]>(MOCK_DRAFTS);
-  const [published, setPublished] = useState<SeatMapItem[]>(MOCK_PUBLISHED);
+  const [seatMaps, setSeatMaps] = useState<SeatMapItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTab, setSelectedTab] = useState("all");
-  const [selectedDraft, setSelectedDraft] = useState<string | null>(null);
 
-  // Filter published maps based on search query
-  const filteredPublished = published.filter((item) =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Load seat maps on component mount
+  useEffect(() => {
+    loadSeatMaps();
+  }, []);
+
+  const loadSeatMaps = async () => {
+    try {
+      setIsLoading(true);
+      const result = await getUserSeatMapsAction();
+
+      if (result.success) {
+        setSeatMaps(result.data);
+      } else {
+        toast.error(result.error || "Failed to load seat maps");
+      }
+    } catch (error) {
+      console.error("Error loading seat maps:", error);
+      toast.error("An unexpected error occurred while loading seat maps");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle search with debouncing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery.trim()) {
+        handleSearch(searchQuery);
+      } else {
+        loadSeatMaps();
+      }
+    }, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  const handleSearch = async (query: string) => {
+    try {
+      setIsLoading(true);
+      const result = await searchSeatMapsAction(query);
+
+      if (result.success) {
+        setSeatMaps(result.data);
+      } else {
+        toast.error(result.error || "Failed to search seat maps");
+      }
+    } catch (error) {
+      console.error("Error searching seat maps:", error);
+      toast.error("An unexpected error occurred while searching");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Filter seat maps based on selected tab
+  const getFilteredSeatMaps = () => {
+    switch (selectedTab) {
+      case "recent":
+        return seatMaps
+          .sort(
+            (a, b) =>
+              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+          )
+          .slice(0, 5);
+      case "starred":
+        // TODO: Implement starred functionality
+        return [];
+      default:
+        return seatMaps;
+    }
+  };
+
+  const filteredSeatMaps = getFilteredSeatMaps();
 
   // Format date for display
   const formatDate = (dateString: string) => {
@@ -81,47 +118,30 @@ export default function SeatMapDirectory() {
       {/* Left Sidebar - Drafts */}
       <div className="w-64 bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800 flex flex-col">
         <div className="p-4 border-b dark:border-gray-800">
-          <h2 className="font-semibold text-lg mb-2">Drafts</h2>
-          <Input
-            placeholder="Search drafts..."
-            className="w-full"
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-2">
+          <h2 className="font-semibold text-lg mb-2">Quick Actions</h2>
+          <div className="space-y-2">
             <Link
-              href="/seat-map"
+              href="/organizer/seat-map/editor"
               className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
             >
               <Plus size={18} />
               <span>Create new</span>
             </Link>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={loadSeatMaps}
+              disabled={isLoading}
+            >
+              <Search size={18} className="mr-2" />
+              <span>Refresh</span>
+            </Button>
           </div>
+        </div>
 
-          <div className="px-2">
-            {drafts
-              .filter((draft) =>
-                draft.name.toLowerCase().includes(searchQuery.toLowerCase())
-              )
-              .map((draft) => (
-                <button
-                  key={draft.id}
-                  className={cn(
-                    "w-full text-left flex flex-col p-3 rounded-lg transition-colors",
-                    selectedDraft === draft.id
-                      ? "bg-primary/10 text-primary"
-                      : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                  )}
-                  onClick={() => setSelectedDraft(draft.id)}
-                >
-                  <span className="font-medium truncate">{draft.name}</span>
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    Edited {formatDate(draft.updatedAt)}
-                  </span>
-                </button>
-              ))}
+        <div className="flex-1 overflow-y-auto p-4">
+          <div className="text-sm text-gray-600 dark:text-gray-400">
+            <p>Total: {seatMaps.length} seat maps</p>
           </div>
         </div>
       </div>
@@ -137,7 +157,7 @@ export default function SeatMapDirectory() {
                 size={18}
               />
               <Input
-                placeholder="Search published seat maps..."
+                placeholder="Search seat maps..."
                 className="w-full pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -185,7 +205,11 @@ export default function SeatMapDirectory() {
             </TabsList>
 
             <TabsContent value="all" className="mt-0">
-              {filteredPublished.length > 0 ? (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredSeatMaps.length > 0 ? (
                 <div
                   className={cn(
                     viewMode === "grid"
@@ -193,7 +217,7 @@ export default function SeatMapDirectory() {
                       : "flex flex-col gap-4"
                   )}
                 >
-                  {filteredPublished.map((item) => (
+                  {filteredSeatMaps.map((item) => (
                     <SeatMapCard
                       key={item.id}
                       item={item}
@@ -207,28 +231,34 @@ export default function SeatMapDirectory() {
                   <p className="text-gray-500 dark:text-gray-400">
                     {searchQuery
                       ? "No seat maps match your search"
-                      : "No published seat maps yet"}
+                      : "No seat maps found. Create your first seat map to get started."}
                   </p>
+                  {!searchQuery && (
+                    <Link href="/organizer/seat-map/editor">
+                      <Button className="mt-4">
+                        <Plus size={16} className="mr-2" />
+                        Create New Seat Map
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </TabsContent>
 
             <TabsContent value="recent" className="mt-0">
-              <div
-                className={cn(
-                  viewMode === "grid"
-                    ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
-                    : "flex flex-col gap-4"
-                )}
-              >
-                {filteredPublished
-                  .sort(
-                    (a, b) =>
-                      new Date(b.updatedAt).getTime() -
-                      new Date(a.updatedAt).getTime()
-                  )
-                  .slice(0, 5)
-                  .map((item) => (
+              {isLoading ? (
+                <div className="flex items-center justify-center py-10">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                </div>
+              ) : filteredSeatMaps.length > 0 ? (
+                <div
+                  className={cn(
+                    viewMode === "grid"
+                      ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6"
+                      : "flex flex-col gap-4"
+                  )}
+                >
+                  {filteredSeatMaps.map((item) => (
                     <SeatMapCard
                       key={item.id}
                       item={item}
@@ -236,14 +266,21 @@ export default function SeatMapDirectory() {
                       formatDate={formatDate}
                     />
                   ))}
-              </div>
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <p className="text-gray-500 dark:text-gray-400">
+                    No recent seat maps found
+                  </p>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="starred" className="mt-0">
               <div className="text-center py-10">
                 <Star className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">
-                  You haven't starred any seat maps yet
+                  Starred functionality coming soon
                 </p>
               </div>
             </TabsContent>
@@ -269,13 +306,13 @@ function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
       <div className="group rounded-xl overflow-hidden border dark:border-gray-800 transition-all hover:shadow-md dark:hover:border-gray-700">
         <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
           <img
-            src={item.thumbnail || placeholderImage}
+            src={item.image || placeholderImage}
             alt={item.name}
             className="w-full h-full object-cover"
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
             <Button variant="secondary" size="sm" asChild>
-              <Link href={`/seat-map?id=${item.id}`}>
+              <Link href={`/organizer/seat-map/editor?id=${item.id}`}>
                 <PenSquare size={16} className="mr-2" />
                 Edit
               </Link>
@@ -297,7 +334,7 @@ function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
     <div className="flex items-center gap-4 p-3 rounded-lg border dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-900/50 transition-colors">
       <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded overflow-hidden shrink-0">
         <img
-          src={item.thumbnail || placeholderImage}
+          src={item.image || placeholderImage}
           alt={item.name}
           className="w-full h-full object-cover"
         />
@@ -309,7 +346,7 @@ function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
         </p>
       </div>
       <Button variant="outline" size="sm" asChild>
-        <Link href={`/seat-map?id=${item.id}`}>Edit</Link>
+        <Link href={`/organizer/seat-map/editor?id=${item.id}`}>Edit</Link>
       </Button>
     </div>
   );

@@ -6,6 +6,12 @@ import { sha512 } from '@noble/hashes/sha2';
 // Configure synchronous SHA-512 for ed25519
 ed25519.etc.sha512Sync = (...m) => sha512(ed25519.etc.concatBytes(...m));
 
+// Base64URL encoding utilities
+function uint8ArrayToBase64Url(bytes: Uint8Array): string {
+  const base64 = Buffer.from(bytes).toString('base64');
+  return base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+}
+
 // UUID compression utilities
 function uuidToBytes(uuid: string): Uint8Array {
   const hex = uuid.replace(/-/g, '');
@@ -22,10 +28,10 @@ function compressPayload(payload: TicketValidationPayload): CompressedTicketPayl
     uuidToBytes(payload.ticketId),
     payload.timestamp,
     payload.visitorName,
-    uuidToBytes(payload.eventId), // Just store eventId as binary, no name
-    [uuidToBytes(payload.seat.id), payload.seat.number],
-    [uuidToBytes(payload.row.id), payload.row.name],
-    [uuidToBytes(payload.area.id), payload.area.name]
+    uuidToBytes(payload.eventId),
+    payload.seat,  // Just the seat number/name
+    payload.row,   // Just the row name  
+    payload.area   // Just the area name
   ];
 }
 
@@ -34,24 +40,24 @@ function compressPayload(payload: TicketValidationPayload): CompressedTicketPayl
  * @param ticketId - The unique identifier for the ticket
  * @param visitorName - Name of the ticket holder
  * @param eventId - Event identifier (name can be looked up by inspector)
- * @param seat - Seat information with id and number
- * @param row - Row information with id and name
- * @param area - Area information with id and name
- * @returns Uint8Array containing signed ticket data for QR byte mode
+ * @param seat - Seat number (e.g., "07")
+ * @param row - Row name (e.g., "R17A")
+ * @param area - Area name (e.g., "Premium Economy")
+ * @returns Base64URL string containing signed ticket data for QR code
  */
 export function generateTicketQRData(
   ticketId: string,
   visitorName: string,
-  eventId: string, // Changed from event object to just eventId
-  seat: { id: string; number: string },
-  row: { id: string; name: string },
-  area: { id: string; name: string }
-): Uint8Array {
+  eventId: string,
+  seat: string,
+  row: string,
+  area: string
+): string {
   const payload: TicketValidationPayload = {
     ticketId,
     timestamp: Date.now(),
     visitorName,
-    eventId, // Just store the ID
+    eventId,
     seat,
     row,
     area
@@ -78,9 +84,12 @@ export function generateTicketQRData(
     new Uint8Array(signature)
   ];
 
-  // Serialize to MessagePack and return as binary
+  // Serialize to MessagePack and return as Base64URL
   const packedData = pack(compressedSignedData);
-  return new Uint8Array(packedData);
+
+  // Add 'VT_' prefix for quick ignore of non-vieticket-issued qr code
+  // in the qr reader UI
+  return 'VT_' + uint8ArrayToBase64Url(new Uint8Array(packedData));
 }
 
 /**

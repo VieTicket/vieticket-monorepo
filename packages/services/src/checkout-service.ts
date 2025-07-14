@@ -1,4 +1,4 @@
-import { User } from "@vieticket/db/postgres/schema";
+import { User } from "@vieticket/db/pg/schema";
 import {
     executeOrderTransaction,
     getSeatAvailabilityStatus,
@@ -107,7 +107,7 @@ export async function createPendingOrder(
 
     // 3. Create order and seat holds in a transaction
     const holdDurationMinutes = 15;
-    const holdExpires = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
+    const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
 
     const newOrder = await executeOrderTransaction(
         {
@@ -119,7 +119,7 @@ export async function createPendingOrder(
             eventId,
             userId: user.id,
             seatId,
-            holdExpires,
+            expiresAt,
             isConfirmed: false,
         }))
     );
@@ -148,7 +148,7 @@ export async function createPendingOrder(
         vnpayURL: paymentURL,
         orderId: newOrder.id,
         totalAmount,
-        holdExpires,
+        expiresAt,
         selectedSeats: seatDetails,
     };
 }
@@ -365,20 +365,11 @@ async function sendOrderConfirmationEmail(
             tickets.map(async (ticket) => {
                 const qrData = generateTicketQRData(
                     ticket.ticketId,
-                    user.name, // Will be replaced with actual user name
+                    user.name,
                     eventInfo.eventId,
-                    {
-                        id: ticket.seatId,
-                        number: ticket.seatNumber
-                    },
-                    {
-                        id: ticket.rowId,
-                        name: ticket.rowName
-                    },
-                    {
-                        id: ticket.areaId,
-                        name: ticket.areaName
-                    }
+                    ticket.seatNumber,  // Just the seat number
+                    ticket.rowName,     // Just the row name
+                    ticket.areaName     // Just the area name
                 );
                 const qrCodeDataUrl = await generateQRCodeImage(qrData);
                 return {

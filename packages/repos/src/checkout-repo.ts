@@ -1,8 +1,8 @@
-import { NewOrder, NewSeatHold } from "@vieticket/db/models/order";
-import { db } from "@vieticket/db/postgres";
-import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/postgres/schema";
-import { areas, rows, seats } from "@vieticket/db/schemas/events";
-import { orders, seatHolds, tickets, } from "@vieticket/db/schemas/orders";
+import { NewOrder, NewSeatHold } from "@vieticket/db/pg/models/order";
+import { db } from "@vieticket/db/pg";
+import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/pg/schema";
+import { areas, rows, seats } from "@vieticket/db/pg/schemas/events";
+import { orders, seatHolds, tickets, } from "@vieticket/db/pg/schemas/orders";
 import { VNPayOrderData } from "@vieticket/utils/vnpay";
 import { and, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
 
@@ -30,7 +30,7 @@ export async function getSeatStatus(eventId: string) {
     .where(
       and(
         eq(seatHolds.eventId, eventId),
-        gt(seatHolds.holdExpires, new Date()),
+        gt(seatHolds.expiresAt, new Date()),
         // Exclude seats that are already confirmed in a paid order
         paidSeatIds.length > 0
           ? notInArray(seatHolds.seatId, paidSeatIds)
@@ -94,7 +94,7 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     .where(
       and(
         inArray(seatHolds.seatId, selectedSeatIds),
-        gt(seatHolds.holdExpires, new Date())
+        gt(seatHolds.expiresAt, new Date())
       )
     );
 

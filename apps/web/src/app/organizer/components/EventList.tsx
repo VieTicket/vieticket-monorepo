@@ -4,7 +4,7 @@ import EventCard from "./EventCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
-import { Event } from "@vieticket/db/postgres/schema";
+import { Event } from "@vieticket/db/pg/schema";
 
 interface EventListProps {
   title: string;

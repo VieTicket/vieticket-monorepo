@@ -1,12 +1,12 @@
 import {
-  pgTable,
-  uuid,
-  timestamp,
-  jsonb,
-  varchar,
-  text,
-  boolean,
-  index,
+    pgTable,
+    uuid,
+    timestamp,
+    jsonb,
+    varchar,
+    text,
+    boolean,
+    index,
 } from "drizzle-orm/pg-core";
 import { events, seats } from "./events-schemas";
 import { currency, PaymentMetadata } from "../custom-types";
@@ -27,21 +27,33 @@ import { sql } from "drizzle-orm";
  * - Future versions will enable real-time seat selection updates
  */
 export const seatHolds = pgTable("seat_holds", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  eventId: uuid("event_id")
-    .references(() => events.id)
-    .notNull(),
-  userId: text("user_id")
-    .references(() => user.id)
-    .notNull(),
-  seatId: uuid("seat_id")
-    .references(() => seats.id)
-    .notNull(),
-  isConfirmed: boolean().default(false).notNull(),
-  isPaid: boolean().default(false).notNull(),
-  holdExpires: timestamp("hold_expires").notNull(),
-  createdAt: timestamp("created_at").defaultNow(),
-});
+    id: uuid("id").defaultRandom().primaryKey(),
+    eventId: uuid("event_id")
+        .references(() => events.id)
+        .notNull(),
+    userId: text("user_id")
+        .references(() => user.id)
+        .notNull(),
+    seatId: uuid("seat_id")
+        .references(() => seats.id)
+        .notNull(),
+    isConfirmed: boolean().default(false).notNull(),
+    isPaid: boolean().default(false).notNull(),
+    expiresAt: timestamp("hold_expires").notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+    // Index for querying holds by event
+    index("idx_seat_holds_event_id").on(table.eventId),
+    // Index for querying holds by user
+    index("idx_seat_holds_user_id").on(table.userId),
+    // Index for finding expired holds. B-tree indexes are efficient for range queries (e.g., less than/greater than).
+    index("idx_seat_holds_expires_at").on(table.expiresAt),
+    // Composite index to quickly find unconfirmed, expired holds for cleanup tasks.
+    index("idx_seat_holds_unconfirmed_expired").on(
+        table.isConfirmed,
+        table.expiresAt,
+    ),
+],);
 
 /**
  * Orders table schema for storing order information.
@@ -58,30 +70,30 @@ export const seatHolds = pgTable("seat_holds", {
  * @property {Date} updatedAt - Timestamp of last update (defaults to current time)
  */
 export const orders = pgTable("orders", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  userId: text("user_id")
-    .references(() => user.id)
-    .notNull(),
-  orderDate: timestamp("order_date").defaultNow(),
-  totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
-  status: orderStatusEnum("status").default("pending"),
-  paymentMetadata: jsonb("payment_metadata").$type<PaymentMetadata>(),
-  updatedAt: timestamp("updated_at").defaultNow(),
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: text("user_id")
+        .references(() => user.id)
+        .notNull(),
+    orderDate: timestamp("order_date").defaultNow(),
+    totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
+    status: orderStatusEnum("status").default("pending"),
+    paymentMetadata: jsonb("payment_metadata").$type<PaymentMetadata>(),
+    updatedAt: timestamp("updated_at").defaultNow(),
 }, (table) => [
-  // Index for userId (foreign key)
-  index("idx_orders_user_id").on(table.userId),
+    // Index for userId (foreign key)
+    index("idx_orders_user_id").on(table.userId),
 
-  // Index for status (if you filter by status)
-  index("idx_orders_status").on(table.status),
+    // Index for status (if you filter by status)
+    index("idx_orders_status").on(table.status),
 
-  // Index for orderDate (if you query by date)
-  index("idx_orders_order_date").on(table.orderDate),
+    // Index for orderDate (if you query by date)
+    index("idx_orders_order_date").on(table.orderDate),
 
-  // Expression index for VNPay transaction reference
-  index("idx_orders_vnpay_txnref").on(
-    sql`(${table.paymentMetadata} ->> 'provider')`,
-    sql`(${table.paymentMetadata} -> 'data' ->> 'vnp_TxnRef')`
-  ),
+    // Expression index for VNPay transaction reference
+    index("idx_orders_vnpay_txnref").on(
+        sql`(${table.paymentMetadata} ->> 'provider')`,
+        sql`(${table.paymentMetadata} -> 'data' ->> 'vnp_TxnRef')`
+    ),
 ]);
 
 /**
@@ -92,27 +104,27 @@ export const orders = pgTable("orders", {
  * with "success" status onward are stored here.
  */
 export const tickets = pgTable("tickets", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderId: uuid("order_id")
-    .references(() => orders.id)
-    .notNull(),
-  seatId: uuid("seat_id")
-    .references(() => seats.id)
-    .notNull(),
-  status: ticketStatusEnum("status").default("active"),
-  purchasedAt: timestamp("purchased_at").defaultNow(),
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+        .references(() => orders.id)
+        .notNull(),
+    seatId: uuid("seat_id")
+        .references(() => seats.id)
+        .notNull(),
+    status: ticketStatusEnum("status").default("active"),
+    purchasedAt: timestamp("purchased_at").defaultNow(),
 });
 
 export const refunds = pgTable("refunds", {
-  id: uuid("id").defaultRandom().primaryKey(),
-  orderId: uuid("order_id")
-    .references(() => orders.id)
-    .notNull(),
-  requestedAt: timestamp("requested_at").defaultNow(),
-  approvedAt: timestamp("approved_at"),
-  refundedAt: timestamp("refunded_at"),
-  amount: currency("amount", { precision: 10, scale: 2 }).notNull(),
-  status: refundStatusEnum("status").default("requested"),
+    id: uuid("id").defaultRandom().primaryKey(),
+    orderId: uuid("order_id")
+        .references(() => orders.id)
+        .notNull(),
+    requestedAt: timestamp("requested_at").defaultNow(),
+    approvedAt: timestamp("approved_at"),
+    refundedAt: timestamp("refunded_at"),
+    amount: currency("amount", { precision: 10, scale: 2 }).notNull(),
+    status: refundStatusEnum("status").default("requested"),
 });
 
 /**

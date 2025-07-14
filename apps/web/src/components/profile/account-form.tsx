@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { updateProfileAction, getProfileAction, uploadAvatarAction } from "@/lib/actions/profile-actions";
 import { authClient } from "@/lib/auth/auth-client";
-import { GENDER_VALUES } from "@vieticket/db/postgres/schema";
+import { GENDER_VALUES } from "@vieticket/db/pg/schema";
 import { Camera, Loader2 } from "lucide-react";
 import { ChangeEvent, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";

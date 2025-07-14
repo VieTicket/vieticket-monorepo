@@ -1,5 +1,5 @@
-import { db } from "@vieticket/db/postgres";
-import { areas, events } from "@vieticket/db/schemas/events";
+import { db } from "@vieticket/db/pg";
+import { areas, events } from "@vieticket/db/pg/schemas/events";
 import { eq } from "drizzle-orm";
 
 /**

@@ -1,4 +1,12 @@
-import React, { useCallback, useRef } from "react";
+import {
+  useAreaActions,
+  useAreaMode,
+  useCanvasActions,
+  useCanvasStore,
+  useCurrentTool,
+  useZoom,
+  useShapes,
+} from "@/components/seat-map/store/main-store";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -7,41 +15,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  ArrowLeft,
+  Circle,
+  CloudUpload,
   FolderOpen,
+  Grid,
   List,
   LogOut,
+  Minus,
+  MousePointer,
   Move,
+  Paperclip,
   Redo2,
   Save,
-  Search,
+  Square,
   Trash2,
+  Type,
   Undo2,
   ZoomIn,
-  ZoomOut,
-  Grid3X3,
-  Eye,
-  Bug,
-  ArrowLeft,
-  MousePointer,
-  Square,
-  Circle,
-  Type,
-  Grid,
-  Minus,
-  Plus,
-  Paperclip,
+  ZoomOut
 } from "lucide-react";
-import {
-  useCurrentTool,
-  useZoom,
-  useAreaMode,
-  useAreaActions,
-  useCanvasActions,
-  useCanvasStore,
-} from "@/components/seat-map/store/main-store";
-import { usePanZoom } from "./hooks/usePanZoom";
+import React, { useCallback, useRef, useState } from "react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
+import { usePanZoom } from "./hooks/usePanZoom";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { saveSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 
 export type ToolType =
   | "select"
@@ -54,9 +63,11 @@ export type ToolType =
 
 const MainToolbar = React.memo(function MainToolbar() {
   const fileMenuRef = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
 
   const currentTool = useCurrentTool();
   const zoom = useZoom();
+  const shapes = useShapes();
 
   const {
     setCurrentTool,
@@ -80,6 +91,11 @@ const MainToolbar = React.memo(function MainToolbar() {
     deleteSelectedAreaItems,
   } = useAreaActions();
   const { saveToHistory } = useCanvasStore();
+
+  // Upload dialog state
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const [seatMapName, setSeatMapName] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
 
   const mainTools = [
     { id: "select", icon: MousePointer, label: "Select" },
@@ -123,6 +139,40 @@ const MainToolbar = React.memo(function MainToolbar() {
   const handleExit = useCallback(() => {
     console.log("Exit");
   }, []);
+
+  const handleUpload = useCallback(async () => {
+    if (!seatMapName.trim()) {
+      toast.error("Please enter a seat map name");
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      // TODO: Replace with actual image capture logic
+      // Steps for getting image URL:
+      // 1. Take a snapshot of the current seat map canvas
+      // 2. Request cloudinary upload URL
+      // 3. Upload to cloudinary
+      // 4. Get the upload key and pass down to the server action
+      const imageUrl = "https://res.luxerent.shop/assets/lameass.png";
+
+      const result = await saveSeatMapAction(shapes, seatMapName, imageUrl);
+      
+      if (result.success) {
+        toast.success("Seat map uploaded successfully!");
+        setIsUploadDialogOpen(false);
+        setSeatMapName("");
+        router.push("/organizer/seat-map");
+      } else {
+        toast.error(result.error || "Failed to upload seat map");
+      }
+    } catch (error) {
+      console.error("Error uploading seat map:", error);
+      toast.error("An unexpected error occurred while uploading");
+    } finally {
+      setIsUploading(false);
+    }
+  }, [seatMapName, shapes, router]);
 
   const handleToolSelect = useCallback(
     (toolId: ToolType) => {
@@ -231,6 +281,49 @@ const MainToolbar = React.memo(function MainToolbar() {
         >
           <Save className="w-5 h-5" />
         </Button>
+
+        {/* Upload Button */}
+        {!isInAreaMode && (
+          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="ghost" size="icon" title="Upload">
+                <CloudUpload className="w-5 h-5" />
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Upload Seat Map</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="seatMapName">Seat Map Name</Label>
+                  <Input
+                    id="seatMapName"
+                    placeholder="Enter seat map name..."
+                    value={seatMapName}
+                    onChange={(e) => setSeatMapName(e.target.value)}
+                    disabled={isUploading}
+                  />
+                </div>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsUploadDialogOpen(false)}
+                    disabled={isUploading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleUpload}
+                    disabled={isUploading || !seatMapName.trim()}
+                  >
+                    {isUploading ? "Uploading..." : "Upload"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
       </div>
 
       {!isInAreaMode ? (
