@@ -3,8 +3,8 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
 import { db } from "./lib/db";
-import { user } from "@vieticket/db/postgres/schema";
-import { Role } from "@vieticket/db/postgres/schema";
+import { user } from "@vieticket/db/pg/schema";
+import { Role } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
 type PermissionMap = {

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
-import { EventApprovalStatus } from "@vieticket/db/postgres/schema";
+import { EventApprovalStatus } from "@vieticket/db/pg/schema";
 
 interface EventCardProps {
   event: {

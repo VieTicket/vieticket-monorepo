@@ -1,4 +1,4 @@
-import { Organizer, User } from "@vieticket/db/schemas/users";
+import { Organizer, User } from "@vieticket/db/pg/schemas/users";
 import { getUserWithOptionalOrganizerById, updateUserAndOrganizerProfile } from "@vieticket/repos/users"
 
 type UserProfileData = Partial<Omit<User, "id">>;

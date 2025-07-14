@@ -13,7 +13,7 @@ import {
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
-import { Event, NewEvent } from "@vieticket/db/postgres/schema";
+import { Event, NewEvent } from "@vieticket/db/pg/schema";
 import { getEventBySlug } from "../queries/events";
 export async function createEventWithMultipleAreas(
   event: NewEvent,

@@ -4,10 +4,14 @@
   "type": "module",
   "module": "src/index.ts",
   "exports": {
-    "./postgres": "./src/postgres/connection.ts",
-    "./postgres/schema": "./src/postgres/schema.ts",
-    "./schemas/*": "./src/postgres/schemas/*-schemas.ts",
-    "./models/*": "./src/postgres/models/*-models.ts"
+    "./pg": "./src/postgres/connection.ts",
+    "./pg/schema": "./src/postgres/schema.ts",
+    "./pg/schemas/*": "./src/postgres/schemas/*-schemas.ts",
+    "./pg/models/*": "./src/postgres/models/*-models.ts",
+    "./mongo": "./src/mongodb/connection.ts",
+    "./mongo/schema": "./src/mongodb/schema.ts",
+    "./mongo/schemas/*": "./src/mongodb/schemas/*-schemas.ts",
+    "./mongo/models/*": "./src/mongodb/models/*-models.ts"
   },
   "scripts": {
     "dev": "tsc -p tsconfig.json --watch",
@@ -29,7 +33,9 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
+    "@typegoose/typegoose": "^12.17.0",
     "@vieticket/utils": "*",
-    "drizzle-orm": "^0.44.2"
+    "drizzle-orm": "^0.44.2",
+    "mongoose": "^8.16.3"
   }
 }

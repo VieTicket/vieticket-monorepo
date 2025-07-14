@@ -3,9 +3,9 @@
 import { auth } from "@/lib/auth/auth";
 import { db } from "@/lib/db";
 import { eq } from "drizzle-orm";
-import { user } from "@vieticket/db/postgres/schema";
+import { user } from "@vieticket/db/pg/schema";
 import { headers } from "next/headers";
-import { Role } from "@vieticket/db/postgres/schema";
+import { Role } from "@vieticket/db/pg/schema";
 
 /**
  * Server-side authorization utility for protecting API routes, server actions, and middleware.

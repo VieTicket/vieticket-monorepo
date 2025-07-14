@@ -4,7 +4,7 @@ import { generateStreamToken } from "@/lib/stream-utils";
 import { StreamChat } from "stream-chat";
 import { getAuthSession } from "../auth/auth";
 import { headers } from "next/headers";
-import { User } from "@vieticket/db/models/users";
+import { User } from "@vieticket/db/pg/models/users";
 import { doesUserExist } from "@vieticket/repos/users";
 
 export async function getStreamToken(): Promise<string> {

@@ -1,4 +1,4 @@
-import { User } from "@vieticket/db/postgres/schema";
+import { User } from "@vieticket/db/pg/schema";
 import {
     executeOrderTransaction,
     getSeatAvailabilityStatus,

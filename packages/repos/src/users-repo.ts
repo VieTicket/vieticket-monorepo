@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
-import { db } from "@vieticket/db/postgres"
-import { organizers, user, type OrganizerProfileData, type UserProfileData } from "@vieticket/db/postgres/schema";
+import { db } from "@vieticket/db/pg"
+import { organizers, user, type OrganizerProfileData, type UserProfileData } from "@vieticket/db/pg/schema";
 
 export async function doesUserExist(id: string) {
     return !!(await db.query.user.findFirst({

@@ -9,7 +9,7 @@ import {
   events,
   user,
   OrderStatus,
-} from "@vieticket/db/postgres/schema";
+} from "@vieticket/db/pg/schema";
 import { eq, and } from "drizzle-orm";
 
 export const getRevenueOverTime = async (organizerId: string) => {

@@ -9,7 +9,7 @@ import {
   updateProfile,
   updateAvatarUrl,
 } from "@vieticket/services/profile";
-import { GENDER_VALUES } from "@vieticket/db/postgres/schema";
+import { GENDER_VALUES } from "@vieticket/db/pg/schema";
 
 // Schema for user details from the form
 // TODO: Create it own validator package

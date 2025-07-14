@@ -21,7 +21,7 @@ import {
   Legend,
 } from "recharts";
 import { useMemo, useState, useEffect } from "react";
-import { OrderStatus } from "@vieticket/db/postgres/schema";
+import { OrderStatus } from "@vieticket/db/pg/schema";
 
 // More detailed data types
 type RevenueOverTimeItem = { date: string; total: number };

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { processPaymentResult } from "@vieticket/services/checkout";
 import { ReturnQueryFromVNPay } from "@vieticket/utils/vnpay";
 import { getAuthSession } from "@/lib/auth/auth";
-import { User } from "@vieticket/db/schemas/users";
+import { User } from "@vieticket/db/pg/schemas/users";
 
 /**
  * Handles VNPay payment return URL

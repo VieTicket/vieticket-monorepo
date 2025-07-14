@@ -1,8 +1,8 @@
-import { NewOrder, NewSeatHold } from "@vieticket/db/models/order";
-import { db } from "@vieticket/db/postgres";
-import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/postgres/schema";
-import { areas, rows, seats } from "@vieticket/db/schemas/events";
-import { orders, seatHolds, tickets, } from "@vieticket/db/schemas/orders";
+import { NewOrder, NewSeatHold } from "@vieticket/db/pg/models/order";
+import { db } from "@vieticket/db/pg";
+import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/pg/schema";
+import { areas, rows, seats } from "@vieticket/db/pg/schemas/events";
+import { orders, seatHolds, tickets, } from "@vieticket/db/pg/schemas/orders";
 import { VNPayOrderData } from "@vieticket/utils/vnpay";
 import { and, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
 
