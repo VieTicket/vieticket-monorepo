@@ -6,6 +6,9 @@ import {
   useCanvasStore,
 } from "@/components/seat-map/store/main-store";
 import { useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
+import { toast } from "sonner";
 
 // FIX: Use dynamic imports with SSR disabled for components that use the store
 const CanvasEditorClient = dynamic(
@@ -36,19 +39,65 @@ const CanvasInventory = dynamic(
 // Create a component to handle state persistence
 function StatePersistence() {
   const loadFromStorage = useCanvasStore((state) => state.loadFromStorage);
+  const clearStorage = useCanvasStore((state) => state.clearStorage);
+  const loadSeatMapData = useCanvasStore((state) => state.loadSeatMapData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const searchParams = useSearchParams();
+  const seatMapId = searchParams.get("id");
 
   useEffect(() => {
     // Only attempt to load once when the component mounts
     if (!isLoaded) {
-      const success = loadFromStorage();
-      setIsLoaded(true);
+      // If no seatMapId is provided (creating new), clear storage first
+      if (!seatMapId) {
+        clearStorage();
+        console.log("Creating new seat map - cleared session storage");
+        setIsLoaded(true);
+      } else {
+        // If seatMapId is provided (editing existing), try to load from storage first
+        const success = loadFromStorage();
 
-      if (success) {
-        console.log("Successfully restored canvas state from previous session");
+        if (success) {
+          console.log(
+            "Successfully restored canvas state from previous session"
+          );
+          setIsLoaded(true);
+        } else {
+          console.log(
+            "No previous session found, loading seat map from server"
+          );
+
+          // Load seat map from server
+          loadSeatMapFromServer(seatMapId);
+        }
       }
     }
-  }, [loadFromStorage, isLoaded]);
+  }, [loadFromStorage, clearStorage, loadSeatMapData, isLoaded, seatMapId]);
+
+  const loadSeatMapFromServer = async (id: string) => {
+    try {
+      toast.info("Loading seat map...");
+
+      const result = await loadSeatMapAction(id);
+
+      if (result.success && result.data) {
+        const success = loadSeatMapData(result.data);
+
+        if (success) {
+          toast.success(`Seat map "${result.data.name}" loaded successfully`);
+        } else {
+          toast.error("Failed to load seat map data into editor");
+        }
+      } else {
+        toast.error(result.error || "Failed to load seat map from server");
+      }
+    } catch (error) {
+      console.error("Error loading seat map from server:", error);
+      toast.error("An unexpected error occurred while loading the seat map");
+    } finally {
+      setIsLoaded(true);
+    }
+  };
 
   // This component doesn't render anything
   return null;

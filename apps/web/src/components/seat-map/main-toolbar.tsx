@@ -42,15 +42,24 @@ import {
   Type,
   Undo2,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
 } from "lucide-react";
 import React, { useCallback, useRef, useState } from "react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { saveSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  saveSeatMapAction,
+  updateSeatMapAction,
+} from "@/lib/actions/organizer/seat-map-actions";
+import { useStageRef } from "./providers/stage-provider";
+import { uploadFileToCloudinary } from "@/components/ui/file-uploader";
+import {
+  captureSeatMapImage,
+  blobToFile,
+} from "./utils/seat-map-image-capture";
 
 export type ToolType =
   | "select"
@@ -64,6 +73,11 @@ export type ToolType =
 const MainToolbar = React.memo(function MainToolbar() {
   const fileMenuRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const seatMapId = searchParams.get("id");
+  const isEditingExisting = !!seatMapId;
+
+  const stageRef = useStageRef();
 
   const currentTool = useCurrentTool();
   const zoom = useZoom();
@@ -84,18 +98,15 @@ const MainToolbar = React.memo(function MainToolbar() {
 
   const { centerCanvas } = usePanZoom();
   const { isInAreaMode, zoomedArea } = useAreaMode();
-  const {
-    exitAreaMode,
-    deleteSelectedRows,
-    deleteSelectedSeats,
-    deleteSelectedAreaItems,
-  } = useAreaActions();
-  const { saveToHistory } = useCanvasStore();
+  const { exitAreaMode, deleteSelectedAreaItems } = useAreaActions();
 
-  // Upload dialog state
+  // Upload dialog state - only for new seat maps
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [seatMapName, setSeatMapName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Save state - for existing seat maps
+  const [isSaving, setIsSaving] = useState(false);
 
   const mainTools = [
     { id: "select", icon: MousePointer, label: "Select" },
@@ -113,12 +124,34 @@ const MainToolbar = React.memo(function MainToolbar() {
 
   const currentTools = isInAreaMode ? areaTools : mainTools;
 
-  const handleSave = useCallback(() => {
-    saveToHistory();
-    alert(
-      "Canvas state saved to session storage. Your work will be available if you reload the page."
-    );
-  }, []);
+  const handleSave = useCallback(async () => {
+    if (!isEditingExisting) {
+      return; // This shouldn't happen, but just in case
+    }
+
+    if (!stageRef?.current) {
+      toast.error("Canvas not ready for saving");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      toast.info("Saving seat map...");
+
+      const result = await updateSeatMapAction(seatMapId!, shapes);
+
+      if (result.success) {
+        toast.success("Seat map saved successfully!");
+      } else {
+        toast.error(result.error || "Failed to save seat map");
+      }
+    } catch (error) {
+      console.error("Error saving seat map:", error);
+      toast.error("An unexpected error occurred while saving");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [seatMapId, shapes, stageRef, isEditingExisting]);
 
   const handleNewCanvas = useCallback(() => {
     if (
@@ -132,12 +165,8 @@ const MainToolbar = React.memo(function MainToolbar() {
     }
   }, []);
 
-  const handleLoad = useCallback(() => {
-    console.log("Load");
-  }, []);
-
   const handleExit = useCallback(() => {
-    console.log("Exit");
+    router.push("/organizer/seat-map");
   }, []);
 
   const handleUpload = useCallback(async () => {
@@ -146,19 +175,45 @@ const MainToolbar = React.memo(function MainToolbar() {
       return;
     }
 
+    if (!stageRef?.current) {
+      toast.error("Canvas not ready for capture");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      // TODO: Replace with actual image capture logic
-      // Steps for getting image URL:
-      // 1. Take a snapshot of the current seat map canvas
-      // 2. Request cloudinary upload URL
-      // 3. Upload to cloudinary
-      // 4. Get the upload key and pass down to the server action
-      const imageUrl = "https://res.luxerent.shop/assets/lameass.png";
+      // Step 1: Capture the seat map as an image
+      toast.info("Capturing seat map image...");
+      const imageBlob = await captureSeatMapImage(stageRef.current, shapes);
 
-      const result = await saveSeatMapAction(shapes, seatMapName, imageUrl);
-      
+      // Convert blob to file
+      const imageFile = blobToFile(
+        imageBlob,
+        `${seatMapName.replace(/[^a-zA-Z0-9]/g, "_")}_preview.png`
+      );
+
+      // Step 2: Upload to Cloudinary
+      toast.info("Uploading image to cloud storage...");
+      const uploadResponse = await uploadFileToCloudinary(
+        imageFile,
+        "seat-maps",
+        (progress) => {
+          // Optional: You could update a progress state here if you want to show upload progress
+          console.log(`Upload progress: ${progress}%`);
+        }
+      );
+
+      // Step 3: Save seat map with the uploaded image URL
+      toast.info("Saving seat map...");
+      const result = await saveSeatMapAction(
+        shapes,
+        seatMapName,
+        uploadResponse.secure_url
+      );
+
       if (result.success) {
+        // Clear sessionStorage after successful upload
+        clearStorage();
         toast.success("Seat map uploaded successfully!");
         setIsUploadDialogOpen(false);
         setSeatMapName("");
@@ -172,7 +227,7 @@ const MainToolbar = React.memo(function MainToolbar() {
     } finally {
       setIsUploading(false);
     }
-  }, [seatMapName, shapes, router]);
+  }, [seatMapName, shapes, router, stageRef, clearStorage]);
 
   const handleToolSelect = useCallback(
     (toolId: ToolType) => {
@@ -188,7 +243,7 @@ const MainToolbar = React.memo(function MainToolbar() {
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
       <div className="flex items-center gap-2">
-        {/* File Menu - FIX: Use uncontrolled dropdown */}
+        {/* File Menu */}
         {!isInAreaMode ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -197,14 +252,17 @@ const MainToolbar = React.memo(function MainToolbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleSave}>
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLoad}>
-                <FolderOpen className="w-4 h-4 mr-2" />
-                Load
-              </DropdownMenuItem>
+              {isEditingExisting ? (
+                <DropdownMenuItem onClick={handleSave} disabled={isSaving}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? "Saving..." : "Save"}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => setIsUploadDialogOpen(true)}>
+                  <CloudUpload className="w-4 h-4 mr-2" />
+                  Upload
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleNewCanvas}>
                 <Paperclip className="w-4 h-4 mr-2" />
                 Blank
@@ -281,54 +339,13 @@ const MainToolbar = React.memo(function MainToolbar() {
         >
           <Save className="w-5 h-5" />
         </Button>
-
-        {/* Upload Button */}
-        {!isInAreaMode && (
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" title="Upload">
-                <CloudUpload className="w-5 h-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Upload Seat Map</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seatMapName">Seat Map Name</Label>
-                  <Input
-                    id="seatMapName"
-                    placeholder="Enter seat map name..."
-                    value={seatMapName}
-                    onChange={(e) => setSeatMapName(e.target.value)}
-                    disabled={isUploading}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsUploadDialogOpen(false)}
-                    disabled={isUploading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={isUploading || !seatMapName.trim()}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
       {!isInAreaMode ? (
         <div className="flex items-center gap-4">
-          <div className="text-xl font-semibold">Event Name</div>
+          <div className="text-xl font-semibold">
+            {isEditingExisting ? "Edit Seat Map" : "Create New Seat Map"}
+          </div>
         </div>
       ) : (
         <div className="text-xl font-semibold">
@@ -360,6 +377,44 @@ const MainToolbar = React.memo(function MainToolbar() {
 
         <HelpModal />
       </div>
+
+      {/* Upload Dialog - Only for new seat maps */}
+      {!isEditingExisting && (
+        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Upload New Seat Map</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="seatMapName">Seat Map Name</Label>
+                <Input
+                  id="seatMapName"
+                  placeholder="Enter seat map name..."
+                  value={seatMapName}
+                  onChange={(e) => setSeatMapName(e.target.value)}
+                  disabled={isUploading}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsUploadDialogOpen(false)}
+                  disabled={isUploading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  disabled={isUploading || !seatMapName.trim()}
+                >
+                  {isUploading ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 });

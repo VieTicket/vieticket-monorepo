@@ -95,6 +95,7 @@ export const useCanvasActions = () => {
     setCurrentTool: useCanvasStore.getState().setCurrentTool,
     loadFromStorage: useCanvasStore.getState().loadFromStorage,
     clearStorage: useCanvasStore.getState().clearStorage,
+    loadSeatMapData: useCanvasStore.getState().loadSeatMapData,
   };
 };
 
@@ -204,8 +205,8 @@ export const useAreaActions = () => {
   );
 };
 
-export const useLoadFromStorage = () => 
+export const useLoadFromStorage = () =>
   useCanvasStore((state) => state.loadFromStorage);
 
-export const useClearStorage = () => 
+export const useClearStorage = () =>
   useCanvasStore((state) => state.clearStorage);

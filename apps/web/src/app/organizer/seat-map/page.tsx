@@ -121,7 +121,7 @@ export default function SeatMapDirectory() {
           <h2 className="font-semibold text-lg mb-2">Quick Actions</h2>
           <div className="space-y-2">
             <Link
-              href="/organizer/seat-map/editor"
+              href="/seat-map"
               className="flex items-center gap-2 p-3 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-primary"
             >
               <Plus size={18} />
@@ -312,7 +312,7 @@ function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
             <Button variant="secondary" size="sm" asChild>
-              <Link href={`/organizer/seat-map/editor?id=${item.id}`}>
+              <Link href={`/seat-map?id=${item.id}`}>
                 <PenSquare size={16} className="mr-2" />
                 Edit
               </Link>
@@ -346,7 +346,7 @@ function SeatMapCard({ item, viewMode, formatDate }: SeatMapCardProps) {
         </p>
       </div>
       <Button variant="outline" size="sm" asChild>
-        <Link href={`/organizer/seat-map/editor?id=${item.id}`}>Edit</Link>
+        <Link href={`/seat-map?id=${item.id}`}>Edit</Link>
       </Button>
     </div>
   );

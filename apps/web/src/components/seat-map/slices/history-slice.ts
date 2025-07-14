@@ -38,6 +38,7 @@ export interface HistorySlice {
   loadFromStorage: () => boolean;
   clearStorage: () => void;
   forceStorageSave: () => void; // New method to force immediate save
+  loadSeatMapData: (seatMapData: any) => boolean; // New method to load seat map data
 }
 
 export const createHistorySlice: StateCreator<
@@ -262,6 +263,55 @@ export const createHistorySlice: StateCreator<
       console.log("Canvas session storage cleared");
     } catch (error) {
       console.error("Failed to clear canvas session storage:", error);
+    }
+  },
+
+  // Function to load seat map data from server
+  loadSeatMapData: (seatMapData) => {
+    try {
+      if (
+        !seatMapData ||
+        !seatMapData.shapes ||
+        !Array.isArray(seatMapData.shapes)
+      ) {
+        console.error("Invalid seat map data provided");
+        return false;
+      }
+
+      // Load the seat map shapes into the store
+      set({
+        shapes: seatMapData.shapes,
+        history: [seatMapData.shapes], // Initialize history with loaded data
+        historyIndex: 0,
+        selectedShapeIds: [],
+        selectedRowIds: [],
+        selectedSeatIds: [],
+      });
+
+      // Save to session storage for persistence
+      const stateToSave = {
+        shapes: seatMapData.shapes,
+        historyIndex: 0,
+        history: [seatMapData.shapes],
+        timestamp: new Date().toISOString(),
+        loadedSeatMapId: seatMapData.id,
+        loadedSeatMapName: seatMapData.name,
+      };
+
+      try {
+        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+        console.log("Seat map data loaded and saved to session storage");
+      } catch (error) {
+        console.error(
+          "Failed to save loaded seat map to session storage:",
+          error
+        );
+      }
+
+      return true;
+    } catch (error) {
+      console.error("Failed to load seat map data:", error);
+      return false;
     }
   },
 });
