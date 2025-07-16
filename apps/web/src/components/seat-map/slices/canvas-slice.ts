@@ -25,6 +25,7 @@ export interface CanvasSlice {
   deleteShapes: (shapeIds: string[]) => void;
   mirrorHorizontally: () => void;
   mirrorVertically: () => void;
+  panToShape: (shapeId: string) => void;
 }
 
 export const createCanvasSlice: StateCreator<
@@ -340,6 +341,47 @@ export const createCanvasSlice: StateCreator<
     });
 
     get().updateMultipleShapes(updates);
+  },
+  panToShape: (shapeId: string) => {
+    const { shapes, viewportSize, zoom } = get();
+    const shape = shapes.find((s) => s.id === shapeId);
+
+    if (!shape) return;
+
+    // Calculate the center coordinates of the shape
+    let shapeCenterX: number;
+    let shapeCenterY: number;
+
+    if (shape.type === "polygon") {
+      const polygonShape = shape as any;
+      shapeCenterX = polygonShape.center.x;
+      shapeCenterY = polygonShape.center.y;
+    } else if (shape.type === "circle") {
+      const circleShape = shape as any;
+      shapeCenterX = circleShape.x;
+      shapeCenterY = circleShape.y;
+    } else if (shape.type === "rect") {
+      const rectShape = shape as any;
+      shapeCenterX = rectShape.x + (rectShape.width || 0) / 2;
+      shapeCenterY = rectShape.y + (rectShape.height || 0) / 2;
+    } else if (shape.type === "text") {
+      const textShape = shape as any;
+      // For text, use the position as center (text is positioned by its baseline)
+      shapeCenterX = textShape.x + (textShape.width || 0) / 2;
+      shapeCenterY = textShape.y + (textShape.height || 0) / 2;
+    } else {
+      // Default fallback
+      shapeCenterX = shape.x;
+      shapeCenterY = shape.y;
+    }
+
+    // Calculate the pan coordinates to center the shape in the viewport
+    // The formula accounts for zoom level and viewport center
+    const newPanX = viewportSize.width / 2 - shapeCenterX * zoom;
+    const newPanY = viewportSize.height / 2 - shapeCenterY * zoom;
+
+    // Update the pan coordinates
+    set({ pan: { x: newPanX, y: newPanY } });
   },
 });
 

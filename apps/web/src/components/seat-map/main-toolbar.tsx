@@ -46,7 +46,9 @@ import {
   Undo2,
   ZoomIn,
   ZoomOut,
+  Duplicate,
 } from "lucide-react";
+import { HiOutlineDuplicate } from "react-icons/hi";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
@@ -204,7 +206,6 @@ const MainToolbar = React.memo(function MainToolbar() {
   }, [seatMapId, setCurrentSeatMapId]);
 
   const handleExit = useCallback(() => {
-    // FIX: Clear storage when exiting
     clearStorage();
     router.push("/organizer/seat-map");
   }, [clearStorage, router]);
@@ -383,7 +384,7 @@ const MainToolbar = React.memo(function MainToolbar() {
           size="icon"
           title="Duplicate"
         >
-          <Save className="w-5 h-5" />
+          <HiOutlineDuplicate className="w-5 h-5" />
         </Button>
 
         {/* NEW: Mirror Buttons */}

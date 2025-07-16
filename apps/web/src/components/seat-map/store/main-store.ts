@@ -99,6 +99,7 @@ export const useCanvasActions = () => {
     setCurrentSeatMapId: useCanvasStore.getState().setCurrentSeatMapId,
     mirrorHorizontally: useCanvasStore.getState().mirrorHorizontally,
     mirrorVertically: useCanvasStore.getState().mirrorVertically,
+    panToShape: useCanvasStore.getState().panToShape,
   };
 };
 

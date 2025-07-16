@@ -7,6 +7,8 @@ import {
   searchUserSeatMaps,
   getSeatMapById,
   updateSeatMap,
+  getPublicSeatMaps,
+  createSeatMapDraft,
 } from "@vieticket/services/seat-map";
 import { Shape } from "@vieticket/db/mongo/models/seat-map";
 import { headers as headersFn } from "next/headers";
@@ -134,6 +136,63 @@ export async function updateSeatMapAction(
 
     // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(updatedSeatMap));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function getPublicSeatMapsAction(
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error(
+        "Unauthenticated: Please sign in to access public seat maps."
+      );
+    }
+
+    const result = await getPublicSeatMaps(page, limit, searchQuery);
+
+    // Force the objects to be plain and serializable
+    const plainData = JSON.parse(JSON.stringify(result));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function createDraftFromPublicSeatMapAction(
+  originalSeatMapId: string,
+  draftName: string
+) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to create drafts.");
+    }
+
+    const draft = await createSeatMapDraft(
+      originalSeatMapId,
+      draftName,
+      user as User
+    );
+
+    // Force the object to be plain and serializable
+    const plainData = JSON.parse(JSON.stringify(draft));
 
     return { success: true, data: plainData };
   } catch (error) {
