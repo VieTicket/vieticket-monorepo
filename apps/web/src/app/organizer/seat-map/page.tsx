@@ -41,7 +41,6 @@ export default function SeatMapDirectory() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [showAllDrafts, setShowAllDrafts] = useState(false);
 
-  // Load seat maps on component mount
   useEffect(() => {
     loadSeatMaps();
   }, []);
@@ -64,7 +63,6 @@ export default function SeatMapDirectory() {
     }
   };
 
-  // Handle search with debouncing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (searchQuery.trim() && showAllDrafts) {
@@ -95,7 +93,6 @@ export default function SeatMapDirectory() {
     }
   };
 
-  // Get recent seat maps for sidebar
   const getRecentSeatMaps = () => {
     return seatMaps
       .sort(
@@ -105,7 +102,6 @@ export default function SeatMapDirectory() {
       .slice(0, 3);
   };
 
-  // Filter seat maps based on selected tab (only when showing all drafts)
   const getFilteredSeatMaps = () => {
     if (!showAllDrafts) return [];
 
@@ -118,7 +114,6 @@ export default function SeatMapDirectory() {
           )
           .slice(0, 10);
       case "starred":
-        // TODO: Implement starred functionality
         return [];
       default:
         return seatMaps;
@@ -128,7 +123,6 @@ export default function SeatMapDirectory() {
   const filteredSeatMaps = getFilteredSeatMaps();
   const recentSeatMaps = getRecentSeatMaps();
 
-  // Format date for display
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString("en-US", {
@@ -139,7 +133,7 @@ export default function SeatMapDirectory() {
   };
 
   const handleDraftCreated = () => {
-    loadSeatMaps(); // Refresh the seat maps list
+    loadSeatMaps();
   };
 
   return (
@@ -178,7 +172,7 @@ export default function SeatMapDirectory() {
               onClick={() => {
                 setShowAllDrafts(!showAllDrafts);
                 if (!showAllDrafts) {
-                  loadSeatMaps(); // Load drafts when expanding
+                  loadSeatMaps();
                 }
               }}
             >
