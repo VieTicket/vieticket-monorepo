@@ -35,13 +35,16 @@ export const renderAreaContent = ({
   const elements: JSX.Element[] = [];
 
   rows.forEach((row) => {
-    console.log(row);
     const isRowSelected = selectedRowIds.includes(row.id);
     const rowElements: JSX.Element[] = [];
 
     if (row.seats.length > 0) {
-      const labelX = -20 - row.name.length * 4;
-      const labelY = -5;
+      var labelX = -20 - row.name.length * 4;
+      var labelY = -5;
+      if (row.rotation > 90) {
+        labelX = 20;
+        labelY = -5;
+      }
 
       rowElements.push(
         <Text

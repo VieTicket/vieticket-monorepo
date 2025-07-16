@@ -178,9 +178,29 @@ export const createShapesSlice: StateCreator<
       const duplicatedShape: Shape = {
         ...shape,
         id: uuidv4(),
-        x: shape.x + 20,
-        y: shape.y + 20,
       };
+
+      // FIX: Special handling for polygon shapes - offset points, not center
+      if (shape.type === "polygon") {
+        const polygonShape = shape as PolygonShape;
+        // Keep the same center position
+        duplicatedShape.center = {
+          x: polygonShape.center.x + 20,
+          y: polygonShape.center.y + 20,
+        };
+        // Offset the polygon points by 20px
+        duplicatedShape.points = polygonShape.points.map((point) => ({
+          x: point.x + 20,
+          y: point.y + 20,
+        }));
+        // Keep original x, y for compatibility
+        duplicatedShape.x = shape.x;
+        duplicatedShape.y = shape.y;
+      } else {
+        // For other shapes, use x, y coordinates
+        duplicatedShape.x = shape.x + 20;
+        duplicatedShape.y = shape.y + 20;
+      }
 
       set((state) => ({
         shapes: [...state.shapes, duplicatedShape],
@@ -238,9 +258,30 @@ export const createShapesSlice: StateCreator<
       const duplicatedShape: Shape = {
         ...shape,
         id: uuidv4(),
-        x: shape.x + 20,
-        y: shape.y + 20,
       };
+
+      // FIX: Special handling for polygon shapes - offset points, not center
+      if (shape.type === "polygon") {
+        const polygonShape = shape as PolygonShape;
+        // Keep the same center position
+        duplicatedShape.center = {
+          x: polygonShape.center.x + 20,
+          y: polygonShape.center.y + 20,
+        };
+        // Offset the polygon points by 20px
+        duplicatedShape.points = polygonShape.points.map((point) => ({
+          x: point.x + 20,
+          y: point.y + 20,
+        }));
+        // Keep original x, y for compatibility
+        duplicatedShape.x = shape.x;
+        duplicatedShape.y = shape.y;
+      } else {
+        // For other shapes, use x, y coordinates
+        duplicatedShape.x = shape.x + 20;
+        duplicatedShape.y = shape.y + 20;
+      }
+
       newShapes.push(duplicatedShape);
     });
 

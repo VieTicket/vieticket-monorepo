@@ -41,38 +41,70 @@ function StatePersistence() {
   const loadFromStorage = useCanvasStore((state) => state.loadFromStorage);
   const clearStorage = useCanvasStore((state) => state.clearStorage);
   const loadSeatMapData = useCanvasStore((state) => state.loadSeatMapData);
+  const setCurrentSeatMapId = useCanvasStore(
+    (state) => state.setCurrentSeatMapId
+  );
+  const currentSeatMapId = useCanvasStore((state) => state.currentSeatMapId);
   const [isLoaded, setIsLoaded] = useState(false);
   const searchParams = useSearchParams();
   const seatMapId = searchParams.get("id");
 
   useEffect(() => {
-    // Only attempt to load once when the component mounts
     if (!isLoaded) {
-      // If no seatMapId is provided (creating new), clear storage first
       if (!seatMapId) {
         clearStorage();
+        setCurrentSeatMapId(null);
         console.log("Creating new seat map - cleared session storage");
         setIsLoaded(true);
       } else {
-        // If seatMapId is provided (editing existing), try to load from storage first
-        const success = loadFromStorage();
-
-        if (success) {
-          console.log(
-            "Successfully restored canvas state from previous session"
-          );
-          setIsLoaded(true);
-        } else {
-          console.log(
-            "No previous session found, loading seat map from server"
-          );
-
-          // Load seat map from server
-          loadSeatMapFromServer(seatMapId);
-        }
+        checkStoredStateAndLoad(seatMapId);
       }
     }
-  }, [loadFromStorage, clearStorage, loadSeatMapData, isLoaded, seatMapId]);
+  }, [
+    loadFromStorage,
+    clearStorage,
+    loadSeatMapData,
+    setCurrentSeatMapId,
+    isLoaded,
+    seatMapId,
+    currentSeatMapId,
+  ]);
+
+  const checkStoredStateAndLoad = async (id: string) => {
+    try {
+      // FIX: Check stored state directly from sessionStorage first
+      const storedState = sessionStorage.getItem("canvas-editor-state");
+
+      if (storedState) {
+        const parsedState = JSON.parse(storedState);
+        const storedSeatMapId = parsedState.currentSeatMapId;
+
+        // If stored seatMapId matches the current one, load from storage
+        if (storedSeatMapId === id) {
+          console.log("Found matching seat map in session storage, loading...");
+          const success = loadFromStorage();
+
+          if (success) {
+            console.log(
+              "Successfully restored canvas state from previous session for same seat map"
+            );
+            setIsLoaded(true);
+            return;
+          }
+        }
+      }
+
+      // If no stored state or different seat map, load from server
+      console.log(
+        "Loading seat map from server - different seat map or no session data"
+      );
+      await loadSeatMapFromServer(id);
+    } catch (error) {
+      console.error("Error checking stored state:", error);
+      // Fallback to loading from server
+      await loadSeatMapFromServer(id);
+    }
+  };
 
   const loadSeatMapFromServer = async (id: string) => {
     try {

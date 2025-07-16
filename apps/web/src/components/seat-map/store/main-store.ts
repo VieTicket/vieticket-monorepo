@@ -96,6 +96,9 @@ export const useCanvasActions = () => {
     loadFromStorage: useCanvasStore.getState().loadFromStorage,
     clearStorage: useCanvasStore.getState().clearStorage,
     loadSeatMapData: useCanvasStore.getState().loadSeatMapData,
+    setCurrentSeatMapId: useCanvasStore.getState().setCurrentSeatMapId,
+    mirrorHorizontally: useCanvasStore.getState().mirrorHorizontally,
+    mirrorVertically: useCanvasStore.getState().mirrorVertically,
   };
 };
 

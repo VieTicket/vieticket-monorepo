@@ -163,13 +163,34 @@ export const useKeyMap = () => {
     const isShift = e.shiftKey;
     const isAlt = e.altKey;
 
+    // FIX: Check if user is typing in an input field
+    const activeElement = document.activeElement;
+    const isInInput =
+      activeElement &&
+      (activeElement.tagName === "INPUT" ||
+        activeElement.tagName === "TEXTAREA" ||
+        activeElement.getAttribute("role") === "textbox");
+
     const preventDefault = () => {
       e.preventDefault();
       e.stopPropagation();
     };
 
+    // FIX: If user is typing in input and not editing shapes, only handle essential keys
+    if (isInInput && !store.isEditing) {
+      switch (e.key) {
+        case "Escape":
+          // Allow escape to blur input fields
+          (activeElement as HTMLElement).blur();
+          preventDefault();
+          return;
+        default:
+          // Don't interfere with input typing
+          return;
+      }
+    }
+
     if (store.isEditing) {
-      const activeElement = document.activeElement;
       const isTextarea = activeElement && activeElement.tagName === "TEXTAREA";
       const isInput = activeElement && activeElement.tagName === "INPUT";
 

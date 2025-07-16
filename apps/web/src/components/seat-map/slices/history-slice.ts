@@ -30,6 +30,7 @@ const debouncedSaveToStorage = (stateToSave: any) => {
 export interface HistorySlice {
   history: Shape[][];
   historyIndex: number;
+  currentSeatMapId: string | null; // Add current seat map ID
   saveToHistory: () => void;
   undo: () => void;
   redo: () => void;
@@ -37,8 +38,9 @@ export interface HistorySlice {
   canRedo: () => boolean;
   loadFromStorage: () => boolean;
   clearStorage: () => void;
-  forceStorageSave: () => void; // New method to force immediate save
-  loadSeatMapData: (seatMapData: any) => boolean; // New method to load seat map data
+  forceStorageSave: () => void;
+  loadSeatMapData: (seatMapData: any) => boolean;
+  setCurrentSeatMapId: (id: string | null) => void; // Add method to set seat map ID
 }
 
 export const createHistorySlice: StateCreator<
@@ -49,9 +51,21 @@ export const createHistorySlice: StateCreator<
 > = (set, get) => ({
   history: [],
   historyIndex: -1,
+  currentSeatMapId: null,
+
+  setCurrentSeatMapId: (id) => {
+    set({ currentSeatMapId: id });
+  },
 
   saveToHistory: () => {
-    const { shapes, history, historyIndex, isInAreaMode, zoomedArea } = get();
+    const {
+      shapes,
+      history,
+      historyIndex,
+      isInAreaMode,
+      zoomedArea,
+      currentSeatMapId,
+    } = get();
 
     // Skip if we're just repeating the same state
     if (historyIndex >= 0) {
@@ -76,11 +90,12 @@ export const createHistorySlice: StateCreator<
       historyIndex: newIndex,
     });
 
-    // Use debounced save to session storage
+    // Use debounced save to session storage with seatMapId
     const stateToSave = {
       shapes: cleanShapes,
       historyIndex: newIndex,
       history: limitedHistory,
+      currentSeatMapId, // Include current seat map ID
       timestamp: new Date().toISOString(),
     };
 
@@ -88,7 +103,7 @@ export const createHistorySlice: StateCreator<
   },
 
   undo: () => {
-    const { history, historyIndex, isInAreaMode } = get();
+    const { history, historyIndex, isInAreaMode, currentSeatMapId } = get();
     if (historyIndex > 0) {
       const newIndex = historyIndex - 1;
       const previousShapes = JSON.parse(JSON.stringify(history[newIndex]));
@@ -116,11 +131,12 @@ export const createHistorySlice: StateCreator<
         });
       }
 
-      // Use debounced save for undo as well
+      // Use debounced save for undo as well with seatMapId
       const stateToSave = {
         shapes: previousShapes,
         historyIndex: newIndex,
         history: history,
+        currentSeatMapId,
         isInAreaMode,
         zoomedAreaId: isInAreaMode ? get().zoomedArea?.id || null : null,
         timestamp: new Date().toISOString(),
@@ -131,7 +147,7 @@ export const createHistorySlice: StateCreator<
   },
 
   redo: () => {
-    const { history, historyIndex, isInAreaMode } = get();
+    const { history, historyIndex, isInAreaMode, currentSeatMapId } = get();
     if (historyIndex < history.length - 1) {
       const newIndex = historyIndex + 1;
       const nextShapes = JSON.parse(JSON.stringify(history[newIndex]));
@@ -159,11 +175,12 @@ export const createHistorySlice: StateCreator<
         });
       }
 
-      // Use debounced save for redo as well
+      // Use debounced save for redo as well with seatMapId
       const stateToSave = {
         shapes: nextShapes,
         historyIndex: newIndex,
         history: history,
+        currentSeatMapId,
         isInAreaMode,
         zoomedAreaId: isInAreaMode ? get().zoomedArea?.id || null : null,
         timestamp: new Date().toISOString(),
@@ -175,7 +192,14 @@ export const createHistorySlice: StateCreator<
 
   // Force an immediate save to storage - useful for critical operations
   forceStorageSave: () => {
-    const { shapes, history, historyIndex, isInAreaMode, zoomedArea } = get();
+    const {
+      shapes,
+      history,
+      historyIndex,
+      isInAreaMode,
+      zoomedArea,
+      currentSeatMapId,
+    } = get();
 
     // Cancel any pending debounced save
     if (saveToStorageTimeout) {
@@ -188,6 +212,7 @@ export const createHistorySlice: StateCreator<
         shapes,
         historyIndex,
         history,
+        currentSeatMapId,
         isInAreaMode,
         zoomedAreaId: zoomedArea?.id || null,
         timestamp: new Date().toISOString(),
@@ -238,6 +263,7 @@ export const createHistorySlice: StateCreator<
         shapes: parsedState.shapes,
         history: parsedState.history || [parsedState.shapes],
         historyIndex: parsedState.historyIndex || 0,
+        currentSeatMapId: parsedState.currentSeatMapId || null,
         selectedShapeIds: [],
         selectedRowIds: [],
         selectedSeatIds: [],
@@ -281,8 +307,9 @@ export const createHistorySlice: StateCreator<
       // Load the seat map shapes into the store
       set({
         shapes: seatMapData.shapes,
-        history: [seatMapData.shapes], // Initialize history with loaded data
+        history: [seatMapData.shapes],
         historyIndex: 0,
+        currentSeatMapId: seatMapData.id, // Set the current seat map ID
         selectedShapeIds: [],
         selectedRowIds: [],
         selectedSeatIds: [],
@@ -293,6 +320,7 @@ export const createHistorySlice: StateCreator<
         shapes: seatMapData.shapes,
         historyIndex: 0,
         history: [seatMapData.shapes],
+        currentSeatMapId: seatMapData.id,
         timestamp: new Date().toISOString(),
         loadedSeatMapId: seatMapData.id,
         loadedSeatMapName: seatMapData.name,

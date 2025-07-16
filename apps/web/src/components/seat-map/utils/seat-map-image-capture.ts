@@ -1,3 +1,25 @@
+/**
+ * Why Client-Side Canvas Capture is Better Than Server-Side:
+ *
+ * 1. SSR Issues with Canvas Libraries:
+ *    - `createCanvas` from 'canvas' requires native dependencies
+ *    - fabric.js also has SSR compatibility issues
+ *    - These libraries don't work in Vercel/serverless environments
+ *
+ * 2. Konva-Specific Features:
+ *    - Our seat map uses Konva-specific features (transformations, groups, etc.)
+ *    - Server-side libraries would require completely rewriting the rendering logic
+ *    - We'd lose visual fidelity and exact representation
+ *
+ * 3. Real-Time Accuracy:
+ *    - Client-side capture shows exactly what the user sees
+ *    - Server-side rendering might have slight differences in fonts, spacing, etc.
+ *
+ * 4. Performance:
+ *    - Client-side capture is faster (no network round-trip)
+ *    - Server resources aren't used for image generation
+ */
+
 import { Shape } from "@/types/seat-map-types";
 
 export interface BoundingBox {
@@ -109,7 +131,93 @@ export function calculateShapesBoundingBox(shapes: Shape[]): BoundingBox {
 }
 
 /**
- * Capture the seat map stage as an image blob
+ * Capture the seat map stage as an image blob (optimized version)
+ * @param stage - Konva Stage instance
+ * @param shapes - Array of shapes to determine the capture area
+ * @returns Promise<Blob> - The captured image as a blob
+ */
+export async function captureSeatMapImageOptimized(
+  stage: any,
+  shapes: Shape[]
+): Promise<Blob> {
+  if (!stage) {
+    throw new Error("Stage reference is required for image capture");
+  }
+
+  try {
+    const boundingBox = calculateShapesBoundingBox(shapes);
+
+    // Store original stage properties
+    const originalProps = {
+      x: stage.x(),
+      y: stage.y(),
+      scaleX: stage.scaleX(),
+      scaleY: stage.scaleY(),
+    };
+
+    // Calculate optimal dimensions (max 1920x1080 for better performance)
+    const maxWidth = 1920;
+    const maxHeight = 1080;
+    const scaleX = maxWidth / boundingBox.width;
+    const scaleY = maxHeight / boundingBox.height;
+    const scale = Math.min(scaleX, scaleY, 2); // Max 2x scale
+
+    const finalWidth = Math.min(boundingBox.width * scale, maxWidth);
+    const finalHeight = Math.min(boundingBox.height * scale, maxHeight);
+
+    // Position the stage
+    const offsetX =
+      -boundingBox.minX * scale + (finalWidth - boundingBox.width * scale) / 2;
+    const offsetY =
+      -boundingBox.minY * scale +
+      (finalHeight - boundingBox.height * scale) / 2;
+
+    // Apply transformations
+    stage.scale({ x: scale, y: scale });
+    stage.position({ x: offsetX, y: offsetY });
+    stage.batchDraw();
+
+    // Wait for rendering
+    await new Promise((resolve) => setTimeout(resolve, 100));
+
+    // FIX: Use toCanvas() method which is the correct Konva API
+    const canvas = stage.toCanvas({
+      x: 0,
+      y: 0,
+      width: finalWidth,
+      height: finalHeight,
+      pixelRatio: 2, // For better quality
+    });
+
+    // FIX: Use the canvas.toBlob method properly
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (blob: Blob | null) => {
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error("Failed to create blob from canvas"));
+          }
+        },
+        "image/png",
+        0.9
+      );
+    });
+
+    // Restore original state
+    stage.scale({ x: originalProps.scaleX, y: originalProps.scaleY });
+    stage.position({ x: originalProps.x, y: originalProps.y });
+    stage.batchDraw();
+
+    return blob;
+  } catch (error) {
+    console.error("Error capturing seat map image:", error);
+    throw new Error("Failed to capture seat map image");
+  }
+}
+
+/**
+ * Legacy capture method using toDataURL (as fallback)
  * @param stage - Konva Stage instance
  * @param shapes - Array of shapes to determine the capture area
  * @returns Promise<Blob> - The captured image as a blob
@@ -160,7 +268,7 @@ export async function captureSeatMapImage(
     // Wait a bit for the stage to update
     await new Promise((resolve) => setTimeout(resolve, 100));
 
-    // Capture the image
+    // Capture the image using toDataURL (legacy method)
     const dataURL = stage.toDataURL({
       x: 0,
       y: 0,

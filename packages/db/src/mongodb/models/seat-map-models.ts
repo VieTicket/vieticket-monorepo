@@ -113,9 +113,12 @@ export type CreateSeatMapInput = {
   shapes: Shape[];
   image: string;
   createdBy: string;
+  publicity?: "public" | "private"; // Optional, defaults to 'private'
+  draftedFrom?: string; // ObjectId as string
+  originalCreator?: string; // Set automatically when drafting
 };
 
-export type UpdateSeatMapInput = Partial<Omit<CreateSeatMapInput, 'createdBy'>>;
+export type UpdateSeatMapInput = Partial<Omit<CreateSeatMapInput, "createdBy">>;
 
 export type SeatMap = {
   id?: string;
@@ -123,6 +126,29 @@ export type SeatMap = {
   shapes: Shape[];
   image: string;
   createdBy: string;
+  publicity: "public" | "private";
+  draftedFrom?: string;
+  originalCreator?: string;
   createdAt?: Date;
   updatedAt?: Date;
+};
+
+// NEW: Type for public seat map listings
+export type PublicSeatMap = {
+  id: string;
+  name: string;
+  image: string;
+  createdBy: string;
+  originalCreator?: string;
+  draftedFrom?: string;
+  createdAt: Date;
+  updatedAt: Date;
+  draftCount?: number; // Number of times this was drafted
+};
+
+// NEW: Type for draft creation
+export type DraftSeatMapInput = {
+  originalSeatMapId: string;
+  name: string;
+  createdBy: string;
 };

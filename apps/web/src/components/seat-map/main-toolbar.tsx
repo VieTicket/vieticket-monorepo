@@ -6,6 +6,7 @@ import {
   useCurrentTool,
   useZoom,
   useShapes,
+  useSelectedShapeIds,
 } from "@/components/seat-map/store/main-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ import {
   ArrowLeft,
   Circle,
   CloudUpload,
+  FlipHorizontal,
+  FlipVertical,
   FolderOpen,
   Grid,
   List,
@@ -44,7 +47,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
 import { usePanZoom } from "./hooks/usePanZoom";
@@ -55,11 +58,8 @@ import {
   updateSeatMapAction,
 } from "@/lib/actions/organizer/seat-map-actions";
 import { useStageRef } from "./providers/stage-provider";
-import { uploadFileToCloudinary } from "@/components/ui/file-uploader";
-import {
-  captureSeatMapImage,
-  blobToFile,
-} from "./utils/seat-map-image-capture";
+import { uploadBlobToCloudinary } from "@/components/ui/file-uploader";
+import { captureSeatMapImageOptimized } from "./utils/seat-map-image-capture";
 
 export type ToolType =
   | "select"
@@ -82,6 +82,7 @@ const MainToolbar = React.memo(function MainToolbar() {
   const currentTool = useCurrentTool();
   const zoom = useZoom();
   const shapes = useShapes();
+  const selectedShapeIds = useSelectedShapeIds();
 
   const {
     setCurrentTool,
@@ -94,6 +95,9 @@ const MainToolbar = React.memo(function MainToolbar() {
     duplicateShapes,
     deleteSelectedShapes,
     clearStorage,
+    setCurrentSeatMapId,
+    mirrorHorizontally,
+    mirrorVertically,
   } = useCanvasActions();
 
   const { centerCanvas } = usePanZoom();
@@ -136,12 +140,37 @@ const MainToolbar = React.memo(function MainToolbar() {
 
     setIsSaving(true);
     try {
-      toast.info("Saving seat map...");
+      // Step 1: Capture the current seat map as an image
+      toast.info("Capturing updated seat map image...");
+      const imageBlob = await captureSeatMapImageOptimized(
+        stageRef.current,
+        shapes
+      );
 
-      const result = await updateSeatMapAction(seatMapId!, shapes);
+      // Step 2: Upload new image to Cloudinary (this will override the old one with same public_id)
+      const filename = `seatmap_${seatMapId}_preview.png`;
+
+      toast.info("Uploading updated image...");
+      const uploadResponse = await uploadBlobToCloudinary(
+        imageBlob,
+        filename,
+        "seat-maps",
+        (progress) => {
+          console.log(`Upload progress: ${progress}%`);
+        }
+      );
+
+      // Step 3: Update seat map with new image URL and shapes
+      toast.info("Saving seat map...");
+      const result = await updateSeatMapAction(
+        seatMapId!,
+        shapes,
+        undefined, // Don't change the name
+        uploadResponse.secure_url // Update with new image URL
+      );
 
       if (result.success) {
-        toast.success("Seat map saved successfully!");
+        toast.success("Seat map saved successfully with updated preview!");
       } else {
         toast.error(result.error || "Failed to save seat map");
       }
@@ -165,9 +194,20 @@ const MainToolbar = React.memo(function MainToolbar() {
     }
   }, []);
 
+  // FIX: Set the current seat map ID when component mounts
+  useEffect(() => {
+    if (seatMapId) {
+      setCurrentSeatMapId(seatMapId);
+    } else {
+      setCurrentSeatMapId(null);
+    }
+  }, [seatMapId, setCurrentSeatMapId]);
+
   const handleExit = useCallback(() => {
+    // FIX: Clear storage when exiting
+    clearStorage();
     router.push("/organizer/seat-map");
-  }, []);
+  }, [clearStorage, router]);
 
   const handleUpload = useCallback(async () => {
     if (!seatMapName.trim()) {
@@ -182,23 +222,22 @@ const MainToolbar = React.memo(function MainToolbar() {
 
     setIsUploading(true);
     try {
-      // Step 1: Capture the seat map as an image
+      // Step 1: Capture the seat map as an optimized image
       toast.info("Capturing seat map image...");
-      const imageBlob = await captureSeatMapImage(stageRef.current, shapes);
-
-      // Convert blob to file
-      const imageFile = blobToFile(
-        imageBlob,
-        `${seatMapName.replace(/[^a-zA-Z0-9]/g, "_")}_preview.png`
+      const imageBlob = await captureSeatMapImageOptimized(
+        stageRef.current,
+        shapes
       );
 
-      // Step 2: Upload to Cloudinary
+      // Step 2: Upload blob directly to Cloudinary (more efficient)
+      const filename = `${seatMapName.replace(/[^a-zA-Z0-9]/g, "_")}_preview.png`;
+
       toast.info("Uploading image to cloud storage...");
-      const uploadResponse = await uploadFileToCloudinary(
-        imageFile,
+      const uploadResponse = await uploadBlobToCloudinary(
+        imageBlob,
+        filename,
         "seat-maps",
         (progress) => {
-          // Optional: You could update a progress state here if you want to show upload progress
           console.log(`Upload progress: ${progress}%`);
         }
       );
@@ -212,7 +251,6 @@ const MainToolbar = React.memo(function MainToolbar() {
       );
 
       if (result.success) {
-        // Clear sessionStorage after successful upload
         clearStorage();
         toast.success("Seat map uploaded successfully!");
         setIsUploadDialogOpen(false);
@@ -239,6 +277,14 @@ const MainToolbar = React.memo(function MainToolbar() {
   const handleAreaDelete = useCallback(() => {
     deleteSelectedAreaItems();
   }, [deleteSelectedAreaItems]);
+
+  const handleMirrorHorizontally = useCallback(() => {
+    mirrorHorizontally();
+  }, [mirrorHorizontally]);
+
+  const handleMirrorVertically = useCallback(() => {
+    mirrorVertically();
+  }, [mirrorVertically]);
 
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
@@ -339,6 +385,30 @@ const MainToolbar = React.memo(function MainToolbar() {
         >
           <Save className="w-5 h-5" />
         </Button>
+
+        {/* NEW: Mirror Buttons */}
+        {!isInAreaMode && (
+          <>
+            <Button
+              onClick={handleMirrorHorizontally}
+              variant="ghost"
+              size="icon"
+              title="Mirror Horizontally"
+              disabled={!selectedShapeIds.length}
+            >
+              <FlipHorizontal className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={handleMirrorVertically}
+              variant="ghost"
+              size="icon"
+              title="Mirror Vertically"
+              disabled={!selectedShapeIds.length}
+            >
+              <FlipVertical className="w-5 h-5" />
+            </Button>
+          </>
+        )}
       </div>
 
       {!isInAreaMode ? (

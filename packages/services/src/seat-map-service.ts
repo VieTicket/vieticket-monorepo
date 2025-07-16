@@ -6,6 +6,11 @@ import {
   findSeatMapsByName,
   findSeatMapWithShapesById,
   updateSeatMapById,
+  findPublicSeatMaps,
+  createDraftFromSeatMap,
+  getSeatMapDraftCount,
+  getSeatMapDraftChain,
+  updateSeatMapPublicity,
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
 
@@ -325,5 +330,169 @@ export async function updateSeatMap(
       throw new Error(`Failed to update seat map: ${error.message}`);
     }
     throw new Error("An unknown error occurred while updating the seat map");
+  }
+}
+
+/**
+ * Service function to get public seat maps that can be drafted.
+ * @param page - Page number.
+ * @param limit - Items per page.
+ * @param searchQuery - Optional search query.
+ * @returns Public seat maps with pagination.
+ */
+export async function getPublicSeatMaps(
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+) {
+  try {
+    const result = await findPublicSeatMaps(page, limit, searchQuery);
+
+    // Add draft counts for each seat map
+    const seatMapsWithDraftCount = await Promise.all(
+      result.seatMaps.map(async (seatMap) => {
+        const draftCount = await getSeatMapDraftCount(seatMap.id!);
+        return {
+          ...seatMap,
+          draftCount,
+        };
+      })
+    );
+
+    return {
+      seatMaps: seatMapsWithDraftCount,
+      pagination: result.pagination,
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch public seat maps: ${error.message}`);
+    }
+    throw new Error(
+      "An unknown error occurred while fetching public seat maps"
+    );
+  }
+}
+
+/**
+ * Service function to create a draft from a public seat map.
+ * @param originalSeatMapId - ID of the original seat map.
+ * @param draftName - Name for the new draft.
+ * @param user - The user creating the draft.
+ * @returns The created draft.
+ */
+export async function createSeatMapDraft(
+  originalSeatMapId: string,
+  draftName: string,
+  user: User
+) {
+  // Authorization check
+  if (user.role !== "organizer") {
+    throw new Error("Unauthorized: Only organizers can create drafts");
+  }
+
+  // Input validation
+  if (!originalSeatMapId || originalSeatMapId.trim().length === 0) {
+    throw new Error("Original seat map ID is required");
+  }
+
+  if (!draftName || draftName.trim().length === 0) {
+    throw new Error("Draft name is required");
+  }
+
+  if (draftName.trim().length > 100) {
+    throw new Error("Draft name cannot exceed 100 characters");
+  }
+
+  try {
+    const draft = await createDraftFromSeatMap(originalSeatMapId.trim(), {
+      name: draftName.trim(),
+      createdBy: user.id,
+    });
+
+    return draft;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to create draft: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while creating the draft");
+  }
+}
+
+/**
+ * Service function to update seat map publicity.
+ * @param seatMapId - ID of the seat map.
+ * @param publicity - New publicity setting.
+ * @param user - The user making the update.
+ * @returns Updated seat map.
+ */
+export async function updateSeatMapPublicityService(
+  seatMapId: string,
+  publicity: "public" | "private",
+  user: User
+) {
+  // Authorization check
+  if (user.role !== "organizer") {
+    throw new Error("Unauthorized: Only organizers can update publicity");
+  }
+
+  // Input validation
+  if (!seatMapId || seatMapId.trim().length === 0) {
+    throw new Error("Seat map ID is required");
+  }
+
+  if (!["public", "private"].includes(publicity)) {
+    throw new Error("Publicity must be either 'public' or 'private'");
+  }
+
+  try {
+    const updatedSeatMap = await updateSeatMapPublicity(
+      seatMapId.trim(),
+      publicity,
+      user.id
+    );
+
+    if (!updatedSeatMap) {
+      throw new Error(
+        "Seat map not found or you don't have permission to update it"
+      );
+    }
+
+    return updatedSeatMap;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to update publicity: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while updating publicity");
+  }
+}
+
+/**
+ * Service function to get seat map draft information.
+ * @param seatMapId - ID of the seat map.
+ * @param user - The requesting user.
+ * @returns Draft chain information.
+ */
+export async function getSeatMapDraftInfo(seatMapId: string, user: User) {
+  // Authorization check
+  if (user.role !== "organizer") {
+    throw new Error(
+      "Unauthorized: Only organizers can access draft information"
+    );
+  }
+
+  if (!seatMapId || seatMapId.trim().length === 0) {
+    throw new Error("Seat map ID is required");
+  }
+
+  try {
+    const draftChain = await getSeatMapDraftChain(seatMapId.trim());
+    return draftChain;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch draft information: ${error.message}`);
+    }
+    throw new Error(
+      "An unknown error occurred while fetching draft information"
+    );
   }
 }

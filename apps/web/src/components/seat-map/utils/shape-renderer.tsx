@@ -102,6 +102,8 @@ export const renderShape = ({
       const hasRows =
         Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
 
+      console.log(shape);
+
       const centerX = polygonShape.center?.x || 0;
       const centerY = polygonShape.center?.y || 0;
       const flatPoints =

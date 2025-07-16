@@ -236,3 +236,163 @@ export async function findSeatMapWithShapesById(
   const doc = await SeatMapModel.findOne(filter).exec();
   return doc ? doc.toObject() : null;
 }
+
+/**
+ * Retrieves public seat maps that can be drafted by other users.
+ * @param page - Page number (1-based).
+ * @param limit - Number of items per page.
+ * @param searchQuery - Optional search query for name.
+ * @returns Object containing public seat maps and pagination info.
+ */
+export async function findPublicSeatMaps(
+  page: number = 1,
+  limit: number = 10,
+  searchQuery?: string
+): Promise<{
+  seatMaps: SeatMap[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+}> {
+  await ensureMongoConnection();
+
+  const skip = (page - 1) * limit;
+  const filter: any = { publicity: "public" };
+
+  if (searchQuery) {
+    filter.name = { $regex: searchQuery, $options: "i" };
+  }
+
+  const [docs, total] = await Promise.all([
+    SeatMapModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .exec(),
+    SeatMapModel.countDocuments(filter).exec(),
+  ]);
+
+  const seatMaps = docs.map((doc) => doc.toObject());
+
+  return {
+    seatMaps,
+    pagination: {
+      page,
+      limit,
+      total,
+      pages: Math.ceil(total / limit),
+      hasNext: page < Math.ceil(total / limit),
+      hasPrev: page > 1,
+    },
+  };
+}
+
+/**
+ * Creates a draft from an existing public seat map.
+ * @param originalSeatMapId - ID of the original public seat map.
+ * @param draftData - Data for the new draft.
+ * @returns The created draft seat map.
+ */
+export async function createDraftFromSeatMap(
+  originalSeatMapId: string,
+  draftData: { name: string; createdBy: string }
+): Promise<SeatMap> {
+  await ensureMongoConnection();
+
+  // Get the original seat map
+  const originalSeatMap = await SeatMapModel.findById(originalSeatMapId).exec();
+  if (!originalSeatMap) {
+    throw new Error("Original seat map not found");
+  }
+
+  if (originalSeatMap.publicity !== "public") {
+    throw new Error("Can only draft from public seat maps");
+  }
+
+  // Create the draft with copied shapes
+  const draftInput: CreateSeatMapInput = {
+    name: draftData.name,
+    shapes: originalSeatMap.shapes, // Copy the shapes
+    image: originalSeatMap.image, // Copy the image initially
+    createdBy: draftData.createdBy,
+    publicity: "private", // Drafts start as private
+    draftedFrom: originalSeatMapId,
+    originalCreator:
+      originalSeatMap.originalCreator || originalSeatMap.createdBy,
+  };
+
+  const doc = await SeatMapModel.create(draftInput);
+  return doc.toObject();
+}
+
+/**
+ * Gets the draft count for a specific seat map.
+ * @param seatMapId - ID of the seat map.
+ * @returns Number of times this seat map was drafted.
+ */
+export async function getSeatMapDraftCount(seatMapId: string): Promise<number> {
+  await ensureMongoConnection();
+  return SeatMapModel.countDocuments({ draftedFrom: seatMapId }).exec();
+}
+
+/**
+ * Gets the draft chain for a seat map (what it was drafted from and what drafted from it).
+ * @param seatMapId - ID of the seat map.
+ * @returns Object with parent and children information.
+ */
+export async function getSeatMapDraftChain(seatMapId: string): Promise<{
+  parent?: SeatMap;
+  children: SeatMap[];
+  draftCount: number;
+}> {
+  await ensureMongoConnection();
+
+  const [currentSeatMap, children] = await Promise.all([
+    SeatMapModel.findById(seatMapId).exec(),
+    SeatMapModel.find({ draftedFrom: seatMapId })
+      .sort({ createdAt: -1 })
+      .exec(),
+  ]);
+
+  let parent: SeatMap | undefined;
+  if (currentSeatMap?.draftedFrom) {
+    const parentDoc = await SeatMapModel.findById(
+      currentSeatMap.draftedFrom
+    ).exec();
+    parent = parentDoc ? parentDoc.toObject() : undefined;
+  }
+
+  return {
+    parent,
+    children: children.map((doc) => doc.toObject()),
+    draftCount: children.length,
+  };
+}
+
+/**
+ * Updates seat map publicity.
+ * @param id - The ID of the seat map.
+ * @param publicity - New publicity setting.
+ * @param updatedBy - ID of user making the update (must be owner).
+ * @returns Updated seat map or null if not found/unauthorized.
+ */
+export async function updateSeatMapPublicity(
+  id: string,
+  publicity: "public" | "private",
+  updatedBy: string
+): Promise<SeatMap | null> {
+  await ensureMongoConnection();
+
+  const doc = await SeatMapModel.findOneAndUpdate(
+    { _id: id, createdBy: updatedBy }, // Only owner can update publicity
+    { publicity },
+    { new: true, runValidators: true }
+  ).exec();
+
+  return doc ? doc.toObject() : null;
+}
