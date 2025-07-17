@@ -18,6 +18,31 @@ import { useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchEventById } from "./action";
 import { AIImageGenerator } from "@/components/ai/AIImageGenerator";
+import Link from "next/link";
+
+// Mock data for seat maps - should be replaced with actual API call
+const MOCK_PUBLISHED_SEATMAPS = [
+  {
+    id: "pub1",
+    name: "Main Stadium",
+    updatedAt: "2025-07-01T10:00:00Z",
+  },
+  {
+    id: "pub2",
+    name: "Conference Hall",
+    updatedAt: "2025-06-28T15:30:00Z",
+  },
+  {
+    id: "pub3",
+    name: "Jazz Theater",
+    updatedAt: "2025-06-25T09:45:00Z",
+  },
+  {
+    id: "pub4",
+    name: "Stadium Section A",
+    updatedAt: "2025-06-20T11:20:00Z",
+  },
+];
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState({
@@ -37,7 +62,7 @@ export default function CreateEventPage() {
   const [step, setStep] = useState(1);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [errors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
@@ -45,6 +70,10 @@ export default function CreateEventPage() {
   const [areas, setAreas] = useState([
     { name: "Area A", seatCount: "", ticketPrice: "" },
   ]);
+  const [ticketingMode, setTicketingMode] = useState<"simple" | "seatmap">(
+    "simple"
+  );
+  const [selectedSeatMap, setSelectedSeatMap] = useState<string>("");
 
   useEffect(() => {
     if (!eventId) return;
@@ -97,6 +126,33 @@ export default function CreateEventPage() {
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    // Validate all datetime fields before submission
+    const dateTimeFields = [
+      "startTime",
+      "endTime",
+      "ticketSaleStart",
+      "ticketSaleEnd",
+    ];
+    const newErrors: Record<string, string> = {};
+
+    dateTimeFields.forEach((field) => {
+      const value = formData[field as keyof typeof formData];
+      if (value) {
+        const error = validateDateTime(field, value);
+        if (error) {
+          newErrors[field] = error;
+        }
+      }
+    });
+
+    // If there are validation errors, show them and don't submit
+    if (Object.keys(newErrors).length > 0) {
+      setErrors((prev) => ({ ...prev, ...newErrors }));
+      toast.error("Please fix the validation errors before submitting.");
+      return;
+    }
+
     const form = new FormData(e.currentTarget);
 
     startTransition(async () => {
@@ -118,13 +174,96 @@ export default function CreateEventPage() {
     });
   };
 
+  // Validation functions
+  const validateDateTime = (name: string, value: string) => {
+    const now = new Date();
+    const inputDate = new Date(value);
+    const startTime = new Date(formData.startTime);
+    const endTime = new Date(formData.endTime);
+    const ticketSaleStart = new Date(formData.ticketSaleStart);
+
+    let error = "";
+
+    switch (name) {
+      case "startTime":
+        if (inputDate < now) {
+          error = "Start time cannot be in the past";
+        }
+        break;
+
+      case "endTime":
+        if (inputDate < now) {
+          error = "End time cannot be in the past";
+        } else if (formData.startTime && inputDate <= startTime) {
+          error = "End time must be after start time";
+        }
+        break;
+
+      case "ticketSaleStart":
+        if (inputDate < now) {
+          error = "Ticket sale start cannot be in the past";
+        } else if (formData.endTime && inputDate > endTime) {
+          error = "Ticket sale start must be before event end time";
+        }
+        break;
+
+      case "ticketSaleEnd":
+        if (formData.ticketSaleStart && inputDate < ticketSaleStart) {
+          error = "Ticket sale end must be after ticket sale start";
+        } else if (formData.endTime && inputDate > endTime) {
+          error = "Ticket sale end must be before event end time";
+        }
+        break;
+    }
+
+    return error;
+  };
+
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
+
+    // Update form data
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Validate datetime fields
+    if (
+      ["startTime", "endTime", "ticketSaleStart", "ticketSaleEnd"].includes(
+        name
+      )
+    ) {
+      const error = validateDateTime(name, value);
+      setErrors((prev) => ({
+        ...prev,
+        [name]: error,
+      }));
+
+      // Clear related field errors when fixing a field
+      if (!error) {
+        const relatedErrors: Record<string, string[]> = {
+          startTime: ["endTime"],
+          endTime: ["ticketSaleStart", "ticketSaleEnd"],
+          ticketSaleStart: ["ticketSaleEnd"],
+          ticketSaleEnd: [],
+        };
+
+        const fieldsToRevalidate = relatedErrors[name] || [];
+        fieldsToRevalidate.forEach((field) => {
+          const fieldValue =
+            name === field ? value : formData[field as keyof typeof formData];
+          if (fieldValue) {
+            const fieldError = validateDateTime(field, fieldValue);
+            setErrors((prev) => ({
+              ...prev,
+              [field]: fieldError,
+            }));
+          }
+        });
+      }
+    }
   };
 
   // Handle poster upload success
@@ -158,52 +297,109 @@ export default function CreateEventPage() {
     label: string,
     type: string = "text",
     options?: string[]
-  ) => (
-    <div className="space-y-2">
-      <Label htmlFor={name}>
-        {label}{" "}
-        {name === "name" || name === "location" || name === "description"
-          ? "*"
-          : ""}
-      </Label>
+  ) => {
+    // Helper function to get minimum datetime for fields
+    const getMinDateTime = (fieldName: string) => {
+      const now = new Date();
+      const currentDateTime = now.toISOString().slice(0, 16);
 
-      {type === "select" && options ? (
-        <select
-          id={name}
-          name={name}
-          value={formData[name]}
-          onChange={handleChange}
-          className={`w-full border rounded px-3 py-2 ${
-            errors[name] ? "border-red-500" : ""
-          }`}
-          required={
-            name === "name" || name === "location" || name === "description"
-          }
-        >
-          <option value="">-- Category --</option>
-          {options.map((opt) => (
-            <option key={opt} value={opt}>
-              {opt}
-            </option>
-          ))}
-        </select>
-      ) : (
-        <Input
-          id={name}
-          name={name}
-          type={type}
-          value={formData[name]}
-          onChange={handleChange}
-          className={errors[name] ? "border-red-500" : ""}
-          required={
-            name === "name" || name === "location" || name === "description"
-          }
-        />
-      )}
+      switch (fieldName) {
+        case "startTime":
+        case "ticketSaleStart":
+          return currentDateTime;
+        case "endTime":
+          return formData.startTime || currentDateTime;
+        case "ticketSaleEnd":
+          return formData.ticketSaleStart || currentDateTime;
+        default:
+          return currentDateTime;
+      }
+    };
 
-      {errors[name] && <p className="text-red-500 text-sm">{errors[name]}</p>}
-    </div>
-  );
+    // Helper function to get maximum datetime for fields
+    const getMaxDateTime = (fieldName: string) => {
+      switch (fieldName) {
+        case "ticketSaleStart":
+        case "ticketSaleEnd":
+          return formData.endTime || undefined;
+        default:
+          return undefined;
+      }
+    };
+
+    // Show date hint for end time when start time is selected
+    const getDateHint = (fieldName: string) => {
+      if (fieldName === "endTime" && formData.startTime) {
+        const startDate = new Date(formData.startTime);
+        return `Start: ${startDate.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+          year: "numeric",
+        })}`;
+      }
+      return null;
+    };
+
+    const dateHint = getDateHint(name);
+
+    return (
+      <div className="space-y-1">
+        <div className="flex items-center justify-between">
+          <Label htmlFor={name}>
+            {label}{" "}
+            {name === "name" || name === "location" || name === "description"
+              ? "*"
+              : ""}
+          </Label>
+          {dateHint && (
+            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md whitespace-nowrap">
+              💡 {dateHint}
+            </span>
+          )}
+        </div>
+
+        {type === "select" && options ? (
+          <select
+            id={name}
+            name={name}
+            value={formData[name]}
+            onChange={handleChange}
+            className={`w-full border rounded px-3 py-2 ${
+              errors[name] ? "border-red-500" : ""
+            }`}
+            required={
+              name === "name" || name === "location" || name === "description"
+            }
+          >
+            <option value="">-- Category --</option>
+            {options.map((opt) => (
+              <option key={opt} value={opt}>
+                {opt}
+              </option>
+            ))}
+          </select>
+        ) : (
+          <Input
+            id={name}
+            name={name}
+            type={type}
+            value={formData[name]}
+            onChange={handleChange}
+            className={errors[name] ? "border-red-500" : ""}
+            required={
+              name === "name" || name === "location" || name === "description"
+            }
+            min={type === "datetime-local" ? getMinDateTime(name) : undefined}
+            max={type === "datetime-local" ? getMaxDateTime(name) : undefined}
+          />
+        )}
+
+        {errors[name] && (
+          <p className="text-red-500 text-xs mt-1">{errors[name]}</p>
+        )}
+      </div>
+    );
+  };
 
   const renderStep = () => {
     switch (step) {
@@ -436,114 +632,232 @@ export default function CreateEventPage() {
       case 4:
         return (
           <div>
-            <h2 className="text-xl font-semibold mb-4">Ticketing</h2>
-            <div className="space-y-4">
-              {areas.map((area, index) => (
-                <div
-                  key={index}
-                  className="grid grid-cols-3 gap-4 items-end border p-4 rounded-lg relative"
+            <h2 className="text-xl font-semibold mb-4">Ticketing & Seating</h2>
+
+            {/* Mode Selection */}
+            <div className="space-y-4 mb-6">
+              <Label className="text-base font-medium">
+                Choose Ticketing Mode
+              </Label>
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={() => setTicketingMode("simple")}
+                  className={`flex-1 p-4 border rounded-lg text-left transition-colors ${
+                    ticketingMode === "simple"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
                 >
-                  <div className="space-y-1">
-                    <Label htmlFor={`area-name-${index}`}>Area Name</Label>
-                    <Input
-                      id={`area-name-${index}`}
-                      type="text"
-                      name={`areas[${index}][name]`}
-                      placeholder="e.g. VIP, Standard"
-                      value={area.name}
-                      onChange={(e) =>
-                        setAreas((prev) =>
-                          prev.map((a, i) =>
-                            i === index ? { ...a, name: e.target.value } : a
-                          )
-                        )
-                      }
-                      required
-                    />
+                  <div className="font-medium mb-2">Simple Ticketing</div>
+                  <div className="text-sm text-gray-600">
+                    Create tickets with basic area pricing (no specific seat
+                    selection)
                   </div>
+                </button>
 
-                  <div className="space-y-1">
-                    <Label htmlFor={`area-seatCount-${index}`}>
-                      Seat Count
-                    </Label>
-                    <Input
-                      id={`area-seatCount-${index}`}
-                      type="number"
-                      name={`areas[${index}][seatCount]`}
-                      placeholder="e.g. 100"
-                      value={area.seatCount}
-                      min={1}
-                      onChange={(e) =>
-                        setAreas((prev) =>
-                          prev.map((a, i) =>
-                            i === index
-                              ? { ...a, seatCount: e.target.value }
-                              : a
-                          )
-                        )
-                      }
-                      required
-                    />
+                <button
+                  type="button"
+                  onClick={() => setTicketingMode("seatmap")}
+                  className={`flex-1 p-4 border rounded-lg text-left transition-colors ${
+                    ticketingMode === "seatmap"
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-gray-200 hover:border-gray-300"
+                  }`}
+                >
+                  <div className="font-medium mb-2">Seat Map Ticketing</div>
+                  <div className="text-sm text-gray-600">
+                    Use a pre-designed seat map with specific seat selection
                   </div>
-
-                  <div className="space-y-1">
-                    <Label htmlFor={`area-ticketPrice-${index}`}>
-                      Ticket Price (VND)
-                    </Label>
-                    <Input
-                      id={`area-ticketPrice-${index}`}
-                      type="number"
-                      name={`areas[${index}][ticketPrice]`}
-                      placeholder="e.g. 50000"
-                      step="10000"
-                      min={0}
-                      value={area.ticketPrice}
-                      onChange={(e) =>
-                        setAreas((prev) =>
-                          prev.map((a, i) =>
-                            i === index
-                              ? { ...a, ticketPrice: e.target.value }
-                              : a
-                          )
-                        )
-                      }
-                      required
-                    />
-                  </div>
-
-                  {/* Xoá khu vực */}
-                  {areas.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setAreas((prev) => prev.filter((_, i) => i !== index))
-                      }
-                      className="absolute top-2 right-2 text-red-500 text-sm"
-                    >
-                      🗑 Remove
-                    </button>
-                  )}
-                </div>
-              ))}
-
-              {/* Thêm khu vực mới */}
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() =>
-                  setAreas((prev) => [
-                    ...prev,
-                    {
-                      name: `Area ${String.fromCharCode(65 + prev.length)}`,
-                      seatCount: "",
-                      ticketPrice: "",
-                    },
-                  ])
-                }
-              >
-                + Add Area
-              </Button>
+                </button>
+              </div>
             </div>
+
+            {/* Content based on selected mode */}
+            {ticketingMode === "simple" ? (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Ticket Areas</h3>
+                {areas.map((area, index) => (
+                  <div
+                    key={index}
+                    className="grid grid-cols-3 gap-4 items-end border p-4 rounded-lg relative"
+                  >
+                    <div className="space-y-1">
+                      <Label htmlFor={`area-name-${index}`}>Area Name</Label>
+                      <Input
+                        id={`area-name-${index}`}
+                        type="text"
+                        name={`areas[${index}][name]`}
+                        placeholder="e.g. VIP, Standard"
+                        value={area.name}
+                        onChange={(e) =>
+                          setAreas((prev) =>
+                            prev.map((a, i) =>
+                              i === index ? { ...a, name: e.target.value } : a
+                            )
+                          )
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`area-seatCount-${index}`}>
+                        Seat Count
+                      </Label>
+                      <Input
+                        id={`area-seatCount-${index}`}
+                        type="number"
+                        name={`areas[${index}][seatCount]`}
+                        placeholder="e.g. 100"
+                        value={area.seatCount}
+                        min={1}
+                        onChange={(e) =>
+                          setAreas((prev) =>
+                            prev.map((a, i) =>
+                              i === index
+                                ? { ...a, seatCount: e.target.value }
+                                : a
+                            )
+                          )
+                        }
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <Label htmlFor={`area-ticketPrice-${index}`}>
+                        Ticket Price (VND)
+                      </Label>
+                      <Input
+                        id={`area-ticketPrice-${index}`}
+                        type="number"
+                        name={`areas[${index}][ticketPrice]`}
+                        placeholder="e.g. 50000"
+                        step="10000"
+                        min={0}
+                        value={area.ticketPrice}
+                        onChange={(e) =>
+                          setAreas((prev) =>
+                            prev.map((a, i) =>
+                              i === index
+                                ? { ...a, ticketPrice: e.target.value }
+                                : a
+                            )
+                          )
+                        }
+                        required
+                      />
+                    </div>
+
+                    {/* Xoá khu vực */}
+                    {areas.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setAreas((prev) => prev.filter((_, i) => i !== index))
+                        }
+                        className="absolute top-2 right-2 text-red-500 text-sm"
+                      >
+                        🗑 Remove
+                      </button>
+                    )}
+                  </div>
+                ))}
+
+                {/* Thêm khu vực mới */}
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() =>
+                    setAreas((prev) => [
+                      ...prev,
+                      {
+                        name: `Area ${String.fromCharCode(65 + prev.length)}`,
+                        seatCount: "",
+                        ticketPrice: "",
+                      },
+                    ])
+                  }
+                >
+                  + Add Area
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium">Select Seat Map</h3>
+
+                <div className="space-y-2">
+                  <Label htmlFor="seatmap-select">Choose a Seat Map</Label>
+                  <select
+                    id="seatmap-select"
+                    name="selectedSeatMap"
+                    value={selectedSeatMap}
+                    onChange={(e) => setSelectedSeatMap(e.target.value)}
+                    className="w-full border border-gray-300 rounded-md px-3 py-2 bg-white"
+                    required
+                  >
+                    <option value="">-- Select a seat map --</option>
+                    {MOCK_PUBLISHED_SEATMAPS.map((seatMap) => (
+                      <option key={seatMap.id} value={seatMap.id}>
+                        {seatMap.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="text-sm text-gray-600">
+                      Don&apos;t have a seat map? Create one first.
+                    </p>
+                  </div>
+                  <Button variant="outline" asChild>
+                    <Link href="/organizer/seat-map">Manage Seat Maps</Link>
+                  </Button>
+                </div>
+
+                {selectedSeatMap && (
+                  <div className="mt-4 p-4 border border-gray-200 rounded-lg">
+                    <h4 className="font-medium mb-2">
+                      Selected Seat Map Preview
+                    </h4>
+                    {(() => {
+                      const selectedMap = MOCK_PUBLISHED_SEATMAPS.find(
+                        (map) => map.id === selectedSeatMap
+                      );
+                      return (
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="font-medium">
+                              {selectedMap?.name}
+                            </span>
+                            <span className="text-sm text-gray-500">
+                              Updated:{" "}
+                              {selectedMap &&
+                                new Date(
+                                  selectedMap.updatedAt
+                                ).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <div className="aspect-video bg-gray-100 rounded flex items-center justify-center">
+                            <span className="text-gray-500">
+                              Seat map preview will be shown here
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
+
+                {/* Hidden input for form submission */}
+                <input type="hidden" name="seatMapId" value={selectedSeatMap} />
+              </div>
+            )}
+
+            {/* Hidden input for ticketing mode */}
+            <input type="hidden" name="ticketingMode" value={ticketingMode} />
           </div>
         );
 
@@ -653,7 +967,42 @@ export default function CreateEventPage() {
           >
             Go back
           </Button>
-          <Button onClick={() => setStep(step + 1)}>Save & Continue</Button>
+          <Button
+            onClick={() => {
+              // Validate step 1 before proceeding
+              if (step === 1) {
+                const dateTimeFields = [
+                  "startTime",
+                  "endTime",
+                  "ticketSaleStart",
+                  "ticketSaleEnd",
+                ];
+                const newErrors: Record<string, string> = {};
+
+                dateTimeFields.forEach((field) => {
+                  const value = formData[field as keyof typeof formData];
+                  if (value) {
+                    const error = validateDateTime(field, value);
+                    if (error) {
+                      newErrors[field] = error;
+                    }
+                  }
+                });
+
+                if (Object.keys(newErrors).length > 0) {
+                  setErrors((prev) => ({ ...prev, ...newErrors }));
+                  toast.error(
+                    "Please fix the date/time validation errors before continuing."
+                  );
+                  return;
+                }
+              }
+
+              setStep(step + 1);
+            }}
+          >
+            Save & Continue
+          </Button>
         </div>
       )}
     </div>
