@@ -9,7 +9,7 @@ import {
   text,
   timestamp,
   uuid,
-  varchar
+  varchar,
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
 import { eventApprovalStatusEnum } from "../enums";
@@ -42,7 +42,7 @@ export const events = pgTable("events", {
 export const areas = pgTable("areas", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id")
-    .references(() => events.id)
+    .references(() => events.id, { onDelete: "cascade" })
     .notNull(),
   name: varchar("name", { length: 64 }).notNull(),
   price: currency("price", { precision: 10, scale: 2 }).notNull(),
@@ -53,7 +53,7 @@ export const areas = pgTable("areas", {
 export const rows = pgTable("rows", {
   id: uuid("id").defaultRandom().primaryKey(),
   areaId: uuid("area_id")
-    .references(() => areas.id)
+    .references(() => areas.id, { onDelete: "cascade" })
     .notNull(),
   rowName: varchar("row_name", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
@@ -63,7 +63,7 @@ export const rows = pgTable("rows", {
 export const seats = pgTable("seats", {
   id: uuid("id").defaultRandom().primaryKey(),
   rowId: uuid("row_id")
-    .references(() => rows.id)
+    .references(() => rows.id, { onDelete: "cascade" })
     .notNull(),
   seatNumber: varchar("seat_number", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),

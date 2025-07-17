@@ -32,7 +32,7 @@ export function TemplateCard({
 }: TemplateCardProps) {
   const placeholderImage =
     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Cpath d='M30,30 L70,70 M30,70 L70,30' stroke='%23cccccc' stroke-width='2'/%3E%3C/svg%3E";
-  console.log(seatMap.draftCount, seatMap.draftCount > 0);
+
   return (
     <div className="overflow-hidden group hover:shadow-lg transition-all border dark:border-gray-800 rounded-lg">
       <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative">

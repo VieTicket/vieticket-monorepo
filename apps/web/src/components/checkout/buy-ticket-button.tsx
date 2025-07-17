@@ -37,14 +37,28 @@ export function BuyTicketButton({
     },
     onSuccess: (data, eventId) => {
       // Cache the ticket data with the query key for the seat selection page
-      queryClient.setQueryData(['tickets', eventId], data);
+      queryClient.setQueryData(["tickets", eventId], data);
 
-      // Navigate to seat selection page WITH eventId as search param
-      router.push(`/events/${eventSlug}/seat-selection?eventId=${eventId}`);
+      // Check if event uses seat map or simple ticketing
+      const hasSeatMap = data.data?.eventData?.seatMapId;
+
+      if (hasSeatMap) {
+        // Navigate to seat map selection page
+        router.push(
+          `/events/${eventSlug}/seat-map-seat-selection?eventId=${eventId}`
+        );
+      } else {
+        // Navigate to normal seat selection page
+        router.push(`/events/${eventSlug}/seat-selection?eventId=${eventId}`);
+      }
     },
     onError: (error) => {
       console.error("Error fetching ticket data:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to load ticket information");
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Failed to load ticket information"
+      );
     },
   });
 
@@ -85,8 +99,7 @@ export function BuyTicketButton({
         ? "Loading..."
         : isPreview
           ? "Buy Tickets (Preview)"
-          : "Buy Tickets"
-      }
+          : "Buy Tickets"}
     </Button>
   );
 }

@@ -183,7 +183,6 @@ export const createCanvasSlice: StateCreator<
       let mirroredUpdates: any = {};
 
       if (shape.type === "polygon") {
-        console.log(shape);
         const polygonShape = shape as any;
 
         const mirroredPoints = polygonShape.points.map((point: any) => {
@@ -229,8 +228,6 @@ export const createCanvasSlice: StateCreator<
           points: mirroredPoints,
           rows: mirroredRows,
         };
-
-        console.log(mirroredUpdates);
       } else {
         const deltaX = shape.x - centerX;
         mirroredUpdates.x = centerX - deltaX;
@@ -371,8 +368,8 @@ export const createCanvasSlice: StateCreator<
       shapeCenterY = textShape.y + (textShape.height || 0) / 2;
     } else {
       // Default fallback
-      shapeCenterX = shape.x;
-      shapeCenterY = shape.y;
+      shapeCenterX = 0;
+      shapeCenterY = 0;
     }
 
     // Calculate the pan coordinates to center the shape in the viewport

@@ -1,4 +1,3 @@
-
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
@@ -8,204 +7,199 @@ import { Role } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
 type PermissionMap = {
-    role: Role;
-    endpoints: string[];
+  role: Role;
+  endpoints: string[];
 }[];
 
 const permissionMap: PermissionMap = [
-    {
-        role: 'admin',
-        endpoints: ['/admin/*']
-    },
-    {
-        role: 'organizer',
-        endpoints: ['/organizer/*']
-    },
-    {
-        role: 'customer',
-        endpoints: ['/profile/*', '/orders/*', '/checkout/*']
-    }
+  {
+    role: "admin",
+    endpoints: ["/admin/*"],
+  },
+  {
+    role: "organizer",
+    endpoints: ["/organizer/*"],
+  },
+  {
+    role: "customer",
+    endpoints: ["/profile/*", "/orders/*", "/checkout/*"],
+  },
 ];
 
 // Public routes that don't require authentication
 const publicRoutes = [
-    '/',
-    '/events/*',
-    '/event/*',
-    '/auth/*',
-    '/api/auth/*',
-    '/error',
-    '/about',
-    '/contact',
-    '/search',
+  "/",
+  "/events/*",
+  "/event/*",
+  "/auth/*",
+  "/api/auth/*",
+  "/error",
+  "/error/*", // Add error routes as public
+  "/about",
+  "/contact",
+  "/search",
 ];
 
 // Routes that require authentication but no specific role
 const protectedRoutes = [
-    '/profile/*',
-    '/orders/*',
-    '/checkout/*',
-    '/api/checkout/*',
-    '/api/profile/*',
-    '/api/sign-cloudinary-params',
+  "/profile/*",
+  "/orders/*",
+  "/checkout/*",
+  "/api/checkout/*",
+  "/api/profile/*",
+  "/api/sign-cloudinary-params",
 ];
 
 function isPublicRoute(pathname: string): boolean {
-    return publicRoutes.some(route => {
-        if (route.endsWith('/*')) {
-            return pathname.startsWith(route.slice(0, -2));
-        }
-        return pathname === route;
-    });
+  return publicRoutes.some((route) => {
+    if (route.endsWith("/*")) {
+      return pathname.startsWith(route.slice(0, -2));
+    }
+    return pathname === route;
+  });
 }
 
 function isProtectedRoute(pathname: string): boolean {
-    return protectedRoutes.some(route => {
-        if (route.endsWith('/*')) {
-            return pathname.startsWith(route.slice(0, -2));
-        }
-        return pathname === route;
-    });
+  return protectedRoutes.some((route) => {
+    if (route.endsWith("/*")) {
+      return pathname.startsWith(route.slice(0, -2));
+    }
+    return pathname === route;
+  });
 }
 
 function getRequiredRole(pathname: string): Role | null {
-    for (const { role, endpoints } of permissionMap) {
-        for (const endpoint of endpoints) {
-            if (endpoint.endsWith('/*')) {
-                if (pathname.startsWith(endpoint.slice(0, -2))) {
-                    return role;
-                }
-            } else if (pathname === endpoint) {
-                return role;
-            }
+  for (const { role, endpoints } of permissionMap) {
+    for (const endpoint of endpoints) {
+      if (endpoint.endsWith("/*")) {
+        if (pathname.startsWith(endpoint.slice(0, -2))) {
+          return role;
         }
+      } else if (pathname === endpoint) {
+        return role;
+      }
     }
-    return null;
+  }
+  return null;
 }
 
 export async function middleware(request: NextRequest) {
-    const { pathname } = request.nextUrl;
+  const { pathname } = request.nextUrl;
 
-    // Skip middleware for API routes that better-auth handles
-    if (['/api/auth/'].some(prefix => pathname.startsWith(prefix))) {
-        return NextResponse.next();
-    }
+  // Skip middleware for API routes that better-auth handles
+  if (["/api/auth/"].some((prefix) => pathname.startsWith(prefix))) {
+    return NextResponse.next();
+  }
 
-    let response: NextResponse = NextResponse.next();
+  // Always allow access to error pages to prevent redirect loops
+  if (pathname.startsWith("/error")) {
+    return NextResponse.next();
+  }
 
-    try {
-        // Get session from better-auth
-        const session = await auth.api.getSession({
-            query: {
-                disableCookieCache: true,
-            },
-            headers: request.headers,
-        });
+  let response: NextResponse = NextResponse.next();
 
-        // If no session, handle based on route type
-        if (!session) {
-            // Allow public routes without authentication
-            if (isPublicRoute(pathname)) {
-                response = NextResponse.next();
-            }
-            // Redirect to login for protected routes
-            else if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
-                const loginUrl = new URL('/auth/sign-in', request.url);
-                loginUrl.searchParams.set('redirectTo', request.url);
-                response = NextResponse.redirect(loginUrl);
-            }
-            else {
-                response = NextResponse.next();
-            }
-        } else {
-            // User is authenticated - get their role from database
-            const userData = await db.query.user.findFirst({
-                columns: { role: true, banned: true },
-                where: eq(user.id, session.user.id)
-            });
+  try {
+    // Get session from better-auth
+    const session = await auth.api.getSession({
+      query: {
+        disableCookieCache: true,
+      },
+      headers: request.headers,
+    });
 
-            if (!userData) {
-                // User exists in session but not in our DB - redirect to error
-                response = NextResponse.redirect(
-                    new URL('/error?error=User not found', request.url)
-                );
-            }
-            // Check if user is banned
-            else if (userData.banned) {
-                response = NextResponse.redirect(
-                    new URL('/error?error=Account banned', request.url)
-                );
-            }
-            // Redirect admins from home page to admin dashboard
-            else if (pathname === '/' && userData.role === 'admin') {
-                response = NextResponse.redirect(
-                    new URL('/admin', request.url)
-                );
-            }
-            // Redirect organizers from home page to organizer dashboard
-            else if (pathname === '/' && userData.role === 'organizer') {
-                response = NextResponse.redirect(
-                    new URL('/organizer', request.url)
-                );
-            }
-            // For public routes with authenticated users, allow access
-            else if (isPublicRoute(pathname)) {
-                response = NextResponse.next();
-            }
-            else {
-                // Check if route requires specific role
-                const requiredRole = getRequiredRole(pathname);
-                if (requiredRole) {
-                    if (userData.role !== requiredRole) {
-                        // User doesn't have required role - redirect based on their role
-                        if (userData.role === 'admin') {
-                            response = NextResponse.redirect(
-                                new URL('/admin', request.url)
-                            );
-                        } else if (userData.role === 'organizer') {
-                            response = NextResponse.redirect(
-                                new URL('/organizer', request.url)
-                            );
-                        } else {
-                            response = NextResponse.redirect(
-                                new URL('/', request.url)
-                            );
-                        }
-                    } else {
-                        response = NextResponse.next();
-                    }
-                } else {
-                    response = NextResponse.next();
-                }
-            }
-        }
+    // If no session, handle based on route type
+    if (!session) {
+      // Allow public routes without authentication
+      if (isPublicRoute(pathname)) {
+        response = NextResponse.next();
+      }
+      // Redirect to login for protected routes
+      else if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+        const loginUrl = new URL("/auth/sign-in", request.url);
+        loginUrl.searchParams.set("redirectTo", request.url);
+        response = NextResponse.redirect(loginUrl);
+      } else {
+        response = NextResponse.next();
+      }
+    } else {
+      // User is authenticated - get their role from database
+      const userData = await db.query.user.findFirst({
+        columns: { role: true, banned: true },
+        where: eq(user.id, session.user.id),
+      });
 
-    } catch (error) {
-        console.error('Middleware error:', error);
-
-        // If there's an error checking auth, redirect to login for protected routes
-        if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
-            const loginUrl = new URL('/auth/sign-in', request.url);
-            loginUrl.searchParams.set('redirectTo', request.url);
-            response = NextResponse.redirect(loginUrl);
-        } else {
+      if (!userData) {
+        // User exists in session but not in our DB - redirect to error
+        response = NextResponse.redirect(
+          new URL("/error?message=User not found", request.url)
+        );
+      }
+      // Check if user is banned
+      else if (userData.banned) {
+        response = NextResponse.redirect(
+          new URL("/error?message=Account banned", request.url)
+        );
+      }
+      // Redirect admins from home page to admin dashboard
+      else if (pathname === "/" && userData.role === "admin") {
+        response = NextResponse.redirect(new URL("/admin", request.url));
+      }
+      // Redirect organizers from home page to organizer dashboard
+      else if (pathname === "/" && userData.role === "organizer") {
+        response = NextResponse.redirect(new URL("/organizer", request.url));
+      }
+      // For public routes with authenticated users, allow access
+      else if (isPublicRoute(pathname)) {
+        response = NextResponse.next();
+      } else {
+        // Check if route requires specific role
+        const requiredRole = getRequiredRole(pathname);
+        if (requiredRole) {
+          if (userData.role !== requiredRole) {
+            // User doesn't have required role - redirect based on their role
+            if (userData.role === "admin") {
+              response = NextResponse.redirect(new URL("/admin", request.url));
+            } else if (userData.role === "organizer") {
+              response = NextResponse.redirect(
+                new URL("/organizer", request.url)
+              );
+            } else {
+              response = NextResponse.redirect(new URL("/", request.url));
+            }
+          } else {
             response = NextResponse.next();
+          }
+        } else {
+          response = NextResponse.next();
         }
+      }
     }
+  } catch (error) {
+    console.error("Middleware error:", error);
 
-    return response;
+    // If there's an error checking auth, redirect to login for protected routes
+    if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+      const loginUrl = new URL("/auth/sign-in", request.url);
+      loginUrl.searchParams.set("redirectTo", request.url);
+      response = NextResponse.redirect(loginUrl);
+    } else {
+      response = NextResponse.next();
+    }
+  }
+
+  return response;
 }
 
 // Specify the paths that the middleware should apply to
 export const config = {
-    matcher: [
-        /*
-         * Match all request paths except for the ones starting with:
-         * - _next/static (static files)
-         * - _next/image (image optimization files)
-         * - favicon.ico, sitemap.xml, robots.txt (metadata files)
-         * - _vercel/speed-insights (Vercel Speed Insights)
-         */
-        "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|_vercel/speed-insights).*)",
-    ],
-}
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - _vercel/speed-insights (Vercel Speed Insights)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|_vercel/speed-insights).*)",
+  ],
+};

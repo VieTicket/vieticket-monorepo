@@ -1,13 +1,7 @@
 import { db } from "../db";
 import { eq } from "drizzle-orm";
 
-import {
-  events,
-  NewEvent,
-  areas,
-  rows,
-  seats,
-} from "@vieticket/db/pg/schema";
+import { events, NewEvent, areas, rows, seats } from "@vieticket/db/pg/schema";
 
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
@@ -87,6 +81,10 @@ export async function getAreasByEventId(eventId: string) {
 export async function getRowsByAreaId(areaId: string) {
   return db.select().from(rows).where(eq(rows.areaId, areaId));
 }
+export async function deleteAreasByEventId(eventId: string) {
+  return db.delete(areas).where(eq(areas.eventId, eventId));
+}
+
 export async function deleteSeatsByRowId(rowId: string) {
   return db.delete(seats).where(eq(seats.rowId, rowId));
 }
