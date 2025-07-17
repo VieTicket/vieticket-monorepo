@@ -167,6 +167,7 @@ export async function getPublicSeatMapsAction(
 
     return { success: true, data: plainData };
   } catch (error) {
+    console.error("Error in getPublicSeatMapsAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
@@ -196,6 +197,7 @@ export async function createDraftFromPublicSeatMapAction(
 
     return { success: true, data: plainData };
   } catch (error) {
+    console.error("Error in createDraftFromPublicSeatMapAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
