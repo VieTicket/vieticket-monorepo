@@ -33,6 +33,7 @@ export const events = pgTable("events", {
   approvalStatus: eventApprovalStatusEnum("approval_status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  seatMapId: text("seat_map_id"),
   organizerId: text("organizer_id")
     .references(() => organizers.id)
     .notNull(),
