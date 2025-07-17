@@ -14,7 +14,8 @@ import { PolygonShape } from "@/types/seat-map-types";
 import { Badge } from "../../ui/badge";
 
 const CanvasInventory = React.memo(function CanvasInventory() {
-  const { shapes, selectShape, selectedShapeIds } = useCanvasStore();
+  const { shapes, selectShape, selectedShapeIds, panToShape } =
+    useCanvasStore();
   const [expandedPolygons, setExpandedPolygons] = useState<string[]>([]);
 
   // Memoize the filtered shape lists
@@ -42,7 +43,16 @@ const CanvasInventory = React.memo(function CanvasInventory() {
     );
   };
 
-  // Calculate seat summary for a polygon
+  const handleShapeClick = (shapeId: string, e: React.MouseEvent) => {
+    if (e.ctrlKey || e.metaKey) {
+      // Ctrl+click: Pan to shape center
+      panToShape(shapeId);
+    } else {
+      // Normal click: Select shape
+      selectShape(shapeId);
+    }
+  };
+
   const getSeatSummary = (polygon: PolygonShape) => {
     if (!polygon.rows) return { total: 0, categories: {} };
 
@@ -110,7 +120,7 @@ const CanvasInventory = React.memo(function CanvasInventory() {
                     className={`flex items-center py-1.5 px-2 ${
                       isSelected ? "bg-blue-900" : "hover:bg-gray-700"
                     } rounded cursor-pointer`}
-                    onClick={() => selectShape(polygon.id)}
+                    onClick={(e) => handleShapeClick(polygon.id, e)}
                   >
                     <button
                       className="mr-1.5 focus:outline-none"
@@ -200,7 +210,7 @@ const CanvasInventory = React.memo(function CanvasInventory() {
                   className={`flex items-center py-1.5 px-2 ${
                     isSelected ? "bg-blue-900" : "hover:bg-gray-700"
                   } rounded cursor-pointer text-xs`}
-                  onClick={() => selectShape(rect.id)}
+                  onClick={(e) => handleShapeClick(rect.id, e)}
                 >
                   <div
                     className="w-2.5 h-2.5 mr-2 rounded"
@@ -237,7 +247,7 @@ const CanvasInventory = React.memo(function CanvasInventory() {
                   className={`flex items-center py-1.5 px-2 ${
                     isSelected ? "bg-blue-900" : "hover:bg-gray-700"
                   } rounded cursor-pointer text-xs`}
-                  onClick={() => selectShape(circle.id)}
+                  onClick={(e) => handleShapeClick(circle.id, e)}
                 >
                   <div
                     className="w-2.5 h-2.5 mr-2 rounded-full"
@@ -274,7 +284,7 @@ const CanvasInventory = React.memo(function CanvasInventory() {
                   className={`flex items-center py-1.5 px-2 ${
                     isSelected ? "bg-blue-900" : "hover:bg-gray-700"
                   } rounded cursor-pointer text-xs`}
-                  onClick={() => selectShape(text.id)}
+                  onClick={(e) => handleShapeClick(text.id, e)}
                 >
                   <span className="truncate italic">
                     {text.name?.slice(0, 15) || "Empty text"}

@@ -6,6 +6,7 @@ import {
   useCurrentTool,
   useZoom,
   useShapes,
+  useSelectedShapeIds,
 } from "@/components/seat-map/store/main-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +28,8 @@ import {
   ArrowLeft,
   Circle,
   CloudUpload,
+  FlipHorizontal,
+  FlipVertical,
   FolderOpen,
   Grid,
   List,
@@ -42,15 +45,23 @@ import {
   Type,
   Undo2,
   ZoomIn,
-  ZoomOut
+  ZoomOut,
+  Duplicate,
 } from "lucide-react";
-import React, { useCallback, useRef, useState } from "react";
+import { HiOutlineDuplicate } from "react-icons/hi";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { HelpModal } from "./help-modal";
 import { usePanZoom } from "./hooks/usePanZoom";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
-import { saveSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
+import { useRouter, useSearchParams } from "next/navigation";
+import {
+  saveSeatMapAction,
+  updateSeatMapAction,
+} from "@/lib/actions/organizer/seat-map-actions";
+import { useStageRef } from "./providers/stage-provider";
+import { uploadBlobToCloudinary } from "@/components/ui/file-uploader";
+import { captureSeatMapImageOptimized } from "./utils/seat-map-image-capture";
 
 export type ToolType =
   | "select"
@@ -64,10 +75,16 @@ export type ToolType =
 const MainToolbar = React.memo(function MainToolbar() {
   const fileMenuRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const seatMapId = searchParams.get("id");
+  const isEditingExisting = !!seatMapId;
+
+  const stageRef = useStageRef();
 
   const currentTool = useCurrentTool();
   const zoom = useZoom();
   const shapes = useShapes();
+  const selectedShapeIds = useSelectedShapeIds();
 
   const {
     setCurrentTool,
@@ -80,22 +97,22 @@ const MainToolbar = React.memo(function MainToolbar() {
     duplicateShapes,
     deleteSelectedShapes,
     clearStorage,
+    setCurrentSeatMapId,
+    mirrorHorizontally,
+    mirrorVertically,
   } = useCanvasActions();
 
   const { centerCanvas } = usePanZoom();
   const { isInAreaMode, zoomedArea } = useAreaMode();
-  const {
-    exitAreaMode,
-    deleteSelectedRows,
-    deleteSelectedSeats,
-    deleteSelectedAreaItems,
-  } = useAreaActions();
-  const { saveToHistory } = useCanvasStore();
+  const { exitAreaMode, deleteSelectedAreaItems } = useAreaActions();
 
-  // Upload dialog state
+  // Upload dialog state - only for new seat maps
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
   const [seatMapName, setSeatMapName] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+
+  // Save state - for existing seat maps
+  const [isSaving, setIsSaving] = useState(false);
 
   const mainTools = [
     { id: "select", icon: MousePointer, label: "Select" },
@@ -113,12 +130,59 @@ const MainToolbar = React.memo(function MainToolbar() {
 
   const currentTools = isInAreaMode ? areaTools : mainTools;
 
-  const handleSave = useCallback(() => {
-    saveToHistory();
-    alert(
-      "Canvas state saved to session storage. Your work will be available if you reload the page."
-    );
-  }, []);
+  const handleSave = useCallback(async () => {
+    if (!isEditingExisting) {
+      return; // This shouldn't happen, but just in case
+    }
+
+    if (!stageRef?.current) {
+      toast.error("Canvas not ready for saving");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      // Step 1: Capture the current seat map as an image
+      toast.info("Capturing updated seat map image...");
+      const imageBlob = await captureSeatMapImageOptimized(
+        stageRef.current,
+        shapes
+      );
+
+      // Step 2: Upload new image to Cloudinary (this will override the old one with same public_id)
+      const filename = `seatmap_${seatMapId}_preview.png`;
+
+      toast.info("Uploading updated image...");
+      const uploadResponse = await uploadBlobToCloudinary(
+        imageBlob,
+        filename,
+        "seat-maps",
+        (progress) => {
+          console.log(`Upload progress: ${progress}%`);
+        }
+      );
+
+      // Step 3: Update seat map with new image URL and shapes
+      toast.info("Saving seat map...");
+      const result = await updateSeatMapAction(
+        seatMapId!,
+        shapes,
+        undefined, // Don't change the name
+        uploadResponse.secure_url // Update with new image URL
+      );
+
+      if (result.success) {
+        toast.success("Seat map saved successfully with updated preview!");
+      } else {
+        toast.error(result.error || "Failed to save seat map");
+      }
+    } catch (error) {
+      console.error("Error saving seat map:", error);
+      toast.error("An unexpected error occurred while saving");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [seatMapId, shapes, stageRef, isEditingExisting]);
 
   const handleNewCanvas = useCallback(() => {
     if (
@@ -132,13 +196,19 @@ const MainToolbar = React.memo(function MainToolbar() {
     }
   }, []);
 
-  const handleLoad = useCallback(() => {
-    console.log("Load");
-  }, []);
+  // FIX: Set the current seat map ID when component mounts
+  useEffect(() => {
+    if (seatMapId) {
+      setCurrentSeatMapId(seatMapId);
+    } else {
+      setCurrentSeatMapId(null);
+    }
+  }, [seatMapId, setCurrentSeatMapId]);
 
   const handleExit = useCallback(() => {
-    console.log("Exit");
-  }, []);
+    clearStorage();
+    router.push("/organizer/seat-map");
+  }, [clearStorage, router]);
 
   const handleUpload = useCallback(async () => {
     if (!seatMapName.trim()) {
@@ -146,19 +216,43 @@ const MainToolbar = React.memo(function MainToolbar() {
       return;
     }
 
+    if (!stageRef?.current) {
+      toast.error("Canvas not ready for capture");
+      return;
+    }
+
     setIsUploading(true);
     try {
-      // TODO: Replace with actual image capture logic
-      // Steps for getting image URL:
-      // 1. Take a snapshot of the current seat map canvas
-      // 2. Request cloudinary upload URL
-      // 3. Upload to cloudinary
-      // 4. Get the upload key and pass down to the server action
-      const imageUrl = "https://res.luxerent.shop/assets/lameass.png";
+      // Step 1: Capture the seat map as an optimized image
+      toast.info("Capturing seat map image...");
+      const imageBlob = await captureSeatMapImageOptimized(
+        stageRef.current,
+        shapes
+      );
 
-      const result = await saveSeatMapAction(shapes, seatMapName, imageUrl);
-      
+      // Step 2: Upload blob directly to Cloudinary (more efficient)
+      const filename = `${seatMapName.replace(/[^a-zA-Z0-9]/g, "_")}_preview.png`;
+
+      toast.info("Uploading image to cloud storage...");
+      const uploadResponse = await uploadBlobToCloudinary(
+        imageBlob,
+        filename,
+        "seat-maps",
+        (progress) => {
+          console.log(`Upload progress: ${progress}%`);
+        }
+      );
+
+      // Step 3: Save seat map with the uploaded image URL
+      toast.info("Saving seat map...");
+      const result = await saveSeatMapAction(
+        shapes,
+        seatMapName,
+        uploadResponse.secure_url
+      );
+
       if (result.success) {
+        clearStorage();
         toast.success("Seat map uploaded successfully!");
         setIsUploadDialogOpen(false);
         setSeatMapName("");
@@ -172,7 +266,7 @@ const MainToolbar = React.memo(function MainToolbar() {
     } finally {
       setIsUploading(false);
     }
-  }, [seatMapName, shapes, router]);
+  }, [seatMapName, shapes, router, stageRef, clearStorage]);
 
   const handleToolSelect = useCallback(
     (toolId: ToolType) => {
@@ -185,10 +279,18 @@ const MainToolbar = React.memo(function MainToolbar() {
     deleteSelectedAreaItems();
   }, [deleteSelectedAreaItems]);
 
+  const handleMirrorHorizontally = useCallback(() => {
+    mirrorHorizontally();
+  }, [mirrorHorizontally]);
+
+  const handleMirrorVertically = useCallback(() => {
+    mirrorVertically();
+  }, [mirrorVertically]);
+
   return (
     <div className="flex justify-between items-center bg-gray-900 text-white px-4 py-2 shadow z-10">
       <div className="flex items-center gap-2">
-        {/* File Menu - FIX: Use uncontrolled dropdown */}
+        {/* File Menu */}
         {!isInAreaMode ? (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -197,14 +299,17 @@ const MainToolbar = React.memo(function MainToolbar() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleSave}>
-                <Save className="w-4 h-4 mr-2" />
-                Save
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLoad}>
-                <FolderOpen className="w-4 h-4 mr-2" />
-                Load
-              </DropdownMenuItem>
+              {isEditingExisting ? (
+                <DropdownMenuItem onClick={handleSave} disabled={isSaving}>
+                  <Save className="w-4 h-4 mr-2" />
+                  {isSaving ? "Saving..." : "Save"}
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem onClick={() => setIsUploadDialogOpen(true)}>
+                  <CloudUpload className="w-4 h-4 mr-2" />
+                  Upload
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem onClick={handleNewCanvas}>
                 <Paperclip className="w-4 h-4 mr-2" />
                 Blank
@@ -279,56 +384,39 @@ const MainToolbar = React.memo(function MainToolbar() {
           size="icon"
           title="Duplicate"
         >
-          <Save className="w-5 h-5" />
+          <HiOutlineDuplicate className="w-5 h-5" />
         </Button>
 
-        {/* Upload Button */}
+        {/* NEW: Mirror Buttons */}
         {!isInAreaMode && (
-          <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="ghost" size="icon" title="Upload">
-                <CloudUpload className="w-5 h-5" />
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Upload Seat Map</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="seatMapName">Seat Map Name</Label>
-                  <Input
-                    id="seatMapName"
-                    placeholder="Enter seat map name..."
-                    value={seatMapName}
-                    onChange={(e) => setSeatMapName(e.target.value)}
-                    disabled={isUploading}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsUploadDialogOpen(false)}
-                    disabled={isUploading}
-                  >
-                    Cancel
-                  </Button>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={isUploading || !seatMapName.trim()}
-                  >
-                    {isUploading ? "Uploading..." : "Upload"}
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+          <>
+            <Button
+              onClick={handleMirrorHorizontally}
+              variant="ghost"
+              size="icon"
+              title="Mirror Horizontally"
+              disabled={!selectedShapeIds.length}
+            >
+              <FlipHorizontal className="w-5 h-5" />
+            </Button>
+            <Button
+              onClick={handleMirrorVertically}
+              variant="ghost"
+              size="icon"
+              title="Mirror Vertically"
+              disabled={!selectedShapeIds.length}
+            >
+              <FlipVertical className="w-5 h-5" />
+            </Button>
+          </>
         )}
       </div>
 
       {!isInAreaMode ? (
         <div className="flex items-center gap-4">
-          <div className="text-xl font-semibold">Event Name</div>
+          <div className="text-xl font-semibold">
+            {isEditingExisting ? "Edit Seat Map" : "Create New Seat Map"}
+          </div>
         </div>
       ) : (
         <div className="text-xl font-semibold">
@@ -360,6 +448,44 @@ const MainToolbar = React.memo(function MainToolbar() {
 
         <HelpModal />
       </div>
+
+      {/* Upload Dialog - Only for new seat maps */}
+      {!isEditingExisting && (
+        <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Upload New Seat Map</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="seatMapName">Seat Map Name</Label>
+                <Input
+                  id="seatMapName"
+                  placeholder="Enter seat map name..."
+                  value={seatMapName}
+                  onChange={(e) => setSeatMapName(e.target.value)}
+                  disabled={isUploading}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setIsUploadDialogOpen(false)}
+                  disabled={isUploading}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleUpload}
+                  disabled={isUploading || !seatMapName.trim()}
+                >
+                  {isUploading ? "Uploading..." : "Upload"}
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 });

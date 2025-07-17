@@ -95,6 +95,11 @@ export const useCanvasActions = () => {
     setCurrentTool: useCanvasStore.getState().setCurrentTool,
     loadFromStorage: useCanvasStore.getState().loadFromStorage,
     clearStorage: useCanvasStore.getState().clearStorage,
+    loadSeatMapData: useCanvasStore.getState().loadSeatMapData,
+    setCurrentSeatMapId: useCanvasStore.getState().setCurrentSeatMapId,
+    mirrorHorizontally: useCanvasStore.getState().mirrorHorizontally,
+    mirrorVertically: useCanvasStore.getState().mirrorVertically,
+    panToShape: useCanvasStore.getState().panToShape,
   };
 };
 
@@ -204,8 +209,8 @@ export const useAreaActions = () => {
   );
 };
 
-export const useLoadFromStorage = () => 
+export const useLoadFromStorage = () =>
   useCanvasStore((state) => state.loadFromStorage);
 
-export const useClearStorage = () => 
+export const useClearStorage = () =>
   useCanvasStore((state) => state.clearStorage);

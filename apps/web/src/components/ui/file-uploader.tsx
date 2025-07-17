@@ -22,22 +22,31 @@ interface CloudinaryUploadResponse {
   url: string;
 }
 
-// Utility function để upload file lên Cloudinary, có thể dùng ở component khác
-export const uploadFileToCloudinary = async (
-  file: File,
+/**
+ * Optimized upload function that handles Blob directly with option to override existing files
+ * This is more efficient than the blob->file conversion
+ */
+export const uploadBlobToCloudinary = async (
+  blob: Blob,
+  filename: string,
   folder: string,
-  onProgress?: (progress: number) => void
+  onProgress?: (progress: number) => void,
+  overwrite: boolean = true // Add overwrite option, default true for seat maps
 ): Promise<CloudinaryUploadResponse> => {
   try {
     // 1. Get signature from our Next.js API route
     const timestamp = Math.round(new Date().getTime() / 1000);
-    const public_id = `${folder}/${file.name}`;
+    const public_id = `${folder}/${filename.replace(".png", "").replace(".jpg", "").replace(".jpeg", "")}`;
 
     const response = await fetch("/api/sign-cloudinary-params", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        paramsToSign: { timestamp, public_id },
+        paramsToSign: {
+          timestamp,
+          public_id,
+          ...(overwrite && { overwrite: true, invalidate: true }), // Add overwrite params
+        },
       }),
     });
 
@@ -47,13 +56,19 @@ export const uploadFileToCloudinary = async (
 
     const signedData = await response.json();
 
-    // 2. Upload file to Cloudinary using the signature
+    // 2. Create FormData with the blob directly
     const formData = new FormData();
-    formData.append("file", file);
+    formData.append("file", blob, filename);
     formData.append("api_key", signedData.api_key);
     formData.append("timestamp", signedData.timestamp);
     formData.append("signature", signedData.signature);
     formData.append("public_id", signedData.public_id);
+
+    // Add overwrite parameters if specified
+    if (overwrite) {
+      formData.append("overwrite", "true");
+      formData.append("invalidate", "true");
+    }
 
     const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
     const uploadUrl = `https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`;
@@ -62,6 +77,9 @@ export const uploadFileToCloudinary = async (
       uploadUrl,
       formData,
       {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
         onUploadProgress: (progressEvent) => {
           if (progressEvent.total && onProgress) {
             const percentCompleted = Math.round(
@@ -80,6 +98,15 @@ export const uploadFileToCloudinary = async (
       ? error
       : new Error("An unknown error occurred");
   }
+};
+
+// Utility function để upload file lên Cloudinary, có thể dùng ở component khác
+export const uploadFileToCloudinary = async (
+  file: File,
+  folder: string,
+  onProgress?: (progress: number) => void
+): Promise<CloudinaryUploadResponse> => {
+  return uploadBlobToCloudinary(file, file.name, folder, onProgress);
 };
 
 // Define the props for our component
