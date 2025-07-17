@@ -24,7 +24,8 @@ import { sql } from "drizzle-orm";
  * - Seats are held temporarily with an expiration time to prevent indefinite locks
  * - Confirmed holds represent completed bookings
  * - Unconfirmed holds are used for checkout flows
- * - Future versions will enable real-time seat selection updates
+ * - ~~Future versions will enable real-time seat selection updates~~
+ * - Real-time database should be better for this case (real-time seat selection)
  */
 export const seatHolds = pgTable("seat_holds", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -33,6 +34,9 @@ export const seatHolds = pgTable("seat_holds", {
         .notNull(),
     userId: text("user_id")
         .references(() => user.id)
+        .notNull(),
+    orderId: uuid("order_id")
+        .references(() => orders.id)
         .notNull(),
     seatId: uuid("seat_id")
         .references(() => seats.id)
@@ -46,6 +50,8 @@ export const seatHolds = pgTable("seat_holds", {
     index("idx_seat_holds_event_id").on(table.eventId),
     // Index for querying holds by user
     index("idx_seat_holds_user_id").on(table.userId),
+        // Index for querying holds by order
+    index("idx_seat_holds_order_id").on(table.orderId),
     // Index for finding expired holds. B-tree indexes are efficient for range queries (e.g., less than/greater than).
     index("idx_seat_holds_expires_at").on(table.expiresAt),
     // Composite index to quickly find unconfirmed, expired holds for cleanup tasks.

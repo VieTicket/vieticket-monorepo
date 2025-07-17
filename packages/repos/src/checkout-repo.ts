@@ -1,4 +1,4 @@
-import { NewOrder, NewSeatHold } from "@vieticket/db/pg/models/order";
+import { NewOrder, NewSeatHold, Ticket } from "@vieticket/db/pg/models/order";
 import { db } from "@vieticket/db/pg";
 import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/pg/schema";
 import { areas, rows, seats } from "@vieticket/db/pg/schemas/events";
@@ -116,13 +116,20 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
  */
 export async function executeOrderTransaction(
   orderData: NewOrder,
-  seatHoldsData: NewSeatHold[]
+  seatHoldsData: Omit<NewSeatHold, 'orderId'>[]
 ) {
   return db.transaction(async (tx) => {
     const [newOrder] = await tx.insert(orders).values(orderData).returning();
+    
     if (seatHoldsData.length > 0) {
-      await tx.insert(seatHolds).values(seatHoldsData);
+      // Add orderId to each seat hold
+      const seatHoldsWithOrderId = seatHoldsData.map(hold => ({
+        ...hold,
+        orderId: newOrder.id
+      }));
+      await tx.insert(seatHolds).values(seatHoldsWithOrderId);
     }
+    
     return newOrder;
   });
 }
@@ -285,13 +292,14 @@ export async function createTickets(orderId: string, ticketData: Array<{
  * @param userId - The ID of the user
  * @returns Array of seat holds that are not yet confirmed
  */
-export async function getUserUnconfirmedSeatHolds(userId: string) {
+export async function getUserUnconfirmedSeatHolds(userId: string, orderId: string) {
   return db
     .select({ seatId: seatHolds.seatId })
     .from(seatHolds)
     .where(
       and(
         eq(seatHolds.userId, userId),
+        eq(seatHolds.orderId, orderId),
         eq(seatHolds.isConfirmed, false)
       )
     );
@@ -307,10 +315,7 @@ export async function getUserUnconfirmedSeatHolds(userId: string) {
 export async function executePaymentTransaction(
   orderId: string,
   userId: string,
-  ticketData: Array<{
-    seatId: string;
-    status: TicketStatus;
-  }>
+  ticketData: Pick<Ticket, 'seatId' | 'status'>[]
 ) {
   return db.transaction(async (tx) => {
     // 1. Update order status to paid
@@ -332,22 +337,23 @@ export async function executePaymentTransaction(
       throw new Error("Order not found or user mismatch");
     }
 
-    // 2. Get seat holds for this user that are not yet confirmed
-    const userSeatHolds = await tx
+    // 2. Get seat holds for this specific order
+    const orderSeatHolds = await tx
       .select()
       .from(seatHolds)
       .where(
         and(
+          eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
           eq(seatHolds.isConfirmed, false)
         )
       );
 
-    if (userSeatHolds.length === 0) {
-      throw new Error("No seat holds found for this user");
+    if (orderSeatHolds.length === 0) {
+      throw new Error("No seat holds found for this order");
     }
 
-    // 3. Confirm seat holds
+    // 3. Confirm seat holds for this specific order
     await tx
       .update(seatHolds)
       .set({
@@ -356,6 +362,7 @@ export async function executePaymentTransaction(
       })
       .where(
         and(
+          eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
           eq(seatHolds.isConfirmed, false)
         )
