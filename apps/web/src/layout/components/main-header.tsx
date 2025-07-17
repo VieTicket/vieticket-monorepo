@@ -64,10 +64,10 @@ export default function Header() {
         </div>
       ) : (
         <div className="flex items-center gap-6 text-xs">
-          <div className="flex flex-col items-center">
+          <Link href="/tickets" className="flex flex-col items-center">
             <Ticket className="w-5 h-5" />
             <span>Tickets</span>
-          </div>
+          </Link>
           <div className="flex flex-col items-center">
             <Star className="w-5 h-5" />
             <span>Interested</span>

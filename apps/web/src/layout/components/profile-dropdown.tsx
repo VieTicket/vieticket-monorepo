@@ -33,6 +33,9 @@ export function ProfileDropdown() {
           className="mt-2 rounded-xl shadow-lg border bg-white text-gray-800"
           align="end"
         >
+          <DropdownMenuItem>
+            <Link href={"/orders"}>My Orders</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem>Interests</DropdownMenuItem>
           <DropdownMenuItem>
             <Link href={"/profile/edit"}>Account Settings</Link>
