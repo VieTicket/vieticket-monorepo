@@ -8,6 +8,7 @@ import {
 import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
 import { CanvasSlice } from "./canvas-slice";
+import { v4 as uuidv4 } from "uuid";
 
 export interface AreaSlice {
   isInAreaMode: boolean;
@@ -65,11 +66,6 @@ export interface AreaSlice {
   deleteSelectedSeats: () => void;
   deleteSelectedAreaItems: () => void;
 }
-
-// FIX: Helper function to generate unique IDs (centralized)
-const generateUniqueId = (prefix: string = "item") => {
-  return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-};
 
 export const createAreaSlice: StateCreator<
   ShapesSlice & HistorySlice & CanvasSlice & AreaSlice,
@@ -295,8 +291,6 @@ export const createAreaSlice: StateCreator<
     const { zoomedArea } = get();
     if (!zoomedArea) return "";
 
-    const newRowId = generateUniqueId("row");
-
     const relativeStartX = rowData.startX || 0;
     const relativeStartY = rowData.startY || 0;
 
@@ -305,8 +299,10 @@ export const createAreaSlice: StateCreator<
       ...seat,
       x: seat.x,
       y: seat.y,
-      radius: seat.radius ?? rowData.seatRadius ?? zoomedArea.defaultSeatRadius ?? 8,
-      fill: seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
+      radius:
+        seat.radius ?? rowData.seatRadius ?? zoomedArea.defaultSeatRadius ?? 8,
+      fill:
+        seat.fill ?? rowData.fill ?? zoomedArea.defaultSeatColor ?? "#4CAF50",
       stroke: seat.stroke ?? rowData.stroke ?? "#2E7D32",
       strokeWidth: seat.strokeWidth ?? rowData.strokeWidth ?? 1,
       category: seat.category ?? zoomedArea.defaultSeatCategory ?? "standard",
@@ -315,7 +311,7 @@ export const createAreaSlice: StateCreator<
 
     const newRow: RowShape = {
       ...rowData,
-      id: newRowId,
+      id: uuidv4(),
       area: zoomedArea.id,
       startX: relativeStartX,
       startY: relativeStartY,
@@ -340,7 +336,7 @@ export const createAreaSlice: StateCreator<
     // Save to history after adding row
     get().saveToHistory();
 
-    return newRowId;
+    return newRow.id;
   },
 
   // NEW: Update addSeatToRow to handle relative positioning
@@ -351,11 +347,9 @@ export const createAreaSlice: StateCreator<
     const targetRow = (zoomedArea.rows || []).find((row) => row.id === rowId);
     if (!targetRow) return "";
 
-    const newSeatId = generateUniqueId("seat");
-
     const newSeat: SeatShape = {
       ...seatData,
-      id: newSeatId,
+      id: uuidv4(),
       x: seatData.x,
       y: seatData.y,
       radius: seatData.radius ?? targetRow.seatRadius ?? 8,
@@ -393,7 +387,7 @@ export const createAreaSlice: StateCreator<
     // FIX: Save to history after adding seat
     get().saveToHistory();
 
-    return newSeatId;
+    return newSeat.id;
   },
 
   // NEW: Update addMultipleSeatsToRow to handle relative positioning
@@ -406,7 +400,7 @@ export const createAreaSlice: StateCreator<
 
     const newSeats: SeatShape[] = seats.map((seatData) => ({
       ...seatData,
-      id: generateUniqueId("seat"),
+      id: uuidv4(),
       x: seatData.x,
       y: seatData.y,
       radius: seatData.radius ?? targetRow.seatRadius ?? 8,
@@ -554,7 +548,7 @@ export const createAreaSlice: StateCreator<
 
     const newRows: RowShape[] = rows.map((rowData) => ({
       ...rowData,
-      id: generateUniqueId("row"),
+      id: uuidv4(),
       area: zoomedArea.id,
       seats: rowData.seats || [],
     }));
@@ -760,7 +754,7 @@ export const createAreaSlice: StateCreator<
       row.seats.forEach((seat) => {
         allSeats.push({
           ...seat,
-          id: generateUniqueId("seat"),
+          id: uuidv4(),
           number: maxSeatNumber + 1,
           row: primaryRow.name,
         });

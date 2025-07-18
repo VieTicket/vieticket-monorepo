@@ -184,15 +184,17 @@ export const createShapesSlice: StateCreator<
       if (shape.type === "polygon") {
         const polygonShape = shape as PolygonShape;
         // Keep the same center position
-        duplicatedShape.center = {
+        (duplicatedShape as PolygonShape).center = {
           x: polygonShape.center.x + 20,
           y: polygonShape.center.y + 20,
         };
         // Offset the polygon points by 20px
-        duplicatedShape.points = polygonShape.points.map((point) => ({
-          x: point.x + 20,
-          y: point.y + 20,
-        }));
+        (duplicatedShape as PolygonShape).points = polygonShape.points.map(
+          (point) => ({
+            x: point.x + 20,
+            y: point.y + 20,
+          })
+        );
         // Keep original x, y for compatibility
         duplicatedShape.x = shape.x;
         duplicatedShape.y = shape.y;
@@ -264,15 +266,17 @@ export const createShapesSlice: StateCreator<
       if (shape.type === "polygon") {
         const polygonShape = shape as PolygonShape;
         // Keep the same center position
-        duplicatedShape.center = {
+        (duplicatedShape as PolygonShape).center = {
           x: polygonShape.center.x + 20,
           y: polygonShape.center.y + 20,
         };
         // Offset the polygon points by 20px
-        duplicatedShape.points = polygonShape.points.map((point) => ({
-          x: point.x + 20,
-          y: point.y + 20,
-        }));
+        (duplicatedShape as PolygonShape).points = polygonShape.points.map(
+          (point) => ({
+            x: point.x + 20,
+            y: point.y + 20,
+          })
+        );
         // Keep original x, y for compatibility
         duplicatedShape.x = shape.x;
         duplicatedShape.y = shape.y;

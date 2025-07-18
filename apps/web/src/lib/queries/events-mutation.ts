@@ -88,3 +88,45 @@ export async function deleteAreasByEventId(eventId: string) {
 export async function deleteSeatsByRowId(rowId: string) {
   return db.delete(seats).where(eq(seats.rowId, rowId));
 }
+
+export async function createAreaWithId(area: {
+  id: string;
+  eventId: string;
+  name: string;
+  price: number;
+}) {
+  return db
+    .insert(areas)
+    .values({
+      id: area.id,
+      eventId: area.eventId,
+      name: area.name,
+      price: area.price,
+    })
+    .returning();
+}
+
+export async function createRowWithId(row: {
+  id: string;
+  areaId: string;
+  rowName: string;
+}) {
+  return db
+    .insert(rows)
+    .values({
+      id: row.id,
+      areaId: row.areaId,
+      rowName: row.rowName,
+    })
+    .returning();
+}
+
+export async function createSeatsWithIds(
+  seatsData: {
+    id: string;
+    rowId: string;
+    seatNumber: string;
+  }[]
+) {
+  return db.insert(seats).values(seatsData);
+}

@@ -30,19 +30,17 @@ export interface SeatMapData {
 
 export interface SeatMapPreviewData {
   areas: Array<{
+    id: string;
     name: string;
     rows: Array<{
-      seats: Array<any>;
-    }>;
-    price: number;
-  }>;
-}
-
-export interface ProcessedSeatMapData {
-  areas: Array<{
-    name: string;
-    rows: Array<{
-      seats: Array<any>;
+      id: string;
+      rowName: string;
+      seats: Array<{
+        id: string;
+        seatNumber: number;
+        category: string;
+        price: number;
+      }>;
     }>;
     price: number;
   }>;

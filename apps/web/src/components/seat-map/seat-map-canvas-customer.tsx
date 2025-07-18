@@ -26,6 +26,10 @@ export default function SeatMapCanvasCustomer({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  console.log("SeatMapData:", seatMapData);
+  console.log("SeatingStructure:", seatingStructure);
+  console.log("SelectedSeats:", selectedSeats);
+  console.log("GetSeatStatus:", getSeatStatus);
 
   // Handle viewport resize
   useEffect(() => {
@@ -47,7 +51,26 @@ export default function SeatMapCanvasCustomer({
     return () => window.removeEventListener("resize", updateSize);
   }, []);
 
-  // Create enhanced shapes with seat data
+  const getSeatFillColor = (status: string, isSelected: boolean) => {
+    if (isSelected) return "#3b82f6"; // blue-500
+
+    switch (status) {
+      case "sold":
+        return "#ef4444"; // red-500
+      case "held":
+        return "#f59e0b"; // amber-500
+      case "available":
+        return "#10b981"; // emerald-500
+      default:
+        return "#6b7280"; // gray-500
+    }
+  };
+
+  const getSeatStrokeColor = (status: string, isSelected: boolean) => {
+    if (isSelected) return "#1d4ed8"; // blue-700
+    return "#374151"; // gray-700
+  };
+
   const enhancedShapes = useMemo(() => {
     if (!seatMapData?.shapes || !seatingStructure) return [];
 
@@ -106,26 +129,6 @@ export default function SeatMapCanvasCustomer({
       return shape;
     });
   }, [seatMapData?.shapes, seatingStructure, selectedSeats, getSeatStatus]);
-
-  const getSeatFillColor = (status: string, isSelected: boolean) => {
-    if (isSelected) return "#3b82f6"; // blue-500
-
-    switch (status) {
-      case "sold":
-        return "#ef4444"; // red-500
-      case "held":
-        return "#f59e0b"; // amber-500
-      case "available":
-        return "#10b981"; // emerald-500
-      default:
-        return "#6b7280"; // gray-500
-    }
-  };
-
-  const getSeatStrokeColor = (status: string, isSelected: boolean) => {
-    if (isSelected) return "#1d4ed8"; // blue-700
-    return "#374151"; // gray-700
-  };
 
   // Pan and zoom handlers
   const handleWheel = useCallback((e: any) => {
@@ -286,7 +289,7 @@ export default function SeatMapCanvasCustomer({
         onMouseUp={handleMouseUp}
         style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        <Layer>{enhancedShapes.map(renderCustomerShape)}</Layer>
+        {/* <Layer>{enhancedShapes.map(renderCustomerShape)}</Layer> */}
       </Stage>
 
       {/* Zoom controls */}

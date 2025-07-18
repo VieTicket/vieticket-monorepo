@@ -187,20 +187,15 @@ export async function searchUserSeatMaps(searchQuery: string, user: User) {
  * @returns The seat map with full data including shapes
  * @throws Error if user is not authorized or seat map not found
  */
-export async function getSeatMapById(seatMapId: string, user: User) {
-  // 1. Authorization check - only organizers can access seat maps
-  if (user.role !== "organizer") {
-    throw new Error("Unauthorized: Only organizers can access seat maps");
-  }
-
-  // 2. Input validation
+export async function getSeatMapById(seatMapId: string) {
+  // 1. Input validation
   if (!seatMapId || seatMapId.trim().length === 0) {
     throw new Error("Seat map ID is required");
   }
 
   try {
-    // 3. Fetch seat map from database with security filter
-    const seatMap = await findSeatMapWithShapesById(seatMapId.trim(), user.id);
+    // 2. Fetch seat map from database with security filter
+    const seatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!seatMap) {
       throw new Error(
@@ -208,7 +203,7 @@ export async function getSeatMapById(seatMapId: string, user: User) {
       );
     }
 
-    // 4. Transform to plain JavaScript object
+    // 3. Transform to plain JavaScript object
     const plainSeatMap = {
       id: seatMap.id,
       name: seatMap.name,
@@ -281,10 +276,7 @@ export async function updateSeatMap(
 
   try {
     // 4. First verify the seat map exists and user owns it
-    const existingSeatMap = await findSeatMapWithShapesById(
-      seatMapId.trim(),
-      user.id
-    );
+    const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
       throw new Error(

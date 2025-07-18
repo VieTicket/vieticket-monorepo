@@ -101,7 +101,7 @@ export const renderShape = ({
       const isCurrentArea = isInAreaMode && zoomedAreaId === shape.id;
       const hasRows =
         Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
-
+      console.log("Rendering polygon shape:", polygonShape);
       const centerX = polygonShape.center?.x || 0;
       const centerY = polygonShape.center?.y || 0;
       const flatPoints =

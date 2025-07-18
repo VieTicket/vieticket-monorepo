@@ -4,7 +4,10 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { AIImageGenerator } from "@/components/ai/AIImageGenerator";
-import type { EventFormData, UploadResponse } from "../types";
+import type {
+  EventFormData,
+  UploadResponse,
+} from "../../../../../types/event-types";
 
 interface MediaUploadStepProps {
   formData: EventFormData;

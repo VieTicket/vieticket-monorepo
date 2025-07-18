@@ -3,7 +3,11 @@
 import { useState, useEffect, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { handleCreateEvent, handleUpdateEvent, fetchEventById } from "./action";
+import {
+  handleCreateEvent,
+  handleUpdateEvent,
+  fetchEventById,
+} from "../../../../lib/actions/organizer/events-action";
 import { StepProgressBar } from "@/components/create-event/progress-bar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -21,8 +25,7 @@ import type {
   SeatMapPreviewData,
   TicketingMode,
   UploadResponse,
-  ProcessedSeatMapData,
-} from "./types";
+} from "../../../../types/event-types";
 
 export default function CreateEventPage() {
   const [formData, setFormData] = useState<EventFormData>({

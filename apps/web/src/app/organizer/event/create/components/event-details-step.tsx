@@ -3,7 +3,7 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import TiptapEditorInput from "@/components/TiptapEditorInput";
-import type { EventFormData, Area } from "../types";
+import type { EventFormData, Area } from "../../../../../types/event-types";
 
 interface EventDetailsStepProps {
   formData: EventFormData;

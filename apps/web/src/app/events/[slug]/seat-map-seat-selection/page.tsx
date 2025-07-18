@@ -205,7 +205,6 @@ export default function SeatMapSeatSelectionPage({
   }
 
   const { eventData, seatingStructure } = ticketData.data;
-
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}

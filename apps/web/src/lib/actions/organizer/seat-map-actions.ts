@@ -99,7 +99,7 @@ export async function loadSeatMapAction(seatMapId: string) {
       throw new Error("Unauthenticated: Please sign in to load seat maps.");
     }
 
-    const seatMap = await getSeatMapById(seatMapId, user as User);
+    const seatMap = await getSeatMapById(seatMapId);
 
     // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(seatMap));

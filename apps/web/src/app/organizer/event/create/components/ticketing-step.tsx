@@ -8,7 +8,7 @@ import type {
   SeatMapData,
   SeatMapPreviewData,
   TicketingMode,
-} from "../types";
+} from "../../../../../types/event-types";
 
 interface TicketingStepProps {
   ticketingMode: TicketingMode;

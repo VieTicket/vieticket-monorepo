@@ -3,7 +3,10 @@
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import type { SeatMapData, SeatMapPreviewData } from "../types";
+import type {
+  SeatMapData,
+  SeatMapPreviewData,
+} from "../../../../../types/event-types";
 
 interface SeatMapTicketingModeProps {
   selectedSeatMap: string;

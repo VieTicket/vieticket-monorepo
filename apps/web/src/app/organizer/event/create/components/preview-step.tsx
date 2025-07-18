@@ -2,7 +2,7 @@
 
 import { PreviewEvent } from "@/components/create-event/preview";
 import { slugify } from "@/lib/utils";
-import type { EventFormData } from "../types";
+import type { EventFormData } from "../../../../../types/event-types";
 
 interface PreviewStepProps {
   formData: EventFormData;

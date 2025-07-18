@@ -3,7 +3,7 @@
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import type { Area } from "../types";
+import type { Area } from "../../../../../types/event-types";
 
 interface SimpleTicketingModeProps {
   areas: Area[];

@@ -223,15 +223,11 @@ export async function deleteMultipleSeatMaps(ids: string[]) {
  * @returns The seat map object with shapes or null if not found.
  */
 export async function findSeatMapWithShapesById(
-  id: string,
-  createdBy?: string
+  id: string
 ): Promise<SeatMap | null> {
   await ensureMongoConnection();
 
   const filter: any = { _id: id };
-  if (createdBy) {
-    filter.createdBy = createdBy;
-  }
 
   const doc = await SeatMapModel.findOne(filter).exec();
   return doc ? doc.toObject() : null;

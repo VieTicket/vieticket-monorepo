@@ -13,7 +13,7 @@ import { Search, Eye, Check } from "lucide-react";
 import { toast } from "sonner";
 import { getUserSeatMapsAction } from "@/lib/actions/organizer/seat-map-actions";
 import { Card } from "@/components/ui/card";
-import type { SeatMapData } from "../types";
+import type { SeatMapData } from "../../../../../types/event-types";
 
 interface SeatMapSelectionModalProps {
   open: boolean;
