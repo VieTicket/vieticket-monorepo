@@ -12,7 +12,7 @@ export interface ShapeProps {
   zoomedAreaId?: string;
   selectedRowIds?: string[];
   selectedSeatIds?: string[];
-
+  isCustomerView?: boolean;
   areaEvents?: AreaEventProps;
 }
 
@@ -25,6 +25,7 @@ export const renderShape = ({
   selectedRowIds = [],
   selectedSeatIds = [],
   areaEvents,
+  isCustomerView = false,
 }: ShapeProps) => {
   const { key, ...restProps } = commonProps;
   const hitFunc = createHitFunc(shape);
@@ -150,6 +151,7 @@ export const renderShape = ({
                 selectedSeatIds,
                 areaEvents,
                 isInteractive: isInAreaMode,
+                isCustomerView,
               })}
             </Group>
           )}

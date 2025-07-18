@@ -137,6 +137,7 @@ export default function CanvasEditorClient() {
       selectedRowIds,
       selectedSeatIds,
       areaEvents,
+      isCustomerView: false, // Explicitly set to false for editor
     });
   };
 

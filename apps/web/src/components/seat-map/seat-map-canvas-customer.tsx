@@ -26,6 +26,7 @@ export default function SeatMapCanvasCustomer({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
+  const [hasInitialized, setHasInitialized] = useState(false);
 
   // Handle viewport resize
   useEffect(() => {
@@ -67,7 +68,8 @@ export default function SeatMapCanvasCustomer({
     return "#374151"; // gray-700
   };
 
-  const enhancedShapes = useMemo(() => {
+  // Create base shapes without seat selection state to avoid dependency on selectedSeats
+  const baseShapes = useMemo(() => {
     if (!seatMapData?.shapes || !seatingStructure) return [];
 
     return seatMapData.shapes.map((shape: any) => {
@@ -77,7 +79,6 @@ export default function SeatMapCanvasCustomer({
         );
 
         if (matchingArea) {
-          // Enhance rows with seat status and pricing
           const enhancedRows = shape.rows.map((row: any) => {
             const matchingRow = matchingArea.rows.find(
               (r: any) => r.rowName === row.name
@@ -90,18 +91,10 @@ export default function SeatMapCanvasCustomer({
                 );
 
                 if (matchingSeat) {
-                  const status = getSeatStatus(matchingSeat.id);
-                  const isSelected = selectedSeats.includes(matchingSeat.id);
-
                   return {
                     ...seat,
                     id: matchingSeat.id,
-                    status,
-                    isSelected,
                     price: matchingArea.price,
-                    fill: getSeatFillColor(status, isSelected),
-                    stroke: getSeatStrokeColor(status, isSelected),
-                    strokeWidth: isSelected ? 3 : 1,
                   };
                 }
                 return seat;
@@ -123,7 +116,44 @@ export default function SeatMapCanvasCustomer({
       }
       return shape;
     });
-  }, [seatMapData?.shapes, seatingStructure, selectedSeats, getSeatStatus]);
+  }, [seatMapData?.shapes, seatingStructure]); // Remove selectedSeats dependency
+
+  // Enhanced shapes with current selection state
+  const enhancedShapes = useMemo(() => {
+    return baseShapes.map((shape: any) => {
+      if (shape.type === "polygon" && shape.rows) {
+        const enhancedRows = shape.rows.map((row: any) => {
+          const enhancedSeats = row.seats.map((seat: any) => {
+            if (seat.id) {
+              const status = getSeatStatus(seat.id);
+              const isSelected = selectedSeats.includes(seat.id);
+
+              return {
+                ...seat,
+                status,
+                isSelected,
+                fill: getSeatFillColor(status, isSelected),
+                stroke: getSeatStrokeColor(status, isSelected),
+                strokeWidth: isSelected ? 3 : 1,
+              };
+            }
+            return seat;
+          });
+
+          return {
+            ...row,
+            seats: enhancedSeats,
+          };
+        });
+
+        return {
+          ...shape,
+          rows: enhancedRows,
+        };
+      }
+      return shape;
+    });
+  }, [baseShapes, selectedSeats, getSeatStatus]);
 
   // Pan and zoom handlers
   const handleWheel = useCallback((e: any) => {
@@ -153,9 +183,7 @@ export default function SeatMapCanvasCustomer({
   }, []);
 
   const handleMouseDown = useCallback((e: any) => {
-    if (e.evt.button === 2 || e.evt.ctrlKey) {
-      setIsDragging(true);
-    }
+    setIsDragging(true);
   }, []);
 
   const handleMouseMove = useCallback(
@@ -221,19 +249,20 @@ export default function SeatMapCanvasCustomer({
       selectedRowIds: [],
       selectedSeatIds: selectedSeats,
       areaEvents,
+      isCustomerView: true, // Add this flag for customer view
     });
   };
 
-  // Center the canvas on load
+  // Center the canvas on load - only run once when baseShapes are first loaded
   useEffect(() => {
-    if (enhancedShapes.length > 0 && viewportSize.width > 0) {
+    if (baseShapes.length > 0 && viewportSize.width > 0 && !hasInitialized) {
       // Calculate bounds of all shapes
       let minX = Infinity,
         minY = Infinity,
         maxX = -Infinity,
         maxY = -Infinity;
 
-      enhancedShapes.forEach((shape: Shape) => {
+      baseShapes.forEach((shape: Shape) => {
         if ((shape as PolygonShape).points) {
           (shape as PolygonShape).points.forEach((point: any) => {
             minX = Math.min(minX, shape.x + point.x);
@@ -264,9 +293,10 @@ export default function SeatMapCanvasCustomer({
           x: viewportSize.width / 2 - centerX * scale,
           y: viewportSize.height / 2 - centerY * scale,
         });
+        setHasInitialized(true);
       }
     }
-  }, [enhancedShapes, viewportSize]);
+  }, [baseShapes, viewportSize, hasInitialized]); // Use baseShapes instead of enhancedShapes
 
   return (
     <div className="w-full h-full bg-gray-100 relative">
@@ -285,6 +315,25 @@ export default function SeatMapCanvasCustomer({
       >
         <Layer>{enhancedShapes.map(renderCustomerShape)}</Layer>
       </Stage>
+
+      {/* Zoom controls */}
+      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2 space-y-2">
+        <button
+          onClick={() => setZoom((prev) => Math.min(5, prev * 1.2))}
+          className="block w-8 h-8 text-center bg-gray-100 hover:bg-gray-200 rounded"
+        >
+          +
+        </button>
+        <div className="text-xs text-center px-2">
+          {Math.round(zoom * 100)}%
+        </div>
+        <button
+          onClick={() => setZoom((prev) => Math.max(0.1, prev / 1.2))}
+          className="block w-8 h-8 text-center bg-gray-100 hover:bg-gray-200 rounded"
+        >
+          -
+        </button>
+      </div>
     </div>
   );
 }

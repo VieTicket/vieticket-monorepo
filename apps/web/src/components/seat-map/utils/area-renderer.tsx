@@ -23,6 +23,7 @@ export interface AreaRenderProps {
   selectedSeatIds: string[];
   areaEvents?: AreaEventProps;
   isInteractive?: boolean;
+  isCustomerView?: boolean;
 }
 
 export const renderAreaContent = ({
@@ -31,6 +32,7 @@ export const renderAreaContent = ({
   selectedSeatIds,
   areaEvents,
   isInteractive = true,
+  isCustomerView = false,
 }: AreaRenderProps) => {
   const elements: JSX.Element[] = [];
 
@@ -86,8 +88,10 @@ export const renderAreaContent = ({
                   : seat.stroke || "#2E7D32"
             }
             strokeWidth={
-              (seat.strokeWidth || 1) +
-              (isSeatSelected ? 3 : isRowSelected ? 2 : 0)
+              !isCustomerView
+                ? (seat.strokeWidth || 1) +
+                  (isSeatSelected || isRowSelected ? 1 : 0)
+                : 1
             }
             opacity={isInteractive ? 1 : 0.6}
             listening={isInteractive}
@@ -134,7 +138,7 @@ export const renderAreaContent = ({
         x={row.startX || 0}
         y={row.startY || 0}
         rotation={0}
-        draggable={isInteractive}
+        draggable={isInteractive && !isCustomerView} // Disable dragging in customer view
         listening={isInteractive}
         onClick={
           isInteractive && areaEvents?.onRowClick
@@ -147,7 +151,7 @@ export const renderAreaContent = ({
             : undefined
         }
         onDblClick={
-          isInteractive && areaEvents?.onRowDoubleClick
+          isInteractive && areaEvents?.onRowDoubleClick && !isCustomerView // Disable double click in customer view
             ? (e) => {
                 if (e.target === e.currentTarget) {
                   e.cancelBubble = true;
@@ -157,21 +161,21 @@ export const renderAreaContent = ({
             : undefined
         }
         onDragStart={
-          isInteractive && areaEvents?.onRowDragStart
+          isInteractive && areaEvents?.onRowDragStart && !isCustomerView // Disable drag events in customer view
             ? (e) => {
                 areaEvents.onRowDragStart!(row.id, e);
               }
             : undefined
         }
         onDragMove={
-          isInteractive && areaEvents?.onRowDragMove
+          isInteractive && areaEvents?.onRowDragMove && !isCustomerView
             ? (e) => {
                 areaEvents.onRowDragMove!(row.id, e);
               }
             : undefined
         }
         onDragEnd={
-          isInteractive && areaEvents?.onRowDragEnd
+          isInteractive && areaEvents?.onRowDragEnd && !isCustomerView
             ? (e) => {
                 areaEvents.onRowDragEnd!(row.id, e);
               }

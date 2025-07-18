@@ -284,10 +284,10 @@ export async function processPaymentResult(
     }
 
     // 8. Generate ticket data before executing payment transaction
-    const seatHolds = await getUserUnconfirmedSeatHolds(user.id);
+    const seatHolds = await getUserUnconfirmedSeatHolds(user.id, order.id);
 
     if (seatHolds.length === 0) {
-      throw new Error("No seat holds found for this user");
+      throw new Error("No seat holds found for this order");
     }
 
     const ticketData = seatHolds.map((hold) => ({
