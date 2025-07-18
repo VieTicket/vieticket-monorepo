@@ -26,10 +26,6 @@ export default function SeatMapCanvasCustomer({
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
-  console.log("SeatMapData:", seatMapData);
-  console.log("SeatingStructure:", seatingStructure);
-  console.log("SelectedSeats:", selectedSeats);
-  console.log("GetSeatStatus:", getSeatStatus);
 
   // Handle viewport resize
   useEffect(() => {
@@ -76,7 +72,6 @@ export default function SeatMapCanvasCustomer({
 
     return seatMapData.shapes.map((shape: any) => {
       if (shape.type === "polygon" && shape.rows) {
-        // Find matching area in seating structure
         const matchingArea = seatingStructure.find(
           (area) => area.name === shape.name
         );
@@ -159,7 +154,6 @@ export default function SeatMapCanvasCustomer({
 
   const handleMouseDown = useCallback((e: any) => {
     if (e.evt.button === 2 || e.evt.ctrlKey) {
-      // Right click or Ctrl+click for panning
       setIsDragging(true);
     }
   }, []);
@@ -186,9 +180,10 @@ export default function SeatMapCanvasCustomer({
   // Customer-specific seat click handler
   const handleSeatClick = useCallback(
     (seatId: string, seatData: any) => {
+      console.log("Seat clicked:", seatId, seatData);
       if (!seatData) return;
 
-      const isAvailable = seatData.status === "available";
+      const isAvailable = getSeatStatus(seatId) === "available";
       onSeatClick(seatId, isAvailable);
     },
     [onSeatClick]
@@ -287,29 +282,9 @@ export default function SeatMapCanvasCustomer({
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        style={{ cursor: isDragging ? "grabbing" : "grab" }}
       >
-        {/* <Layer>{enhancedShapes.map(renderCustomerShape)}</Layer> */}
+        <Layer>{enhancedShapes.map(renderCustomerShape)}</Layer>
       </Stage>
-
-      {/* Zoom controls */}
-      <div className="absolute top-4 right-4 bg-white rounded-lg shadow-md p-2 space-y-2">
-        <button
-          onClick={() => setZoom((prev) => Math.min(5, prev * 1.2))}
-          className="block w-8 h-8 text-center bg-gray-100 hover:bg-gray-200 rounded"
-        >
-          +
-        </button>
-        <div className="text-xs text-center px-2">
-          {Math.round(zoom * 100)}%
-        </div>
-        <button
-          onClick={() => setZoom((prev) => Math.max(0.1, prev / 1.2))}
-          className="block w-8 h-8 text-center bg-gray-100 hover:bg-gray-200 rounded"
-        >
-          -
-        </button>
-      </div>
     </div>
   );
 }

@@ -79,7 +79,6 @@ export default function SeatMapSeatSelectionPage({
 
   const handleSeatClick = (seatId: string, isAvailable: boolean) => {
     if (!isAvailable) return;
-
     setSelectedSeats((prev) =>
       prev.includes(seatId)
         ? prev.filter((id) => id !== seatId)
@@ -209,59 +208,57 @@ export default function SeatMapSeatSelectionPage({
     <div className="h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <div className="bg-white border-b shadow-sm p-4">
-        <div className="container mx-auto max-w-7xl">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => router.back()}
-                className="flex items-center gap-2"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                Back
-              </Button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => router.back()}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back
+            </Button>
 
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">
-                  Select Your Seats
-                </h1>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <MapPin className="w-4 h-4" />
-                  <span>{eventData.name}</span>
-                  <span>•</span>
-                  <span>{eventData.location}</span>
-                </div>
+            <div>
+              <h1 className="text-xl font-bold text-gray-900">
+                Select Your Seats
+              </h1>
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <MapPin className="w-4 h-4" />
+                <span>{eventData.name}</span>
+                <span>•</span>
+                <span>{eventData.location}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick summary */}
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <div className="text-sm text-gray-600">
+                {selectedSeats.length} seat
+                {selectedSeats.length !== 1 ? "s" : ""} selected
+              </div>
+              <div className="font-semibold">
+                {formatCurrencyVND(calculateTotal())}
               </div>
             </div>
 
-            {/* Quick summary */}
-            <div className="flex items-center gap-4">
-              <div className="text-right">
-                <div className="text-sm text-gray-600">
-                  {selectedSeats.length} seat
-                  {selectedSeats.length !== 1 ? "s" : ""} selected
-                </div>
-                <div className="font-semibold">
-                  {formatCurrencyVND(calculateTotal())}
-                </div>
-              </div>
-
-              <Button
-                onClick={handleProceedToPayment}
-                disabled={selectedSeats.length === 0 || isCreatingOrder}
-                size="sm"
-              >
-                {isCreatingOrder ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Creating...
-                  </>
-                ) : (
-                  "Proceed to Payment"
-                )}
-              </Button>
-            </div>
+            <Button
+              onClick={handleProceedToPayment}
+              disabled={selectedSeats.length === 0 || isCreatingOrder}
+              size="sm"
+            >
+              {isCreatingOrder ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Creating...
+                </>
+              ) : (
+                "Proceed to Payment"
+              )}
+            </Button>
           </div>
         </div>
       </div>
