@@ -1,6 +1,5 @@
 import { pgEnum } from "drizzle-orm/pg-core";
 
-// Role type
 export const ROLE_VALUES = [
   "customer",
   "organizer",
@@ -11,7 +10,6 @@ export type Role = (typeof ROLE_VALUES)[number];
 export type UserAssignableRole = Exclude<Role, "admin" | "unassigned">;
 export const roleEnum = pgEnum("role", ROLE_VALUES);
 
-// Upload status type
 export const UPLOAD_STATUS_VALUES = [
   "pending",
   "uploaded",
@@ -22,17 +20,14 @@ export const UPLOAD_STATUS_VALUES = [
 export type UploadStatus = (typeof UPLOAD_STATUS_VALUES)[number];
 export const uploadStatusEnum = pgEnum("upload_status", UPLOAD_STATUS_VALUES);
 
-// Gender type
 export const GENDER_VALUES = ["Male", "Female", "Other"] as const;
 export type Gender = (typeof GENDER_VALUES)[number];
 export const genderEnum = pgEnum("gender", GENDER_VALUES);
 
-// Ticket status type
 export const TICKET_STATUS_VALUES = ["active", "used", "refunded"] as const;
 export type TicketStatus = (typeof TICKET_STATUS_VALUES)[number];
 export const ticketStatusEnum = pgEnum("ticket_status", TICKET_STATUS_VALUES);
 
-// Order status type
 export const ORDER_STATUS_VALUES = [
   "pending",
   "paid",
@@ -42,7 +37,6 @@ export const ORDER_STATUS_VALUES = [
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export const orderStatusEnum = pgEnum("order_status", ORDER_STATUS_VALUES);
 
-// Refund status type
 export const REFUND_STATUS_VALUES = [
   "requested",
   "approved",
@@ -52,7 +46,15 @@ export const REFUND_STATUS_VALUES = [
 export type RefundStatus = (typeof REFUND_STATUS_VALUES)[number];
 export const refundStatusEnum = pgEnum("refund_status", REFUND_STATUS_VALUES);
 
-// Event approval status type
 export const EVENT_APPROVAL_STATUS_VALUES = ["pending", "approved", "rejected"] as const;
 export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
 export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
+
+export const TICKET_INSPECTION_STATUS_VALUES = [
+  "valid", 
+  "invalid",
+  "duplicate",
+  "offline"
+] as const;
+export type TicketInspectionStatus = (typeof TICKET_INSPECTION_STATUS_VALUES)[number];
+export const ticketInspectionStatusEnum = pgEnum("ticket_inspection_status", TICKET_INSPECTION_STATUS_VALUES);
