@@ -22,8 +22,6 @@ export function EventCard({
   views,
   organizer,
 }: Omit<EventSummary, 'id'>) {
-
-  // TODO: Define event routes - consider /events/[slug] or /event/[id]
   const eventHref = `/events/${slug}`;
 
   return (
@@ -47,10 +45,12 @@ export function EventCard({
           <div className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md">
             <Star className="w-5 h-5 text-gray-600" strokeWidth={1.5} />
           </div>
-          {/* Organizer */}
-          <div className="absolute bottom-3 left-3 bg-yellow-400 text-black font-semibold text-sm px-3 py-1 rounded">
-            {organizer.name}
-          </div>
+          {/* Organizer - Only show if organizer exists */}
+          {organizer?.name && (
+            <div className="absolute bottom-3 left-3 bg-yellow-400 text-black font-semibold text-sm px-3 py-1 rounded">
+              {organizer.name}
+            </div>
+          )}
         </div>
 
         <CardContent className="flex flex-col flex-grow p-4 space-y-3">
@@ -74,7 +74,7 @@ export function EventCard({
             </span>
             <div className="flex items-center gap-1 text-sm text-gray-600">
               <Eye className="w-4 h-4" />
-              <span>{views}</span>
+              <span>{views || 0}</span>
             </div>
           </div>
         </CardContent>

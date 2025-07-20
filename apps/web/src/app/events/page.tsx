@@ -17,10 +17,10 @@ export default async function EventsPage() {
   return (
     <>
       <div className="mt-12">
-        <SearchBar  />
+        <SearchBar />
       </div>
       <div className="max-w-7xl mx-auto px-safe-offset-0 py-8 flex gap-8">
-        <FilteredClientGrid events={events} />
+        <FilteredClientGrid />
       </div>
     </>
   );

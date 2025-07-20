@@ -1,4 +1,4 @@
-// app/api/categories/route.ts
+
 import { db } from "@/lib/db";
 import { events } from "@vieticket/db/pg/schemas/events";
 import { NextResponse } from "next/server";
@@ -12,7 +12,7 @@ export async function GET() {
 
   const categories = result.map((item) => ({
     label: item.type,
-    value: item.type.toLowerCase(),
+    value: item.type ? item.type.toLowerCase() : "",
   }));
 
   return NextResponse.json(categories);
