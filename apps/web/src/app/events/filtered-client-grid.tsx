@@ -1,91 +1,69 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useMemo, useTransition } from "react";
+import { useEffect, useState } from "react";
 import EventFiltersSidebar from "@/components/events/eventfilters-sidebar";
 import StaticFilteredEventGrid from "@/components/events/static-filtered-event-grid";
 import { EventSummary } from "@/lib/queries/events";
 
-interface Props {
-  events: EventSummary[];
-}
-
-const PRICE_RANGES = [
-  { label: "Dưới 500.000", min: 0, max: 500000, value: "lt500k" },
-  { label: "500.000 - 1.000.000", min: 500000, max: 1000000, value: "500k-1m" },
-  { label: "1.000.000 - 3.000.000", min: 1000000, max: 3000000, value: "1m-3m" },
-  { label: "3.000.000 - 5.000.000", min: 3000000, max: 5000000, value: "3m-5m" },
-  { label: "Trên 5.000.000", min: 5000000, max: Infinity, value: "gt5m" },
-];
-
-export default function FilteredClientGrid({ events }: Props) {
+export default function FilteredClientGrid() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
 
-  const priceRange = searchParams.get("price") || "all";
+  const [events, setEvents] = useState<EventSummary[]>([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const price = searchParams.get("price") || "all";
   const date = searchParams.get("date") || "all";
   const location = searchParams.get("location") || "all";
   const category = searchParams.get("category") || "all";
-  const query = searchParams.get("q") || "";
+  const q = searchParams.get("q") || "";
 
-  const normalize = (str: string) =>
-    str.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-
-  const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
-      const ticketPrice = event.typicalTicketPrice ?? 0;
-      let matchPrice = true;
-
-      if (priceRange !== "all") {
-        const range = PRICE_RANGES.find((r) => r.value === priceRange);
-        if (range) {
-          matchPrice = ticketPrice >= range.min && ticketPrice < range.max;
-        }
-      }
-
-      const now = new Date();
-      const start = new Date(event.startTime);
-      let matchDate = true;
-
-      if (date === "today") {
-        matchDate = start.toDateString() === now.toDateString();
-      } else if (date === "thisWeek") {
-        const endOfWeek = new Date(now);
-        endOfWeek.setDate(now.getDate() + 7);
-        matchDate = start >= now && start <= endOfWeek;
-      }
-
-      const matchLocation =
-        location === "all" ||
-        (event.location &&
-          normalize(event.location).includes(normalize(location)));
-
-      const matchCategory =
-        category === "all" ||
-        (event.type && normalize(event.type).includes(normalize(category)));
-
-      const matchQuery =
-        query === "" ||
-        (event.name && normalize(event.name).includes(normalize(query)));
-
-      return matchPrice && matchDate && matchLocation && matchCategory && matchQuery;
+  const fetchEvents = async (page: number) => {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      limit: "6",
+      price,
+      date,
+      location,
+      category,
+      q,
     });
-  }, [priceRange, date, location, category, query, events]);
+
+    setIsLoading(true);
+    const res = await fetch(`/api/events?${params}`);
+    const data = await res.json();
+
+    setEvents((prev) => [...prev, ...data]);
+    setHasMore(data.length > 0);
+    setIsLoading(false);
+  };
+
+  useEffect(() => {
+    setEvents([]);
+    setPage(1);
+    fetchEvents(1);
+  }, [price, date, location, category, q]);
 
   const handleFilterChange = (key: string, value: string) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set(key, value);
-    startTransition(() => {
-      router.replace(`?${params.toString()}`);
-    });
+    router.replace(`?${params.toString()}`);
+  };
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchEvents(nextPage);
   };
 
   return (
     <div className="flex gap-8">
       <div className="w-64">
         <EventFiltersSidebar
-          selectedPriceRange={priceRange}
+          selectedPriceRange={price}
           selectedDate={date}
           selectedLocation={location}
           selectedCategory={category}
@@ -93,8 +71,20 @@ export default function FilteredClientGrid({ events }: Props) {
         />
       </div>
 
-      <div className="flex-1">
-        <StaticFilteredEventGrid events={filteredEvents} />
+      <div className="flex-1 space-y-6">
+        <StaticFilteredEventGrid events={events} />
+
+        {hasMore && (
+          <div className="text-center">
+            <button
+              onClick={handleLoadMore}
+              disabled={isLoading}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              {isLoading ? "Loading..." : "See more"}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

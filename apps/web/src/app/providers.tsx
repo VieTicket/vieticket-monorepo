@@ -10,6 +10,7 @@ import { LayoutProvider } from "@/providers/LayoutProvider";
 import QueryProvider from "@/providers/query-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
+  
   const router = useRouter();
 
   return (
@@ -26,9 +27,9 @@ export function Providers({ children }: { children: ReactNode }) {
         providers={["google"]}
         emailVerification={true}
       >
-        <QueryProvider>
-          {children}
-        </QueryProvider>
+        {/* <AuthUIProvider ... > */}
+        <QueryProvider>{children}</QueryProvider>
+      {/* </AuthUIProvider> */}
       </AuthUIProvider>
     </LayoutProvider>
   );
