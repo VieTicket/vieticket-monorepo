@@ -46,7 +46,6 @@ import {
   Undo2,
   ZoomIn,
   ZoomOut,
-  Duplicate,
 } from "lucide-react";
 import { HiOutlineDuplicate } from "react-icons/hi";
 import React, { useCallback, useEffect, useRef, useState } from "react";

@@ -1,8 +1,12 @@
 import { NewOrder, NewSeatHold, Ticket } from "@vieticket/db/pg/models/order";
 import { db } from "@vieticket/db/pg";
-import { OrderStatus, PaymentMetadata, TicketStatus } from "@vieticket/db/pg/schema";
+import {
+  OrderStatus,
+  PaymentMetadata,
+  TicketStatus,
+} from "@vieticket/db/pg/schema";
 import { areas, rows, seats } from "@vieticket/db/pg/schemas/events";
-import { orders, seatHolds, tickets, } from "@vieticket/db/pg/schemas/orders";
+import { orders, seatHolds, tickets } from "@vieticket/db/pg/schemas/orders";
 import { VNPayOrderData } from "@vieticket/utils/vnpay";
 import { and, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
 
@@ -19,7 +23,12 @@ export async function getSeatStatus(eventId: string) {
     .innerJoin(seats, eq(tickets.seatId, seats.id))
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
-    .where(and(eq(areas.eventId, eventId), inArray(tickets.status, ['active', 'used'])));
+    .where(
+      and(
+        eq(areas.eventId, eventId),
+        inArray(tickets.status, ["active", "used"])
+      )
+    );
 
   const paidSeatIds = paid.map((s) => s.seatId);
 
@@ -85,7 +94,9 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     .select({ seatId: tickets.seatId })
     .from(tickets)
     .innerJoin(orders, eq(tickets.orderId, orders.id))
-    .where(and(inArray(tickets.seatId, selectedSeatIds), eq(orders.status, "paid")));
+    .where(
+      and(inArray(tickets.seatId, selectedSeatIds), eq(orders.status, "paid"))
+    );
 
   // Find seats that have an active, unexpired hold
   const activeHolds = await db
@@ -116,20 +127,20 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
  */
 export async function executeOrderTransaction(
   orderData: NewOrder,
-  seatHoldsData: Omit<NewSeatHold, 'orderId'>[]
+  seatHoldsData: Omit<NewSeatHold, "orderId">[]
 ) {
   return db.transaction(async (tx) => {
     const [newOrder] = await tx.insert(orders).values(orderData).returning();
-    
+
     if (seatHoldsData.length > 0) {
       // Add orderId to each seat hold
-      const seatHoldsWithOrderId = seatHoldsData.map(hold => ({
+      const seatHoldsWithOrderId = seatHoldsData.map((hold) => ({
         ...hold,
-        orderId: newOrder.id
+        orderId: newOrder.id,
       }));
       await tx.insert(seatHolds).values(seatHoldsWithOrderId);
     }
-    
+
     return newOrder;
   });
 }
@@ -140,8 +151,14 @@ export async function executeOrderTransaction(
  * @param vnpayData - The VNPay data to store.
  * @returns The updated order.
  */
-export async function updateOrderVNPayData(orderId: string, vnpayData: VNPayOrderData) {
-  const paymentMetadata: PaymentMetadata = { provider: "vnpay", data: vnpayData }
+export async function updateOrderVNPayData(
+  orderId: string,
+  vnpayData: VNPayOrderData
+) {
+  const paymentMetadata: PaymentMetadata = {
+    provider: "vnpay",
+    data: vnpayData,
+  };
 
   const [updatedOrder] = await db
     .update(orders)
@@ -176,15 +193,12 @@ export async function getOrderByVNPayTxnRef(vnpTxnRef: string) {
  * @param status - The new status for the order
  * @returns The updated order
  */
-export async function updateOrderStatus(
-  orderId: string,
-  status: OrderStatus
-) {
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
   const [updatedOrder] = await db
     .update(orders)
     .set({
       status,
-      updatedAt: new Date()
+      updatedAt: new Date(),
     })
     .where(eq(orders.id, orderId))
     .returning();
@@ -211,10 +225,7 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
       .select()
       .from(seatHolds)
       .where(
-        and(
-          eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
-        )
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
       );
 
     if (seatHoldsList.length === 0) {
@@ -225,32 +236,26 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
       .update(seatHolds)
       .set({
         isConfirmed: true,
-        isPaid: true
+        isPaid: true,
       })
       .where(
-        and(
-          eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
-        )
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
       )
       .returning();
 
     return updatedHolds;
   }
 
-  const seatIds = orderSeats.map(seat => seat.seatId);
+  const seatIds = orderSeats.map((seat) => seat.seatId);
 
   const updatedHolds = await db
     .update(seatHolds)
     .set({
       isConfirmed: true,
-      isPaid: true
+      isPaid: true,
     })
     .where(
-      and(
-        eq(seatHolds.userId, userId),
-        inArray(seatHolds.seatId, seatIds)
-      )
+      and(eq(seatHolds.userId, userId), inArray(seatHolds.seatId, seatIds))
     )
     .returning();
 
@@ -263,16 +268,19 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
  * @param ticketData - Array of ticket data to insert
  * @returns Array of created tickets
  */
-export async function createTickets(orderId: string, ticketData: Array<{
-  ticketId: string;
-  seatId: string;
-  status: TicketStatus;
-}>) {
+export async function createTickets(
+  orderId: string,
+  ticketData: Array<{
+    ticketId: string;
+    seatId: string;
+    status: TicketStatus;
+  }>
+) {
   if (ticketData.length === 0) {
     return [];
   }
 
-  const ticketsToInsert = ticketData.map(data => ({
+  const ticketsToInsert = ticketData.map((data) => ({
     id: data.ticketId,
     orderId,
     seatId: data.seatId,
@@ -292,7 +300,10 @@ export async function createTickets(orderId: string, ticketData: Array<{
  * @param userId - The ID of the user
  * @returns Array of seat holds that are not yet confirmed
  */
-export async function getUserUnconfirmedSeatHolds(userId: string, orderId: string) {
+export async function getUserUnconfirmedSeatHolds(
+  userId: string,
+  orderId: string
+) {
   return db
     .select({ seatId: seatHolds.seatId })
     .from(seatHolds)
@@ -315,7 +326,7 @@ export async function getUserUnconfirmedSeatHolds(userId: string, orderId: strin
 export async function executePaymentTransaction(
   orderId: string,
   userId: string,
-  ticketData: Pick<Ticket, 'seatId' | 'status'>[]
+  ticketData: Pick<Ticket, "seatId" | "status">[]
 ) {
   return db.transaction(async (tx) => {
     // 1. Update order status to paid
@@ -323,14 +334,9 @@ export async function executePaymentTransaction(
       .update(orders)
       .set({
         status: "paid",
-        updatedAt: new Date()
+        updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(orders.id, orderId),
-          eq(orders.userId, userId)
-        )
-      )
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
       .returning();
 
     if (!updatedOrder) {
@@ -358,7 +364,7 @@ export async function executePaymentTransaction(
       .update(seatHolds)
       .set({
         isConfirmed: true,
-        isPaid: true
+        isPaid: true,
       })
       .where(
         and(
@@ -369,7 +375,7 @@ export async function executePaymentTransaction(
       );
 
     // 4. Create tickets with provided data
-    const ticketsToInsert = ticketData.map(data => ({
+    const ticketsToInsert = ticketData.map((data) => ({
       orderId,
       seatId: data.seatId,
       status: data.status,
@@ -383,7 +389,7 @@ export async function executePaymentTransaction(
     return {
       order: updatedOrder,
       tickets: createdTickets,
-      seatCount: createdTickets.length
+      seatCount: createdTickets.length,
     };
   });
 }

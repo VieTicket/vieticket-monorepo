@@ -25,6 +25,7 @@ export default async function EventPage({
     endTime: raw.endTime.toISOString(),
     ticketSaleStart: raw.ticketSaleStart?.toISOString() ?? "",
     ticketSaleEnd: raw.ticketSaleEnd?.toISOString() ?? "",
+    seatMapId: raw.seatMapId ?? null,
     organizer: raw.organizer
       ? {
           id: raw.organizer.id,
@@ -45,10 +46,12 @@ export default async function EventPage({
   return (
     <div className="bg-white min-h-screen w-full">
       <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
-        <PreviewEvent data={{
-          ...event,
-          isPreview: false,
-        }} />
+        <PreviewEvent
+          data={{
+            ...event,
+            isPreview: false,
+          }}
+        />
       </div>
     </div>
   );

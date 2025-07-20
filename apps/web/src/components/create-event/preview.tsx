@@ -17,6 +17,7 @@ export type EventPreviewData = {
   ticketSaleStart: string;
   ticketSaleEnd: string;
   posterUrl?: string;
+  seatMapId?: string | null;
   organizer: {
     id: string;
     name: string;
@@ -73,11 +74,11 @@ export function PreviewEvent({ data }: Props) {
               <span className="text-[#ffdf20]">
                 {data.areas?.length > 0
                   ? formatCurrencyVND(
-                    data.areas.reduce(
-                      (min, area) => (area.price < min ? area.price : min),
-                      data.areas[0].price
+                      data.areas.reduce(
+                        (min, area) => (area.price < min ? area.price : min),
+                        data.areas[0].price
+                      )
                     )
-                  )
                   : "XX.XXX.XXX ₫"}
               </span>
             </p>

@@ -12,7 +12,7 @@ export interface ShapeProps {
   zoomedAreaId?: string;
   selectedRowIds?: string[];
   selectedSeatIds?: string[];
-
+  isCustomerView?: boolean;
   areaEvents?: AreaEventProps;
 }
 
@@ -25,6 +25,7 @@ export const renderShape = ({
   selectedRowIds = [],
   selectedSeatIds = [],
   areaEvents,
+  isCustomerView = false,
 }: ShapeProps) => {
   const { key, ...restProps } = commonProps;
   const hitFunc = createHitFunc(shape);
@@ -101,9 +102,6 @@ export const renderShape = ({
       const isCurrentArea = isInAreaMode && zoomedAreaId === shape.id;
       const hasRows =
         Array.isArray(polygonShape.rows) && polygonShape.rows.length > 0;
-
-      console.log(shape);
-
       const centerX = polygonShape.center?.x || 0;
       const centerY = polygonShape.center?.y || 0;
       const flatPoints =
@@ -153,6 +151,7 @@ export const renderShape = ({
                 selectedSeatIds,
                 areaEvents,
                 isInteractive: isInAreaMode,
+                isCustomerView,
               })}
             </Group>
           )}

@@ -2,19 +2,26 @@
 
 import {
   createEventWithMultipleAreas,
+  createEventWithSeatMap,
   getEventById,
   updateEventWithMultipleAreas,
+  updateEventWithSeatMap,
 } from "@/lib/services/eventService";
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
 
-export async function handleCreateEvent(formData: FormData) {
+export async function handleCreateEvent(
+  formData: FormData
+): Promise<{ eventId?: string } | void> {
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
   const eventName = formData.get("name") as string;
   const slug = slugify(eventName, true);
+  const ticketingMode = formData.get("ticketingMode") as string;
+  const seatMapId = formData.get("seatMapId") as string;
+  const seatMapData = formData.get("seatMapData") as string;
 
   const eventPayload = {
     name: eventName,
@@ -32,37 +39,49 @@ export async function handleCreateEvent(formData: FormData) {
       : null,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
+    seatMapId: seatMapId || null,
     organizerId,
     views: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
 
-  const areas: {
-    name: string;
-    seatCount: number;
-    ticketPrice: number;
-  }[] = [];
+  let result;
 
-  let index = 0;
-  while (true) {
-    const name = formData.get(`areas[${index}][name]`);
-    const seatCount = formData.get(`areas[${index}][seatCount]`);
-    const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
+  if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
+    // Use seat map data
+    const parsedSeatMapData = JSON.parse(seatMapData);
+    result = await createEventWithSeatMap(eventPayload, parsedSeatMapData);
+  } else {
+    // Use simple ticketing
+    const areas: {
+      name: string;
+      seatCount: number;
+      ticketPrice: number;
+    }[] = [];
 
-    if (!name || !seatCount || !ticketPrice) break;
+    let index = 0;
+    while (true) {
+      const name = formData.get(`areas[${index}][name]`);
+      const seatCount = formData.get(`areas[${index}][seatCount]`);
+      const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
 
-    areas.push({
-      name: name.toString(),
-      seatCount: Number(seatCount),
-      ticketPrice: Number(ticketPrice),
-    });
+      if (!name || !seatCount || !ticketPrice) break;
 
-    index++;
+      areas.push({
+        name: name.toString(),
+        seatCount: Number(seatCount),
+        ticketPrice: Number(ticketPrice),
+      });
+
+      index++;
+    }
+
+    result = await createEventWithMultipleAreas(eventPayload, areas);
   }
 
-  await createEventWithMultipleAreas(eventPayload, areas);
   revalidatePath("/organizer/events");
+  return result ? { eventId: result.eventId } : undefined;
 }
 
 export async function handleUpdateEvent(formData: FormData) {
@@ -70,32 +89,12 @@ export async function handleUpdateEvent(formData: FormData) {
   const organizerId = session.user.id;
 
   const eventId = formData.get("eventId") as string;
+  const ticketingMode = formData.get("ticketingMode") as string;
+  const seatMapId = formData.get("seatMapId") as string;
+  const seatMapData = formData.get("seatMapData") as string;
 
   const existingEvent = await getEventById(eventId);
   if (!existingEvent) throw new Error("Event not found");
-
-  const areas: {
-    name: string;
-    seatCount: number;
-    ticketPrice: number;
-  }[] = [];
-
-  let index = 0;
-  while (true) {
-    const name = formData.get(`areas[${index}][name]`);
-    const seatCount = formData.get(`areas[${index}][seatCount]`);
-    const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
-
-    if (!name || !seatCount || !ticketPrice) break;
-
-    areas.push({
-      name: name.toString(),
-      seatCount: Number(seatCount),
-      ticketPrice: Number(ticketPrice),
-    });
-
-    index++;
-  }
 
   const eventPayload = {
     id: eventId,
@@ -114,16 +113,46 @@ export async function handleUpdateEvent(formData: FormData) {
       : null,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
+    seatMapId: seatMapId || null,
     updatedAt: new Date(),
     organizerId,
-
-    // ✅ bổ sung các trường còn thiếu
     createdAt: existingEvent.createdAt,
     views: existingEvent.views,
     approvalStatus: existingEvent.approvalStatus,
   };
 
-  await updateEventWithMultipleAreas(eventPayload, areas);
+  if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
+    // Use seat map data
+    const parsedSeatMapData = JSON.parse(seatMapData);
+    await updateEventWithSeatMap(eventPayload, parsedSeatMapData);
+  } else {
+    // Use simple ticketing
+    const areas: {
+      name: string;
+      seatCount: number;
+      ticketPrice: number;
+    }[] = [];
+
+    let index = 0;
+    while (true) {
+      const name = formData.get(`areas[${index}][name]`);
+      const seatCount = formData.get(`areas[${index}][seatCount]`);
+      const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
+
+      if (!name || !seatCount || !ticketPrice) break;
+
+      areas.push({
+        name: name.toString(),
+        seatCount: Number(seatCount),
+        ticketPrice: Number(ticketPrice),
+      });
+
+      index++;
+    }
+
+    await updateEventWithMultipleAreas(eventPayload, areas);
+  }
+
   revalidatePath("/organizer/events");
 }
 

@@ -8,19 +8,23 @@ import {
   updateOrderStatus,
   executePaymentTransaction,
   getOrderByVNPayTxnRef,
-  getUserUnconfirmedSeatHolds
+  getUserUnconfirmedSeatHolds,
 } from "@vieticket/repos/checkout";
 import { getEventByTicketId, getTicketDetails } from "@vieticket/repos/orders";
-import { findEventById, getEventSeatingStructure } from "@vieticket/repos/events";
-import { generatePaymentUrl, ReturnQueryFromVNPay, verifyVNPayResponse } from "@vieticket/utils/vnpay";
+import {
+  findEventById,
+  getEventSeatingStructure,
+} from "@vieticket/repos/events";
+import {
+  generatePaymentUrl,
+  ReturnQueryFromVNPay,
+  verifyVNPayResponse,
+} from "@vieticket/utils/vnpay";
 import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
 
-export async function getTicketData(
-  eventId: string,
-  user: Pick<User, "role">
-) {
+export async function getTicketData(eventId: string, user: Pick<User, "role">) {
   if (user.role !== "customer") {
     throw new Error("Unauthorized: Only customers can purchase tickets.");
   }
@@ -90,7 +94,8 @@ export async function createPendingOrder(
   }
 
   // 1. Check seat availability
-  const { unavailableSeatIds } = await getSeatAvailabilityStatus(selectedSeatIds);
+  const { unavailableSeatIds } =
+    await getSeatAvailabilityStatus(selectedSeatIds);
   if (unavailableSeatIds.length > 0) {
     const error: any = new Error("Selected seats are no longer available.");
     error.code = "SEATS_UNAVAILABLE";
@@ -121,14 +126,14 @@ export async function createPendingOrder(
       seatId,
       expiresAt,
       isConfirmed: false,
-      // orderId will be added in executeOrderTransaction
     }))
   );
 
   // 4. Generate VNPay payment URL
   const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
-  const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS ?
-    parseInt(process.env.PAYMENT_TTL_SECONDS, 10) : 900; // Default 15 minutes
+  const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
+    ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
+    : 900; // Default 15 minutes
 
   const { vnp_TxnRef, paymentURL } = generatePaymentUrl({
     amount: totalAmount,
@@ -136,7 +141,7 @@ export async function createPendingOrder(
     orderId: newOrder.id,
     orderInfo: `Thanh toan don hang ${newOrder.id}`,
     returnUrl,
-    paymentExpirationSeconds
+    paymentExpirationSeconds,
   });
 
   console.log(paymentURL);
@@ -184,7 +189,7 @@ export interface PaymentProcessingResult {
  */
 export async function processPaymentResult(
   vnpayResponseData: ReturnQueryFromVNPay,
-  user: User,
+  user: User
 ): Promise<PaymentProcessingResult> {
   try {
     // 1. Authorize user (must be customer)
@@ -207,8 +212,8 @@ export async function processPaymentResult(
         orderStatus: "not_found",
         error: {
           code: "ORDER_NOT_FOUND",
-          message: "Order not found for this transaction reference"
-        }
+          message: "Order not found for this transaction reference",
+        },
       };
     }
 
@@ -220,8 +225,8 @@ export async function processPaymentResult(
         orderStatus: "unauthorized",
         error: {
           code: "ORDER_USER_MISMATCH",
-          message: "Order does not belong to authenticated user"
-        }
+          message: "Order does not belong to authenticated user",
+        },
       };
     }
 
@@ -236,8 +241,8 @@ export async function processPaymentResult(
         orderStatus: "failed",
         error: {
           code: "PAYMENT_FAILED",
-          message: `Payment failed with code: ${vnpayReturn.vnp_ResponseCode}`
-        }
+          message: `Payment failed with code: ${vnpayReturn.vnp_ResponseCode}`,
+        },
       };
     }
 
@@ -251,8 +256,8 @@ export async function processPaymentResult(
         orderStatus: "failed",
         error: {
           code: "AMOUNT_MISMATCH",
-          message: "Payment amount does not match order total"
-        }
+          message: "Payment amount does not match order total",
+        },
       };
     }
 
@@ -267,14 +272,14 @@ export async function processPaymentResult(
         ticketCount: tickets.length,
         totalAmount: order.totalAmount,
         orderStatus: "paid",
-        tickets: tickets.map(ticket => ({
+        tickets: tickets.map((ticket) => ({
           ticketId: ticket.ticketId,
           seatId: ticket.seatId,
           seatNumber: ticket.seatNumber,
           rowName: ticket.rowName,
           areaName: ticket.areaName,
         })),
-        emailSent: true
+        emailSent: true,
       };
     }
 
@@ -287,11 +292,15 @@ export async function processPaymentResult(
 
     const ticketData = seatHolds.map((hold) => ({
       seatId: hold.seatId,
-      status: "active" as const
+      status: "active" as const,
     }));
 
     // 9. Execute payment confirmation transaction with pre-generated ticket data
-    const transactionResult = await executePaymentTransaction(order.id, user.id, ticketData);
+    const transactionResult = await executePaymentTransaction(
+      order.id,
+      user.id,
+      ticketData
+    );
 
     // 10. Get detailed ticket information
     const ticketDetails = await getTicketDetails(order.id);
@@ -317,18 +326,18 @@ export async function processPaymentResult(
       ticketCount: transactionResult.seatCount,
       totalAmount: transactionResult.order.totalAmount,
       orderStatus: "paid",
-      tickets: ticketDetails.map(ticket => ({
+      tickets: ticketDetails.map((ticket) => ({
         ticketId: ticket.ticketId,
         seatId: ticket.seatId,
         seatNumber: ticket.seatNumber,
         rowName: ticket.rowName,
         areaName: ticket.areaName,
       })),
-      emailSent
+      emailSent,
     };
-
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error occurred";
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error occurred";
 
     return {
       success: false,
@@ -336,8 +345,8 @@ export async function processPaymentResult(
       orderStatus: "error",
       error: {
         code: "PAYMENT_PROCESSING_ERROR",
-        message: errorMessage
-      }
+        message: errorMessage,
+      },
     };
   }
 }
@@ -352,7 +361,7 @@ export async function processPaymentResult(
 async function sendOrderConfirmationEmail(
   user: User,
   orderData: any,
-  tickets: any[],
+  tickets: any[]
 ): Promise<boolean> {
   try {
     // Get event information for the first ticket (all tickets in an order are for the same event)
@@ -368,32 +377,34 @@ async function sendOrderConfirmationEmail(
           ticket.ticketId,
           user.name,
           eventInfo.eventId,
-          ticket.seatNumber,  // Just the seat number
-          ticket.rowName,     // Just the row name
-          ticket.areaName     // Just the area name
+          ticket.seatNumber, // Just the seat number
+          ticket.rowName, // Just the row name
+          ticket.areaName // Just the area name
         );
         const qrCodeDataUrl = await generateQRCodeImage(qrData);
         return {
           ...ticket,
           qrCodeDataUrl,
-          qrData
+          qrData,
         };
       })
     );
 
     // Format total amount for display
-    const formattedTotal = new Intl.NumberFormat('vi-VN', {
-      style: 'currency',
-      currency: 'VND'
+    const formattedTotal = new Intl.NumberFormat("vi-VN", {
+      style: "currency",
+      currency: "VND",
     }).format(orderData.totalAmount);
 
     // Format order date
-    const orderDate = new Date(orderData.orderDate || orderData.updatedAt).toLocaleDateString('vi-VN', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    const orderDate = new Date(
+      orderData.orderDate || orderData.updatedAt
+    ).toLocaleDateString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     // Generate HTML email content
@@ -551,7 +562,9 @@ async function sendOrderConfirmationEmail(
           </div>
 
           <h2>🎟️ Vé của bạn</h2>
-          ${ticketsWithQR.map((ticket, index) => `
+          ${ticketsWithQR
+            .map(
+              (ticket, index) => `
             <div class="ticket">
               <div class="ticket-header">
                 <div class="ticket-number">Vé #${index + 1}</div>
@@ -569,7 +582,9 @@ async function sendOrderConfirmationEmail(
                 </div>
               </div>
             </div>
-          `).join('')}
+          `
+            )
+            .join("")}
 
           <div class="important-note">
             <strong>📌 Lưu ý quan trọng:</strong>
@@ -606,12 +621,16 @@ Tổng tiền: ${formattedTotal}
 
 VÉ CỦA BẠN
 ===========
-${ticketsWithQR.map((ticket, index) => `
+${ticketsWithQR
+  .map(
+    (ticket, index) => `
 Vé #${index + 1}
 - Khu vực: ${ticket.areaName}
 - Vị trí: Hàng ${ticket.rowName}, Ghế ${ticket.seatNumber}
 - Mã vé: ${ticket.ticketId}
-`).join('')}
+`
+  )
+  .join("")}
 
 LƯU Ý QUAN TRỌNG:
 - Vui lòng mang theo email này để xuất trình tại cổng vào
@@ -627,7 +646,7 @@ Liên hệ: support@vieticket.com
       to: user.email,
       subject: `🎫 Xác nhận đơn hàng #${orderData.id} - VieTicket`,
       text: textContent,
-      html: htmlContent
+      html: htmlContent,
     });
 
     return true;

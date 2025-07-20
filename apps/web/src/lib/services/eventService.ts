@@ -10,11 +10,16 @@ import {
   updateAreaById,
   getRowsByAreaId,
   deleteSeatsByRowId,
+  deleteAreasByEventId,
+  createAreaWithId,
+  createRowWithId,
+  createSeatsWithIds,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
 import { Event, NewEvent } from "@vieticket/db/pg/schema";
 import { getEventBySlug } from "../queries/events";
+import { SeatMapPreviewData } from "@/types/event-types";
 export async function createEventWithMultipleAreas(
   event: NewEvent,
   areas: {
@@ -22,7 +27,7 @@ export async function createEventWithMultipleAreas(
     seatCount: number;
     ticketPrice: number;
   }[]
-) {
+): Promise<{ eventId: string } | null> {
   const result = createEventInputSchema.safeParse(event);
   if (!result.success) {
     throw new Error(
@@ -34,8 +39,11 @@ export async function createEventWithMultipleAreas(
 
   const validEvent = result.data;
 
+  let createdEventId: string | null = null;
+
   await db.transaction(async () => {
     const [createdEvent] = await createEvent(validEvent);
+    createdEventId = createdEvent.id;
 
     for (const area of areas) {
       const [createdArea] = await createArea({
@@ -59,6 +67,8 @@ export async function createEventWithMultipleAreas(
       }
     }
   });
+
+  return createdEventId ? { eventId: createdEventId } : null;
 }
 export async function updateEventWithMultipleAreas(
   event: Event,
@@ -152,3 +162,111 @@ export const getEventById = async (eventId: string) => {
   const result = await getEventsById(eventId);
   return result[0] || null;
 };
+
+export async function createEventWithSeatMap(
+  event: NewEvent,
+  seatMapData: SeatMapPreviewData
+): Promise<{ eventId: string } | null> {
+  const result = createEventInputSchema.safeParse(event);
+  if (!result.success) {
+    throw new Error(
+      result.error.issues
+        .map((i) => `${i.path.join(".")} — ${i.message}`)
+        .join("\n")
+    );
+  }
+
+  const validEvent = result.data;
+  let createdEventId: string | null = null;
+
+  await db.transaction(async () => {
+    const [createdEvent] = await createEvent(validEvent);
+    createdEventId = createdEvent.id;
+
+    // Create areas, rows, and seats from seat map data using existing IDs
+    for (const areaData of seatMapData.areas) {
+      await createAreaWithId({
+        id: areaData.id,
+        eventId: createdEvent.id,
+        name: areaData.name,
+        price: areaData.price,
+      });
+
+      // Create rows and seats with their original IDs
+      for (const rowData of areaData.rows) {
+        await createRowWithId({
+          id: rowData.id,
+          areaId: areaData.id,
+          rowName: rowData.rowName,
+        });
+
+        // Create seats for this row with their original IDs
+        const seatValues = rowData.seats.map((seat) => ({
+          id: seat.id,
+          rowId: rowData.id,
+          seatNumber: seat.seatNumber.toString(),
+        }));
+
+        if (seatValues.length > 0) {
+          await createSeatsWithIds(seatValues);
+        }
+      }
+    }
+  });
+
+  return createdEventId ? { eventId: createdEventId } : null;
+}
+
+export async function updateEventWithSeatMap(
+  event: Event,
+  seatMapData: SeatMapPreviewData
+) {
+  const result = createEventInputSchema.safeParse(event);
+  if (!result.success) {
+    throw new Error(
+      result.error.issues
+        .map((i) => `${i.path.join(".")} — ${i.message}`)
+        .join("\n")
+    );
+  }
+
+  const validEvent = result.data;
+
+  await db.transaction(async () => {
+    // 1. Update event
+    await updateEventById(event.id, validEvent);
+
+    // 2. Remove all existing areas (cascade delete will automatically remove rows and seats)
+    await deleteAreasByEventId(event.id);
+
+    // 3. Create new areas, rows, and seats from seat map data using existing IDs
+    for (const areaData of seatMapData.areas) {
+      await createAreaWithId({
+        id: areaData.id,
+        eventId: event.id,
+        name: areaData.name,
+        price: areaData.price,
+      });
+
+      // Create rows and seats with their original IDs
+      for (const rowData of areaData.rows) {
+        await createRowWithId({
+          id: rowData.id,
+          areaId: areaData.id,
+          rowName: rowData.rowName,
+        });
+
+        // Create seats for this row with their original IDs
+        const seatValues = rowData.seats.map((seat) => ({
+          id: seat.id,
+          rowId: rowData.id,
+          seatNumber: seat.seatNumber.toString(),
+        }));
+
+        if (seatValues.length > 0) {
+          await createSeatsWithIds(seatValues);
+        }
+      }
+    }
+  });
+}

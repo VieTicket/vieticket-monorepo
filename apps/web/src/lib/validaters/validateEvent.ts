@@ -30,6 +30,10 @@ export const baseEventSchema = z.object({
     z.string().url().max(255).nullable().default(null)
   ),
   organizerId: z.string(),
+  seatMapId: z.preprocess(
+    (val) => (val === "" ? null : val),
+    z.string().nullable().default(null)
+  ),
   views: z.number().int().nonnegative().default(0),
   createdAt: z.coerce.date().default(new Date()),
   updatedAt: z.coerce.date().default(new Date()),
