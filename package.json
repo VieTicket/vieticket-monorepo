@@ -2,7 +2,7 @@
   "name": "vieticket",
   "devDependencies": {
     "prettier": "^3.5.3",
-    "turbo": "^2.5.4",
+    "turbo": "^2.5.5",
     "typescript": "5.8.2"
   },
   "engines": {

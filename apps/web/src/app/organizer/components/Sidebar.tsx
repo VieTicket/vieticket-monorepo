@@ -12,7 +12,8 @@ import {
   Map,
   Menu,
   X,
-  MessageCircle
+  MessageCircle,
+  TicketCheck
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -26,6 +27,11 @@ const navItems = [
     label: "Request Payment",
     href: "/organizer/payments",
     icon: Wallet,
+  },
+  {
+    label: "Inspect Ticket",
+    href: "/inspector",
+    icon: TicketCheck,
   },
   {
     label: "Chat with Admin",

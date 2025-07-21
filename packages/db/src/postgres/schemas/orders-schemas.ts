@@ -3,14 +3,13 @@ import {
     uuid,
     timestamp,
     jsonb,
-    varchar,
     text,
     boolean,
     index,
 } from "drizzle-orm/pg-core";
 import { events, seats } from "./events-schemas";
 import { currency, PaymentMetadata } from "../custom-types";
-import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
+import { orderStatusEnum, refundStatusEnum, ticketInspectionStatusEnum, ticketStatusEnum } from "../enums";
 import { user } from "./users-schemas";
 import { sql } from "drizzle-orm";
 
@@ -50,7 +49,7 @@ export const seatHolds = pgTable("seat_holds", {
     index("idx_seat_holds_event_id").on(table.eventId),
     // Index for querying holds by user
     index("idx_seat_holds_user_id").on(table.userId),
-        // Index for querying holds by order
+    // Index for querying holds by order
     index("idx_seat_holds_order_id").on(table.orderId),
     // Index for finding expired holds. B-tree indexes are efficient for range queries (e.g., less than/greater than).
     index("idx_seat_holds_expires_at").on(table.expiresAt),
@@ -120,6 +119,22 @@ export const tickets = pgTable("tickets", {
     status: ticketStatusEnum("status").default("active"),
     purchasedAt: timestamp("purchased_at").defaultNow(),
 });
+
+export const ticketInspectionHistory = pgTable("ticket_inspection_history", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    ticketId: uuid("ticket_id")
+        .references(() => tickets.id)
+        .notNull(),
+    inspectorId: text("inspector_id")
+        .references(() => user.id)
+        .notNull(),
+    status: ticketInspectionStatusEnum().notNull(),
+    inspectedAt: timestamp("inspected_at").notNull().defaultNow(),
+    loggedAt: timestamp("logged_at").notNull().defaultNow(),
+}, (table) => [
+    index('idx_inspct_hstry_tickt_id').on(table.ticketId),
+    index('idx_inspct_hstry_status').on(table.status)
+])
 
 export const refunds = pgTable("refunds", {
     id: uuid("id").defaultRandom().primaryKey(),
