@@ -2,7 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { SimpleTicketingMode } from "./simple-ticketing-mode";
-import { SeatMapTicketingMode } from "./seatmap-ticketing-mode";
+import { SeatMapTicketingMode } from "./seat-map-ticketing-mode";
 import type {
   Area,
   SeatMapData,

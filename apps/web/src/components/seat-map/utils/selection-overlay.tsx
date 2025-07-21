@@ -1,7 +1,8 @@
 // Update: selection-overlay.tsx
-import React from "react";
+import React, { useState } from "react";
 import { Group, Rect, Circle, Line, Text } from "react-konva";
 import { Shape } from "@/types/seat-map-types";
+import { useCanvasStore } from "../store/main-store";
 
 interface SelectionOverlayProps {
   selectedShapes: Shape[];
