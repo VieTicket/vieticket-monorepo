@@ -1,5 +1,5 @@
-export * from "./postgres/connection"
-export * from "./postgres/schema"
+export * from "./postgres/connection";
+export * from "./postgres/schema";
 
 // Method to get env POSTGRES_URL and create DB connector
 //  createDB()
