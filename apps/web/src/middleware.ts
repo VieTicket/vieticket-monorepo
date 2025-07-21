@@ -18,7 +18,7 @@ const permissionMap: PermissionMap = [
   },
   {
     role: "organizer",
-    endpoints: ["/organizer/*"],
+    endpoints: ["/organizer/*", "/inspector/*"],
   },
   {
     role: "customer",

@@ -1,3 +1,4 @@
+// The data that is stored in ticket QR code
 export interface TicketValidationPayload {
   ticketId: string;
   timestamp: number;

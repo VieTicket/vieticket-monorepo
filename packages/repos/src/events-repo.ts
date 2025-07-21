@@ -34,3 +34,23 @@ export async function getEventSeatingStructure(eventId: string) {
 
   return eventAreas;
 }
+
+/**
+ * Finds all active events for a given organizer.
+ * "Active" means events that are approved and have not ended yet.
+ * @param organizerId - The ID of the organizer.
+ * @returns An array of active events.
+ */
+export async function findActiveEventsByOrganizerId(organizerId: string) {
+  // "Active" means events that are approved and have not ended yet
+  const now = new Date();
+  const activeEvents = await db.query.events.findMany({
+    where: (event, { and, eq, gt }) =>
+      and(
+        eq(event.organizerId, organizerId),
+        eq(event.approvalStatus, "approved"),
+        gt(event.endTime, now)
+      ),
+  });
+  return activeEvents;
+}

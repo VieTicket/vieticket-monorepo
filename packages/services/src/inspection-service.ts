@@ -1,6 +1,7 @@
 import * as ticketsRepo from "@vieticket/repos/tickets";
 import * as inspectionRepo from "@vieticket/repos/inspection";
 import { TicketInspectionStatus, User } from "@vieticket/db/pg/schema";
+import { findActiveEventsByOrganizerId } from "@vieticket/repos/events";
 
 export class AppError extends Error {
   public readonly code: string;
@@ -83,6 +84,7 @@ export async function checkInTicket(ticketId: string, inspector: User) {
     throw new AppError(`Bad Request: Ticket is not active (status: ${ticket.status}).`, "TICKET_NOT_ACTIVE");
   }
 
+  ticket.status = "active";
   return ticket;
 }
 
@@ -121,4 +123,18 @@ export async function processOfflineInspections(
   }
 
   return { message: `${inspections.length} offline inspections processed.` };
+}
+
+/**
+ * Returns all active events for the given organizer.
+ * "Active" means events that are approved and have not ended yet.
+ * @param organizer - The organizer user object.
+ * @returns An array of active events.
+ * @throws AppError if the user is not an organizer.
+ */
+export async function getActiveEvents(organizer: User) {
+  if (organizer.role !== "organizer") {
+    throw new AppError("Forbidden: Only organizers can access their events.", "FORBIDDEN");
+  }
+  return await findActiveEventsByOrganizerId(organizer.id);
 }

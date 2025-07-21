@@ -2,7 +2,7 @@
 
 import { getAuthSession } from "@/lib/auth/auth";
 import { User } from "@vieticket/db/pg/models/users";
-import { inspectTicket, checkInTicket, processOfflineInspections, AppError } from "@vieticket/services/inspection";
+import { inspectTicket, checkInTicket, processOfflineInspections, AppError, getActiveEvents } from "@vieticket/services/inspection";
 import { headers } from "next/headers";
 
 /**
@@ -65,6 +65,34 @@ export async function processOfflineInspectionsAction(inspections: Array<{ ticke
 
         const result = await processOfflineInspections(inspections, user);
         return { success: true, data: result };
+    } catch (error) {
+        if (error instanceof AppError) {
+            return { success: false, error: { code: error.code, message: error.message } };
+        }
+        const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+        return { success: false, error: { message: errorMessage } };
+    }
+}
+
+/**
+ * Server action to get all active events for the current organizer.
+ * @returns {Promise<{ success: boolean; data?: any; error?: any }>}
+ */
+export async function getActiveEventsAction() {
+    try {
+        const session = await getAuthSession(await headers());
+        const user = session?.user as User;
+        if (!user) {
+            throw new Error("Unauthenticated.");
+        }
+
+        // Only organizers can access their events
+        if (user.role !== "organizer") {
+            return { success: false, error: { code: "FORBIDDEN", message: "Only organizers can access their events." } };
+        }
+
+        const events = await getActiveEvents(user);
+        return { success: true, data: events };
     } catch (error) {
         if (error instanceof AppError) {
             return { success: false, error: { code: error.code, message: error.message } };
