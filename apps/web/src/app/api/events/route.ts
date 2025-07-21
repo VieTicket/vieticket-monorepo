@@ -1,72 +1,117 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { events } from "@vieticket/db/pg/schemas/events";
-import { areas } from "@vieticket/db/pg/schema";
-import { and, eq, sql } from "drizzle-orm";
-
+import { events, areas, organizers } from "@vieticket/db/pg/schema";
+import { and, eq, sql, desc, or } from "drizzle-orm";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
   const limit = parseInt(searchParams.get("limit") || "6");
-  const price = searchParams.get("price");
-  
-  const whereConditions = [eq(events.approvalStatus, 'approved')];
+  const price = searchParams.get("price") || "all";
+  const date = searchParams.get("date") || "all";
+  const location = searchParams.get("location") || "all";
+  const category = searchParams.get("category") || "all";
+  const q = searchParams.get("q") || "";
 
-  // Add price filtering with proper JOIN
-  if (price && price !== 'all') {
+  const whereConditions = [eq(events.approvalStatus, "approved")];
+
+  // Price filter
+  if (price && price !== "all") {
     const priceRanges: Record<string, [number, number]> = {
-      'lt500k': [0, 500000],
-      '500k-1m': [500000, 1000000],
-      '1m-3m': [1000000, 3000000],
-      '3m-5m': [3000000, 5000000],
-      'gt5m': [5000000, Infinity]
+      lt500k: [0, 500000],
+      "500k-1m": [500000, 1000000],
+      "1m-3m": [1000000, 3000000],
+      "3m-5m": [3000000, 5000000],
+      gt5m: [5000000, Infinity],
     };
 
     const [minPrice, maxPrice] = priceRanges[price] || [0, Infinity];
-
-    const result = await db
-      .select({
-        id: events.id,
-        name: events.name,
-        slug: events.slug,
-        startTime: events.startTime,
-        endTime: events.endTime,
-        location: events.location,
-        bannerUrl: events.bannerUrl,
-        views: events.views,
-        type: events.type,
-      })
-      .from(events)
-      .innerJoin(areas, eq(events.id, areas.eventId))
-      .where(
-        and(
-          ...whereConditions,
-          sql`${areas.price} >= ${minPrice}`,
-          maxPrice !== Infinity ? sql`${areas.price} <= ${maxPrice}` : undefined
-        )
-      )
-      .limit(limit)
-      .offset((page - 1) * limit);
-
-    return NextResponse.json({
-      events: result,
-      page,
-      hasMore: result.length === limit
-    });
+    whereConditions.push(
+      sql`EXISTS (
+        SELECT 1 FROM ${areas} 
+        WHERE ${areas.eventId} = ${events.id} 
+        AND ${areas.price} >= ${minPrice}
+        ${maxPrice !== Infinity ? sql`AND ${areas.price} <= ${maxPrice}` : sql``}
+      )`
+    );
   }
 
-  // If no price filter, use regular query
-  const result = await db
-    .select()
-    .from(events)
-    .where(and(...whereConditions))
-    .limit(limit)
-    .offset((page - 1) * limit);
+  // Date filter
+  if (date && date !== "all") {
+    if (date === "today") {
+      whereConditions.push(sql`DATE(${events.startTime}) = CURRENT_DATE`);
+    } else if (date === "thisWeek") {
+      whereConditions.push(
+        sql`${events.startTime} BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 days')`
+      );
+    }
+  }
+
+  // Location filter
+  if (location && location !== "all") {
+    whereConditions.push(eq(events.location, location));
+  }
+
+  // Category filter - handle URL encoded categories
+  if (category && category !== "all") {
+    const decodedCategory = decodeURIComponent(category);
+    whereConditions.push(eq(events.type, decodedCategory));
+  }
+
+  // Search query
+  if (q) {
+    whereConditions.push(
+      sql`to_tsvector('english', ${events.name} || ' ' || COALESCE(${events.description}, '')) @@ plainto_tsquery('english', ${q})`
+    );
+  }
+
+  // Use the relational query to get events with areas and organizers
+  const result = await db.query.events.findMany({
+    limit,
+    offset: (page - 1) * limit,
+    orderBy: [desc(events.startTime)],
+    columns: {
+      id: true,
+      name: true,
+      slug: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      bannerUrl: true,
+      views: true,
+      type: true,
+    },
+    with: {
+      organizer: {
+        columns: {
+          id: true,
+          name: true,
+        },
+      },
+      areas: {
+        columns: {
+          price: true,
+        },
+      },
+    },
+    where: and(...whereConditions),
+  });
+
+  // Calculate typical ticket price and format response
+  const eventsWithTypicalPrice = result.map((event) => ({
+    ...event,
+    typicalTicketPrice:
+      event.areas.length > 0
+        ? Math.min(...event.areas.map((area) => area.price))
+        : 0,
+    location: event.location ?? "",
+    bannerUrl: event.bannerUrl ?? "",
+    areas: undefined, // Remove areas from response to match EventSummary type
+  }));
 
   return NextResponse.json({
-    events: result,
+    events: eventsWithTypicalPrice,
     page,
-    hasMore: result.length === limit
+    hasMore: result.length === limit,
   });
 }

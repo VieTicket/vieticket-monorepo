@@ -1,0 +1,475 @@
+@startuml login
+!theme plain
+title Email/Password Login Flow
+
+actor User
+participant "SignIn Component" as UI
+participant "Auth Client" as Client
+participant "API Route\n/api/auth/[...all]" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+
+User -> UI: Enter email/password
+User -> UI: Click "Login"
+
+UI -> Client: authClient.signIn.email()
+activate Client
+
+Client -> API: POST /api/auth/sign-in/email
+activate API
+
+API -> Auth: better-auth handler
+activate Auth
+
+Auth -> DB: Query user by email
+activate DB
+DB --> Auth: User data
+deactivate DB
+
+Auth -> Auth: Verify password hash
+Auth -> Auth: Create session
+Auth -> DB: Store session
+activate DB
+DB --> Auth: Session stored
+deactivate DB
+
+Auth --> API: Session + cookies
+deactivate Auth
+
+API --> Client: Response with session
+deactivate API
+
+Client -> Client: onSuccess callback
+Client -> UI: Success response
+deactivate Client
+
+UI -> UI: toast.success()
+UI -> UI: Router redirect based on role
+
+note right of UI
+  Role-based routing:
+  - admin → /admin
+  - organizer → /organizer  
+  - customer → /
+end note
+
+@enduml
+
+@startuml google-login
+!theme plain
+title Google OAuth Login Flow
+
+actor User
+participant "SignIn Component" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Google OAuth" as Google
+participant "Database" as DB
+
+User -> UI: Click "Sign in with Google"
+
+UI -> Client: authClient.signIn.social({provider: "google"})
+activate Client
+
+Client -> Google: Redirect to Google OAuth
+activate Google
+Google -> User: Google login page
+User -> Google: Authenticate
+Google -> API: Callback with auth code
+deactivate Google
+
+API -> Auth: Process OAuth callback
+activate Auth
+
+Auth -> Google: Exchange code for tokens
+activate Google
+Google --> Auth: Access token + user info
+deactivate Google
+
+Auth -> DB: Check if user exists
+activate DB
+DB --> Auth: User found/not found
+deactivate DB
+
+alt User exists
+    Auth -> DB: Update user info
+    activate DB
+    DB --> Auth: User updated
+    deactivate DB
+else New user
+    Auth -> DB: Create new user
+    activate DB
+    DB --> Auth: User created
+    deactivate DB
+end
+
+Auth -> Auth: Create session
+Auth -> DB: Store session
+activate DB
+DB --> Auth: Session stored
+deactivate DB
+
+Auth --> API: Redirect with session
+deactivate Auth
+
+API --> Client: Success response
+Client -> UI: Redirect to callbackURL
+deactivate Client
+
+@enduml
+
+@startuml signup
+!theme plain
+title Email Signup Flow
+
+actor User
+participant "SignUp Component" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+participant "Email Service" as Email
+
+User -> UI: Enter user details
+User -> UI: Upload profile image (optional)
+User -> UI: Click "Create account"
+
+UI -> Client: authClient.signUp.email()
+activate Client
+
+Client -> API: POST /api/auth/sign-up/email
+activate API
+
+API -> Auth: better-auth signup handler
+activate Auth
+
+Auth -> DB: Check if email exists
+activate DB
+DB --> Auth: Email availability
+deactivate DB
+
+alt Email already exists
+    Auth --> API: Error: Email taken
+    API --> Client: Error response
+    Client -> UI: toast.error()
+else Email available
+    Auth -> Auth: Hash password
+    Auth -> Auth: Process additional fields (role, image)
+    
+    Auth -> DB: Create user record
+    activate DB
+    DB --> Auth: User created
+    deactivate DB
+    
+    Auth -> Auth: Generate verification token
+    Auth -> DB: Store verification token
+    activate DB
+    DB --> Auth: Token stored
+    deactivate DB
+    
+    Auth -> Email: Send verification email
+    activate Email
+    Email --> Auth: Email sent
+    deactivate Email
+    
+    Auth --> API: Success response
+    deactivate Auth
+    
+    API --> Client: Success response
+    deactivate API
+    
+    Client -> UI: toast.success()
+    Client -> UI: Redirect to callbackURL
+    deactivate Client
+end
+
+note right of Auth
+  Additional fields for organizer:
+  - role: "organizer"
+  - name: firstName + lastName
+  - image: base64 converted
+end note
+
+@enduml
+
+@startuml organizer-signup
+!theme plain
+title Organizer Signup Flow (Custom Component)
+
+actor User
+participant "SignUpOrganizer\nComponent" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+participant "Email Service" as Email
+
+User -> UI: Enter organizer details
+User -> UI: Upload profile image
+User -> UI: Click "Create account"
+
+UI -> UI: convertImageToBase64()
+activate UI
+
+UI -> Client: authClient.signUp.email({\n  role: "organizer",\n  name, email, password,\n  image: base64String\n})
+deactivate UI
+activate Client
+
+Client -> API: POST /api/auth/sign-up/email
+activate API
+
+API -> Auth: Process signup with organizer role
+activate Auth
+
+Auth -> DB: Create user with role="organizer"
+activate DB
+DB --> Auth: Organizer created
+deactivate DB
+
+Auth -> Auth: Generate verification token
+Auth -> DB: Store verification token
+activate DB
+DB --> Auth: Token stored
+deactivate DB
+
+Auth -> Email: Send verification email
+activate Email
+Email --> Auth: Email sent
+deactivate Email
+
+Auth --> API: Success response
+deactivate Auth
+
+API --> Client: Success response
+deactivate API
+
+Client -> UI: onSuccess callback
+Client -> UI: toast.success()
+Client -> UI: router.push("/organizer")
+deactivate Client
+
+@enduml
+
+@startuml forgot-password
+!theme plain
+title Forgot Password Flow
+
+actor User
+participant "ForgotPassword\nComponent" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+participant "Email Service" as Email
+
+User -> UI: Enter email address
+User -> UI: Click "Send reset link"
+
+UI -> Client: authClient.forgetPassword({email})
+activate Client
+
+Client -> API: POST /api/auth/forget-password
+activate API
+
+API -> Auth: Process password reset request
+activate Auth
+
+Auth -> DB: Find user by email
+activate DB
+DB --> Auth: User found/not found
+deactivate DB
+
+alt User not found
+    Auth --> API: Error: User not found
+    API --> Client: Error response
+    Client -> UI: toast.error()
+else User found
+    Auth -> Auth: Generate reset token
+    Auth -> DB: Store reset token with expiry
+    activate DB
+    DB --> Auth: Token stored
+    deactivate DB
+    
+    Auth -> Email: Send reset password email
+    activate Email
+    Email --> Auth: Email sent
+    deactivate Email
+    
+    Auth --> API: Success response
+    deactivate Auth
+    
+    API --> Client: Success response
+    deactivate API
+    
+    Client -> UI: toast.success("Reset link sent")
+    deactivate Client
+end
+
+note right of Email
+  Email contains link to:
+  /auth/reset-password?token=xyz
+end note
+
+@enduml
+
+@startuml reset-password
+!theme plain
+title Reset Password Flow
+
+actor User
+participant "ResetPassword\nComponent" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+
+User -> UI: Click reset link from email
+UI -> UI: Extract token from URL
+
+User -> UI: Enter new password
+User -> UI: Confirm new password
+User -> UI: Click "Reset password"
+
+UI -> Client: authClient.resetPassword({\n  token, password\n})
+activate Client
+
+Client -> API: POST /api/auth/reset-password
+activate API
+
+API -> Auth: Process password reset
+activate Auth
+
+Auth -> DB: Validate reset token
+activate DB
+DB --> Auth: Token valid/invalid/expired
+deactivate DB
+
+alt Token invalid/expired
+    Auth --> API: Error: Invalid token
+    API --> Client: Error response
+    Client -> UI: toast.error()
+else Token valid
+    Auth -> Auth: Hash new password
+    Auth -> DB: Update user password
+    activate DB
+    DB --> Auth: Password updated
+    deactivate DB
+    
+    Auth -> DB: Invalidate reset token
+    activate DB
+    DB --> Auth: Token invalidated
+    deactivate DB
+    
+    Auth --> API: Success response
+    deactivate Auth
+    
+    API --> Client: Success response
+    deactivate API
+    
+    Client -> UI: toast.success()
+    Client -> UI: Redirect to /auth/sign-in
+    deactivate Client
+end
+
+@enduml
+
+@startuml email-verification
+!theme plain
+title Email Verification Flow
+
+actor User
+participant "Browser" as Browser
+participant "API Route" as API
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+
+User -> Browser: Click verification link from email
+Browser -> API: GET /api/auth/verify-email?token=xyz
+
+API -> Auth: Process email verification
+activate Auth
+
+Auth -> DB: Find verification token
+activate DB
+DB --> Auth: Token found/not found
+deactivate DB
+
+alt Token not found/expired
+    Auth --> API: Error: Invalid token
+    API --> Browser: Redirect to error page
+else Token valid
+    Auth -> DB: Mark email as verified
+    activate DB
+    DB --> Auth: Email verified
+    deactivate DB
+    
+    Auth -> DB: Delete verification token
+    activate DB
+    DB --> Auth: Token deleted
+    deactivate DB
+    
+    Auth --> API: Success response
+    deactivate Auth
+    
+    API --> Browser: Redirect to success page
+end
+
+note right of Auth
+  autoSignInAfterVerification: false
+  User must sign in manually after verification
+end note
+
+@enduml
+
+@startuml session-management
+!theme plain
+title Session Management & Authorization
+
+participant "Client Component" as UI
+participant "Auth Client" as Client
+participant "Server Component" as Server
+participant "authorise() function" as Authorise
+participant "Better Auth Server" as Auth
+participant "Database" as DB
+
+== Client-side Session Check ==
+UI -> Client: authClient.useSession()
+Client -> Client: Check cached session
+Client --> UI: Session data or null
+
+== Server-side Authorization ==
+Server -> Authorise: authorise(["organizer"])
+activate Authorise
+
+Authorise -> Auth: auth.api.getSession({headers})
+activate Auth
+Auth -> Auth: Validate session cookie
+Auth --> Authorise: Session data or null
+deactivate Auth
+
+alt No session
+    Authorise --> Server: throw Error('No valid session')
+else Session exists
+    Authorise -> DB: Query user role
+    activate DB
+    DB --> Authorise: User role
+    deactivate DB
+    
+    alt Role not allowed
+        Authorise --> Server: throw Error('Insufficient permissions')
+    else Role allowed
+        Authorise --> Server: Return session data
+        deactivate Authorise
+    end
+end
+
+note right of Authorise
+  Used in:
+  - API routes
+  - Server actions  
+  - Middleware
+  - Server components
+end note
+
+@enduml

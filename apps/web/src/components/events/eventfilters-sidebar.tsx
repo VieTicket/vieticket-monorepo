@@ -33,14 +33,12 @@ const dateOptions = [
 
 const categoryOptions = [
   { label: "All Categories", value: "all" },
-  { label: "Concert", value: "concert" },
-  { label: "Workshop", value: "workshop" },
-  { label: "Art", value: "art" },
-  { label: "Comedy", value: "comedy" },
-  { label: "Conference", value: "conference" },
-  { label: "Food", value: "food" },
-  { label: "Music", value: "music" },
-  { label: "Sports", value: "sports" },
+  { label: "Entertainment", value: "Entertainment" },
+  { label: "Technology & Innovation", value: "Technology & Innovation" },
+  { label: "Business", value: "Business" },
+  { label: "Cultural & Arts", value: "Cultural & Arts" },
+  { label: "Sports & Fitness", value: "Sports & Fitness" },
+  { label: "Competition & Game shows", value: "Competition & Game shows" },
 ];
 
 function simplifyProvince(name: string) {
@@ -108,42 +106,45 @@ export default function EventFiltersSidebar({
       </div>
 
       {/* Location Filter */}
-    <div>
-  <h3 className="font-semibold text-gray-800 mb-2">Location</h3>
-  <Select value={selectedLocation} onValueChange={(val) => onChange("location", val)}>
-    <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-      <SelectValue placeholder="All Locations" />
-    </SelectTrigger>
-    <SelectContent className="max-h-60 overflow-y-auto">
-      <SelectItem value="all">All Locations</SelectItem>
-      {provinces.map((name) => (
-        <SelectItem key={name} value={name}>
-          {name}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-2">Location</h3>
+        <Select
+          value={selectedLocation}
+          onValueChange={(val) => onChange("location", val)}
+        >
+          <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
+            <SelectValue placeholder="All Locations" />
+          </SelectTrigger>
+          <SelectContent className="max-h-60 overflow-y-auto">
+            <SelectItem value="all">All Locations</SelectItem>
+            {provinces.map((name) => (
+              <SelectItem key={name} value={name}>
+                {name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-     {/* Category Filter */}
-<div>
-  <h3 className="font-semibold text-gray-800 mb-2">Category</h3>
-  <Select
-    value={selectedCategory}
-    onValueChange={(val) => onChange("category", val)}
-  >
-    <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-      <SelectValue placeholder="All Categories" />
-    </SelectTrigger>
-    <SelectContent className="max-h-60 overflow-y-auto">
-      {categoryOptions.map(({ label, value }) => (
-        <SelectItem key={value} value={value}>
-          {label}
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-</div>
+      {/* Category Filter */}
+      <div>
+        <h3 className="font-semibold text-gray-800 mb-2">Category</h3>
+        <Select
+          value={selectedCategory}
+          onValueChange={(val) => onChange("category", val)}
+        >
+          <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
+            <SelectValue placeholder="All Categories" />
+          </SelectTrigger>
+          <SelectContent className="max-h-60 overflow-y-auto">
+            {categoryOptions.map(({ label, value }) => (
+              <SelectItem key={value} value={value}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </aside>
   );
 }

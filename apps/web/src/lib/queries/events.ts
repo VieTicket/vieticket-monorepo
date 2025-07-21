@@ -16,7 +16,18 @@ const SORTABLE_COLUMNS = {
 
 export type SortableEventColumnKey = keyof typeof SORTABLE_COLUMNS;
 
-export type EventSummary = Pick<Event, 'id' | 'name' | 'slug' | 'location' | 'startTime' | 'endTime' | 'views' | 'bannerUrl' | 'type'> & {
+export type EventSummary = Pick<
+  Event,
+  | "id"
+  | "name"
+  | "slug"
+  | "location"
+  | "startTime"
+  | "endTime"
+  | "views"
+  | "bannerUrl"
+  | "type"
+> & {
   id: string;
   name: string;
   slug: string;
@@ -52,10 +63,9 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
     })
     .from(events)
     .leftJoin(organizers, eq(events.organizerId, organizers.id))
-    .leftJoin(user, eq(organizers.id, user.id)) 
+    .leftJoin(user, eq(organizers.id, user.id))
     .leftJoin(areas, eq(events.id, areas.eventId))
     .where(eq(events.slug, slug));
-
 
   if (!result.length) return null;
 
@@ -75,11 +85,11 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
 export async function getFilteredEvents({
   page = 1,
   limit = 6,
-  price = 'all',
-  date = 'all',
-  location = 'all',
-  category = 'all',
-  q = ''
+  price = "all",
+  date = "all",
+  location = "all",
+  category = "all",
+  q = "",
 }: {
   page?: number;
   limit?: number;
@@ -89,16 +99,16 @@ export async function getFilteredEvents({
   category?: string;
   q?: string;
 }) {
-  const whereConditions = [eq(events.approvalStatus, 'approved')];
+  const whereConditions = [eq(events.approvalStatus, "approved")];
 
   // Price filter
-  if (price && price !== 'all') {
+  if (price && price !== "all") {
     const priceRanges: Record<string, [number, number]> = {
-      'lt500k': [0, 500000],
-      '500k-1m': [500000, 1000000],
-      '1m-3m': [1000000, 3000000],
-      '3m-5m': [3000000, 5000000],
-      'gt5m': [5000000, Infinity]
+      lt500k: [0, 500000],
+      "500k-1m": [500000, 1000000],
+      "1m-3m": [1000000, 3000000],
+      "3m-5m": [3000000, 5000000],
+      gt5m: [5000000, Infinity],
     };
 
     const [minPrice, maxPrice] = priceRanges[price] || [0, Infinity];
@@ -113,11 +123,11 @@ export async function getFilteredEvents({
   }
 
   // Date filter
-  if (date && date !== 'all') {
+  if (date && date !== "all") {
     const now = new Date();
-    if (date === 'today') {
+    if (date === "today") {
       whereConditions.push(sql`DATE(${events.startTime}) = CURRENT_DATE`);
-    } else if (date === 'thisWeek') {
+    } else if (date === "thisWeek") {
       whereConditions.push(
         sql`${events.startTime} BETWEEN CURRENT_DATE AND (CURRENT_DATE + interval '7 days')`
       );
@@ -125,12 +135,12 @@ export async function getFilteredEvents({
   }
 
   // Location filter
-  if (location && location !== 'all') {
+  if (location && location !== "all") {
     whereConditions.push(eq(events.location, location));
   }
 
   // Category filter
-  if (category && category !== 'all') {
+  if (category && category !== "all") {
     whereConditions.push(eq(events.type, category));
   }
 
@@ -161,13 +171,13 @@ export async function getFilteredEvents({
         columns: {
           id: true,
           name: true,
-        }
+        },
       },
       areas: {
         columns: {
           price: true,
-        }
-      }
+        },
+      },
     },
     where: and(...whereConditions),
   });
@@ -175,18 +185,19 @@ export async function getFilteredEvents({
   // Calculate typical ticket price
   const eventsWithTypicalPrice = result.map((event) => ({
     ...event,
-    typicalTicketPrice: event.areas.length > 0
-      ? Math.min(...event.areas.map(area => area.price))
-      : 0,
-    location: event.location ?? '',
-    bannerUrl: event.bannerUrl ?? '',
-    areas: undefined
+    typicalTicketPrice:
+      event.areas.length > 0
+        ? Math.min(...event.areas.map((area) => area.price))
+        : 0,
+    location: event.location ?? "",
+    bannerUrl: event.bannerUrl ?? "",
+    areas: undefined,
   }));
 
   return {
     events: eventsWithTypicalPrice,
     page,
-    hasMore: result.length === limit
+    hasMore: result.length === limit,
   };
 }
 
@@ -194,16 +205,14 @@ export async function getEventSummaries({
   limit = 4,
   cursor,
   sortColumnKey = "startTime",
-  price,
 }: {
   limit?: number;
   cursor?: EventCursor;
   sortColumnKey?: SortableEventColumnKey;
-  price?: string;
 }): EventSummaryResponse {
   const sortBy = SORTABLE_COLUMNS[sortColumnKey]!;
 
-  const whereConditions = [eq(events.approvalStatus, 'approved')];
+  const whereConditions = [eq(events.approvalStatus, "approved")];
 
   if (cursor) {
     // Handle cursor pagination with composite conditions
@@ -217,37 +226,37 @@ export async function getEventSummaries({
     }
   }
 
-    // Use RAW SQL with prepared statements if performance REALLY suffers
-    const eventList = await db.query.events.findMany({
-        limit: limit + 1,
-        orderBy: [desc(sortBy), desc(events.id)],
+  // Use RAW SQL with prepared statements if performance REALLY suffers
+  const eventList = await db.query.events.findMany({
+    limit: limit + 1,
+    orderBy: [desc(sortBy), desc(events.id)],
+    columns: {
+      id: true,
+      name: true,
+      slug: true,
+      startTime: true,
+      endTime: true,
+      location: true,
+      bannerUrl: true,
+      views: true,
+      type: true,
+      [sortColumnKey]: true,
+    } as const,
+    with: {
+      organizer: {
         columns: {
-            id: true,
-            name: true,
-            slug: true,
-            startTime: true,
-            endTime: true,
-            location: true,
-            bannerUrl: true,
-            views: true,
-            type: true,
-            [sortColumnKey]: true,
-        } as const,
-        with: {
-            organizer: {
-                columns: {
-                    id: true,
-                    name: true,
-                }
-            },
-            areas: {
-                columns: {
-                    price: true,
-                }
-            }
+          id: true,
+          name: true,
         },
-        where: and(...whereConditions),
-      });
+      },
+      areas: {
+        columns: {
+          price: true,
+        },
+      },
+    },
+    where: and(...whereConditions),
+  });
 
   // Check if there are more items
   const hasMore = eventList.length > limit;

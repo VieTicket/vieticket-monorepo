@@ -1,0 +1,504 @@
+@startuml create-new-seat-map
+!theme plain
+title Create New Seat Map Flow
+
+actor Organizer
+participant "SeatMapDirectory\nComponent" as Directory
+participant "CanvasPage\nComponent" as Canvas
+participant "MainToolbar" as Toolbar
+participant "CanvasEditorClient" as Editor
+participant "CanvasStore\n(Zustand)" as Store
+participant "Session Storage" as Session
+participant "saveSeatMapAction" as SaveAction
+participant "authorise()" as Auth
+participant "saveSeatMap\n(Service)" as Service
+participant "createSeatMap\n(Repo)" as Repo
+participant "Cloudinary" as Cloud
+participant "MongoDB" as MongoDB
+
+Organizer -> Directory: Click "Create New"
+Directory -> Canvas: Navigate to /seat-map
+
+Canvas -> Store: clearStorage()
+Canvas -> Store: setCurrentSeatMapId(null)
+Canvas -> Session: Remove stored state
+Note right of Canvas: Fresh canvas for new seat map
+
+Organizer -> Editor: Draw shapes (polygons, rectangles, circles)
+Editor -> Store: addShape(shape)
+Store -> Store: saveToHistory()
+Store -> Session: Debounced save to sessionStorage
+
+Organizer -> Editor: Enter area mode on polygon
+Editor -> Store: enterAreaMode(polygon)
+Store -> Store: Add rows and seats to polygon
+
+Organizer -> Toolbar: Click "Upload" (File menu)
+Toolbar -> Toolbar: Open upload dialog
+
+Organizer -> Toolbar: Enter seat map name
+Organizer -> Toolbar: Click "Upload"
+
+Toolbar -> Toolbar: setIsUploading(true)
+Toolbar -> Editor: captureSeatMapImageOptimized()
+activate Editor
+Editor -> Editor: Export stage as optimized image blob
+Editor --> Toolbar: Image blob
+deactivate Editor
+
+Toolbar -> Cloud: uploadBlobToCloudinary(blob, filename)
+activate Cloud
+Cloud --> Toolbar: { secure_url, public_id }
+deactivate Cloud
+
+Toolbar -> SaveAction: saveSeatMapAction(shapes, name, imageUrl)
+activate SaveAction
+
+SaveAction -> Auth: getAuthSession()
+activate Auth
+Auth --> SaveAction: Session with user data
+deactivate Auth
+
+SaveAction -> Service: saveSeatMap(shapes, name, imageUrl, user)
+activate Service
+
+Service -> Service: Validate user role (organizer only)
+Service -> Service: Validate input data
+Service -> Repo: createSeatMap(seatMapData)
+activate Repo
+Repo -> MongoDB: SeatMapModel.create(data)
+activate MongoDB
+MongoDB --> Repo: Created seat map document
+deactivate MongoDB
+Repo --> Service: Plain seat map object
+deactivate Repo
+
+Service --> SaveAction: Created seat map
+deactivate Service
+
+SaveAction --> Toolbar: { success: true, data }
+deactivate SaveAction
+
+Toolbar -> Store: clearStorage()
+Toolbar -> Directory: Navigate to /organizer/seat-map
+Toolbar -> Toolbar: toast.success("Uploaded successfully!")
+
+@enduml
+
+@startuml create-draft-from-template
+!theme plain
+title Create Draft from Public Seat Map Template
+
+actor Organizer
+participant "TemplatesView\nComponent" as Templates
+participant "getPublicSeatMapsAction" as GetPublic
+participant "createDraftFromPublicSeatMapAction" as CreateDraft
+participant "getAuthSession()" as Auth
+participant "createSeatMapDraft\n(Service)" as Service
+participant "createDraftFromSeatMap\n(Repo)" as Repo
+participant "MongoDB" as MongoDB
+participant "CanvasPage" as Canvas
+
+Organizer -> Templates: Browse public templates
+Templates -> GetPublic: Load public seat maps
+activate GetPublic
+GetPublic -> Auth: getAuthSession()
+GetPublic -> Service: getPublicSeatMaps(page, limit, search)
+GetPublic -> Repo: findPublicSeatMaps()
+GetPublic -> MongoDB: Query public seat maps
+MongoDB --> GetPublic: Public seat maps list
+GetPublic --> Templates: Public seat maps with draft counts
+deactivate GetPublic
+
+Organizer -> Templates: Click "Use as Template" on seat map
+Templates -> CreateDraft: createDraftFromPublicSeatMapAction(originalId, draftName)
+activate CreateDraft
+
+CreateDraft -> Auth: getAuthSession()
+activate Auth
+Auth --> CreateDraft: User session (organizer)
+deactivate Auth
+
+CreateDraft -> Service: createSeatMapDraft(originalId, draftName, user)
+activate Service
+
+Service -> Service: Validate user role (organizer only)
+Service -> Service: Validate input data
+Service -> Repo: createDraftFromSeatMap(originalId, draftData)
+activate Repo
+
+Repo -> MongoDB: Find original seat map by ID
+activate MongoDB
+MongoDB --> Repo: Original seat map data
+deactivate MongoDB
+
+Repo -> Repo: Validate original is public
+Repo -> MongoDB: Create new seat map as draft
+activate MongoDB
+Note right of MongoDB
+  New document with:
+  - shapes: copied from original
+  - name: "${originalName} (draft)"
+  - createdBy: current user
+  - draftedFrom: original seat map ID
+  - originalCreator: original creator info
+  - publicity: "private"
+end note
+MongoDB --> Repo: Draft seat map created
+deactivate MongoDB
+
+Repo --> Service: Created draft
+deactivate Repo
+Service --> CreateDraft: Draft seat map
+deactivate Service
+
+CreateDraft --> Templates: { success: true, data }
+deactivate CreateDraft
+
+Templates -> Templates: toast.success("Draft created!")
+Templates -> Templates: Navigate to drafts view
+Templates -> Templates: Refresh drafts list
+
+alt Organizer wants to edit the draft
+    Organizer -> Templates: Click "Edit" on draft
+    Templates -> Canvas: Navigate to /seat-map?id=draftId
+    
+    Canvas -> Canvas: Load draft data into editor
+    Note right of Canvas: Same flow as editing existing seat map
+end
+
+@enduml
+
+@startuml edit-existing-seat-map
+!theme plain
+title Edit Existing Seat Map Flow
+
+actor Organizer
+participant "DraftsView\nComponent" as Drafts
+participant "CanvasPage\nComponent" as Canvas
+participant "StatePersistence\nComponent" as Persistence
+participant "loadSeatMapAction" as LoadAction
+participant "CanvasStore\n(Zustand)" as Store
+participant "Session Storage" as Session
+participant "CanvasEditorClient" as Editor
+participant "MainToolbar" as Toolbar
+participant "updateSeatMapAction" as UpdateAction
+participant "getAuthSession()" as Auth
+participant "updateSeatMap\n(Service)" as Service
+participant "updateSeatMapById\n(Repo)" as Repo
+participant "MongoDB" as MongoDB
+participant "Cloudinary" as Cloud
+
+Organizer -> Drafts: Click "Edit" on existing seat map
+Drafts -> Canvas: Navigate to /seat-map?id={seatMapId}
+
+Canvas -> Persistence: useEffect - detect seatMapId in URL
+Persistence -> Session: Check sessionStorage for existing state
+
+alt Session has matching seat map ID
+    Persistence -> Store: loadFromStorage()
+    Store -> Session: Restore shapes, history, currentSeatMapId
+    Persistence -> Persistence: toast.info("Restored from session")
+else No session or different seat map
+    Persistence -> LoadAction: loadSeatMapAction(seatMapId)
+    activate LoadAction
+    
+    LoadAction -> Auth: getAuthSession()
+    LoadAction -> Service: getSeatMapById(seatMapId)
+    LoadAction -> Repo: findSeatMapWithShapesById(seatMapId)
+    activate Repo
+    Repo -> MongoDB: Find seat map by ID
+    activate MongoDB
+    MongoDB --> Repo: Seat map data with shapes
+    deactivate MongoDB
+    Repo --> LoadAction: Seat map with shapes
+    deactivate Repo
+    
+    LoadAction --> Persistence: { success: true, data }
+    deactivate LoadAction
+    
+    Persistence -> Store: loadSeatMapData(seatMapData)
+    Store -> Store: Set shapes, history, currentSeatMapId
+    Store -> Session: Save to sessionStorage
+end
+
+Organizer -> Editor: Modify shapes, add/remove elements
+Editor -> Store: updateShape(), addShape(), deleteShape()
+Store -> Store: saveToHistory()
+Store -> Session: Debounced save state
+
+Organizer -> Editor: Enter area mode, modify seats/rows
+Editor -> Store: enterAreaMode(), addSeatToRow(), etc.
+
+Organizer -> Toolbar: Click "Save" (File menu)
+Toolbar -> Toolbar: setIsSaving(true)
+
+Toolbar -> Editor: captureSeatMapImageOptimized()
+activate Editor
+Editor -> Editor: Export current canvas state as image
+Editor --> Toolbar: Updated image blob
+deactivate Editor
+
+Toolbar -> Cloud: uploadBlobToCloudinary(blob, filename)
+activate Cloud
+Note right of Cloud: Overwrites existing image with same public_id
+Cloud --> Toolbar: { secure_url }
+deactivate Cloud
+
+Toolbar -> UpdateAction: updateSeatMapAction(seatMapId, shapes, undefined, imageUrl)
+activate UpdateAction
+
+UpdateAction -> Auth: getAuthSession()
+activate Auth
+Auth --> UpdateAction: User session (organizer)
+deactivate Auth
+
+UpdateAction -> Service: updateSeatMap(seatMapId, shapes, user, name, imageUrl)
+activate Service
+
+Service -> Service: Validate user role (organizer only)
+Service -> Service: Validate input data
+Service -> Repo: findSeatMapWithShapesById(seatMapId)
+Service -> Repo: updateSeatMapById(seatMapId, updateData)
+activate Repo
+Repo -> MongoDB: Verify ownership/permissions
+Repo -> MongoDB: Update document with new shapes and image
+activate MongoDB
+MongoDB --> Repo: Updated seat map
+deactivate MongoDB
+Repo --> Service: Updated seat map
+deactivate Repo
+
+Service --> UpdateAction: Updated seat map
+deactivate Service
+
+UpdateAction --> Toolbar: { success: true, data }
+deactivate UpdateAction
+
+Toolbar -> Toolbar: toast.success("Saved successfully!")
+Toolbar -> Toolbar: setIsSaving(false)
+
+Note right of Store: Session storage maintains state for continued editing
+
+@enduml
+
+@startuml seat-map-state-management
+!theme plain
+title Seat Map State Management & Persistence
+
+participant "Browser Tab" as Browser
+participant "CanvasPage" as Page
+participant "StatePersistence" as Persistence
+participant "CanvasStore\n(Zustand)" as Store
+participant "Session Storage" as Session
+participant "loadSeatMapAction" as LoadAction
+participant "MongoDB" as MongoDB
+
+== Page Load with Seat Map ID ==
+Browser -> Page: Navigate to /seat-map?id=123
+Page -> Persistence: useEffect triggered
+Persistence -> Session: Check sessionStorage
+
+alt Session has matching seat map ID
+    Session --> Persistence: Found state for seatMapId=123
+    Persistence -> Store: loadFromStorage()
+    Store -> Store: Restore shapes, history, currentSeatMapId
+    Note right of Store: Quick restoration from session
+else No session or different seat map
+    Persistence -> LoadAction: loadSeatMapAction(seatMapId)
+    activate LoadAction
+    LoadAction -> MongoDB: Fetch seat map data
+    MongoDB --> LoadAction: Seat map with shapes
+    LoadAction --> Persistence: Seat map data
+    deactivate LoadAction
+    
+    Persistence -> Store: loadSeatMapData(data)
+    Store -> Store: Set shapes, history, currentSeatMapId=123
+    Store -> Session: Save initial state
+end
+
+== Continuous Editing ==
+loop User edits canvas
+    Browser -> Store: User actions (add, modify, delete shapes)
+    Store -> Store: Update shapes array
+    Store -> Store: saveToHistory()
+    Store -> Session: Debounced save (1 second delay)
+    Note right of Session: State persisted with currentSeatMapId
+end
+
+== Page Refresh/Navigation ==
+Browser -> Page: Refresh or navigate back
+Page -> Persistence: Check URL for seatMapId
+alt Same seat map ID in URL and session
+    Persistence -> Store: loadFromStorage()
+    Note right of Store: Instant restoration of work
+else Different or no seat map ID
+    Persistence -> Store: clearStorage()
+    Note right of Store: Clean slate for new work
+end
+
+== Save Operation ==
+Browser -> Store: User clicks save
+Store -> Session: forceStorageSave()
+Store -> LoadAction: updateSeatMapAction()
+LoadAction -> MongoDB: Update seat map
+Note right of Session: Session state remains for continued editing
+
+@enduml
+
+@startuml area-mode-operations
+!theme plain
+title Area Mode Operations (Polygon Editing)
+
+actor Organizer
+participant "CanvasEditorClient" as Editor
+participant "AreaSlice\n(Store)" as AreaStore
+participant "HistorySlice\n(Store)" as History
+participant "Session Storage" as Session
+
+== Enter Area Mode ==
+Organizer -> Editor: Double-click polygon shape
+Editor -> AreaStore: enterAreaMode(polygonShape)
+activate AreaStore
+AreaStore -> AreaStore: setIsInAreaMode(true)
+AreaStore -> AreaStore: setZoomedArea(polygon)
+AreaStore -> AreaStore: Calculate center and bounds
+AreaStore -> History: saveToHistory()
+History -> Session: Save state with area mode info
+AreaStore --> Editor: Area mode activated
+deactivate AreaStore
+
+== Add Rows to Area ==
+Organizer -> Editor: Use "Seat Row" tool, draw row
+Editor -> AreaStore: addRowToArea(rowData)
+activate AreaStore
+AreaStore -> AreaStore: Generate unique row ID
+AreaStore -> AreaStore: Add row to polygon.rows[]
+AreaStore -> AreaStore: Update polygon in shapes array
+AreaStore -> History: saveToHistory()
+History -> Session: Save updated state
+AreaStore --> Editor: Row added to area
+deactivate AreaStore
+
+== Add Seats to Row ==
+Organizer -> Editor: Use "Seat Grid" tool, draw on row
+Editor -> AreaStore: addMultipleSeatsToRow(rowId, seatData[])
+activate AreaStore
+AreaStore -> AreaStore: Find target row in polygon
+AreaStore -> AreaStore: Generate seat IDs and positions
+AreaStore -> AreaStore: Add seats to row.seats[]
+AreaStore -> AreaStore: Update polygon in shapes array
+AreaStore -> History: saveToHistory()
+History -> Session: Save updated state
+AreaStore --> Editor: Seats added to row
+deactivate AreaStore
+
+== Modify Seat/Row Properties ==
+Organizer -> Editor: Select and edit seat/row
+Editor -> AreaStore: updateSeat(seatId, updates) / updateRow(rowId, updates)
+activate AreaStore
+AreaStore -> AreaStore: Find and update target item
+AreaStore -> AreaStore: Update polygon in shapes array
+AreaStore -> History: saveToHistory()
+History -> Session: Save updated state
+AreaStore --> Editor: Properties updated
+deactivate AreaStore
+
+== Delete Area Items ==
+Organizer -> Editor: Select seats/rows, press delete
+Editor -> AreaStore: deleteSelectedAreaItems()
+activate AreaStore
+AreaStore -> AreaStore: Remove selected seats from rows
+AreaStore -> AreaStore: Remove empty rows if needed
+AreaStore -> AreaStore: Clear selections
+AreaStore -> AreaStore: Update polygon in shapes array
+AreaStore -> History: saveToHistory()
+History -> Session: Save updated state
+AreaStore --> Editor: Items deleted
+deactivate AreaStore
+
+== Exit Area Mode ==
+Organizer -> Editor: Click "Exit Area Mode" or press Escape
+Editor -> AreaStore: exitAreaMode()
+activate AreaStore
+AreaStore -> AreaStore: setIsInAreaMode(false)
+AreaStore -> AreaStore: setZoomedArea(null)
+AreaStore -> AreaStore: Clear all area selections
+AreaStore -> History: saveToHistory()
+History -> Session: Save final state
+AreaStore --> Editor: Return to main canvas view
+deactivate AreaStore
+
+@enduml
+
+@startuml cloudinary-image-handling
+!theme plain
+title Cloudinary Image Upload & Management
+
+participant "MainToolbar" as Toolbar
+participant "captureSeatMapImageOptimized" as Capture
+participant "Konva Stage" as Stage
+participant "uploadBlobToCloudinary" as Upload
+participant "Cloudinary API" as Cloudinary
+participant "MongoDB" as MongoDB
+
+== New Seat Map Upload ==
+Toolbar -> Capture: captureSeatMapImageOptimized(stage, shapes)
+activate Capture
+Capture -> Stage: Export as high-quality image
+Stage --> Capture: Image blob (optimized)
+deactivate Capture
+
+Toolbar -> Upload: uploadBlobToCloudinary(blob, filename, "seat-maps")
+activate Upload
+Upload -> Cloudinary: POST /image/upload
+Note right of Cloudinary
+  public_id: auto-generated
+  folder: seat-maps
+  transformation: auto-optimize
+end note
+Cloudinary --> Upload: { secure_url, public_id }
+deactivate Upload
+
+Toolbar -> MongoDB: Save seat map with image URL
+MongoDB -> MongoDB: Store secure_url in image field
+
+== Edit Existing Seat Map ==
+Toolbar -> Capture: captureSeatMapImageOptimized(stage, shapes)
+activate Capture
+Capture -> Stage: Export updated canvas
+Stage --> Capture: Updated image blob
+deactivate Capture
+
+Toolbar -> Upload: uploadBlobToCloudinary(blob, same_filename)
+activate Upload
+Note right of Upload: Uses same public_id to overwrite
+Upload -> Cloudinary: POST /image/upload (overwrite)
+Cloudinary --> Upload: { secure_url } (same public_id)
+deactivate Upload
+
+Toolbar -> MongoDB: Update seat map with new image URL
+Note right of MongoDB: Image URL updated, old image replaced
+
+== Draft Creation ==
+Note over MongoDB: Draft copies original image URL initially
+Note over Cloudinary: No immediate upload needed
+Note over Toolbar: User can edit and save to update image later
+
+== Image Optimization ==
+Note over Capture
+  Optimizations applied:
+  - Canvas scaling for quality
+  - Compression for file size
+  - PNG format for transparency
+  - Background padding
+end note
+
+Note over Cloudinary
+  Auto-transformations:
+  - f_auto (format optimization)
+  - q_auto (quality optimization)
+  - Responsive delivery
+end note
+
+@enduml
