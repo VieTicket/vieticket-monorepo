@@ -1,11 +1,18 @@
 import { InferInsertModel } from "drizzle-orm";
 import { createDb } from "../postgres/connection";
-import { events, areas, rows, seats, organizers, user } from "../postgres/schema";
-import { config } from "dotenv"
+import {
+  events,
+  areas,
+  rows,
+  seats,
+  organizers,
+  user,
+} from "../postgres/schema";
+import { config } from "dotenv";
 
-config({ path: '.env' })
+config({ path: ".env" });
 
-type NewArea = InferInsertModel<typeof areas>
+type NewArea = InferInsertModel<typeof areas>;
 type NewOrganizer = InferInsertModel<typeof organizers>;
 
 if (!process.env.DATABASE_URL) {
@@ -88,15 +95,18 @@ async function seed() {
       {
         name: "Vietnam Music Festival 2025",
         slug: "vietnam-music-festival-2025",
-        description: "The biggest music festival in Vietnam featuring international and local artists across multiple genres.",
+        description:
+          "The biggest music festival in Vietnam featuring international and local artists across multiple genres.",
         startTime: new Date("2025-07-15T18:00:00Z"),
         endTime: new Date("2025-07-17T23:00:00Z"),
         location: "Hoi An Ancient Town, Quang Nam",
         type: "Music",
         ticketSaleStart: new Date("2025-03-01T00:00:00Z"),
         ticketSaleEnd: new Date("2025-07-10T23:59:59Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
         views: 15420,
         isApproved: true,
         organizerId: "Zt7RNyXFqweuKPqLAmXJ4SFr1Y6GH9bE",
@@ -104,15 +114,18 @@ async function seed() {
       {
         name: "Tech Conference Ho Chi Minh City 2025",
         slug: "tech-conference-hcmc-2025",
-        description: "Annual technology conference bringing together industry leaders, developers, and innovators.",
+        description:
+          "Annual technology conference bringing together industry leaders, developers, and innovators.",
         startTime: new Date("2025-08-20T08:00:00Z"),
         endTime: new Date("2025-08-22T18:00:00Z"),
         location: "Saigon Exhibition and Convention Center",
         type: "Conference",
         ticketSaleStart: new Date("2025-04-01T00:00:00Z"),
         ticketSaleEnd: new Date("2025-08-15T23:59:59Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/2.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/3.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/2.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/3.webp",
         views: 8930,
         isApproved: true,
         organizerId: "oVqLW3EkJtMUY8cwnsZABRxD5TvXplr2",
@@ -120,15 +133,18 @@ async function seed() {
       {
         name: "Vietnamese Food Festival",
         slug: "vietnamese-food-festival-2025",
-        description: "Celebrate Vietnam's rich culinary heritage with traditional dishes from all regions.",
+        description:
+          "Celebrate Vietnam's rich culinary heritage with traditional dishes from all regions.",
         startTime: new Date("2025-09-10T10:00:00Z"),
         endTime: new Date("2025-09-12T22:00:00Z"),
         location: "Ben Thanh Market Area, Ho Chi Minh City",
         type: "Food",
         ticketSaleStart: new Date("2025-06-01T00:00:00Z"),
         ticketSaleEnd: new Date("2025-09-08T23:59:59Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/4.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/4.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
         views: 12100,
         isApproved: true,
         organizerId: "Zt7RNyXFqweuKPqLAmXJ4SFr1Y6GH9bE",
@@ -136,15 +152,18 @@ async function seed() {
       {
         name: "Art Exhibition: Modern Vietnam",
         slug: "art-exhibition-modern-vietnam",
-        description: "Contemporary Vietnamese art exhibition showcasing works by emerging and established artists.",
+        description:
+          "Contemporary Vietnamese art exhibition showcasing works by emerging and established artists.",
         startTime: new Date("2025-06-25T09:00:00Z"),
         endTime: new Date("2025-07-25T18:00:00Z"),
         location: "Fine Arts Museum, Hanoi",
         type: "Art",
         ticketSaleStart: new Date("2025-05-01T00:00:00Z"),
         ticketSaleEnd: new Date("2025-07-20T23:59:59Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/2.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/2.webp",
         views: 3456,
         isApproved: true,
         organizerId: "J1UXnbHd93rCFYzVeLKT0GsqMwQpW7aG",
@@ -152,15 +171,18 @@ async function seed() {
       {
         name: "Comedy Night Stand-up Show",
         slug: "comedy-night-standup-2025",
-        description: "An evening of laughter with Vietnam's best stand-up comedians and special international guests.",
+        description:
+          "An evening of laughter with Vietnam's best stand-up comedians and special international guests.",
         startTime: new Date("2025-07-05T20:00:00Z"),
         endTime: new Date("2025-07-05T22:30:00Z"),
         location: "Diamond Plaza, Ho Chi Minh City",
         type: "Comedy",
         ticketSaleStart: new Date("2025-05-15T00:00:00Z"),
         ticketSaleEnd: new Date("2025-07-05T18:00:00Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/3.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/4.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/3.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/4.webp",
         views: 6780,
         isApproved: true,
         organizerId: "oVqLW3EkJtMUY8cwnsZABRxD5TvXplr2",
@@ -168,15 +190,18 @@ async function seed() {
       {
         name: "Sports Tournament: Badminton Championship",
         slug: "badminton-championship-2025",
-        description: "National badminton championship featuring top players from across Vietnam.",
+        description:
+          "National badminton championship featuring top players from across Vietnam.",
         startTime: new Date("2025-08-15T08:00:00Z"),
         endTime: new Date("2025-08-17T18:00:00Z"),
         location: "Phu Tho Stadium, Ho Chi Minh City",
         type: "Sports",
         ticketSaleStart: new Date("2025-06-01T00:00:00Z"),
         ticketSaleEnd: new Date("2025-08-14T23:59:59Z"),
-        posterUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
-        bannerUrl: "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
+        posterUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/0.webp",
+        bannerUrl:
+          "https://res.luxerent.shop/products/gucci-floral-ruffle-dress_maysuoua4n3d/1.webp",
         views: 4523,
         isApproved: true,
         organizerId: "J1UXnbHd93rCFYzVeLKT0GsqMwQpW7aG",
@@ -184,7 +209,10 @@ async function seed() {
     ];
 
     // Insert events and get their IDs
-    const insertedEvents = await db.insert(events).values(sampleEvents).returning();
+    const insertedEvents = await db
+      .insert(events)
+      .values(sampleEvents)
+      .returning();
     console.log(`✅ Inserted ${insertedEvents.length} events`);
 
     // Create areas, rows, and seats for each event
@@ -194,21 +222,24 @@ async function seed() {
         {
           eventId: event.id,
           name: "VIP Section",
-          price: 750000.00,
+          price: 750000.0,
         },
         {
           eventId: event.id,
           name: "Standard Section",
-          price: 350000.00,
+          price: 350000.0,
         },
         {
           eventId: event.id,
           name: "Economy Section",
-          price: 150000.00,
+          price: 150000.0,
         },
       ];
 
-      const insertedAreas = await db.insert(areas).values(eventAreas).returning();
+      const insertedAreas = await db
+        .insert(areas)
+        .values(eventAreas)
+        .returning();
 
       for (const area of insertedAreas) {
         // Create 3-5 rows per area
@@ -232,7 +263,7 @@ async function seed() {
           for (let i = 1; i <= seatCount; i++) {
             rowSeats.push({
               rowId: row.id,
-              seatNumber: i.toString().padStart(2, '0'), // 01, 02, 03, etc.
+              seatNumber: i.toString().padStart(2, "0"), // 01, 02, 03, etc.
             });
           }
 
@@ -243,7 +274,6 @@ async function seed() {
 
     console.log("✅ Created areas, rows, and seats for all events");
     console.log("🎉 Database seeding completed successfully!");
-
   } catch (error) {
     console.error("❌ Error seeding database:", error);
     throw error;

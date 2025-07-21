@@ -41,6 +41,5 @@ yarn-error.log*
 .vscode
 .idea
 
-# PlantUML diagrams
 puml
 puml/**
