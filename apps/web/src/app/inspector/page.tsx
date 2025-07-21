@@ -211,7 +211,7 @@ export default function InspectorPage() {
                 // Update local ticket info using our helper function
                 setTicketInfo(prev => updateDisplayTicketFromServer(prev!, response.data));
                 
-                if (response.data.status === 'active') {
+                if (response.data?.status === 'active') {
                     setInspectionResult('valid');
                     toast.success("Check-in Successful", { description: "Ticket has been marked as used" });
                 } else {
