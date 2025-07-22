@@ -1,9 +1,10 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events, rows, seats } from "@vieticket/db/pg/schemas/events";
-import { orders, tickets, ticketInspectionHistory } from "@vieticket/db/pg/schemas/orders";
+import { orders, tickets } from "@vieticket/db/pg/schemas/orders";
 import { user } from "@vieticket/db/pg/schemas/users";
 import { eq } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
+import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
 
 /**
  * Finds a ticket by ID with complete event and seat information
@@ -104,12 +105,10 @@ export async function batchLogTicketInspections(
     return [];
   }
 
-  const inspectionRecords = await db
-    .insert(ticketInspectionHistory)
-    .values(inspections)
-    .returning();
-
-  return inspectionRecords;
+  return db
+      .insert(ticketInspectionHistory)
+      .values(inspections)
+      .returning();
 }
 
 /**
