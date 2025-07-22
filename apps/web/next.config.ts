@@ -21,8 +21,8 @@ const nextConfig: NextConfig = {
   // Ensure `canvas` stays server-only in Server Components
   serverExternalPackages: ["canvas"],
   allowedDevOrigins: [
-    "https://**.lo.vtk.io.vn",
-    "https://lo.vtk.io.vn"
+    "**.lo.vtk.io.vn",
+    "lo.vtk.io.vn"
   ]
 };
 
