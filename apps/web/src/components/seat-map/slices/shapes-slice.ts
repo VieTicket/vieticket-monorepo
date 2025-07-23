@@ -73,13 +73,13 @@ export const createShapesSlice: StateCreator<
     set((state) => ({
       shapes: state.shapes.map((shape) => {
         if (shape.id === id) {
-          // NEW: Special handling for polygon shapes
           if (shape.type === "polygon") {
             const polygonShape = shape as PolygonShape;
 
             // If this is a drag operation (x, y changes), update center instead
             if (
-              (updates.x !== undefined || updates.y !== undefined) &&
+              updates.x !== undefined &&
+              updates.y !== undefined &&
               !updates.points &&
               !updates.center
             ) {
@@ -97,13 +97,25 @@ export const createShapesSlice: StateCreator<
                 y: updates.y || shape.y,
               };
             }
+            if (updates.x !== undefined || updates.y !== undefined) {
+              polygonShape.points = polygonShape.points.map((point) => ({
+                x:
+                  point.x +
+                  (updates.x || polygonShape.x) -
+                  (polygonShape.x || 0) +
+                  polygonShape.x,
+                y:
+                  point.y +
+                  (updates.y || polygonShape.y) -
+                  (polygonShape.y || 0) +
+                  polygonShape.y,
+              }));
+              polygonShape.x = 0;
+              polygonShape.y = 0;
 
-            // If points are being updated, recalculate center
-            if (updates.points) {
               return {
-                ...shape,
-                ...updates,
-                center: calculatePolygonCenter(updates.points),
+                ...polygonShape,
+                center: calculatePolygonCenter(polygonShape.points),
               };
             }
           }

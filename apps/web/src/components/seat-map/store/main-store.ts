@@ -137,6 +137,8 @@ export const useDeleteSelectedSeats = () =>
   useCanvasStore((state) => state.deleteSelectedSeats);
 export const useDeleteSelectedAreaItems = () =>
   useCanvasStore((state) => state.deleteSelectedAreaItems);
+export const useUpdateZoomedArea = () =>
+  useCanvasStore((state) => state.updateZoomedArea);
 
 export const useAreaActions = () => {
   const enterAreaMode = useEnterAreaMode();
