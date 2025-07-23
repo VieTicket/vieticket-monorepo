@@ -9,6 +9,11 @@ import { Armchair, Calendar, Clock, MapPin, Receipt, User } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
 
+type OrderEvent = {
+    eventId: string
+    eventName: string
+}
+
 type OrderTicket = {
     ticketId: string
     status: string
@@ -18,13 +23,14 @@ type OrderTicket = {
     qrData: string
 }
 
-type OrderDetails = {
+export type OrderDetails = {
     id: string
     orderDate: Date
     totalAmount: number
     status: string
     updatedAt: Date
     tickets: OrderTicket[]
+    event: OrderEvent
 }
 
 interface OrderDetailsViewProps {
@@ -53,7 +59,7 @@ function getStatusColor(status: string): string {
     }
 }
 
-function TicketCard({ ticket }: { ticket: OrderTicket }) {
+function TicketCard({ ticket, eventName }: { ticket: OrderTicket, eventName: string }) {
     const [qrCodeImage, setQrCodeImage] = useState<string | null>(null)
     const [isLoadingQr, setIsLoadingQr] = useState(true)
     const router = useRouter()
@@ -101,8 +107,7 @@ function TicketCard({ ticket }: { ticket: OrderTicket }) {
                                     <h3 className="font-bold text-lg text-gray-900 dark:text-white leading-tight">
                                         Event Ticket #{ticket.ticketId.slice(-8)}
                                     </h3>
-                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Special Guest
-                                        Performance</p>
+                                    <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{eventName}</p>
                                 </div>
                                 <Badge
                                     className={`${getStatusColor(ticket.status)} text-xs`}>{ticket.status.toUpperCase()}</Badge>
@@ -271,7 +276,7 @@ export function OrderDetailsView({ order }: OrderDetailsViewProps) {
                     <CardContent>
                         <div className="space-y-6">
                             {order.tickets.map((ticket) => (
-                                <TicketCard key={ticket.ticketId} ticket={ticket} />
+                                <TicketCard key={ticket.ticketId} ticket={ticket} eventName={order.event.eventName} />
                             ))}
                         </div>
                     </CardContent>

@@ -78,6 +78,7 @@ export async function getOrderDetails(
 
     return {
         ...order,
+        event: eventInfo,
         tickets,
     };
 }
