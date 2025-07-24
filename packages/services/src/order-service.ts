@@ -149,11 +149,17 @@ export async function getTicketEmailStatus(
     const logs = await getTicketEmailLogs(ticketId);
     const limits = await checkTicketEmailLimits(ticketId, maxEmailsPerTicket, emailCooldownMinutes);
 
+    // Find the most recent log entry for lastSentAt
+    const lastLog = logs.length > 0 
+      ? logs.reduce((latest, log) => log.sentAt > latest.sentAt ? log : latest)
+      : null;
+
     return {
         logs,
         sentCount: limits.totalSends,
         maxSends: maxEmailsPerTicket,
         cooldownMinutes: emailCooldownMinutes,
+        lastSentAt: lastLog ? lastLog.sentAt : undefined,
     };
 }
 
