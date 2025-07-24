@@ -13,7 +13,9 @@ import {
   Menu,
   X,
   MessageCircle,
-  TicketCheck
+  TicketCheck,
+  LogOut,
+  User
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -38,6 +40,8 @@ const navItems = [
     href: "/organizer/chat?recipientId=admin",
     icon: MessageCircle, // import from lucide-react or similar
   },
+  { label: "Profile", href: "/profile/edit", icon: User },
+  { label: "Sign out", href: "/auth/sign-out", icon: LogOut },
 ];
 
 export default function Sidebar() {
