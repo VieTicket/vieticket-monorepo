@@ -214,14 +214,12 @@ export async function getTicketDetails(orderId: string) {
 /**
  * Checks email sending limits for a ticket
  * @param ticketId - Ticket ID
- * @param email - Recipient email
  * @param maxEmailsPerTicket - Maximum number of emails allowed per ticket
- * @param cooldownMinutes - Cooldown period in minutes for sending to the same email
+ * @param cooldownMinutes - Cooldown period in minutes after any send
  * @returns Object with limit status
  */
 export async function checkTicketEmailLimits(
   ticketId: string,
-  email: string,
   maxEmailsPerTicket: number,
   cooldownMinutes: number
 ) {
@@ -231,23 +229,25 @@ export async function checkTicketEmailLimits(
     .from(ticketEmailLogs)
     .where(eq(ticketEmailLogs.ticketId, ticketId));
   
-  // Recent sends to this email for this ticket
-  const cooldownPeriod = new Date(Date.now() - cooldownMinutes * 60 * 1000);
-  const recentSends = await db
-    .select({ count: count() })
+  // Get the most recent send for this ticket (any email)
+  const [lastSent] = await db
+    .select({ sentAt: ticketEmailLogs.sentAt })
     .from(ticketEmailLogs)
-    .where(
-      and(
-        eq(ticketEmailLogs.ticketId, ticketId),
-        eq(ticketEmailLogs.recipient_email, email),
-        gt(ticketEmailLogs.sentAt, cooldownPeriod)
-      )
-    );
+    .where(eq(ticketEmailLogs.ticketId, ticketId))
+    .orderBy(desc(ticketEmailLogs.sentAt))
+    .limit(1);
+  
+  const now = new Date();
+  const cooldownEnd = lastSent?.sentAt 
+    ? new Date(lastSent.sentAt.getTime() + cooldownMinutes * 60 * 1000)
+    : null;
+  
+  const inCooldown = cooldownEnd && now < cooldownEnd;
   
   return {
     totalSends: totalSends[0]?.count || 0,
-    recentSends: recentSends[0]?.count || 0,
-    canSend: (totalSends[0]?.count || 0) < maxEmailsPerTicket && (recentSends[0]?.count || 0) === 0
+    lastSentAt: lastSent?.sentAt || null,
+    canSend: (totalSends[0]?.count || 0) < maxEmailsPerTicket && !inCooldown
   };
 }
 
@@ -268,4 +268,20 @@ export async function logTicketEmail(
     recipient_email: recipientEmail,
     sentAt: new Date(),
   });
+}
+
+/**
+ * Gets the email logs for a specific ticket
+ * @param ticketId - The ID of the ticket
+ * @returns A list of email logs for the ticket
+ */
+export async function getTicketEmailLogs(ticketId: string) {
+  return db
+    .select({
+      recipientEmail: ticketEmailLogs.recipient_email,
+      sentAt: ticketEmailLogs.sentAt,
+    })
+    .from(ticketEmailLogs)
+    .where(eq(ticketEmailLogs.ticketId, ticketId))
+    .orderBy(desc(ticketEmailLogs.sentAt));
 }

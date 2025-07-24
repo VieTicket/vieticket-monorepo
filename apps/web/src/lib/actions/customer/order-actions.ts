@@ -7,6 +7,7 @@ import {
   getTicketDetailsForUser,
   getUserOrders,
   sendTicketEmail,
+  getTicketEmailStatus,
 } from "@vieticket/services/order";
 import { headers as headersFn } from "next/headers";
 
@@ -32,6 +33,27 @@ export async function sendTicketEmailAction(ticketId: string, recipientEmail: st
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Failed to send ticket email";
+    return { success: false, error: errorMessage };
+  }
+}
+
+/**
+ * Server action to get the email sending status for a ticket.
+ * @param ticketId - The ID of the ticket.
+ */
+export async function getTicketEmailStatusAction(ticketId: string) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+    if (!user) {
+      throw new Error("Unauthenticated.");
+    }
+
+    const result = await getTicketEmailStatus(user, ticketId);
+    return { success: true, data: result };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
   }
 }

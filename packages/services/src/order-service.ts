@@ -8,6 +8,7 @@ import {
     getTicketDetails,
     checkTicketEmailLimits,
     logTicketEmail,
+    getTicketEmailLogs,
 } from "@vieticket/repos/orders";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
@@ -48,10 +49,15 @@ export async function sendTicketEmail(
         }
 
         // 2. Check email limits
-        // TODO (for human): Remove hard-coded values and magic numbers, globally throughout the project
-        const limits = await checkTicketEmailLimits(ticketId, recipientEmail, 3, 60);
+        const maxEmailsPerTicket = parseInt(process.env.MAX_EMAILS_PER_TICKET || "3", 10);
+        const emailCooldownMinutes = parseInt(process.env.EMAIL_COOLDOWN_MINUTES || "60", 10);
+        const limits = await checkTicketEmailLimits(ticketId, maxEmailsPerTicket, emailCooldownMinutes);
         if (!limits.canSend) {
-            throw new Error(`Email limit exceeded. You can send at most 3 emails per ticket and 1 per hour to the same address.`);
+            if (limits.totalSends >= maxEmailsPerTicket) {
+                throw new Error(`Email limit exceeded. You can send at most ${maxEmailsPerTicket} emails per ticket.`);
+            } else {
+                throw new Error(`Please wait before sending another email. There is a ${emailCooldownMinutes} minute cooldown after each send.`);
+            }
         }
 
         // 3. Generate QR code and email content
@@ -115,6 +121,40 @@ export async function sendTicketEmail(
         const errorMessage = error instanceof Error ? error.message : "Failed to send ticket email";
         return { success: false, error: errorMessage };
     }
+}
+
+/**
+ * Gets the email sending status for a specific ticket, including logs and limits.
+ * @param user - The authenticated user object.
+ * @param ticketId - The ID of the ticket.
+ * @returns An object with email logs, send counts, and limits.
+ */
+export async function getTicketEmailStatus(
+    user: Pick<User, "id" | "role">,
+    ticketId: string
+) {
+    if (user.role !== "customer") {
+        throw new Error("Unauthorized: Only customers can view ticket details.");
+    }
+
+    // Ensure the user owns the ticket before showing sensitive log data
+    const ticket = await findTicketByIdForUser(ticketId, user.id);
+    if (!ticket) {
+        throw new Error("Ticket not found or you do not have permission to view it.");
+    }
+
+    const maxEmailsPerTicket = parseInt(process.env.MAX_EMAILS_PER_TICKET || "3", 10);
+    const emailCooldownMinutes = parseInt(process.env.EMAIL_COOLDOWN_MINUTES || "60", 10);
+
+    const logs = await getTicketEmailLogs(ticketId);
+    const limits = await checkTicketEmailLimits(ticketId, maxEmailsPerTicket, emailCooldownMinutes);
+
+    return {
+        logs,
+        sentCount: limits.totalSends,
+        maxSends: maxEmailsPerTicket,
+        cooldownMinutes: emailCooldownMinutes,
+    };
 }
 
 /**
