@@ -9,6 +9,8 @@ import {
   updateSeatMap,
   getPublicSeatMaps,
   createSeatMapDraft,
+  updateSeatMapPublicityService,
+  deleteSeatMapService,
 } from "@vieticket/services/seat-map";
 import { Shape } from "@vieticket/db/mongo/models/seat-map";
 import { headers as headersFn } from "next/headers";
@@ -198,6 +200,56 @@ export async function createDraftFromPublicSeatMapAction(
     return { success: true, data: plainData };
   } catch (error) {
     console.error("Error in createDraftFromPublicSeatMapAction:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function publishSeatMapAction(seatMapId: string) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to publish seat maps.");
+    }
+
+    const updatedSeatMap = await updateSeatMapPublicityService(
+      seatMapId,
+      "public",
+      user as User
+    );
+
+    // Force the object to be plain and serializable
+    const plainData = JSON.parse(JSON.stringify(updatedSeatMap));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    console.error("Error in publishSeatMapAction:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function deleteSeatMapAction(seatMapId: string) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to delete seat maps.");
+    }
+
+    const deletedSeatMap = await deleteSeatMapService(seatMapId, user as User);
+
+    // Force the object to be plain and serializable
+    const plainData = JSON.parse(JSON.stringify(deletedSeatMap));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    console.error("Error in deleteSeatMapAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };

@@ -5,7 +5,7 @@ title Email/Password Login Flow
 actor User
 participant "SignIn Component" as UI
 participant "Auth Client" as Client
-participant "API Route\n/api/auth/[...all]" as API
+participant "API Route" as API
 participant "Better Auth Server" as Auth
 participant "Database" as DB
 

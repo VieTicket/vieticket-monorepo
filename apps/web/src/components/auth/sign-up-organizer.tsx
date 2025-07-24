@@ -6,11 +6,12 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle
+  CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
+import { createOrganizerAction } from "@/lib/actions/organizer-actions";
 import { Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
@@ -172,9 +173,31 @@ export default function SignUpOrganizer() {
                   onError: (ctx) => {
                     toast.error(ctx.error.message);
                   },
-                  onSuccess: async () => {
-                    toast.success("Account created successfully!");
-                    router.push("/organizer");
+                  onSuccess: async (ctx) => {
+                    try {
+                      // Create organizer record with isActive = false
+                      const organizerResult = await createOrganizerAction(
+                        ctx.data.user
+                      );
+
+                      if (organizerResult.success) {
+                        toast.success(
+                          "Please check your email to verify your account."
+                        );
+                        router.push("/auth/sign-in");
+                      } else {
+                        toast.error(
+                          "Account created but failed to initialize organizer profile. Please contact support."
+                        );
+                        router.push("/auth/sign-in");
+                      }
+                    } catch (error) {
+                      console.error("Error creating organizer profile:", error);
+                      toast.error(
+                        "Account created but failed to initialize organizer profile. Please contact support."
+                      );
+                      router.push("/auth/sign-in");
+                    }
                   },
                 },
               });

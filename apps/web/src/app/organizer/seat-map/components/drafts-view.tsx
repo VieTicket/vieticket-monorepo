@@ -15,6 +15,7 @@ type SeatMapItem = {
   createdAt: string;
   image?: string;
   createdBy: string;
+  publicity?: "public" | "private";
 };
 
 interface DraftsViewProps {
@@ -28,6 +29,10 @@ interface DraftsViewProps {
   setSelectedTab: (tab: string) => void;
   onBack: () => void;
   formatDate: (date: string) => string;
+  onPublish: (seatMapId: string) => void;
+  onDelete: (seatMapId: string) => void;
+  publishingIds: Set<string>;
+  deletingIds: Set<string>;
 }
 
 export function DraftsView({
@@ -41,6 +46,10 @@ export function DraftsView({
   setSelectedTab,
   onBack,
   formatDate,
+  onPublish,
+  onDelete,
+  publishingIds,
+  deletingIds,
 }: DraftsViewProps) {
   const renderContent = (tabValue: string) => {
     if (isLoading) {
@@ -66,6 +75,11 @@ export function DraftsView({
               item={item}
               viewMode={viewMode}
               formatDate={formatDate}
+              showActions={true}
+              onPublish={onPublish}
+              onDelete={onDelete}
+              isPublishing={publishingIds.has(item.id)}
+              isDeleting={deletingIds.has(item.id)}
             />
           ))}
         </div>
