@@ -295,7 +295,7 @@ export const useAreaEvents = () => {
         fill: "#ffffff",
         stroke: "#000000",
         defaultSeatRadius: 8,
-        defaultSeatSpacing: 15,
+        defaultSeatSpacing: 20,
         defaultRowSpacing: 25,
         defaultSeatCategory: "standard",
         defaultSeatColor: "#4CAF50",

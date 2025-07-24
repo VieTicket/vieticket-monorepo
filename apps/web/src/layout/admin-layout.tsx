@@ -14,6 +14,8 @@ import {
   RotateCcw,
   Menu,
   X,
+  MessageCircle,
+  LogOut,
 } from "lucide-react";
 
 const menuItems = [
@@ -35,7 +37,8 @@ const menuItems = [
     href: "/admin/payment-requests",
     icon: CreditCard,
   },
-  { name: "Refund", href: "/admin/refunds", icon: RotateCcw },
+  { name: "Chat", href: "/admin/chat", icon: MessageCircle },
+  { name: "Sign out", href: "/auth/sign-out", icon: LogOut },
 ];
 
 // Memoized Menu Item Component

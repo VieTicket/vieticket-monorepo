@@ -114,7 +114,7 @@ export function calculateShapesBoundingBox(shapes: Shape[]): BoundingBox {
   });
 
   // Add some padding around the shapes
-  const padding = 50;
+  const padding = 100;
   minX -= padding;
   minY -= padding;
   maxX += padding;

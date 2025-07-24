@@ -36,7 +36,7 @@ const AreaSidebar = React.memo(function AreaSidebar({
 
   if (!isInAreaMode || totalSelected === 0) {
     return (
-      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full">
+      <div className="bg-gray-900 text-white p-4 shadow z-10 w-full h-full">
         <AreaSidebarHeader
           isInAreaMode={isInAreaMode}
           totalSelected={totalSelected}
@@ -50,7 +50,7 @@ const AreaSidebar = React.memo(function AreaSidebar({
   }
 
   return (
-    <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
+    <div className="bg-gray-900 text-white p-4 shadow z-10 w-full h-full overflow-y-auto">
       <AreaSidebarHeader
         isInAreaMode={isInAreaMode}
         totalSelected={totalSelected}

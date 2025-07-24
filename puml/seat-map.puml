@@ -93,20 +93,18 @@ actor Organizer
 participant "TemplatesView\nComponent" as Templates
 participant "getPublicSeatMapsAction" as GetPublic
 participant "createDraftFromPublicSeatMapAction" as CreateDraft
-participant "getAuthSession()" as Auth
-participant "createSeatMapDraft\n(Service)" as Service
-participant "createDraftFromSeatMap\n(Repo)" as Repo
 participant "MongoDB" as MongoDB
 participant "CanvasPage" as Canvas
 
 Organizer -> Templates: Browse public templates
 Templates -> GetPublic: Load public seat maps
 activate GetPublic
-GetPublic -> Auth: getAuthSession()
-GetPublic -> Service: getPublicSeatMaps(page, limit, search)
-GetPublic -> Repo: findPublicSeatMaps()
+
 GetPublic -> MongoDB: Query public seat maps
+activate MongoDB
 MongoDB --> GetPublic: Public seat maps list
+deactivate MongoDB
+
 GetPublic --> Templates: Public seat maps with draft counts
 deactivate GetPublic
 
@@ -114,26 +112,13 @@ Organizer -> Templates: Click "Use as Template" on seat map
 Templates -> CreateDraft: createDraftFromPublicSeatMapAction(originalId, draftName)
 activate CreateDraft
 
-CreateDraft -> Auth: getAuthSession()
-activate Auth
-Auth --> CreateDraft: User session (organizer)
-deactivate Auth
-
-CreateDraft -> Service: createSeatMapDraft(originalId, draftName, user)
-activate Service
-
-Service -> Service: Validate user role (organizer only)
-Service -> Service: Validate input data
-Service -> Repo: createDraftFromSeatMap(originalId, draftData)
-activate Repo
-
-Repo -> MongoDB: Find original seat map by ID
+CreateDraft -> MongoDB: Find original seat map by ID
 activate MongoDB
-MongoDB --> Repo: Original seat map data
+MongoDB --> CreateDraft: Original seat map data
 deactivate MongoDB
 
-Repo -> Repo: Validate original is public
-Repo -> MongoDB: Create new seat map as draft
+CreateDraft -> CreateDraft: Validate original is public
+CreateDraft -> MongoDB: Create new seat map as draft
 activate MongoDB
 Note right of MongoDB
   New document with:
@@ -144,13 +129,8 @@ Note right of MongoDB
   - originalCreator: original creator info
   - publicity: "private"
 end note
-MongoDB --> Repo: Draft seat map created
+MongoDB --> CreateDraft: Draft seat map created
 deactivate MongoDB
-
-Repo --> Service: Created draft
-deactivate Repo
-Service --> CreateDraft: Draft seat map
-deactivate Service
 
 CreateDraft --> Templates: { success: true, data }
 deactivate CreateDraft
@@ -164,7 +144,6 @@ alt Organizer wants to edit the draft
     Templates -> Canvas: Navigate to /seat-map?id=draftId
     
     Canvas -> Canvas: Load draft data into editor
-    Note right of Canvas: Same flow as editing existing seat map
 end
 
 @enduml
@@ -174,111 +153,71 @@ end
 title Edit Existing Seat Map Flow
 
 actor Organizer
-participant "DraftsView\nComponent" as Drafts
 participant "CanvasPage\nComponent" as Canvas
-participant "StatePersistence\nComponent" as Persistence
-participant "loadSeatMapAction" as LoadAction
 participant "CanvasStore\n(Zustand)" as Store
 participant "Session Storage" as Session
-participant "CanvasEditorClient" as Editor
 participant "MainToolbar" as Toolbar
 participant "updateSeatMapAction" as UpdateAction
-participant "getAuthSession()" as Auth
-participant "updateSeatMap\n(Service)" as Service
-participant "updateSeatMapById\n(Repo)" as Repo
 participant "MongoDB" as MongoDB
 participant "Cloudinary" as Cloud
 
-Organizer -> Drafts: Click "Edit" on existing seat map
-Drafts -> Canvas: Navigate to /seat-map?id={seatMapId}
+Organizer -> Canvas: Navigate to /seat-map?id={seatMapId}
 
-Canvas -> Persistence: useEffect - detect seatMapId in URL
-Persistence -> Session: Check sessionStorage for existing state
+Canvas -> Session: Check sessionStorage for existing state
 
 alt Session has matching seat map ID
-    Persistence -> Store: loadFromStorage()
+    Canvas -> Store: loadFromStorage()
     Store -> Session: Restore shapes, history, currentSeatMapId
-    Persistence -> Persistence: toast.info("Restored from session")
+    Canvas -> Canvas: toast.info("Restored from session")
 else No session or different seat map
-    Persistence -> LoadAction: loadSeatMapAction(seatMapId)
-    activate LoadAction
+    Canvas -> UpdateAction: loadSeatMapAction(seatMapId)
+    activate UpdateAction
     
-    LoadAction -> Auth: getAuthSession()
-    LoadAction -> Service: getSeatMapById(seatMapId)
-    LoadAction -> Repo: findSeatMapWithShapesById(seatMapId)
-    activate Repo
-    Repo -> MongoDB: Find seat map by ID
+    UpdateAction -> MongoDB: Find seat map by ID
     activate MongoDB
-    MongoDB --> Repo: Seat map data with shapes
+    MongoDB --> UpdateAction: Seat map data with shapes
     deactivate MongoDB
-    Repo --> LoadAction: Seat map with shapes
-    deactivate Repo
     
-    LoadAction --> Persistence: { success: true, data }
-    deactivate LoadAction
+    UpdateAction --> Canvas: { success: true, data }
+    deactivate UpdateAction
     
-    Persistence -> Store: loadSeatMapData(seatMapData)
+    Canvas -> Store: loadSeatMapData(seatMapData)
     Store -> Store: Set shapes, history, currentSeatMapId
     Store -> Session: Save to sessionStorage
 end
 
-Organizer -> Editor: Modify shapes, add/remove elements
-Editor -> Store: updateShape(), addShape(), deleteShape()
+Organizer -> Canvas: Modify shapes, add/remove elements
+Canvas -> Store: updateShape(), addShape(), deleteShape()
 Store -> Store: saveToHistory()
 Store -> Session: Debounced save state
 
-Organizer -> Editor: Enter area mode, modify seats/rows
-Editor -> Store: enterAreaMode(), addSeatToRow(), etc.
-
-Organizer -> Toolbar: Click "Save" (File menu)
+Organizer -> Toolbar: Click "Save"
 Toolbar -> Toolbar: setIsSaving(true)
 
-Toolbar -> Editor: captureSeatMapImageOptimized()
-activate Editor
-Editor -> Editor: Export current canvas state as image
-Editor --> Toolbar: Updated image blob
-deactivate Editor
+Toolbar -> Canvas: captureSeatMapImageOptimized()
+activate Canvas
+Canvas -> Canvas: Export current canvas state as image
+Canvas --> Toolbar: Updated image blob
+deactivate Canvas
 
 Toolbar -> Cloud: uploadBlobToCloudinary(blob, filename)
 activate Cloud
-Note right of Cloud: Overwrites existing image with same public_id
 Cloud --> Toolbar: { secure_url }
 deactivate Cloud
 
-Toolbar -> UpdateAction: updateSeatMapAction(seatMapId, shapes, undefined, imageUrl)
+Toolbar -> UpdateAction: updateSeatMapAction(seatMapId, shapes, imageUrl)
 activate UpdateAction
 
-UpdateAction -> Auth: getAuthSession()
-activate Auth
-Auth --> UpdateAction: User session (organizer)
-deactivate Auth
-
-UpdateAction -> Service: updateSeatMap(seatMapId, shapes, user, name, imageUrl)
-activate Service
-
-Service -> Service: Validate user role (organizer only)
-Service -> Service: Validate input data
-Service -> Repo: findSeatMapWithShapesById(seatMapId)
-Service -> Repo: updateSeatMapById(seatMapId, updateData)
-activate Repo
-Repo -> MongoDB: Verify ownership/permissions
-Repo -> MongoDB: Update document with new shapes and image
+UpdateAction -> MongoDB: Update document with new shapes and image
 activate MongoDB
-MongoDB --> Repo: Updated seat map
+MongoDB --> UpdateAction: Updated seat map
 deactivate MongoDB
-Repo --> Service: Updated seat map
-deactivate Repo
-
-Service --> UpdateAction: Updated seat map
-deactivate Service
 
 UpdateAction --> Toolbar: { success: true, data }
 deactivate UpdateAction
 
 Toolbar -> Toolbar: toast.success("Saved successfully!")
 Toolbar -> Toolbar: setIsSaving(false)
-
-Note right of Store: Session storage maintains state for continued editing
 
 @enduml
 

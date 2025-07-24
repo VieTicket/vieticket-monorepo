@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
 import { db } from "./lib/db";
-import { user } from "@vieticket/db/pg/schema";
+import { user, organizers } from "@vieticket/db/pg/schema";
 import { Role } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
@@ -22,7 +22,7 @@ const permissionMap: PermissionMap = [
   },
   {
     role: "customer",
-    endpoints: ["/profile/*", "/orders/*", "/checkout/*"],
+    endpoints: ["/orders/*", "/checkout/*"],
   },
 ];
 
@@ -85,7 +85,6 @@ function getRequiredRole(pathname: string): Role | null {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
   // Skip middleware for API routes that better-auth handles
   if (["/api/auth/"].some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();
@@ -126,6 +125,11 @@ export async function middleware(request: NextRequest) {
       const userData = await db.query.user.findFirst({
         columns: { role: true, banned: true },
         where: eq(user.id, session.user.id),
+        with: {
+          organizer: {
+            columns: { isActive: true },
+          },
+        },
       });
 
       if (!userData) {
@@ -140,13 +144,42 @@ export async function middleware(request: NextRequest) {
           new URL("/error?message=Account banned", request.url)
         );
       }
+      // Allow /profile/edit for all authenticated users (including inactive organizers)
+      else if (pathname === "/profile/edit") {
+        response = NextResponse.next();
+      }
+      // Check if organizer needs to complete profile (but not for /profile/edit)
+      else if (
+        userData.role === "organizer" &&
+        (!userData.organizer || !userData.organizer.isActive) &&
+        !isPublicRoute(pathname)
+      ) {
+        response = NextResponse.redirect(
+          new URL(
+            "/profile/edit?message=Please complete your profile and wait for admin approval",
+            request.url
+          )
+        );
+      }
       // Redirect admins from home page to admin dashboard
       else if (pathname === "/" && userData.role === "admin") {
         response = NextResponse.redirect(new URL("/admin", request.url));
       }
       // Redirect organizers from home page to organizer dashboard
-      else if (pathname === "/" && userData.role === "organizer") {
+      else if (
+        pathname === "/" &&
+        userData.role === "organizer" &&
+        userData.organizer?.isActive
+      ) {
         response = NextResponse.redirect(new URL("/organizer", request.url));
+      }
+      // Redirect inactive organizers from home page to profile edit
+      else if (
+        pathname === "/" &&
+        userData.role === "organizer" &&
+        (!userData.organizer || !userData.organizer.isActive)
+      ) {
+        response = NextResponse.redirect(new URL("/profile/edit", request.url));
       }
       // For public routes with authenticated users, allow access
       else if (isPublicRoute(pathname)) {
@@ -160,11 +193,32 @@ export async function middleware(request: NextRequest) {
             if (userData.role === "admin") {
               response = NextResponse.redirect(new URL("/admin", request.url));
             } else if (userData.role === "organizer") {
-              response = NextResponse.redirect(
-                new URL("/organizer", request.url)
-              );
+              if (userData.organizer?.isActive) {
+                response = NextResponse.redirect(
+                  new URL("/organizer", request.url)
+                );
+              } else {
+                response = NextResponse.redirect(
+                  new URL("/profile/edit", request.url)
+                );
+              }
             } else {
               response = NextResponse.redirect(new URL("/", request.url));
+            }
+          } else if (
+            userData.role === "organizer" &&
+            requiredRole === "organizer"
+          ) {
+            // Additional check for organizer routes - must be active
+            if (!userData.organizer || !userData.organizer.isActive) {
+              response = NextResponse.redirect(
+                new URL(
+                  "/profile/edit?message=Please complete your profile and wait for admin approval",
+                  request.url
+                )
+              );
+            } else {
+              response = NextResponse.next();
             }
           } else {
             response = NextResponse.next();

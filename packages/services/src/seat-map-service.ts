@@ -11,6 +11,7 @@ import {
   getSeatMapDraftCount,
   getSeatMapDraftChain,
   updateSeatMapPublicity,
+  deleteSeatMapById,
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
 
@@ -486,5 +487,52 @@ export async function getSeatMapDraftInfo(seatMapId: string, user: User) {
     throw new Error(
       "An unknown error occurred while fetching draft information"
     );
+  }
+}
+
+/**
+ * Service function to delete a seat map.
+ * @param seatMapId - ID of the seat map to delete.
+ * @param user - The user requesting deletion.
+ * @returns The deleted seat map.
+ */
+export async function deleteSeatMapService(seatMapId: string, user: User) {
+  // Authorization check
+  if (user.role !== "organizer") {
+    throw new Error("Unauthorized: Only organizers can delete seat maps");
+  }
+
+  // Input validation
+  if (!seatMapId || seatMapId.trim().length === 0) {
+    throw new Error("Seat map ID is required");
+  }
+
+  try {
+    // First verify the seat map exists and user owns it
+    const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
+
+    if (!existingSeatMap) {
+      throw new Error(
+        "Seat map not found or you don't have permission to delete it"
+      );
+    }
+
+    if (existingSeatMap.createdBy !== user.id) {
+      throw new Error("You can only delete your own seat maps");
+    }
+
+    // Delete the seat map
+    const deletedSeatMap = await deleteSeatMapById(seatMapId.trim());
+
+    if (!deletedSeatMap) {
+      throw new Error("Failed to delete seat map");
+    }
+
+    return deletedSeatMap;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to delete seat map: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while deleting the seat map");
   }
 }

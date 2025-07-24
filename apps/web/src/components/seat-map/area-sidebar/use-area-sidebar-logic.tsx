@@ -17,10 +17,10 @@ export function useAreaSidebarLogic() {
     selectRow,
     selectSeat,
   } = useAreaActions();
-  const { updateShape, saveToHistory } = useCanvasStore();
+  const { updateShape, saveToHistory, selectedShapeIds } = useCanvasStore();
 
   const [batchValues, setBatchValues] = useState<Record<string, any>>({});
-
+  const updateZoomedArea = useCanvasStore((state) => state.updateZoomedArea);
   // Get selected items
   const selectedRows = useMemo(() => {
     return (
@@ -170,10 +170,63 @@ export function useAreaSidebarLogic() {
           });
         }
 
-        updateShape(zoomedArea.id, updates);
+        updateZoomedArea(updates);
+      } else if (selectedShapeIds.length > 0) {
+        selectedShapeIds.forEach((id) => {
+          const shape = useCanvasStore.getState().getShapeById(id);
+
+          // Check if the shape is a polygon
+          if (shape && shape.type === "polygon") {
+            const polygonUpdates: Partial<any> = {};
+
+            // Map the area-wide updates to polygon-specific updates
+            if (updates.defaultSeatRadius !== undefined) {
+              polygonUpdates.defaultSeatRadius = updates.defaultSeatRadius;
+
+              // Also update existing rows in this polygon
+              if (shape.rows) {
+                shape.rows.forEach((row) => {
+                  updateRow(row.id, { seatRadius: updates.defaultSeatRadius });
+                });
+              }
+            }
+
+            if (updates.defaultSeatSpacing !== undefined) {
+              polygonUpdates.defaultSeatSpacing = updates.defaultSeatSpacing;
+
+              // Also update existing rows in this polygon
+              if (shape.rows) {
+                shape.rows.forEach((row) => {
+                  updateRow(row.id, {
+                    seatSpacing: updates.defaultSeatSpacing,
+                  });
+                });
+              }
+            }
+
+            if (updates.defaultSeatColor !== undefined) {
+              polygonUpdates.defaultSeatColor = updates.defaultSeatColor;
+
+              // Also update existing rows in this polygon
+              if (shape.rows) {
+                shape.rows.forEach((row) => {
+                  updateRow(row.id, { fill: updates.defaultSeatColor });
+                });
+              }
+            }
+
+            // Update the polygon shape with the new defaults
+            if (Object.keys(polygonUpdates).length > 0) {
+              updateShape(id, polygonUpdates);
+            }
+          } else {
+            // For non-polygon shapes, apply updates directly
+            updateShape(id, updates);
+          }
+        });
       }
     },
-    [zoomedArea, updateShape, updateRow, saveToHistory]
+    [zoomedArea, updateZoomedArea, updateRow, saveToHistory]
   );
 
   // Handle merging
