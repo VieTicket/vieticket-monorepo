@@ -1,8 +1,8 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { orders, tickets } from "@vieticket/db/pg/schemas/orders";
-import { and, count, desc, eq } from "drizzle-orm";
-import { user } from "@vieticket/db/pg/schemas/users";
+import { ticketEmailLogs } from "@vieticket/db/pg/schemas/logs";
+import { and, count, desc, eq, gt } from "drizzle-orm";
 
 /**
  * Gets event information for a given ticket
@@ -209,4 +209,63 @@ export async function getTicketDetails(orderId: string) {
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .where(eq(tickets.orderId, orderId));
+}
+
+/**
+ * Checks email sending limits for a ticket
+ * @param ticketId - Ticket ID
+ * @param email - Recipient email
+ * @param maxEmailsPerTicket - Maximum number of emails allowed per ticket
+ * @param cooldownMinutes - Cooldown period in minutes for sending to the same email
+ * @returns Object with limit status
+ */
+export async function checkTicketEmailLimits(
+  ticketId: string,
+  email: string,
+  maxEmailsPerTicket: number,
+  cooldownMinutes: number
+) {
+  // Total sends for this ticket
+  const totalSends = await db
+    .select({ count: count() })
+    .from(ticketEmailLogs)
+    .where(eq(ticketEmailLogs.ticketId, ticketId));
+  
+  // Recent sends to this email for this ticket
+  const cooldownPeriod = new Date(Date.now() - cooldownMinutes * 60 * 1000);
+  const recentSends = await db
+    .select({ count: count() })
+    .from(ticketEmailLogs)
+    .where(
+      and(
+        eq(ticketEmailLogs.ticketId, ticketId),
+        eq(ticketEmailLogs.recipient_email, email),
+        gt(ticketEmailLogs.sentAt, cooldownPeriod)
+      )
+    );
+  
+  return {
+    totalSends: totalSends[0]?.count || 0,
+    recentSends: recentSends[0]?.count || 0,
+    canSend: (totalSends[0]?.count || 0) < maxEmailsPerTicket && (recentSends[0]?.count || 0) === 0
+  };
+}
+
+/**
+ * Logs a ticket email send
+ * @param ticketId - Ticket ID
+ * @param senderUserId - Sender user ID
+ * @param recipientEmail - Recipient email
+ */
+export async function logTicketEmail(
+  ticketId: string,
+  senderUserId: string,
+  recipientEmail: string
+) {
+  await db.insert(ticketEmailLogs).values({
+    ticketId,
+    sender_user_id: senderUserId,
+    recipient_email: recipientEmail,
+    sentAt: new Date(),
+  });
 }

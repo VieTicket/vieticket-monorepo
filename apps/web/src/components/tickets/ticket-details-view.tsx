@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
 import { Armchair, Calendar, Clock, MapPin, Ticket as TicketIcon } from "lucide-react";
+import { SendTicketEmail } from "@/components/tickets/send-ticket-email";
 
 // This type should ideally be defined in a shared types file
 type TicketDetails = {
@@ -95,6 +96,12 @@ export function TicketDetailsView({ ticket }: TicketDetailsViewProps) {
                                 ID: {ticket.ticketId}
                             </p>
                         </div>
+                    </div>
+                    
+                    {/* Send by email section */}
+                    <div className="mt-6">
+                        <h3 className="font-medium mb-3 text-center">Send this ticket to another email</h3>
+                        <SendTicketEmail ticketId={ticket.ticketId} />
                     </div>
                 </CardContent>
             </Card>

@@ -6,8 +6,12 @@ import {
     findUserTicketsWithPagination,
     getEventByTicketId,
     getTicketDetails,
+    checkTicketEmailLimits,
+    logTicketEmail,
 } from "@vieticket/repos/orders";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
+import { sendMail } from "@vieticket/utils/mailer";
+import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
 
 /**
  * Gets a paginated list of orders for a given user.
@@ -25,6 +29,83 @@ export async function getUserOrders(
         throw new Error("Unauthorized: Only customers can view their orders.");
     }
     return findOrdersByUserIdWithPagination(user.id, page, limit);
+}
+
+export async function sendTicketEmail(
+    user: Pick<User, "id" | "email" | "name">,
+    ticketId: string,
+    recipientEmail: string
+): Promise<{ success: boolean; error?: string }> {
+    try {
+        // 1. Check if the user owns the ticket
+        const ticket = await findTicketByIdForUser(ticketId, user.id);
+        if (!ticket) {
+            throw new Error("Ticket not found or you do not have permission to send it.");
+        }
+
+        // 2. Check email limits
+        // TODO (for human): Remove hard-coded values and magic numbers, globally throughout the project
+        const limits = await checkTicketEmailLimits(ticketId, recipientEmail, 3, 60);
+        if (!limits.canSend) {
+            throw new Error(`Email limit exceeded. You can send at most 3 emails per ticket and 1 per hour to the same address.`);
+        }
+
+        // 3. Generate QR code and email content
+        const eventInfo = await getEventByTicketId(ticketId);
+        if (!eventInfo) {
+            throw new Error("Could not retrieve event information for the ticket.");
+        }
+
+        const qrData = generateTicketQRData(
+            ticketId,
+            user.name,
+            eventInfo.eventId,
+            ticket.seatNumber,
+            ticket.rowName,
+            ticket.areaName
+        );
+        const qrCodeDataUrl = await generateQRCodeImage(qrData);
+
+        // 4. Format email content
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Ticket for ${eventInfo.eventName}</title>
+            </head>
+            <body>
+                <h1>Ticket for ${eventInfo.eventName}</h1>
+                <p>Seat: ${ticket.areaName}, Row ${ticket.rowName}, Seat ${ticket.seatNumber}</p>
+                <p>Event starts at: ${new Date(ticket.startTime).toLocaleString()}</p>
+                <img src="${qrCodeDataUrl}" alt="QR Code" />
+                <p>Scan this QR code at the event entrance.</p>
+            </body>
+            </html>
+        `;
+
+        const textContent = `
+            Ticket for ${eventInfo.eventName}
+            Seat: ${ticket.areaName}, Row ${ticket.rowName}, Seat ${ticket.seatNumber}
+            Event starts at: ${new Date(ticket.startTime).toLocaleString()}
+            Use the QR code in the HTML version for entry.
+        `;
+
+        // 5. Send email
+        await sendMail({
+            to: recipientEmail,
+            subject: `Your ticket for ${eventInfo.eventName}`,
+            text: textContent,
+            html: htmlContent,
+        });
+
+        // 6. Log the email send
+        await logTicketEmail(ticketId, user.id, recipientEmail);
+
+        return { success: true };
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : "Failed to send ticket email";
+        return { success: false, error: errorMessage };
+    }
 }
 
 /**

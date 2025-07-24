@@ -6,8 +6,35 @@ import {
   getOrderDetails,
   getTicketDetailsForUser,
   getUserOrders,
+  sendTicketEmail,
 } from "@vieticket/services/order";
 import { headers as headersFn } from "next/headers";
+
+/**
+ * Sends a ticket to the specified email address
+ * @param ticketId - The ID of the ticket
+ * @param recipientEmail - The email address to send the ticket to
+ */
+export async function sendTicketEmailAction(ticketId: string, recipientEmail: string) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+    if (!user) {
+        throw new Error("Unauthenticated.");
+    }
+
+    const result = await sendTicketEmail(user, ticketId, recipientEmail);
+    if (!result.success) {
+      throw new Error(result.error);
+    }
+
+    return { success: true };
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Failed to send ticket email";
+    return { success: false, error: errorMessage };
+  }
+}
 
 /**
  * Server action to get a paginated list of the current user's orders.
