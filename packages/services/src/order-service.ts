@@ -43,6 +43,10 @@ export async function sendTicketEmail(
             throw new Error("Ticket not found or you do not have permission to send it.");
         }
 
+        if (ticket.status !== "active") {
+            throw new Error("Ticket is not active.");
+        }
+
         // 2. Check email limits
         // TODO (for human): Remove hard-coded values and magic numbers, globally throughout the project
         const limits = await checkTicketEmailLimits(ticketId, recipientEmail, 3, 60);

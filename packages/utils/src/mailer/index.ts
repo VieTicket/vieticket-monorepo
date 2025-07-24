@@ -1,4 +1,5 @@
 import Mailgun from "mailgun.js";
+// Remove the problematic import and use a more flexible type
 import formData from "form-data";
 
 interface MailerConfig {
@@ -8,12 +9,19 @@ interface MailerConfig {
   defaultFrom?: string;
 }
 
+interface Attachment {
+  data: Buffer | NodeJS.ReadableStream;
+  filename: string;
+  contentType?: string;
+}
+
 interface SendMailOptions {
   from?: string;
   to: string;
   subject: string;
   text: string;
   html?: string;
+  inline?: Attachment | Attachment[];
 }
 
 class MailSender {
@@ -36,17 +44,32 @@ class MailSender {
     subject,
     text,
     html,
+    inline,
   }: SendMailOptions): Promise<void> {
     try {
-      const messageData = {
+    const messageData = {
         from: from || this.config.defaultFrom || `VieTicket <notifications@${this.config.domain}>`,
         to,
         subject,
         text,
         ...(html && { html }),
-      };
+        // Handle inline attachments
+        ...(inline && {
+          inline: Array.isArray(inline) 
+            ? inline.map(att => ({
+                data: att.data,
+                filename: att.filename,
+                ...(att.contentType && { contentType: att.contentType })
+              }))
+            : [{
+                data: inline.data,
+                filename: inline.filename,
+                ...(inline.contentType && { contentType: inline.contentType })
+              }]
+        })
+    };
 
-      await this.mg.messages.create(this.config.domain, messageData);
+    await this.mg.messages.create(this.config.domain, messageData);
     } catch (error) {
       console.error("Error sending email:", error);
       throw error;
