@@ -11,7 +11,7 @@ import {
 } from "@vieticket/repos/orders";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
-import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
+import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
 
 /**
  * Gets a paginated list of orders for a given user.
@@ -68,10 +68,9 @@ export async function sendTicketEmail(
             ticket.rowName,
             ticket.areaName
         );
-        const qrCodeDataUrl = await generateQRCodeImage(qrData);
-
-        // 4. Format email content
-        const htmlContent = `
+        const qrCodeBuffer = await generateQRCodeBuffer(qrData);
+    const filename = "ticket-qr.png";
+    const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -81,7 +80,7 @@ export async function sendTicketEmail(
                 <h1>Ticket for ${eventInfo.eventName}</h1>
                 <p>Seat: ${ticket.areaName}, Row ${ticket.rowName}, Seat ${ticket.seatNumber}</p>
                 <p>Event starts at: ${new Date(ticket.startTime).toLocaleString()}</p>
-                <img src="${qrCodeDataUrl}" alt="QR Code" />
+                <img src="cid:${filename}" alt="QR Code" />
                 <p>Scan this QR code at the event entrance.</p>
             </body>
             </html>
@@ -100,6 +99,12 @@ export async function sendTicketEmail(
             subject: `Your ticket for ${eventInfo.eventName}`,
             text: textContent,
             html: htmlContent,
+            inline: {
+                data: qrCodeBuffer,
+                filename: filename,
+                contentType: "image/png",
+                contentId: filename,
+            },
         });
 
         // 6. Log the email send
@@ -158,7 +163,7 @@ export async function getOrderDetails(
                 ticket.areaName
             )
             : null;
-        return {...ticket, qrData};
+        return { ...ticket, qrData };
     });
 
     return {
@@ -199,7 +204,7 @@ export async function getTicketDetailsForUser(
         : null;
 
 
-    return {...ticket, qrData};
+    return { ...ticket, qrData };
 }
 
 /**
