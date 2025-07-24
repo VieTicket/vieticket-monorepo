@@ -22,7 +22,7 @@ const permissionMap: PermissionMap = [
   },
   {
     role: "customer",
-    endpoints: ["/profile/*", "/orders/*", "/checkout/*"],
+    endpoints: ["/orders/*", "/checkout/*"],
   },
 ];
 
