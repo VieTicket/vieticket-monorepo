@@ -1,8 +1,9 @@
 import { db } from "@vieticket/db/pg";
-import { ticketInspectionHistory, tickets } from "@vieticket/db/pg/schemas/orders";
+import { tickets } from "@vieticket/db/pg/schemas/orders";
 import { seats, rows, areas, events } from "@vieticket/db/pg/schemas/events";
 import { and, eq } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
+import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
 
 /**
  * Checks if a ticket belongs to an event organized by the given organizer.

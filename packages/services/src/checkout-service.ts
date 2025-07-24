@@ -20,7 +20,7 @@ import {
   ReturnQueryFromVNPay,
   verifyVNPayResponse,
 } from "@vieticket/utils/vnpay";
-import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
+import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
 
@@ -377,15 +377,18 @@ async function sendOrderConfirmationEmail(
           ticket.ticketId,
           user.name,
           eventInfo.eventId,
-          ticket.seatNumber, // Just the seat number
-          ticket.rowName, // Just the row name
-          ticket.areaName // Just the area name
+          ticket.seatNumber,
+          ticket.rowName,
+          ticket.areaName
         );
-        const qrCodeDataUrl = await generateQRCodeImage(qrData);
+        const qrCodeBuffer = await generateQRCodeBuffer(qrData);
+        const filename = `ticket-${ticket.ticketId}.png`;
+        const cid = filename;
         return {
           ...ticket,
-          qrCodeDataUrl,
+          qrCodeBuffer,
           qrData,
+          cid,
         };
       })
     );
@@ -563,8 +566,8 @@ async function sendOrderConfirmationEmail(
 
           <h2>🎟️ Vé của bạn</h2>
           ${ticketsWithQR
-            .map(
-              (ticket, index) => `
+        .map(
+          (ticket, index) => `
             <div class="ticket">
               <div class="ticket-header">
                 <div class="ticket-number">Vé #${index + 1}</div>
@@ -576,15 +579,15 @@ async function sendOrderConfirmationEmail(
               
               <div class="qr-section">
                 <p><strong>Mã QR để vào cửa:</strong></p>
-                <img src="${ticket.qrCodeDataUrl}" alt="QR Code cho vé ${index + 1}" class="qr-code" />
+                <img src="cid:${ticket.cid}" alt="QR Code cho vé ${index + 1}" class="qr-code" />
                 <div class="validation-code">
                   Mã vé: ${ticket.ticketId}
                 </div>
               </div>
             </div>
           `
-            )
-            .join("")}
+        )
+        .join("")}
 
           <div class="important-note">
             <strong>📌 Lưu ý quan trọng:</strong>
@@ -622,15 +625,15 @@ Tổng tiền: ${formattedTotal}
 VÉ CỦA BẠN
 ===========
 ${ticketsWithQR
-  .map(
-    (ticket, index) => `
+        .map(
+          (ticket, index) => `
 Vé #${index + 1}
 - Khu vực: ${ticket.areaName}
 - Vị trí: Hàng ${ticket.rowName}, Ghế ${ticket.seatNumber}
 - Mã vé: ${ticket.ticketId}
 `
-  )
-  .join("")}
+        )
+        .join("")}
 
 LƯU Ý QUAN TRỌNG:
 - Vui lòng mang theo email này để xuất trình tại cổng vào
@@ -641,12 +644,21 @@ Cảm ơn bạn đã sử dụng dịch vụ VieTicket!
 Liên hệ: support@vieticket.com
         `;
 
+    // Prepare inline attachments
+    const inlineAttachments = ticketsWithQR.map(ticket => ({
+      data: ticket.qrCodeBuffer,
+      filename: `ticket-${ticket.ticketId}.png`,
+      contentType: "image/png",
+      contentId: ticket.cid
+    }));
+
     // Send email using the existing sendMail utility
     await sendMail({
       to: user.email,
       subject: `🎫 Xác nhận đơn hàng #${orderData.id} - VieTicket`,
       text: textContent,
       html: htmlContent,
+      inline: inlineAttachments
     });
 
     return true;
