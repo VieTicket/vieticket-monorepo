@@ -2,15 +2,15 @@
 !theme plain
 title Email/Password Login Flow
 
-actor User
-participant "SignIn Component" as UI
+actor Guest
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 
-User -> UI: Enter email/password
-User -> UI: Click "Login"
+Guest -> UI: Enter email/password
+Guest -> UI: Click "Login"
 
 UI -> Client: authClient.signIn.email()
 activate Client
@@ -59,33 +59,33 @@ end note
 !theme plain
 title Google OAuth Login Flow
 
-actor User
-participant "SignIn Component" as UI
+actor Guest
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
-participant "Google OAuth" as Google
+participant "Auth Service" as Auth
+participant "OAuth Provider" as OAuth
 participant "Database" as DB
 
-User -> UI: Click "Sign in with Google"
+Guest -> UI: Click "Sign in with Google"
 
 UI -> Client: authClient.signIn.social({provider: "google"})
 activate Client
 
-Client -> Google: Redirect to Google OAuth
-activate Google
-Google -> User: Google login page
-User -> Google: Authenticate
-Google -> API: Callback with auth code
-deactivate Google
+Client -> OAuth: Redirect to OAuth provider
+activate OAuth
+OAuth -> Guest: OAuth login page
+Guest -> OAuth: Authenticate
+OAuth -> API: Callback with auth code
+deactivate OAuth
 
 API -> Auth: Process OAuth callback
 activate Auth
 
-Auth -> Google: Exchange code for tokens
-activate Google
-Google --> Auth: Access token + user info
-deactivate Google
+Auth -> OAuth: Exchange code for tokens
+activate OAuth
+OAuth --> Auth: Access token + User info
+deactivate OAuth
 
 Auth -> DB: Check if user exists
 activate DB
@@ -93,12 +93,12 @@ DB --> Auth: User found/not found
 deactivate DB
 
 alt User exists
-    Auth -> DB: Update user info
+    Auth -> DB: Update User info
     activate DB
     DB --> Auth: User updated
     deactivate DB
-else New user
-    Auth -> DB: Create new user
+else New User
+    Auth -> DB: Create new User
     activate DB
     DB --> Auth: User created
     deactivate DB
@@ -123,17 +123,17 @@ deactivate Client
 !theme plain
 title Email Signup Flow
 
-actor User
-participant "SignUp Component" as UI
+actor Guest
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-User -> UI: Enter user details
-User -> UI: Upload profile image (optional)
-User -> UI: Click "Create account"
+Guest -> UI: Enter user details
+Guest -> UI: Upload profile image (optional)
+Guest -> UI: Click "Create account"
 
 UI -> Client: authClient.signUp.email()
 activate Client
@@ -197,17 +197,17 @@ end note
 !theme plain
 title Organizer Signup Flow (Custom Component)
 
-actor User
-participant "SignUpOrganizer\nComponent" as UI
+actor Guest
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-User -> UI: Enter organizer details
-User -> UI: Upload profile image
-User -> UI: Click "Create account"
+Guest -> UI: Enter organizer details
+Guest -> UI: Upload profile image
+Guest -> UI: Click "Create account"
 
 UI -> UI: convertImageToBase64()
 activate UI
@@ -255,16 +255,16 @@ deactivate Client
 !theme plain
 title Forgot Password Flow
 
-actor User
-participant "ForgotPassword\nComponent" as UI
+actor Guest
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-User -> UI: Enter email address
-User -> UI: Click "Send reset link"
+Guest -> UI: Enter email address
+Guest -> UI: Click "Send reset link"
 
 UI -> Client: authClient.forgetPassword({email})
 activate Client
@@ -318,10 +318,10 @@ end note
 title Reset Password Flow
 
 actor User
-participant "ResetPassword\nComponent" as UI
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 
 User -> UI: Click reset link from email
@@ -378,13 +378,13 @@ end
 !theme plain
 title Email Verification Flow
 
-actor User
+actor Guest
 participant "Browser" as Browser
 participant "API Route" as API
-participant "Better Auth Server" as Auth
+participant "Auth Service" as Auth
 participant "Database" as DB
 
-User -> Browser: Click verification link from email
+Guest -> Browser: Click verification link from email
 Browser -> API: GET /api/auth/verify-email?token=xyz
 
 API -> Auth: Process email verification
@@ -417,7 +417,7 @@ end
 
 note right of Auth
   autoSignInAfterVerification: false
-  User must sign in manually after verification
+  Guest must sign in manually after verification
 end note
 
 @enduml
@@ -426,11 +426,11 @@ end note
 !theme plain
 title Session Management & Authorization
 
-participant "Client Component" as UI
+participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "Server Component" as Server
-participant "authorise() function" as Authorise
-participant "Better Auth Server" as Auth
+participant "API Actions" as Actions
+participant "Auth Service" as Auth
 participant "Database" as DB
 
 == Client-side Session Check ==
@@ -439,32 +439,32 @@ Client -> Client: Check cached session
 Client --> UI: Session data or null
 
 == Server-side Authorization ==
-Server -> Authorise: authorise(["organizer"])
-activate Authorise
+Server -> Actions: authorise(["organizer"])
+activate Actions
 
-Authorise -> Auth: auth.api.getSession({headers})
+Actions -> Auth: auth.api.getSession({headers})
 activate Auth
 Auth -> Auth: Validate session cookie
-Auth --> Authorise: Session data or null
+Auth --> Actions: Session data or null
 deactivate Auth
 
 alt No session
-    Authorise --> Server: throw Error('No valid session')
+    Actions --> Server: throw Error('No valid session')
 else Session exists
-    Authorise -> DB: Query user role
+    Actions -> DB: Query user role
     activate DB
-    DB --> Authorise: User role
+    DB --> Actions: User role
     deactivate DB
     
     alt Role not allowed
-        Authorise --> Server: throw Error('Insufficient permissions')
+        Actions --> Server: throw Error('Insufficient permissions')
     else Role allowed
-        Authorise --> Server: Return session data
-        deactivate Authorise
+        Actions --> Server: Return session data
+        deactivate Actions
     end
 end
 
-note right of Authorise
+note right of Actions
   Used in:
   - API routes
   - Server actions  

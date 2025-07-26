@@ -69,7 +69,7 @@ export default function Sidebar() {
         )}
       >
         <button
-          className="p-3 rounded-lg text-yellow-400"
+          className="p-3 pt-6 rounded-lg text-yellow-400"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
