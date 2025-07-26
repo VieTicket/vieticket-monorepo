@@ -1,6 +1,6 @@
 @startuml
 title Organizer Dashboard Overview Flow
-
+autonumber
 actor Organizer
 participant "OrganizerGeneralPage (Server)" as Page
 participant "Actions" as Actions

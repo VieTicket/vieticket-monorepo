@@ -16,6 +16,16 @@ const SORTABLE_COLUMNS = {
 
 export type SortableEventColumnKey = keyof typeof SORTABLE_COLUMNS;
 
+function normalizeLocation(str: string): string {
+  return str
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Bỏ dấu
+    .replace(/đ/g, "d")
+    .replace(/Đ/g, "D")
+    .replace(/\s/g, "") // Bỏ khoảng trắng
+    .toLowerCase();
+}
+
 export type EventSummary = Pick<
   Event,
   | "id"
@@ -114,10 +124,10 @@ export async function getFilteredEvents({
     const [minPrice, maxPrice] = priceRanges[price] || [0, Infinity];
     whereConditions.push(
       sql`EXISTS (
-        SELECT 1 FROM ${areas} 
-        WHERE ${areas.eventId} = ${events.id} 
-        AND ${areas.price} >= ${minPrice}
-        ${maxPrice !== Infinity ? sql`AND ${areas.price} <= ${maxPrice}` : sql``}
+      SELECT 1 FROM ${areas}
+      WHERE areas.event_id = events.id
+      AND areas.price >= ${minPrice}
+      ${maxPrice !== Infinity ? sql`AND areas.price <= ${maxPrice}` : sql``}
       )`
     );
   }
@@ -136,18 +146,23 @@ export async function getFilteredEvents({
 
   // Location filter
   if (location && location !== "all") {
-    whereConditions.push(eq(events.location, location));
+    const normalized = normalizeLocation(location);
+
+    whereConditions.push(
+      sql`REPLACE(LOWER(REPLACE(${events.location}, ' ', '')), 'đ', 'd') LIKE ${`%${normalized}%`}`
+    );
   }
 
   // Category filter
   if (category && category !== "all") {
-    whereConditions.push(eq(events.type, category));
+    whereConditions.push(sql`LOWER(${events.type}) = LOWER(${category})`);
   }
 
   // Search query
   if (q) {
+    const likeQuery = `%${q}%`;
     whereConditions.push(
-      sql`to_tsvector('english', ${events.name} || ' ' || COALESCE(${events.description}, '')) @@ plainto_tsquery('english', ${q})`
+      sql`(${events.name} ILIKE ${likeQuery} OR ${events.description} ILIKE ${likeQuery})`
     );
   }
 
@@ -205,10 +220,12 @@ export async function getEventSummaries({
   limit = 4,
   cursor,
   sortColumnKey = "startTime",
+  price,
 }: {
   limit?: number;
   cursor?: EventCursor;
   sortColumnKey?: SortableEventColumnKey;
+  price?: string;
 }): EventSummaryResponse {
   const sortBy = SORTABLE_COLUMNS[sortColumnKey]!;
 

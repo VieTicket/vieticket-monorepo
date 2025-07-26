@@ -10,7 +10,7 @@ database "DB" as DB
 participant "EventList (React Client)" as EventList
 participant "EventCard (Component)" as EventCard
 
-
+autonumber
 Organizer -> Page: Request /organizer/events
 activate Page
 

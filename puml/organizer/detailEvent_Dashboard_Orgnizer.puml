@@ -1,6 +1,6 @@
 @startuml
 title Event Detail Dashboard Flow
-
+autonumber
 actor Organizer
 participant "EventDetailPage (Server)" as Page
 participant "Actions" as Actions
