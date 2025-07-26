@@ -1,0 +1,33 @@
+@startuml
+title View Event Detail Flow (Direct Access)
+
+actor User
+participant "Event Page ([slug])" as EventPage
+participant "eventService" as Service
+participant "DB Query (mutations)" as DB
+participant "PreviewEvent (UI)" as UI
+
+activate User
+User -> EventPage: Access /events/{slug}
+activate EventPage
+
+EventPage -> Service: fetchEventDetail(slug)
+activate Service
+
+Service -> DB: getEventBySlug(slug)
+activate DB
+DB --> Service: EventFull (event + areas + organizer)
+deactivate DB
+
+Service --> EventPage: Normalized Event Data
+deactivate Service
+
+EventPage -> UI: Render <PreviewEvent data={event} />
+deactivate EventPage
+
+activate UI
+UI --> User: Event Detail Page Rendered
+deactivate UI
+
+deactivate User
+@enduml

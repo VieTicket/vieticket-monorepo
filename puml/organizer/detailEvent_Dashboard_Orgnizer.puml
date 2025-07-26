@@ -1,0 +1,96 @@
+@startuml
+title Event Detail Dashboard Flow
+
+actor Organizer
+participant "EventDetailPage (Server)" as Page
+participant "Actions" as Actions
+participant "Service" as Service
+participant "Mutations" as Mutations
+database "DB" as DB
+participant "DashboardOverview (React)" as Dashboard
+
+
+Organizer -> Page: Request /organizer/general/create?id={eventId}
+activate Page
+
+
+
+Page -> Actions: fetchRevenueOverTimeByEventId(eventId)
+activate Actions
+Actions -> Service: getRevenueOverTimeByEvent(eventId)
+activate Service
+Service -> Mutations: getRevenueOverTimeByEvent(eventId)
+activate Mutations
+Mutations -> DB: Query orders, tickets, seats...\ngroup by DATE_TRUNC(day)
+activate DB
+DB --> Mutations: List {date, total}
+deactivate DB
+Mutations --> Service: Normalized result
+deactivate Mutations
+Service --> Actions: Revenue over time
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Tickets sold by type ==
+Page -> Actions: fetchTotalTicketsSoldForEventByEventId(eventId)
+activate Actions
+Actions -> Service: getTotalTicketsSoldForEvent(eventId)
+activate Service
+Service -> Mutations: getTicketTypeRevenueByEvent(eventId)
+activate Mutations
+Mutations -> DB: Query tickets sold per area (name, price, count)
+activate DB
+DB --> Mutations: List {ticketType, ticketsSold, revenue}
+deactivate DB
+Mutations --> Service: Normalized
+deactivate Mutations
+Service --> Actions: Ticket type revenue
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Total available tickets ==
+Page -> Actions: fetchTotalTicketsSByEventId(eventId)
+activate Actions
+Actions -> Service: getTotalTicket(eventId)
+activate Service
+Service -> Mutations: getTotalAvailableSeatsByEvent(eventId)
+activate Mutations
+Mutations -> DB: COUNT(seats)
+activate DB
+DB --> Mutations: totalSeats (number)
+deactivate DB
+Mutations --> Service: Total seats
+deactivate Mutations
+Service --> Actions: Total seats
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Get the Orders list ==
+Page -> Actions: fetchOrdersByEvent(eventId)
+activate Actions
+Actions -> Service: getOrdersByEvent(eventId)
+activate Service
+Service -> Mutations: getOrdersByEvent(eventId)
+activate Mutations
+Mutations -> DB: Query orders, users, tickets, seats, rows, areas
+activate DB
+DB --> Mutations: List of {id, date, ticketType, amount, status, userInfo}
+deactivate DB
+Mutations --> Service: Normalized result
+deactivate Mutations
+Service --> Actions: Orders list
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Render Dashboard ==
+Page -> Dashboard: Render DashboardOverview\nwith {revenueOverTime, ticketTypeRevenue,\n totalAvailableTickets, recentTransactions}
+activate Dashboard
+Dashboard -> Organizer: Show charts, stats, tables
+deactivate Dashboard
+deactivate Page
+
+@enduml
