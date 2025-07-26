@@ -313,9 +313,9 @@ end note
 
 @enduml
 
-@startuml reset-password
+@startuml change-password
 !theme plain
-title Reset Password Flow
+title Change Password Flow
 
 actor User
 participant "UI Component" as UI

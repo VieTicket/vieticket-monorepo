@@ -139,7 +139,6 @@ export function AccountForm() {
       startTransition(async () => {
         try {
           const profileResult = await getProfileAction();
-          debugger;
 
           if (profileResult.success && profileResult.data) {
             const profile = profileResult.data;

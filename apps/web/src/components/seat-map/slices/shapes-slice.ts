@@ -207,6 +207,22 @@ export const createShapesSlice: StateCreator<
             y: point.y + 20,
           })
         );
+
+        // FIX: Duplicate rows and seats with new IDs
+        if (polygonShape.rows && polygonShape.rows.length > 0) {
+          (duplicatedShape as PolygonShape).rows = polygonShape.rows.map(
+            (row) => ({
+              ...row,
+              id: uuidv4(), // New row ID
+              area: duplicatedShape.id,
+              seats: row.seats.map((seat) => ({
+                ...seat,
+                id: uuidv4(),
+              })),
+            })
+          );
+        }
+
         // Keep original x, y for compatibility
         duplicatedShape.x = shape.x;
         duplicatedShape.y = shape.y;
@@ -289,6 +305,22 @@ export const createShapesSlice: StateCreator<
             y: point.y + 20,
           })
         );
+
+        // FIX: Duplicate rows and seats with new IDs
+        if (polygonShape.rows && polygonShape.rows.length > 0) {
+          (duplicatedShape as PolygonShape).rows = polygonShape.rows.map(
+            (row) => ({
+              ...row,
+              id: uuidv4(),
+              area: duplicatedShape.id,
+              seats: row.seats.map((seat) => ({
+                ...seat,
+                id: uuidv4(),
+              })),
+            })
+          );
+        }
+
         // Keep original x, y for compatibility
         duplicatedShape.x = shape.x;
         duplicatedShape.y = shape.y;
