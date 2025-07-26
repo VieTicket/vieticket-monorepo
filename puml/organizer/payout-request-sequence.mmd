@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor Organizer
+    participant PayoutRequestForm
+    participant createPayoutRequestAction
+    participant createPayoutRequestService
+    participant createPayoutRequest
+    participant Database
+
+    Organizer->>PayoutRequestForm: Submits form (eventId, amount)
+    PayoutRequestForm->>createPayoutRequestAction: createPayoutRequestAction(data)
+    
+    createPayoutRequestAction->>createPayoutRequestService: createPayoutRequestService(eventId, user, amount)
+    
+    alt Validation Checks
+        createPayoutRequestService->>createPayoutRequestService: Verify user role = organizer
+        createPayoutRequestService->>createPayoutRequestService: Verify event has passed
+        createPayoutRequestService->>createPayoutRequestService: Check requestedAmount ≤ revenue
+        createPayoutRequestService->>createPayoutRequestService: Verify no active payout exists
+    end
+
+    createPayoutRequestService->>createPayoutRequest: createPayoutRequest({eventId, organizerId, requestedAmount})
+    createPayoutRequest->>Database: INSERT INTO payout_requests
+    Database-->>createPayoutRequest: Created record
+    createPayoutRequest-->>createPayoutRequestService: PayoutRequest
+    createPayoutRequestService-->>createPayoutRequestAction: PayoutRequest
+    createPayoutRequestAction-->>PayoutRequestForm: Success response
+    PayoutRequestForm-->>Organizer: Show success, redirect to /payouts

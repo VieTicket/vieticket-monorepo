@@ -1,0 +1,129 @@
+erDiagram
+    events ||--o{ areas : "has"
+    events {
+        uuid id PK
+        string name
+        string slug
+        text description
+        timestamp startTime
+        timestamp endTime
+        string location
+        string type
+        timestamp ticketSaleStart
+        timestamp ticketSaleEnd
+        string posterUrl
+        string bannerUrl
+        integer views
+        string approvalStatus
+        timestamp createdAt
+        timestamp updatedAt
+        string seatMapId
+        string organizerId FK
+    }
+    
+    areas ||--o{ rows : "has"
+    areas {
+        uuid id PK
+        uuid eventId FK
+        string name
+        decimal price
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    rows ||--o{ seats : "has"
+    rows {
+        uuid id PK
+        uuid areaId FK
+        string rowName
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    seats {
+        uuid id PK
+        uuid rowId FK
+        string seatNumber
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    orders ||--o{ tickets : "contains"
+    orders {
+        uuid id PK
+        string userId FK
+        timestamp orderDate
+        decimal totalAmount
+        string status
+        jsonb paymentMetadata
+        timestamp updatedAt
+    }
+    
+    tickets {
+        uuid id PK
+        uuid orderId FK
+        uuid seatId FK
+        string status
+        timestamp purchasedAt
+    }
+    
+    events ||--o{ payoutRequests : "has"
+    payoutRequests {
+        uuid id PK
+        uuid eventId FK
+        string organizerId FK
+        string status
+        decimal requestedAmount
+        decimal agreedAmount
+        timestamp requestDate
+        timestamp completionDate
+        string proofDocumentUrl
+    }
+    
+    organizers {
+        string id PK
+        string name
+        timestamp foundedDate
+        string website
+        boolean isActive
+        string address
+        string organizerType
+        string rejectionReason
+        boolean rejectionSeen
+        timestamp rejectedAt
+    }
+
+    user {
+        string id PK
+        string name
+        string email
+        boolean emailVerified
+        date dateOfBirth
+        string gender
+        string phone
+        string image
+        string role
+        boolean banned
+        string banReason
+        timestamp banExpires
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    
+    events }o--|| organizers : "organized by"
+    payoutRequests }o--|| organizers : "requested by"
+    orders }o--|| user : "placed by"
+    tickets }o--|| seats : "reserves"
+    seatmaps {
+        string name
+        array shapes
+        string image
+        string createdBy
+        string publicity
+        ObjectId draftedFrom
+        string originalCreator
+        timestamp createdAt
+        timestamp updatedAt
+    }
+    organizers ||--|| seatmaps : "owns"
+    events }o--|| seatmaps : "references"

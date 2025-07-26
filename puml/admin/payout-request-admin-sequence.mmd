@@ -1,0 +1,68 @@
+sequenceDiagram
+    actor Admin
+    participant Admin UI
+    participant Server Actions
+    participant Service
+    participant Repository
+    participant Database
+    participant Cloudinary
+
+    Admin->>Admin UI: Load page /admin/payment-requests
+    Admin UI->>Server Actions: getAdminPayoutRequestsAction(page, limit, status)
+    Server Actions->>Service: getPayoutRequestsForAdmin(user, {offset, limit, status})
+    Service->>Repository: getPayoutRequestsForAdminRepo({offset, limit, status})
+    Repository->>Database: SELECT * FROM payout_requests
+    Database-->>Repository: PayoutRequest[]
+    Repository-->>Service: {data, totalCount, totalPages}
+    Service-->>Server Actions: PayoutRequestWithEvent[]
+    Server Actions-->>Admin UI: APIResponse
+    Admin UI-->>Admin: Render table with requests
+
+    alt Filter by status
+        Admin->>Admin UI: Select status filter
+        Admin UI->>Server Actions: Refetch with new status
+    end
+
+    alt Update agreed amount
+        Admin->>Admin UI: Edit amount → Save
+        Admin UI->>Server Actions: updatePayoutStatusAction(requestId, currentStatus, newAmount)
+        Server Actions->>Service: updatePayoutRequestService(requestId, user, {agreedAmount})
+        Service->>Repository: updatePayoutRequest(requestId, {agreedAmount})
+        Repository->>Database: UPDATE payout_requests SET agreedAmount = newAmount
+        Database-->>Repository: Updated PayoutRequest
+        Repository-->>Service: PayoutRequest
+        Service-->>Server Actions: PayoutRequest
+        Server Actions-->>Admin UI: Success response
+        Admin UI-->>Admin: Update UI with new amount
+    end
+
+    alt Change status
+        Admin->>Admin UI: Select status → Save
+        Admin UI->>Server Actions: updatePayoutStatusAction(requestId, newStatus, agreedAmount)
+        Server Actions->>Service: updatePayoutRequestService(requestId, user, {status, agreedAmount})
+        Service->>Repository: updatePayoutRequest(requestId, {status, agreedAmount})
+        Repository->>Database: UPDATE payout_requests SET status = newStatus, agreedAmount = agreedAmount
+        Database-->>Repository: Updated PayoutRequest
+        alt If approved/rejected
+            Repository->>Database: SET completionDate = NOW()
+        end
+        Repository-->>Service: PayoutRequest
+        Service-->>Server Actions: PayoutRequest
+        Server Actions-->>Admin UI: Success response
+        Admin UI-->>Admin: Update UI with new status
+    end
+
+    alt Upload proof
+        Admin->>Admin UI: Click "Upload Evidence"
+        Admin UI->>🏢 Cloudinary: Upload file (file data)
+        🏢 Cloudinary-->>Admin UI: secure_url
+        Admin UI->>Server Actions: uploadPayoutProofAction(requestId, secure_url)
+        Server Actions->>Service: updatePayoutRequestService(requestId, user, {proofDocumentUrl})
+        Service->>Repository: updatePayoutRequest(requestId, {proofDocumentUrl})
+        Repository->>Database: UPDATE payout_requests SET proofDocumentUrl = secure_url
+        Database-->>Repository: Updated PayoutRequest
+        Repository-->>Service: PayoutRequest
+        Service-->>Server Actions: PayoutRequest
+        Server Actions-->>Admin UI: Success response
+        Admin UI-->>Admin: Show proof link
+    end

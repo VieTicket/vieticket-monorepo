@@ -1,0 +1,17 @@
+erDiagram
+  user {
+  }
+
+  organizers ||--|| user : "is a"
+  orders }o--|| user : "placed by"
+
+  events ||--|| organizers : "organized by"
+  events ||--o{ areas : "has"
+  areas ||--o{ rows : "has"
+  rows ||--o{ seats : "has"
+  events ||--o{ payoutRequests : "has"
+  payoutRequests }o--|| organizers : "requested by"
+  orders ||--o{ tickets : "has"
+  tickets }o--|| seats : "reserves"
+  events }o--|| seatmaps : "uses"
+  organizers ||--|| seatmaps : "created by"

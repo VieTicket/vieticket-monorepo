@@ -1,0 +1,55 @@
+---
+config:
+  theme: redux
+---
+sequenceDiagram
+    actor Inspector as Inspector (Organizer)
+    participant Frontend as Frontend (Inspector Page)
+    participant ServerAction as Server Action
+    participant InspectionService as Inspection Service
+    participant InspectionRepo as Inspection Repository
+    participant Database as Database
+    participant TicketValidation as Ticket Validation
+
+    Inspector->>Frontend: Scans QR code
+    Frontend->>TicketValidation: decodeTicketQRData(qrData)
+    TicketValidation-->>Frontend: Decoded ticket data (TicketValidationPayload | null)
+
+    alt Check-in Mode
+        Frontend->>ServerAction: checkInTicketAction(ticketId)
+    else Inspect Mode
+        Frontend->>ServerAction: inspectTicketAction(ticketId)
+    end
+
+    ServerAction->>ServerAction: getAuthSession()
+    ServerAction->>InspectionService: checkInTicket() or inspectTicket()
+    
+    InspectionService->>InspectionRepo: isTicketOwnedByOrganizer(ticketId, organizerId)
+    InspectionRepo->>Database: SELECT (verify ownership)
+    Database-->>InspectionRepo: Boolean result
+    
+    alt Check-in Mode
+        InspectionService->>InspectionRepo: atomicCheckInAndLog(ticketId, inspectorId)
+    else Inspect Mode
+        InspectionService->>InspectionRepo: logTicketInspection(ticketId, inspectorId, status)
+    end
+    
+    InspectionRepo->>Database: BEGIN TRANSACTION
+    alt Check-in Mode
+        InspectionRepo->>Database: SELECT ticket (FOR UPDATE)
+        alt Ticket valid and active
+            InspectionRepo->>Database: UPDATE ticket status to 'used'
+            InspectionRepo->>Database: INSERT valid inspection log
+        else Ticket invalid or used
+            InspectionRepo->>Database: INSERT invalid/duplicate log
+        end
+    else Inspect Mode
+        InspectionRepo->>Database: INSERT inspection log (valid/invalid)
+    end
+    InspectionRepo->>Database: COMMIT
+    
+    Database-->>InspectionRepo: Operation result (ticket + log)
+    InspectionRepo-->>InspectionService: Response (ticket + log + status)
+    InspectionService-->>ServerAction: Ticket details or AppError
+    ServerAction-->>Frontend: {data, success} or {error}
+    Frontend-->>Inspector: Display ticket details/error
