@@ -1,0 +1,54 @@
+sequenceDiagram
+    actor User
+    participant AccountForm
+    participant Server Actions
+    participant Service
+    participant Repository
+    participant Database
+    participant 🏢 Cloudinary
+
+    User->>AccountForm: Navigate to /profile/edit
+    AccountForm->>Server Actions: getProfileAction()
+    Server Actions->>Service: getFullUserProfile(userId)
+    Service->>Repository: getUserWithOptionalOrganizerById(userId)
+    Repository->>Database: SELECT * FROM user
+    Database-->>Repository: User data
+    alt If organizer
+        Repository->>Database: SELECT * FROM organizers
+        Database-->>Repository: Organizer data
+    end
+    Repository-->>Service: Combined profile
+    Service-->>Server Actions: Profile data
+    Server Actions-->>AccountForm: Render form
+
+    alt Update profile
+        User->>AccountForm: Edit fields → Save
+        AccountForm->>Server Actions: updateProfileAction(formData)
+        Server Actions->>Service: updateProfile(userId, userData, organizerData)
+        Service->>Repository: updateUserAndOrganizerProfile(userId, userData, organizerData)
+        Repository->>Database: BEGIN TRANSACTION
+        Repository->>Database: UPDATE user
+        alt If organizer data
+            Repository->>Database: UPDATE organizers
+        end
+        Database-->>Repository: Commit transaction
+        Repository-->>Service: Success
+        Service-->>Server Actions: Success
+        Server Actions-->>AccountForm: Revalidate path
+        AccountForm-->>User: Show success
+    end
+
+    alt Upload avatar
+        User->>AccountForm: Upload image
+        AccountForm->>🏢 Cloudinary: Upload file
+        🏢 Cloudinary-->>AccountForm: secure_url
+        AccountForm->>Server Actions: uploadAvatarAction(secure_url)
+        Server Actions->>Service: updateAvatarUrl(userId, imageUrl)
+        Service->>Repository: updateUserAndOrganizerProfile(userId, {image})
+        Repository->>Database: UPDATE user SET image
+        Database-->>Repository: Updated user
+        Repository-->>Service: Success
+        Service-->>Server Actions: Success
+        Server Actions-->>AccountForm: Revalidate path
+        AccountForm-->>User: Update avatar preview
+    end

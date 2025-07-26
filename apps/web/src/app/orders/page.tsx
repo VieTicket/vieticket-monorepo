@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 
 interface OrdersPageProps {
-  searchParams?: {
+  searchParams?: Promise<{
     page?: string;
     limit?: string;
-  };
+  }>;
 }
 
 function formatCurrency(amount: number): string {
@@ -34,8 +34,8 @@ function getStatusColor(status: string): string {
 }
 
 export default async function OrdersPage({ searchParams }: OrdersPageProps) {
-  const page = Number(searchParams?.page ?? 1);
-  const limit = Number(searchParams?.limit ?? 10);
+  const page = Number((await searchParams)?.page ?? 1);
+  const limit = Number((await searchParams)?.limit ?? 10);
 
   const result = await getUserOrdersAction(page, limit);
 

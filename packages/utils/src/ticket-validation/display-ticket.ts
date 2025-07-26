@@ -1,7 +1,7 @@
 import { TicketValidationPayload } from "./types";
 
 // Re-export the TicketValidationPayload type for convenience
-export { TicketValidationPayload };
+export type { TicketValidationPayload } from "./types";
 
 /**
  * Unified ticket type for display in the inspector UI

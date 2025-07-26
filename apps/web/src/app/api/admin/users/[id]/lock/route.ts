@@ -5,14 +5,14 @@ import { eq } from "drizzle-orm";
 
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Authorize admin access
     await authorise("admin");
 
     const { banned, banReason, banExpires } = await request.json();
-    const userId = params.id;
+    const userId = (await params).id;
 
     // Update user's banned status
     await db

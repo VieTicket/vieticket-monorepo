@@ -23,7 +23,7 @@ const nextConfig: NextConfig = {
   allowedDevOrigins: [
     "**.lo.vtk.io.vn",
     "lo.vtk.io.vn"
-  ]
+  ],
 };
 
 export default nextConfig;

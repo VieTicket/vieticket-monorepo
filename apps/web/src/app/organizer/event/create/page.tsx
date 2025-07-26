@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -28,6 +28,14 @@ import type {
 } from "../../../../types/event-types";
 
 export default function CreateEventPage() {
+  return (
+    <Suspense>
+      <CreateEventPageInner />
+    </Suspense>
+  );
+}
+
+function CreateEventPageInner() {
   const [formData, setFormData] = useState<EventFormData>({
     name: "",
     type: "",

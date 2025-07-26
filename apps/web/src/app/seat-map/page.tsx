@@ -1,11 +1,12 @@
 "use client";
+
 import dynamic from "next/dynamic";
 import { StageProvider } from "@/components/seat-map/providers/stage-provider";
 import {
   useAreaMode,
   useCanvasStore,
 } from "@/components/seat-map/store/main-store";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
@@ -141,9 +142,13 @@ function PageContent() {
   return (
     <div className="overflow-hidden w-screen h-screen flex flex-col">
       {/* Add the persistence component at the top level */}
-      <StatePersistence />
+      <Suspense>
+        <StatePersistence />
+      </Suspense>
 
-      <MainToolbar />
+      <Suspense>
+        <MainToolbar />
+      </Suspense>
       <div className="flex flex-1 overflow-hidden">
         <div className="bg-gray-900 text-white p-3 shadow z-10 w-64 overflow-y-auto border border-gray-700">
           <CanvasInventory />

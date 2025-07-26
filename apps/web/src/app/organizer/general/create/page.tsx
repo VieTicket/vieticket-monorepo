@@ -10,9 +10,9 @@ import {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: { id: string };
+  searchParams: Promise<{ id: string }>;
 }) {
-  const eventId = searchParams.id;
+  const eventId = (await searchParams).id;
 
   const revenueOverTime = await fetchRevenueOverTimeByEventId(eventId);
   const ticketTypeRevenue =
