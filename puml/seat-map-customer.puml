@@ -3,49 +3,46 @@
 title Customer Seat Selection Flow
 
 actor Customer
-participant "Event Details Page" as EventPage
-participant "Ticket Selection Page" as TicketPage
-participant "SeatMapCanvasCustomer" as Canvas
-participant "StageProvider" as Stage
-participant "loadEventWithSeatingAction" as LoadEvent
-participant "getTicketAvailabilityAction" as GetAvailability
-participant "EventService" as EventService
-participant "TicketService" as TicketService
-participant "SeatMapService" as SeatMapService
-participant "MongoDB (Events)" as EventDB
-participant "MongoDB (SeatMaps)" as SeatMapDB
+participant "UI Component" as UI
+participant "Canvas Component" as Canvas
+participant "State Provider" as State
+participant "API Actions" as Actions
+participant "Event Service" as EventService
+participant "Ticket Service" as TicketService
+participant "SeatMap Service" as SeatMapService
+participant "MongoDB" as MongoDB
 participant "PostgreSQL" as PostgresDB
 
-Customer -> EventPage: Click "Buy Tickets" on event
-EventPage -> TicketPage: Navigate to /events/{id}/tickets
+Customer -> UI: Click "Buy Tickets" on event
+UI -> UI: Navigate to /events/{id}/tickets
 
-TicketPage -> LoadEvent: loadEventWithSeatingAction(eventId)
-activate LoadEvent
-LoadEvent -> EventService: getEventWithSeating(eventId)
-LoadEvent -> EventDB: Query event with areas/rows/seats
-EventDB --> LoadEvent: Event with seating structure
+UI -> Actions: loadEventWithSeatingAction(eventId)
+activate Actions
+Actions -> EventService: getEventWithSeating(eventId)
+Actions -> MongoDB: Query event with areas/rows/seats
+MongoDB --> Actions: Event with seating structure
 
 alt Event has seat map
-    LoadEvent -> SeatMapService: getSeatMapById(seatMapId)
-    LoadEvent -> SeatMapDB: Query seat map shapes
-    SeatMapDB --> LoadEvent: Seat map with shapes
+    Actions -> SeatMapService: getSeatMapById(seatMapId)
+    Actions -> MongoDB: Query seat map shapes
+    MongoDB --> Actions: Seat map with shapes
 else No seat map
-    LoadEvent --> TicketPage: Error: No seat map configured
+    Actions --> UI: Error: No seat map configured
 end
 
-LoadEvent --> TicketPage: Event + seat map + seating structure
-deactivate LoadEvent
+Actions --> UI: Event + seat map + seating structure
+deactivate Actions
 
-TicketPage -> GetAvailability: getTicketAvailabilityAction(eventId)
-activate GetAvailability
-GetAvailability -> TicketService: getTicketAvailability(eventId)
-GetAvailability -> PostgresDB: Query tickets table for sold/held seats
-PostgresDB --> GetAvailability: Availability data by seat
-GetAvailability --> TicketPage: Seat availability status
-deactivate GetAvailability
+UI -> Actions: getTicketAvailabilityAction(eventId)
+activate Actions
+Actions -> TicketService: getTicketAvailability(eventId)
+Actions -> PostgresDB: Query tickets table for sold/held seats
+PostgresDB --> Actions: Availability data by seat
+Actions --> UI: Seat availability status
+deactivate Actions
 
-TicketPage -> Canvas: Render with seatMapData + seatingStructure
-Canvas -> Stage: Initialize Konva stage
+UI -> Canvas: Render with seatMapData + seatingStructure
+Canvas -> State: Initialize stage
 Canvas -> Canvas: enhanceShapesWithSeatingData()
 
 Note right of Canvas
@@ -60,29 +57,29 @@ Customer -> Canvas: Pan and zoom to explore seating
 Canvas -> Canvas: handleWheel() / handleMouseMove()
 
 Customer -> Canvas: Click on available seat
-Canvas -> TicketPage: onSeatClick(seatId, isAvailable)
+Canvas -> UI: onSeatClick(seatId, isAvailable)
 
 alt Seat is available
-    TicketPage -> TicketPage: addSeatToSelection(seatId)
-    TicketPage -> Canvas: Re-render with updated selectedSeats
+    UI -> UI: addSeatToSelection(seatId)
+    UI -> Canvas: Re-render with updated selectedSeats
     Canvas -> Canvas: Update seat visual (blue = selected)
 else Seat unavailable
-    TicketPage -> TicketPage: toast.error("Seat not available")
+    UI -> UI: toast.error("Seat not available")
 end
 
 loop Customer selects multiple seats
     Customer -> Canvas: Click additional seats
-    Canvas -> TicketPage: onSeatClick(seatId, isAvailable)
-    TicketPage -> TicketPage: toggleSeatSelection(seatId)
-    TicketPage -> Canvas: Update selectedSeats array
+    Canvas -> UI: onSeatClick(seatId, isAvailable)
+    UI -> UI: toggleSeatSelection(seatId)
+    UI -> Canvas: Update selectedSeats array
 end
 
-Customer -> TicketPage: Review selected seats in sidebar
-TicketPage -> TicketPage: calculateTotalPrice()
+Customer -> UI: Review selected seats in sidebar
+UI -> UI: calculateTotalPrice()
 
-Customer -> TicketPage: Click "Continue to Checkout"
-TicketPage -> TicketPage: validateSeatSelection()
-TicketPage -> Customer: Navigate to checkout page with selected seats
+Customer -> UI: Click "Continue to Checkout"
+UI -> UI: validateSeatSelection()
+UI -> Customer: Navigate to checkout page with selected seats
 
 @enduml
 
@@ -92,31 +89,30 @@ title Real-time Seat Availability Management
 
 participant "Customer A Browser" as CustomerA
 participant "Customer B Browser" as CustomerB
-participant "Ticket Selection Page" as TicketPage
-participant "holdSeatsAction" as HoldSeats
-participant "releaseSeatsAction" as ReleasSeats
-participant "TicketService" as Service
+participant "UI Component" as UI
+participant "API Actions" as Actions
+participant "Ticket Service" as Service
 participant "Redis Cache" as Redis
 participant "PostgreSQL" as DB
-participant "WebSocket/SSE" as RealTime
+participant "Real-time Service" as RealTime
 
 == Initial Load ==
-CustomerA -> TicketPage: Load event ticket page
-TicketPage -> Service: getTicketAvailability(eventId)
+CustomerA -> UI: Load event ticket page
+UI -> Service: getTicketAvailability(eventId)
 Service -> DB: Query current ticket status
 DB --> Service: Seat availability data
-Service --> TicketPage: Current availability
+Service --> UI: Current availability
 
-CustomerB -> TicketPage: Load same event (different session)
-TicketPage -> Service: getTicketAvailability(eventId)
-Service --> TicketPage: Same availability data
+CustomerB -> UI: Load same event (different session)
+UI -> Service: getTicketAvailability(eventId)
+Service --> UI: Same availability data
 
 == Seat Selection & Holding ==
-CustomerA -> TicketPage: Select seat A1
-TicketPage -> HoldSeats: holdSeatsAction([seatA1], sessionId)
-activate HoldSeats
+CustomerA -> UI: Select seat A1
+UI -> Actions: holdSeatsAction([seatA1], sessionId)
+activate Actions
 
-HoldSeats -> Service: holdSeats(eventId, seatIds, customerId, sessionId)
+Actions -> Service: holdSeats(eventId, seatIds, customerId, sessionId)
 Service -> DB: BEGIN TRANSACTION
 Service -> DB: SELECT seats FOR UPDATE
 DB --> Service: Current seat statuses
@@ -130,19 +126,19 @@ alt Seats still available
     Service -> RealTime: broadcast_seat_update(eventId, seatId, 'held')
     RealTime -> CustomerB: Seat A1 now held (visual update)
     
-    HoldSeats --> TicketPage: Success - seats held
-    TicketPage -> TicketPage: Start 15-minute countdown timer
+    Actions --> UI: Success - seats held
+    UI -> UI: Start 15-minute countdown timer
 else Seats already taken
     Service -> DB: ROLLBACK
-    HoldSeats --> TicketPage: Error - seats no longer available
-    TicketPage -> TicketPage: Remove from selection, show error
+    Actions --> UI: Error - seats no longer available
+    UI -> UI: Remove from selection, show error
 end
-deactivate HoldSeats
+deactivate Actions
 
 == Concurrent Selection Attempt ==
-CustomerB -> TicketPage: Try to select same seat A1
-TicketPage -> TicketPage: getSeatStatus(A1) = 'held'
-TicketPage -> TicketPage: Prevent selection, show "Held by another user"
+CustomerB -> UI: Try to select same seat A1
+UI -> UI: getSeatStatus(A1) = 'held'
+UI -> UI: Prevent selection, show "Held by another user"
 
 == Hold Expiration ==
 Redis -> Service: Seat hold expired (15 min timer)
@@ -151,9 +147,9 @@ Service -> RealTime: broadcast_seat_update(eventId, seatId, 'available')
 RealTime -> CustomerB: Seat A1 now available again
 
 == Manual Release ==
-CustomerA -> TicketPage: Deselect seat or navigate away
-TicketPage -> ReleasSeats: releaseSeatsAction([seatA1], sessionId)
-ReleasSeats -> Service: releaseSeats(eventId, seatIds, customerId)
+CustomerA -> UI: Deselect seat or navigate away
+UI -> Actions: releaseSeatsAction([seatA1], sessionId)
+Actions -> Service: releaseSeats(eventId, seatIds, customerId)
 Service -> DB: UPDATE seats SET status='available'
 Service -> Redis: DEL seat_hold:{seatId}
 Service -> RealTime: broadcast_seat_update(eventId, seatId, 'available')
@@ -165,30 +161,28 @@ Service -> RealTime: broadcast_seat_update(eventId, seatId, 'available')
 title Ticket Checkout Process
 
 actor Customer
-participant "Ticket Selection Page" as TicketPage
-participant "Checkout Page" as CheckoutPage
+participant "UI Component" as UI
 participant "Payment Component" as Payment
-participant "createOrderAction" as CreateOrder
-participant "processPaymentAction" as ProcessPayment
-participant "OrderService" as OrderService
-participant "PaymentService" as PaymentService
-participant "TicketService" as TicketService
-participant "EmailService" as EmailService
+participant "API Actions" as Actions
+participant "Order Service" as OrderService
+participant "Payment Service" as PaymentService
+participant "Ticket Service" as TicketService
+participant "Email Service" as EmailService
 participant "PostgreSQL" as DB
 participant "Payment Gateway" as PaymentGW
 participant "PDF Generator" as PDFGen
 
-Customer -> TicketPage: Click "Continue to Checkout"
-TicketPage -> TicketPage: validateSelectedSeats()
+Customer -> UI: Click "Continue to Checkout"
+UI -> UI: validateSelectedSeats()
 
 alt No seats selected
-    TicketPage -> Customer: toast.error("Please select seats")
+    UI -> Customer: toast.error("Please select seats")
 else Seats selected
-    TicketPage -> CheckoutPage: Navigate with selected seat data
+    UI -> UI: Navigate to checkout page with selected seat data
 end
 
-CheckoutPage -> CheckoutPage: displayOrderSummary()
-Note right of CheckoutPage
+UI -> UI: displayOrderSummary()
+Note right of UI
   Order Summary:
   - Event details
   - Selected seats with pricing
@@ -196,15 +190,15 @@ Note right of CheckoutPage
   - Customer information form
 end note
 
-Customer -> CheckoutPage: Fill customer information
-Customer -> CheckoutPage: Select payment method
+Customer -> UI: Fill customer information
+Customer -> UI: Select payment method
 Customer -> Payment: Enter payment details
 
-Customer -> CheckoutPage: Click "Complete Purchase"
-CheckoutPage -> CreateOrder: createOrderAction(orderData)
-activate CreateOrder
+Customer -> UI: Click "Complete Purchase"
+UI -> Actions: createOrderAction(orderData)
+activate Actions
 
-CreateOrder -> OrderService: createOrder(eventId, customerId, seatIds, amount)
+Actions -> OrderService: createOrder(eventId, customerId, seatIds, amount)
 OrderService -> DB: BEGIN TRANSACTION
 
 OrderService -> TicketService: validateSeatAvailability(seatIds)
@@ -214,13 +208,13 @@ alt Seats still held by this customer
     OrderService -> DB: INSERT INTO orders (customer, event, amount, status='pending')
     OrderService -> DB: INSERT INTO order_items (order, seat, price)
     
-    CreateOrder --> CheckoutPage: Order created successfully
-    deactivate CreateOrder
+    Actions --> UI: Order created successfully
+    deactivate Actions
     
-    CheckoutPage -> ProcessPayment: processPaymentAction(orderId, paymentDetails)
-    activate ProcessPayment
+    UI -> Actions: processPaymentAction(orderId, paymentDetails)
+    activate Actions
     
-    ProcessPayment -> PaymentService: processPayment(orderId, amount, paymentMethod)
+    Actions -> PaymentService: processPayment(orderId, amount, paymentMethod)
     PaymentService -> PaymentGW: charge(amount, paymentDetails)
     
     alt Payment successful
@@ -230,17 +224,17 @@ alt Seats still held by this customer
         PaymentService -> DB: DELETE FROM seat_holds WHERE seatId IN (seatIds)
         PaymentService -> DB: COMMIT
         
-        ProcessPayment --> CheckoutPage: Payment successful
-        deactivate ProcessPayment
+        Actions --> UI: Payment successful
+        deactivate Actions
         
-        CheckoutPage -> PDFGen: generateTickets(orderId)
+        UI -> PDFGen: generateTickets(orderId)
         PDFGen -> DB: Query order details with seat info
-        PDFGen --> CheckoutPage: PDF ticket files
+        PDFGen --> UI: PDF ticket files
         
-        CheckoutPage -> EmailService: sendTickets(customerEmail, pdfFiles)
+        UI -> EmailService: sendTickets(customerEmail, pdfFiles)
         EmailService -> Customer: Email with ticket attachments
         
-        CheckoutPage -> Customer: Show success page with download links
+        UI -> Customer: Show success page with download links
         
     else Payment failed
         PaymentGW --> PaymentService: Payment declined
@@ -248,15 +242,15 @@ alt Seats still held by this customer
         PaymentService -> DB: UPDATE seats SET status='available'
         PaymentService -> DB: COMMIT
         
-        ProcessPayment --> CheckoutPage: Payment failed
-        CheckoutPage -> Customer: Show error, return to payment
+        Actions --> UI: Payment failed
+        UI -> Customer: Show error, return to payment
     end
     
 else Seats no longer available
     OrderService -> DB: ROLLBACK
-    CreateOrder --> CheckoutPage: Error - seats no longer available
-    CheckoutPage -> TicketPage: Redirect back to seat selection
-    TicketPage -> Customer: toast.error("Selected seats are no longer available")
+    Actions --> UI: Error - seats no longer available
+    UI -> UI: Redirect back to seat selection
+    UI -> Customer: toast.error("Selected seats are no longer available")
 end
 
 @enduml
@@ -266,16 +260,15 @@ end
 title Seat Map Canvas Customer Interactions
 
 actor Customer
-participant "SeatMapCanvasCustomer" as Canvas
-participant "useStageRef" as StageRef
-participant "Konva Stage" as Stage
-participant "Shape Renderer" as Renderer
-participant "Area Events" as AreaEvents
-participant "Ticket Page State" as TicketState
+participant "Canvas Component" as Canvas
+participant "Stage Hook" as StageHook
+participant "Rendering Engine" as Renderer
+participant "Event Handlers" as Events
+participant "UI Component" as UI
 
 == Canvas Initialization ==
 Customer -> Canvas: Component mounts
-Canvas -> StageRef: Get stage reference
+Canvas -> StageHook: Get stage reference
 Canvas -> Canvas: Initialize viewport size
 Canvas -> Canvas: enhanceShapesWithSeatingData()
 
@@ -285,9 +278,9 @@ Note right of Canvas
   2. Add seat IDs, pricing, availability
   3. Apply visual styling based on status
   4. Create interactive seat elements
-end note
+end Note
 
-Canvas -> Stage: Render enhanced shapes
+Canvas -> Renderer: Render enhanced shapes
 Canvas -> Canvas: centerCanvasOnLoad()
 
 == Visual Status Mapping ==
@@ -302,42 +295,41 @@ Note right of Canvas
 end note
 
 == Customer Interactions ==
-Customer -> Stage: Pan canvas (mouse drag)
-Stage -> Canvas: handleMouseMove() + handleMouseDown/Up()
-Canvas -> Canvas: updatePanPosition()
+Customer -> Renderer: Pan canvas (mouse drag)
+Renderer -> Events: handleMouseMove() + handleMouseDown/Up()
+Events -> Canvas: updatePanPosition()
 
-Customer -> Stage: Zoom (mouse wheel)
-Stage -> Canvas: handleWheel()
-Canvas -> Canvas: updateZoomAndPan()
+Customer -> Renderer: Zoom (mouse wheel)
+Renderer -> Events: handleWheel()
+Events -> Canvas: updateZoomAndPan()
 
-Customer -> Stage: Click on seat
-Stage -> Renderer: Route click to seat element
-Renderer -> AreaEvents: onSeatClick(seatId, seatData)
-AreaEvents -> Canvas: handleSeatClick(seatId, seatData)
+Customer -> Renderer: Click on seat
+Renderer -> Events: Route click to seat element
+Events -> Canvas: handleSeatClick(seatId, seatData)
 
 Canvas -> Canvas: Check seat availability
 alt Seat is available
-    Canvas -> TicketState: onSeatClick(seatId, true)
-    TicketState -> TicketState: toggleSeatSelection(seatId)
-    TicketState -> Canvas: Update selectedSeats array
+    Canvas -> UI: onSeatClick(seatId, true)
+    UI -> UI: toggleSeatSelection(seatId)
+    UI -> Canvas: Update selectedSeats array
     Canvas -> Canvas: Re-render with new selection
 else Seat unavailable (sold/held)
-    Canvas -> TicketState: onSeatClick(seatId, false)
-    TicketState -> Customer: toast.error("Seat not available")
+    Canvas -> UI: onSeatClick(seatId, false)
+    UI -> Customer: toast.error("Seat not available")
 end
 
 == Real-time Updates ==
 loop Real-time availability changes
-    TicketState -> Canvas: Updated availability data
+    UI -> Canvas: Updated availability data
     Canvas -> Canvas: Re-enhance shapes with new status
-    Canvas -> Stage: Re-render affected seats
-    Stage -> Customer: Visual update (color changes)
+    Canvas -> Renderer: Re-render affected seats
+    Renderer -> Customer: Visual update (color changes)
 end
 
 == Mobile Responsiveness ==
 Customer -> Canvas: Touch interactions (mobile)
-Canvas -> Stage: Handle touch events
-Stage -> Canvas: Convert to pan/zoom/select operations
+Canvas -> Renderer: Handle touch events
+Renderer -> Events: Convert to pan/zoom/select operations
 
 Note right of Canvas
   Mobile optimizations:
@@ -353,17 +345,17 @@ end note
 !theme plain
 title Dynamic Ticket Pricing & Calculation
 
-participant "Ticket Selection Page" as TicketPage
-participant "SeatMapCanvasCustomer" as Canvas
-participant "calculatePricingAction" as CalcPricing
-participant "PricingService" as PricingService
-participant "EventService" as EventService
+participant "UI Component" as UI
+participant "Canvas Component" as Canvas
+participant "API Actions" as Actions
+participant "Pricing Service" as PricingService
+participant "Event Service" as EventService
 participant "PostgreSQL" as DB
 
 == Initial Pricing Load ==
-TicketPage -> CalcPricing: calculatePricingAction(eventId)
-activate CalcPricing
-CalcPricing -> PricingService: getEventPricing(eventId)
+UI -> Actions: calculatePricingAction(eventId)
+activate Actions
+Actions -> PricingService: getEventPricing(eventId)
 PricingService -> DB: Query event pricing rules
 DB --> PricingService: Base prices, discounts, fees
 
@@ -374,17 +366,17 @@ else Fixed pricing
     PricingService -> PricingService: Use base prices
 end
 
-CalcPricing --> TicketPage: Pricing structure
-deactivate CalcPricing
+Actions --> UI: Pricing structure
+deactivate Actions
 
-TicketPage -> Canvas: Display prices on seat hover/selection
+UI -> Canvas: Display prices on seat hover/selection
 
 == Seat Selection Pricing ==
 Customer -> Canvas: Select seat in premium area
-Canvas -> TicketPage: onSeatClick(seatId, available=true)
-TicketPage -> TicketPage: addSeatToCart(seatId)
+Canvas -> UI: onSeatClick(seatId, available=true)
+UI -> UI: addSeatToCart(seatId)
 
-TicketPage -> PricingService: calculateSeatPrice(seatId, areaId)
+UI -> PricingService: calculateSeatPrice(seatId, areaId)
 PricingService -> DB: Query area base price
 PricingService -> PricingService: Apply time-based discounts
 PricingService -> PricingService: Apply quantity discounts
@@ -400,28 +392,28 @@ Note right of PricingService
   - Taxes
 end note
 
-PricingService --> TicketPage: Final seat price
-TicketPage -> TicketPage: updateCartTotal()
+PricingService --> UI: Final seat price
+UI -> UI: updateCartTotal()
 
 == Multi-Seat Selection ==
 loop Customer selects multiple seats
     Customer -> Canvas: Select additional seat
-    Canvas -> TicketPage: onSeatClick(nextSeatId, available=true)
-    TicketPage -> PricingService: calculateSeatPrice(nextSeatId, areaId)
+    Canvas -> UI: onSeatClick(nextSeatId, available=true)
+    UI -> PricingService: calculateSeatPrice(nextSeatId, areaId)
     
     alt Quantity discount applies
         PricingService -> PricingService: applyGroupDiscount(seatCount)
-        PricingService -> TicketPage: Recalculate all seat prices
-        TicketPage -> TicketPage: updateAllSeatPrices()
+        PricingService -> UI: Recalculate all seat prices
+        UI -> UI: updateAllSeatPrices()
     else No group discount
-        TicketPage -> TicketPage: addSeatPrice()
+        UI -> UI: addSeatPrice()
     end
     
-    TicketPage -> TicketPage: updateCartSummary()
+    UI -> UI: updateCartSummary()
 end
 
 == Price Breakdown Display ==
-TicketPage -> Customer: Show detailed breakdown
+UI -> Customer: Show detailed breakdown
 
 Note left of Customer
   Price Breakdown:
@@ -435,9 +427,9 @@ end note
 
 == Dynamic Price Updates ==
 DB -> PricingService: Price change event (demand spike)
-PricingService -> TicketPage: broadcastPriceUpdate(eventId)
-TicketPage -> TicketPage: refreshPricing()
-TicketPage -> Customer: Show price update notification
+PricingService -> UI: broadcastPriceUpdate(eventId)
+UI -> UI: refreshPricing()
+UI -> Customer: Show price update notification
 
 @enduml
 
@@ -447,7 +439,7 @@ title Accessibility & Mobile Support
 
 actor Customer
 participant "Mobile Browser" as Mobile
-participant "SeatMapCanvasCustomer" as Canvas
+participant "Canvas Component" as Canvas
 participant "Touch Handlers" as Touch
 participant "Accessibility Layer" as A11y
 participant "Screen Reader" as ScreenReader
@@ -564,23 +556,23 @@ end note
 title Error Handling & Edge Cases
 
 actor Customer
-participant "SeatMapCanvasCustomer" as Canvas
+participant "Canvas Component" as Canvas
 participant "Error Boundary" as ErrorBoundary
-participant "Ticket Selection Page" as TicketPage
+participant "UI Component" as UI
 participant "Retry Logic" as Retry
 participant "Fallback UI" as Fallback
-participant "ErrorService" as ErrorService
+participant "Error Service" as ErrorService
 participant "Analytics" as Analytics
 
 == Seat Map Loading Errors ==
-Customer -> TicketPage: Load event page
-TicketPage -> Canvas: Load seat map data
+Customer -> UI: Load event page
+UI -> Canvas: Load seat map data
 
 alt Seat map not found
     Canvas -> ErrorBoundary: throw SeatMapNotFoundError
     ErrorBoundary -> Fallback: Show fallback UI
     Fallback -> Customer: "Seat map temporarily unavailable - showing list view"
-    Fallback -> TicketPage: switchToListMode()
+    Fallback -> UI: switchToListMode()
 else Seat map corrupted
     Canvas -> ErrorBoundary: throw SeatMapCorruptedError
     ErrorBoundary -> ErrorService: logError(error, context)
@@ -607,16 +599,16 @@ end
 
 == Seat Selection Race Conditions ==
 Customer -> Canvas: Select seat rapidly
-Canvas -> TicketPage: onSeatClick(seatA1)
-Canvas -> TicketPage: onSeatClick(seatA1) [duplicate]
+Canvas -> UI: onSeatClick(seatA1)
+Canvas -> UI: onSeatClick(seatA1) [duplicate]
 
-TicketPage -> TicketPage: debounceSelection()
-TicketPage -> TicketPage: preventDuplicateSelection()
+UI -> UI: debounceSelection()
+UI -> UI: preventDuplicateSelection()
 
 alt Seat already in processing
-    TicketPage -> Customer: Show "Processing..." state
+    UI -> Customer: Show "Processing..." state
 else Seat selection valid
-    TicketPage -> TicketPage: processSelection()
+    UI -> UI: processSelection()
 end
 
 == Memory Management ==
@@ -654,7 +646,7 @@ Canvas -> Customer: "Please select seats from the same event"
 == Session Timeout ==
 Canvas -> Canvas: detectSessionExpiry()
 Canvas -> Customer: "Your session has expired"
-Canvas -> TicketPage: redirectToLogin()
+Canvas -> UI: redirectToLogin()
 
 == Performance Degradation ==
 Canvas -> Canvas: monitorPerformance()
@@ -678,7 +670,7 @@ alt Seating structure mismatch
     Canvas -> Fallback: showBasicSeatGrid()
     Canvas -> Customer: "Simplified view - some features limited"
 else Price data missing
-    Canvas -> TicketPage: requestPriceRefresh()
+    Canvas -> UI: requestPriceRefresh()
     Canvas -> Customer: "Loading pricing information..."
 end
 
@@ -689,6 +681,14 @@ Note right of Fallback
   Fallback strategies:
   1. Canvas → Static image with clickable areas
   2. Static image → Simple list view
+  3. List view → Text-only selection
+  4. Text-only → Contact support
+end note
+
+Fallback -> Customer: "Choose your preferred seat selection method"
+Fallback -> Analytics: trackFallbackUsage()
+
+@enduml
   3. List view → Text-only selection
   4. Text-only → Contact support
 end note

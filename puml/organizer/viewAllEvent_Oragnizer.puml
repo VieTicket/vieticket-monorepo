@@ -1,0 +1,54 @@
+@startuml
+title Organizer - Fetch and Display All Events
+
+actor Organizer
+participant "OrganizerEventsPage (Server)" as Page
+participant "Actions" as Actions
+participant "Service" as Service
+participant "Mutations" as Mutations
+database "DB" as DB
+participant "EventList (React Client)" as EventList
+participant "EventCard (Component)" as EventCard
+
+
+Organizer -> Page: Request /organizer/events
+activate Page
+
+== Fetch all events ==
+Page -> Actions: fetchEventsByOrganizer(organizerId)
+activate Actions
+Actions -> Service: getEventsByOrganizer(organizerId)
+activate Service
+Service -> Mutations: getEventsByOrganizerId(organizerId)
+activate Mutations
+Mutations -> DB: SELECT * FROM events WHERE organizerId = ?
+activate DB
+DB --> Mutations: List of Event objects
+deactivate DB
+Mutations --> Service: Events[]
+deactivate Mutations
+Service --> Actions: Events[]
+deactivate Service
+Actions --> Page: Events[]
+deactivate Actions
+
+== Render client ==
+Page -> EventList: Render with props {events: Events[]}
+activate EventList
+
+EventList -> EventList: Filter events by\nsearch & approvalStatus
+alt No matching events
+    EventList --> Organizer: Show "No events found"
+else Matching events
+    loop For each event
+        EventList -> EventCard: Render EventCard(event)
+        activate EventCard
+        EventCard --> EventList: Event UI
+        deactivate EventCard
+    end
+end
+
+EventList --> Organizer: Display grid of EventCards
+deactivate EventList
+deactivate Page
+@enduml

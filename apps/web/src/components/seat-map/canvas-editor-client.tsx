@@ -11,6 +11,7 @@ import { buildShapeProps } from "./utils/shape-props-builder";
 import { SelectionOverlay } from "./utils/selection-overlay";
 import { useKeyMap } from "./hooks/useKeyMap";
 import { useStageRef } from "./providers/stage-provider";
+import { ValidationNotification } from "./components/validation-notification";
 
 export default function CanvasEditorClient() {
   const hasInitialized = useRef(false);
@@ -25,6 +26,22 @@ export default function CanvasEditorClient() {
   const { isInitialLoad } = useCanvasResize();
   useKeyMap();
 
+  // Validation hooks
+  const validationErrors = useCanvasStore(
+    (state) => state.validationErrors || []
+  );
+  const showValidationErrors = useCanvasStore(
+    (state) => state.showValidationErrors || false
+  );
+  const validateAllAreas = useCanvasStore((state) => state.validateAllAreas);
+  const dismissValidationErrors = useCanvasStore(
+    (state) => state.dismissValidationErrors
+  );
+  const fixArea = useCanvasStore((state) => state.fixArea);
+  const highlightSeatsInArea = useCanvasStore(
+    (state) => state.highlightSeatsInArea
+  );
+
   useEffect(() => {
     if (
       viewportSize.width > 0 &&
@@ -37,6 +54,13 @@ export default function CanvasEditorClient() {
       }, 100);
     }
   }, []);
+
+  // Validate areas when shapes change
+  useEffect(() => {
+    if (shapes.length > 0 && validateAllAreas) {
+      validateAllAreas();
+    }
+  }, [shapes, validateAllAreas]);
 
   const renderSelectionRectangle = useMemo(() => {
     if (!eventHandlers.selectionRect || !eventHandlers.isSelecting) return null;
@@ -311,6 +335,16 @@ export default function CanvasEditorClient() {
         Zoom: {Math.round(zoom * 100)}% | X: {Math.round(pan.x)} | Y:{" "}
         {Math.round(pan.y)}
       </div>
+
+      {/* Validation Notification */}
+      {showValidationErrors && validationErrors.length > 0 && (
+        <ValidationNotification
+          errors={validationErrors}
+          onDismiss={dismissValidationErrors || (() => {})}
+          onFixArea={fixArea || (() => {})}
+          onHighlightSeats={highlightSeatsInArea || (() => {})}
+        />
+      )}
     </div>
   );
 }

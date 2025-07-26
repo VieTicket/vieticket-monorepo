@@ -15,7 +15,7 @@ import {
   MessageCircle,
   TicketCheck,
   LogOut,
-  User
+  User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -57,12 +57,6 @@ export default function Sidebar() {
 
   return (
     <>
-      <button
-        className="fixed top-4 left-4 z-50 bg-[#1f1c33] p-2 rounded-lg text-yellow-400"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        {isOpen ? <X size={24} /> : <Menu size={24} />}
-      </button>
       {/* Sidebar */}
       <aside
         className={cn(
@@ -74,16 +68,22 @@ export default function Sidebar() {
           isOpen ? "w-64 px-6" : "w-16 px-2"
         )}
       >
+        <button
+          className="p-3 pt-6 rounded-lg text-yellow-400"
+          onClick={() => setIsOpen(!isOpen)}
+        >
+          {isOpen ? <X size={24} /> : <Menu size={24} />}
+        </button>
         {/* Logo */}
         <div
           className={cn(
-            "text-2xl font-extrabold tracking-tight text-yellow-400 h-16 flex items-center transition-all duration-300",
+            "text-2xl font-extrabold tracking-tight text-yellow-400 flex items-center transition-all duration-300",
             !isOpen && "justify-center"
           )}
         >
           {isOpen ? "" : ""}
         </div>
-        <nav className="flex flex-col gap-2 mt-4">
+        <nav className="flex flex-col gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
