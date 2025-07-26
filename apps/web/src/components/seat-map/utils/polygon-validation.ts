@@ -58,7 +58,6 @@ export function getSeatAbsolutePosition(
 export function validatePolygonSeats(
   area: PolygonShape
 ): ValidationError | null {
-  debugger;
   if (!area.points || area.points.length < 3) {
     return null; // Cannot validate polygon with less than 3 points
   }

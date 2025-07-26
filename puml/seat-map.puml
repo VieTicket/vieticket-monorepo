@@ -1,4 +1,5 @@
 @startuml create-new-seat-map
+autonumber
 !theme plain
 title Create New Seat Map Flow
 

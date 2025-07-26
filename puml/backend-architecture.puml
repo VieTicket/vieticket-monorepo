@@ -1,0 +1,157 @@
+@startuml backend-architecture
+!theme plain
+title Backend Package Architecture
+
+skinparam component {
+  BackgroundColor LightBlue
+  BorderColor DarkBlue
+  FontSize 12
+}
+
+skinparam package {
+  BackgroundColor LightYellow
+  BorderColor DarkGreen
+  FontSize 14
+  FontStyle bold
+}
+
+package "External Services" as ExtServices {
+  [PostgreSQL] as PG
+  [MongoDB] as Mongo
+  [Redis Cache] as Redis
+  [Cloudinary] as Cloud
+  [Mailgun] as Mail
+  [VNPay] as VNPay
+  [OAuth Providers] as OAuth
+}
+
+package "@vieticket/db" as DBPackage {
+  component [PostgreSQL Connection] as PGConn
+  component [MongoDB Connection] as MongoConn
+  component [PostgreSQL Schemas] as PGSchemas
+  component [MongoDB Schemas] as MongoSchemas
+  component [Drizzle ORM Models] as DrizzleModels
+  component [Mongoose Models] as MongooseModels
+  
+  interface "PG Export" as PGInterface
+  interface "Mongo Export" as MongoInterface
+  
+  PGConn ..> PGInterface
+  MongoConn ..> MongoInterface
+  PGSchemas ..> PGInterface
+  MongoSchemas ..> MongoInterface
+  DrizzleModels ..> PGInterface
+  MongooseModels ..> MongoInterface
+}
+
+package "@vieticket/repos" as ReposPackage {
+  component [Event Repository] as EventRepo
+  component [User Repository] as UserRepo
+  component [Ticket Repository] as TicketRepo
+  component [SeatMap Repository] as SeatMapRepo
+  component [Order Repository] as OrderRepo
+  component [Payout Repository] as PayoutRepo
+  
+  interface "Repository Layer" as RepoInterface
+  
+  EventRepo ..> RepoInterface
+  UserRepo ..> RepoInterface
+  TicketRepo ..> RepoInterface
+  SeatMapRepo ..> RepoInterface
+  OrderRepo ..> RepoInterface
+  PayoutRepo ..> RepoInterface
+}
+
+package "@vieticket/services" as ServicesPackage {
+  component [Event Service] as EventService
+  component [Auth Service] as AuthService
+  component [Ticket Service] as TicketService
+  component [SeatMap Service] as SeatMapService
+  component [Order Service] as OrderService
+  component [Payment Service] as PaymentService
+  component [Email Service] as EmailService
+  
+  interface "Business Logic Layer" as ServiceInterface
+  
+  EventService ..> ServiceInterface
+  AuthService ..> ServiceInterface
+  TicketService ..> ServiceInterface
+  SeatMapService ..> ServiceInterface
+  OrderService ..> ServiceInterface
+  PaymentService ..> ServiceInterface
+  EmailService ..> ServiceInterface
+}
+
+package "@vieticket/utils" as UtilsPackage {
+  component [VNPay Utils] as VNPayUtils
+  component [Mailer Utils] as MailerUtils
+  component [Ticket Validation] as TicketValidation
+  component [QR Code Generator] as QRCode
+  component [Crypto Utils] as CryptoUtils
+  
+  interface "Utility Functions" as UtilInterface
+  
+  VNPayUtils ..> UtilInterface
+  MailerUtils ..> UtilInterface
+  TicketValidation ..> UtilInterface
+  QRCode ..> UtilInterface
+  CryptoUtils ..> UtilInterface
+}
+
+package "@vieticket/worker" as WorkerPackage {
+  component [Background Jobs] as BGJobs
+  component [Scheduled Tasks] as ScheduledTasks
+  component [Data Processing] as DataProcess
+  
+  interface "Worker Interface" as WorkerInterface
+  
+  BGJobs ..> WorkerInterface
+  ScheduledTasks ..> WorkerInterface
+  DataProcess ..> WorkerInterface
+}
+
+' External connections
+PGConn --> PG : connects
+MongoConn --> Mongo : connects
+PaymentService --> VNPay : integrates
+EmailService --> Mail : sends via
+SeatMapService --> Cloud : uploads to
+TicketService --> Redis : caches in
+AuthService --> OAuth : authenticates with
+
+' Internal dependencies
+ReposPackage --> DBPackage : depends on
+ServicesPackage --> ReposPackage : depends on
+ServicesPackage --> UtilsPackage : depends on
+WorkerPackage --> DBPackage : depends on
+
+' Specific service dependencies
+EventService --> EventRepo : uses
+AuthService --> UserRepo : uses
+TicketService --> TicketRepo : uses
+TicketService --> OrderRepo : uses
+SeatMapService --> SeatMapRepo : uses
+OrderService --> OrderRepo : uses
+PaymentService --> PayoutRepo : uses
+EmailService --> MailerUtils : uses
+PaymentService --> VNPayUtils : uses
+
+note right of ExtServices
+  External services and databases
+  - PostgreSQL: Transactional data
+  - MongoDB: Document storage
+  - Redis: Caching & sessions
+  - Cloudinary: Image storage
+  - Mailgun: Email delivery
+  - VNPay: Payment processing
+end note
+
+note bottom of ServicesPackage
+  Business logic layer
+  - Orchestrates repository calls
+  - Implements business rules
+  - Handles external integrations
+  - Manages transactions
+end note
+
+@enduml

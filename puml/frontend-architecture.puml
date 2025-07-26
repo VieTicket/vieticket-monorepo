@@ -1,0 +1,173 @@
+@startuml frontend-architecture
+!theme plain
+title Frontend Package Architecture
+
+skinparam component {
+  BackgroundColor LightGreen
+  BorderColor DarkGreen
+  FontSize 12
+}
+
+skinparam package {
+  BackgroundColor LightCyan
+  BorderColor DarkBlue
+  FontSize 14
+  FontStyle bold
+}
+
+package "External Libraries" as ExtLibs {
+  [Next.js 15] as NextJS
+  [React 19] as React
+  [TailwindCSS] as Tailwind
+  [Better Auth] as Auth
+  [Konva.js] as Konva
+  [React Query] as ReactQuery
+  [Zustand] as Zustand
+  [Zod] as Zod
+  [React Hook Form] as RHF
+}
+
+package "UI Framework" as UIFramework {
+  [Radix UI] as RadixUI
+  [Lucide Icons] as Icons
+  [Sonner Toasts] as Toast
+  [Chart.js] as Charts
+  [Next Themes] as Themes
+}
+
+package "Web App (@web)" as WebApp {
+  
+  package "App Router" as AppRouter {
+    component [Layout Components] as Layouts
+    component [Page Components] as Pages
+    component [API Routes] as APIRoutes
+    component [Server Actions] as ServerActions
+    component [Middleware] as Middleware
+  }
+  
+  package "UI Components" as UIComponents {
+    component [Auth Components] as AuthComponents
+    component [Event Components] as EventComponents
+    component [Seat Map Components] as SeatMapComponents
+    component [Payment Components] as PaymentComponents
+    component [Admin Components] as AdminComponents
+    component [Shared Components] as SharedComponents
+  }
+  
+  package "State Management" as StateManagement {
+    component [Auth State] as AuthState
+    component [Canvas Store] as CanvasStore
+    component [Form State] as FormState
+    component [Query Cache] as QueryCache
+  }
+  
+  package "Canvas System" as CanvasSystem {
+    component [Konva Stage] as KonvaStage
+    component [Shape Renderer] as ShapeRenderer
+    component [Event Handlers] as EventHandlers
+    component [Seat Map Editor] as SeatMapEditor
+    component [Customer Canvas] as CustomerCanvas
+  }
+  
+  package "Business Logic" as BusinessLogic {
+    component [Event Management] as EventMgmt
+    component [Ticket Management] as TicketMgmt
+    component [Payment Processing] as PaymentProc
+    component [User Management] as UserMgmt
+    component [Analytics] as Analytics
+  }
+}
+
+package "Backend Integration" as BackendIntegration {
+  component [API Client] as APIClient
+  component [Auth Client] as AuthClient
+  component [File Upload] as FileUpload
+  component [Real-time Updates] as RealTime
+}
+
+package "External Integrations" as ExtIntegrations {
+  [Cloudinary] as CloudinarySDK
+  [Stream Chat] as StreamChat
+  [QR Scanner] as QRScanner
+  [Payment Gateway] as PaymentGW
+}
+
+' Framework dependencies
+WebApp --> NextJS : built with
+UIComponents --> React : built with
+Pages --> NextJS : uses App Router
+UIComponents --> RadixUI : uses components
+StateManagement --> Zustand : state store
+StateManagement --> ReactQuery : server state
+BusinessLogic --> Zod : validation
+UIComponents --> RHF : form handling
+
+' Canvas system dependencies
+CanvasSystem --> Konva : rendering engine
+SeatMapEditor --> CanvasSystem : extends
+CustomerCanvas --> CanvasSystem : extends
+SeatMapComponents --> CanvasSystem : integrates
+
+' State flow
+AuthComponents --> AuthState : updates
+EventComponents --> QueryCache : fetches data
+SeatMapComponents --> CanvasStore : manages canvas state
+PaymentComponents --> FormState : form data
+
+' Backend integration
+APIRoutes --> BackendIntegration : calls services
+ServerActions --> BackendIntegration : server-side calls
+BusinessLogic --> APIClient : data fetching
+AuthComponents --> AuthClient : authentication
+
+' External integrations
+FileUpload --> CloudinarySDK : image upload
+BusinessLogic --> StreamChat : real-time chat
+PaymentProc --> PaymentGW : payment processing
+TicketMgmt --> QRScanner : ticket scanning
+
+' UI theming and styling
+UIComponents --> Tailwind : styling
+UIComponents --> Themes : theme switching
+UIComponents --> Icons : iconography
+UIComponents --> Toast : notifications
+Analytics --> Charts : data visualization
+
+interface "Component API" as ComponentAPI
+interface "State API" as StateAPI
+interface "Canvas API" as CanvasAPI
+interface "Backend API" as BackendAPI
+
+UIComponents ..> ComponentAPI
+StateManagement ..> StateAPI
+CanvasSystem ..> CanvasAPI
+BackendIntegration ..> BackendAPI
+
+note right of CanvasSystem
+  Canvas Architecture:
+  - Konva.js for high-performance rendering
+  - Zustand for canvas state management
+  - Real-time seat availability updates
+  - Touch/mouse event handling
+  - Shape manipulation and editing
+end note
+
+note bottom of StateManagement
+  State Management Strategy:
+  - Zustand for client state
+  - React Query for server state
+  - Form state with React Hook Form
+  - Persistent storage for canvas
+  - Real-time synchronization
+end note
+
+note left of UIComponents
+  Component Architecture:
+  - Radix UI primitives
+  - Custom business components
+  - Responsive design patterns
+  - Accessibility compliance
+  - Theme support
+end note
+
+@enduml

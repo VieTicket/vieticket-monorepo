@@ -299,7 +299,7 @@ export const useAreaEvents = () => {
         defaultRowSpacing: 25,
         defaultSeatCategory: "standard",
         defaultSeatColor: "#4CAF50",
-        defaultPrice: 100,
+        defaultPrice: 100000,
         strokeWidth: 1,
         closed: true,
         rows: [],
