@@ -223,9 +223,7 @@ export default function OrganizerDashboardModern({
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">{totalEvents}</div>
-              <p className="text-xs text-muted-foreground">
-                +2 new events this month
-              </p>
+              <p className="text-xs text-muted-foreground"></p>
             </CardContent>
           </Card>
           <Card>
@@ -239,9 +237,7 @@ export default function OrganizerDashboardModern({
               <div className="text-2xl font-bold">
                 +{totalTicketsSold.toLocaleString()}
               </div>
-              <p className="text-xs text-muted-foreground">
-                +15% compared to last month
-              </p>
+              <p className="text-xs text-muted-foreground"></p>
             </CardContent>
           </Card>
           <Card>

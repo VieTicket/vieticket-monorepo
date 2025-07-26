@@ -1,0 +1,85 @@
+@startuml
+title Create Event Flow (With Activation Bars)
+
+actor Organizer
+participant UI
+participant "EventsActions" as Actions
+participant Service
+participant Mutation
+database DB
+
+Organizer -> UI: Fill event form (info, ticketing, seat map, media) 
+activate UI
+
+group Client-side interaction
+    UI -> UI: handleChange(), validateDateTime(), setFormData()
+    UI -> UI: handlePosterUpload(), handleBannerUpload()
+
+    alt Seatmap mode selected
+        UI -> UI: handleSeatMapSelection()
+        UI -> Actions: previewSeatMapDataAction()
+        activate Actions
+        Actions --> UI: seatMapPreviewData
+        deactivate Actions
+    else Simple ticketing
+        UI -> UI: setAreas()
+    end
+end
+
+Organizer -> UI: Click "Save & Continue" (steps navigation)
+UI -> UI: Step validation (check errors)
+
+Organizer -> UI: Click "Submit"
+alt Validation fails
+    UI -> Organizer: Show errors via toast
+else Validation passes
+    UI -> Actions: onSubmit(formData)
+    activate Actions
+    Actions -> Service: handleCreateEvent(validEvent)
+    activate Service
+
+    alt Simple Ticketing
+        Service -> Mutation: createEvent(validEvent)
+        activate Mutation
+        Mutation -> DB: Insert event
+        activate DB
+        DB --> Mutation: Success
+        loop For each area
+            Service -> Mutation: createArea
+            Mutation -> DB: Insert area
+            Service -> Mutation: createRow
+            Mutation -> DB: Insert row (A)
+            Service -> Mutation: createSeats
+            Mutation -> DB: Insert seats (by seatCount)
+        end
+        deactivate DB
+        deactivate Mutation
+    else Seat Map Ticketing
+        Service -> Mutation: createEvent(validEvent)
+        activate Mutation
+        Mutation -> DB: Insert event (with seatMapId)
+        activate DB
+        DB --> Mutation: Success
+        loop For each area in seat map
+            Service -> Mutation: createAreaWithId
+            Mutation -> DB: Insert area (with id, price)
+            loop For each row in area
+                Service -> Mutation: createRowWithId
+                Mutation -> DB: Insert row (with id, rowName)
+                Service -> Mutation: createSeatsWithIds
+                Mutation -> DB: Insert seats (with id, seatNumber)
+            end
+        end
+        deactivate DB
+        deactivate Mutation
+    end
+
+    Service --> Actions: Event created (eventId)
+    deactivate Service
+    Actions --> UI: Success/Failure response
+    deactivate Actions
+    UI --> Organizer: Show result (success or error)
+end
+
+deactivate UI
+@enduml
