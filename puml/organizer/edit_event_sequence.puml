@@ -1,0 +1,88 @@
+@startuml
+title Edit Event Flow (With Activation Bars)
+
+actor Organizer
+participant UI
+participant "EventsActions" as Actions
+participant Service
+participant Mutation
+database DB
+
+Organizer -> UI: Open Edit Event page
+activate UI
+UI -> Actions: fetchEventById(eventId)
+activate Actions
+Actions -> Service: getEventById(eventId)
+activate Service
+Service -> Mutation: getEventsById(eventId)
+activate Mutation
+Mutation -> DB: Query event + areas + rows + seats
+activate DB
+DB --> Mutation: Event data (or null)
+deactivate DB
+Mutation --> Service: Event data
+deactivate Mutation
+Service --> Actions: Event data
+deactivate Service
+Actions --> UI: Prefilled form (formData, seatMap, areas)
+deactivate Actions
+
+group Client-side interaction
+    UI -> UI: handleChange(), validateDateTime(), setFormData()
+    UI -> UI: handlePosterUpload(), handleBannerUpload()
+    alt Seatmap mode selected
+        UI -> UI: handleSeatMapSelection()
+        UI -> Actions: previewSeatMapDataAction()
+        activate Actions
+        Actions --> UI: seatMapPreviewData
+        deactivate Actions
+    else Simple ticketing
+        UI -> UI: editAreas()
+    end
+end
+
+Organizer -> UI: Click "Submit"
+alt Validation fails
+    UI -> Organizer: Show errors via toast
+else Validation passes
+    UI -> Actions: handleUpdateEvent(formData)
+    activate Actions
+    Actions -> Service: updateEvent(eventPayload)
+    activate Service
+
+    alt Simple Ticketing
+        Service -> Mutation: updateEventById(event.id, validEvent)
+        activate Mutation
+        loop For each area
+            Service -> Mutation: updateAreaById(existing or new)
+            Service -> Mutation: getRowsByAreaId(areaId)
+            alt Row exists
+                Service -> Mutation: deleteSeatsByRowId(row.id)
+                Service -> Mutation: createSeats(seatValues)
+            else No row
+                Service -> Mutation: createRow({ rowName: "A" })
+                Service -> Mutation: createSeats(seatValues)
+            end
+        end
+        deactivate Mutation
+    else Seat Map Ticketing
+        Service -> Mutation: updateEventWithSeatMap(eventPayload, seatMapData)
+        activate Mutation
+        loop For each area in seat map
+            Service -> Mutation: update/create area + rows + seats (with ids)
+        end
+        deactivate Mutation
+    end
+
+    DB --> Mutation: Success/Failure
+    Mutation --> Service: Result
+    deactivate Mutation
+    Service --> Actions: Event updated (eventId)
+    deactivate Service
+    Actions --> UI: Success/Failure response
+    deactivate Actions
+    UI --> Organizer: Show result (success or error)
+end
+
+deactivate UI
+@enduml

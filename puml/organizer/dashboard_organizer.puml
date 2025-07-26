@@ -1,0 +1,77 @@
+@startuml
+title Organizer Dashboard Overview Flow
+
+actor Organizer
+participant "OrganizerGeneralPage (Server)" as Page
+participant "Actions" as Actions
+participant "Service" as Service
+participant "Mutations" as Mutations
+database "DB" as DB
+participant "ClientDashboard (React)" as Dashboard
+
+
+
+Organizer -> Page: Request Dashboard (/organizer/general)
+activate Page
+
+Page -> Actions: fetchRevenueOverTime(organizerId)
+activate Actions
+Actions -> Service: getRevenueOverTime(organizerId)
+activate Service
+Service -> Mutations: getRevenueOverTime(organizerId)
+activate Mutations
+Mutations -> DB: Query orders, tickets, seats, rows, areas, events (group by day)
+activate DB
+DB --> Mutations: List of {date, total}
+deactivate DB
+Mutations --> Service: Normalized result (numbers)
+deactivate Mutations
+Service --> Actions: Revenue over time
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Fetch Distribution ==
+Page -> Actions: fetchRevenueDistribution(organizerId)
+activate Actions
+Actions -> Service: getRevenueDistributionByEvent(organizerId)
+activate Service
+Service -> Mutations: getRevenueDistributionByEvent(organizerId)
+activate Mutations
+Mutations -> DB: Query revenue by event (group by eventId, name)
+activate DB
+DB --> Mutations: List of {eventName, total}
+deactivate DB
+Mutations --> Service: Normalized result
+deactivate Mutations
+Service --> Actions: Revenue distribution
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Fetch Top Events ==
+Page -> Actions: fetchTopRevenueEvents(organizerId, limit=5)
+activate Actions
+Actions -> Service: getTopRevenueEvents(organizerId, limit)
+activate Service
+Service -> Mutations: getTopRevenueEvents(organizerId, limit)
+activate Mutations
+Mutations -> DB: Query events with SUM(totalAmount), COUNT(tickets) (order by revenue)
+activate DB
+DB --> Mutations: List of {eventId, eventName, totalRevenue, ticketsSold}
+deactivate DB
+Mutations --> Service: Normalized result
+deactivate Mutations
+Service --> Actions: Top events list
+deactivate Service
+Actions --> Page: Data
+deactivate Actions
+
+== Render Dashboard ==
+Page -> Dashboard: Render OrganizerDashboardModern\nwith {revenueOverTime, distribution, topEvents}
+activate Dashboard
+Dashboard -> Organizer: Show charts, cards, tables (interactive)
+deactivate Dashboard
+deactivate Page
+
+@enduml
