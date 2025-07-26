@@ -6,6 +6,8 @@ import {
   searchSeatMapsAction,
   getPublicSeatMapsAction,
   createDraftFromPublicSeatMapAction,
+  publishSeatMapAction,
+  deleteSeatMapAction,
 } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
 import { Sidebar } from "./components/sidebar";
@@ -20,6 +22,7 @@ type SeatMapItem = {
   createdAt: string;
   image?: string;
   createdBy: string;
+  publicity?: "public" | "private";
 };
 
 type PublicSeatMapItem = {
@@ -43,6 +46,8 @@ export default function SeatMapDirectory() {
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
   const [isCreatingDraft, setIsCreatingDraft] = useState<string | null>(null);
+  const [publishingIds, setPublishingIds] = useState<Set<string>>(new Set());
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTab, setSelectedTab] = useState("all");
   const [currentView, setCurrentView] = useState<ViewMode>("welcome");
@@ -167,6 +172,62 @@ export default function SeatMapDirectory() {
     }
   };
 
+  const handlePublishSeatMap = async (seatMapId: string) => {
+    try {
+      setPublishingIds((prev) => new Set([...prev, seatMapId]));
+
+      const result = await publishSeatMapAction(seatMapId);
+
+      if (result.success) {
+        toast.success("Seat map published successfully!");
+        loadSeatMaps(); // Refresh the list
+      } else {
+        toast.error(result.error || "Failed to publish seat map");
+      }
+    } catch (error) {
+      console.error("Error publishing seat map:", error);
+      toast.error("An unexpected error occurred while publishing");
+    } finally {
+      setPublishingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(seatMapId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleDeleteSeatMap = async (seatMapId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to delete this seat map? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingIds((prev) => new Set([...prev, seatMapId]));
+
+      const result = await deleteSeatMapAction(seatMapId);
+
+      if (result.success) {
+        toast.success("Seat map deleted successfully!");
+        loadSeatMaps(); // Refresh the list
+      } else {
+        toast.error(result.error || "Failed to delete seat map");
+      }
+    } catch (error) {
+      console.error("Error deleting seat map:", error);
+      toast.error("An unexpected error occurred while deleting");
+    } finally {
+      setDeletingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(seatMapId);
+        return newSet;
+      });
+    }
+  };
+
   const getRecentSeatMaps = () => {
     return seatMaps
       .sort(
@@ -205,7 +266,7 @@ export default function SeatMapDirectory() {
   };
 
   return (
-    <div className="flex h-[calc(100vh-6rem)]">
+    <div className="flex h-full">
       {/* Sidebar */}
       <Sidebar
         currentView={currentView}
@@ -234,6 +295,10 @@ export default function SeatMapDirectory() {
             setSelectedTab={setSelectedTab}
             onBack={() => setCurrentView("welcome")}
             formatDate={formatDate}
+            onPublish={handlePublishSeatMap}
+            onDelete={handleDeleteSeatMap}
+            publishingIds={publishingIds}
+            deletingIds={deletingIds}
           />
         )}
 

@@ -1,5 +1,5 @@
 import { getOrderDetailsAction } from "@/lib/actions/customer/order-actions";
-import { OrderDetailsView } from "@/components/orders/order-details-view";
+import { OrderDetails, OrderDetailsView } from "@/components/orders/order-details-view";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -39,5 +39,5 @@ export default async function OrderPage({ params }: OrderPageProps) {
     );
   }
 
-  return <OrderDetailsView order={result.data as any} />;
+  return <OrderDetailsView order={result.data as OrderDetails} />;
 }

@@ -9,7 +9,10 @@ import {
   updateProfile,
   updateAvatarUrl,
 } from "@vieticket/services/profile";
-import { GENDER_VALUES } from "@vieticket/db/pg/schema";
+import { GENDER_VALUES, organizers } from "@vieticket/db/pg/schema";
+import { db } from "@vieticket/db/pg";
+import { eq, or } from "drizzle-orm";
+import { user as userSchema } from "@vieticket/db/pg/schema";
 
 // Schema for user details from the form
 // TODO: Create it own validator package
@@ -94,19 +97,67 @@ export async function updateProfileAction(
 }
 
 export async function getProfileAction() {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    });
+    const user = session?.user;
 
-  if (!session?.user?.id) {
-    return {
-      success: false,
-      message: "Unauthorized: You must be logged in.",
-      data: null,
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to access profile.");
+    }
+
+    // Get user data
+    const userData = await db.query.user.findFirst({
+      where: eq(userSchema.id, user.id),
+    });
+
+    if (!userData) {
+      throw new Error("User not found");
+    }
+
+    // Get organizer data separately if user is an organizer
+    let organizerData = null;
+    if (user.role === "organizer") {
+      organizerData = await db.query.organizers.findFirst({
+        where: eq(organizers.id, user.id),
+      });
+    }
+    console.log("User data:", organizerData);
+
+    // Transform the data to include organizer fields properly
+    const profileData = {
+      id: userData.id,
+      name: userData.name,
+      email: userData.email,
+      dateOfBirth: userData.dateOfBirth,
+      gender: userData.gender,
+      phone: userData.phone,
+      image: userData.image,
+      banned: userData.banned,
+      banReason: userData.banReason,
+      organizer: organizerData
+        ? {
+            name: organizerData.name,
+            website: organizerData.website,
+            address: organizerData.address,
+            foundedDate: organizerData.foundedDate,
+            organizerType: organizerData.organizerType,
+            isActive: organizerData.isActive,
+            rejectionReason: organizerData.rejectionReason,
+            rejectionSeen: organizerData.rejectionSeen,
+            rejectedAt: organizerData.rejectedAt,
+          }
+        : null,
     };
-  }
 
-  return await getFullUserProfile(session.user.id);
+    return { success: true, data: profileData };
+  } catch (error) {
+    console.error("Error in getProfileAction:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
 }
 
 export async function uploadAvatarAction(imageUrl: string) {

@@ -33,7 +33,7 @@ const MainSidebar = React.memo(function MainSidebar() {
   // No shapes selected
   if (selectedShapeIds.length === 0) {
     return (
-      <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full">
+      <div className="bg-gray-900 text-white p-4 shadow z-10 w-full h-full">
         <MainSidebarHeader selectedCount={0} isSingleShape={false} />
         <div className="text-center text-gray-400 py-8">
           <Settings className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -44,7 +44,7 @@ const MainSidebar = React.memo(function MainSidebar() {
   }
 
   return (
-    <div className="bg-gray-900 text-white p-4 shadow z-10 w-72 h-full overflow-y-auto">
+    <div className="bg-gray-900 text-white p-4 shadow z-10 w-full h-full overflow-y-auto">
       <MainSidebarHeader
         selectedCount={selectedShapeIds.length}
         isSingleShape={isSingleShape}
