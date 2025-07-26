@@ -2,6 +2,7 @@
 
 import React from "react";
 import Footer from "./components/footer";
+import Sidebar from "./components/organizer-sidebar";
 
 export default function OrganizerLayout({
   children,
@@ -10,8 +11,9 @@ export default function OrganizerLayout({
 }>) {
   return (
     <div className="min-h-screen flex flex-col justify-between">
-      <div>
-        {children}
+      <div className="flex">
+        <Sidebar />
+        <div className="flex-1 bg-white dark:bg-background">{children}</div>
       </div>
       <Footer />
     </div>
