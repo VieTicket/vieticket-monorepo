@@ -33,7 +33,7 @@ const menuItems = [
     icon: Calendar,
   },
   {
-    name: "Request Payment",
+    name: "Payout Requests",
     href: "/admin/payment-requests",
     icon: CreditCard,
   },

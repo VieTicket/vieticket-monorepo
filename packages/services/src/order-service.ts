@@ -75,8 +75,8 @@ export async function sendTicketEmail(
             ticket.areaName
         );
         const qrCodeBuffer = await generateQRCodeBuffer(qrData);
-    const filename = "ticket-qr.png";
-    const htmlContent = `
+        const filename = "ticket-qr.png";
+        const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -150,9 +150,9 @@ export async function getTicketEmailStatus(
     const limits = await checkTicketEmailLimits(ticketId, maxEmailsPerTicket, emailCooldownMinutes);
 
     // Find the most recent log entry for lastSentAt
-    const lastLog = logs.length > 0 
-      ? logs.reduce((latest, log) => log.sentAt > latest.sentAt ? log : latest)
-      : null;
+    const lastLog = logs.length > 0
+        ? logs.reduce((latest, log) => log.sentAt > latest.sentAt ? log : latest)
+        : null;
 
     return {
         logs,

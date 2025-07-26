@@ -26,8 +26,8 @@ const navItems = [
   { label: "List Event", href: "/organizer", icon: Calendar },
   { label: "Rating", href: "/organizer/rating", icon: Star },
   {
-    label: "Request Payment",
-    href: "/organizer/payments",
+    label: "Request Payout",
+    href: "/organizer/payouts",
     icon: Wallet,
   },
   {

@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events } from "@vieticket/db/pg/schemas/events";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 /**
  * Fetches a single event by its ID.
@@ -54,3 +54,29 @@ export async function findActiveEventsByOrganizerId(organizerId: string) {
   });
   return activeEvents;
 }
+
+/**
+ * Finds all ended events for a given organizer.
+ * "Ended" means events that are approved and have ended.
+ * @param organizerId - The ID of the organizer.
+ * @returns An array of ended events.
+ */
+export async function findEndedEventsByOrganizerId(organizerId: string) {
+  const now = new Date();
+  const endedEvents = await db.query.events.findMany({
+    where: (event, { and, eq, lt }) =>
+      and(
+        eq(event.organizerId, organizerId),
+        eq(event.approvalStatus, "approved"),
+        lt(event.endTime, now),
+        sql`NOT EXISTS (
+          SELECT 1
+          FROM payout_requests
+          WHERE payout_requests."event_id" = ${event.id}
+            AND payout_requests.status NOT IN ('cancelled', 'rejected')
+        )`
+      ),
+  });
+  return endedEvents;
+}
+

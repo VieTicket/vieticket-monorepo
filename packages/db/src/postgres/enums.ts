@@ -51,10 +51,21 @@ export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
 export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
 
 export const TICKET_INSPECTION_STATUS_VALUES = [
-  "valid", 
+  "valid",
   "invalid",
   "duplicate",
   "offline"
 ] as const;
 export type TicketInspectionStatus = (typeof TICKET_INSPECTION_STATUS_VALUES)[number];
 export const ticketInspectionStatusEnum = pgEnum("ticket_inspection_status", TICKET_INSPECTION_STATUS_VALUES);
+
+export const PAYOUT_STATUS_VALUES = [
+  "pending",
+  "in_discussion",
+  "cancelled",
+  "approved",
+  "rejected",
+  "completed",
+] as const;
+export type PayoutStatus = (typeof PAYOUT_STATUS_VALUES)[number];
+export const payoutStatusEnum = pgEnum("payout_status", PAYOUT_STATUS_VALUES);
