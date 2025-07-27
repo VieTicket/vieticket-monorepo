@@ -1,15 +1,7 @@
-import {
-    pgTable,
-    uuid,
-    timestamp,
-    jsonb,
-    text,
-    boolean,
-    index,
-} from "drizzle-orm/pg-core";
+import { boolean, index, jsonb, pgTable, text, timestamp, uuid, } from "drizzle-orm/pg-core";
 import { events, seats } from "./events-schemas";
 import { currency, PaymentMetadata } from "../custom-types";
-import { orderStatusEnum, refundStatusEnum, ticketInspectionStatusEnum, ticketStatusEnum } from "../enums";
+import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
 import { user } from "./users-schemas";
 import { sql } from "drizzle-orm";
 
@@ -83,7 +75,7 @@ export const orders = pgTable("orders", {
     totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
     status: orderStatusEnum("status").default("pending"),
     paymentMetadata: jsonb("payment_metadata").$type<PaymentMetadata>(),
-    updatedAt: timestamp("updated_at").defaultNow(),
+    updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
     // Index for userId (foreign key)
     index("idx_orders_user_id").on(table.userId),
@@ -119,22 +111,6 @@ export const tickets = pgTable("tickets", {
     status: ticketStatusEnum("status").default("active"),
     purchasedAt: timestamp("purchased_at").defaultNow(),
 });
-
-export const ticketInspectionHistory = pgTable("ticket_inspection_history", {
-    id: uuid("id").defaultRandom().primaryKey(),
-    ticketId: uuid("ticket_id")
-        .references(() => tickets.id)
-        .notNull(),
-    inspectorId: text("inspector_id")
-        .references(() => user.id)
-        .notNull(),
-    status: ticketInspectionStatusEnum().notNull(),
-    inspectedAt: timestamp("inspected_at").notNull().defaultNow(),
-    loggedAt: timestamp("logged_at").notNull().defaultNow(),
-}, (table) => [
-    index('idx_inspct_hstry_tickt_id').on(table.ticketId),
-    index('idx_inspct_hstry_status').on(table.status)
-])
 
 export const refunds = pgTable("refunds", {
     id: uuid("id").defaultRandom().primaryKey(),

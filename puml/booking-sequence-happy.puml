@@ -1,0 +1,204 @@
+@startuml Ticket Acquisition Flow
+autonumber
+title Ticket Acquisition Flow\n(Happy path)
+
+actor User
+participant "ticket-page" as UI <<React Components>>
+participant "checkout-actions" as Actions <<Server Actions>>
+participant "checkout-service" as Service <<Business Logic>>
+participant "checkout-repository" as Repository <<Data Access>>
+participant "vnpay-helper" as VNPayHelper <<Payment Helper>>
+participant "email-helper" as EmailHelper <<Email Service>>
+boundary VNPay <<External System>>
+
+== Phase 1: Initial Ticket Request ==
+
+User -> UI: Click "Get tickets for event"
+activate UI
+
+UI -> Actions: getTicketsAction(eventId)
+activate Actions
+
+Actions -> Actions: validateSession(sessionToken)
+
+Actions -> Service: getTicketData(eventId, user)
+activate Service
+
+Service -> Service: authorize(user.role === "customer")
+
+alt authorized customer
+    Service -> Repository: findEventById(eventId)
+    activate Repository
+    Repository --> Service: eventData
+    deactivate Repository
+
+    Service -> Service: validateEvent(eventData)
+
+    Service -> Repository: getEventSeatingStructure(eventId)
+    activate Repository
+    Repository --> Service: seatingStructure (areas with nested rows and seats)
+    deactivate Repository
+
+    Service -> Repository: getSeatStatus(eventId)
+    activate Repository
+    note over Repository: Query seat_holds and orders tables for confirmed purchases and active holds
+    Repository --> Service: {confirmedSeatIds, activeHoldSeatIds}
+    deactivate Repository
+
+    Service --> Actions: {eventData, seatingStructure, seatStatus}
+else unauthorized or invalid event
+    Service --> Actions: error("Event not available or unauthorized")
+end
+deactivate Service
+
+Actions --> UI: response(seatMapData | error)
+deactivate Actions
+
+'To be interactive later on
+UI --> User: Render interactive seat map
+deactivate UI
+
+== Phase 2: Checkout Process ==
+
+User -> UI: Select seats + "Proceed to checkout"
+activate UI
+
+UI -> Actions: createOrderAction(eventId, selectedSeatIds)
+activate Actions
+
+Actions -> Actions: validateSession(sessionToken)
+
+Actions -> Service: createPendingOrder(eventId, selectedSeatIds, user, clientIp)
+activate Service
+
+Service -> Service: authorize(user.role === "customer")
+
+Service -> Repository: getSeatAvailabilityStatus(selectedSeatIds)
+activate Repository
+Repository --> Service: {unavailableSeatIds}
+deactivate Repository
+
+alt all seats available
+    Service -> Repository: getSeatPricing(selectedSeatIds)
+    activate Repository
+    Repository --> Service: seatDetails
+    deactivate Repository
+
+    Service -> Service: calculateTotalAmount(seatDetails)
+
+    Service -> Repository: executeOrderTransaction(orderData, seatHoldData)
+    activate Repository
+    note over Repository: Create order and seat holds with isConfirmed = false
+    Repository --> Service: newOrder
+    deactivate Repository
+
+    Service -> VNPayHelper: generatePaymentURL(params: VNPayPaymentParams)
+    activate VNPayHelper
+    VNPayHelper --> Service: vnpayURL
+    deactivate VNPayHelper
+
+    Service -> Repository: updateOrderVNPayData(orderId, {vnp_TxnRef})
+    activate Repository
+    Repository --> Service: updatedOrder
+    deactivate Repository
+
+    Service --> Actions: {vnpayURL, orderId, totalAmount, holdExpires, selectedSeats}
+else seats unavailable
+    Service --> Actions: error("Selected seats no longer available", unavailableSeatIds)
+end
+deactivate Service
+
+Actions --> UI: response(vnpayURL | error)
+deactivate Actions
+
+UI --> User: Redirect to VNPay payment
+deactivate UI
+
+note over VNPay, User
+  Note: The returnUrl redirect is primarily for UX purposes.
+  Critical business logic (order confirmation, ticket generation) 
+  will be handled via VNPay IPN (Instant Payment Notification) 
+  webhooks in future iterations for security and reliability.
+end note
+
+== Phase 3: Payment Processing ==
+
+User -> VNPay: Complete payment
+activate VNPay
+
+VNPay --> User: Redirect to returnUrl with payment result
+deactivate VNPay
+
+User -> UI: Browser loads return page
+activate UI
+
+UI -> Actions: processPaymentAction(vnpayResponseParams)
+activate Actions
+
+Actions -> Actions: validateSession(sessionToken)
+
+Actions -> Service: processPaymentResult(vnpayResponseData, user)
+activate Service
+
+Service -> Service: authorize(user.role === "customer")
+
+Service -> Service: validateVNPayResponse(vnpayResponseData)
+
+Service -> Repository: getOrderByVNPayTxnRef(vnpayReturn.vnp_TxnRef)
+activate Repository
+Repository --> Service: order
+deactivate Repository
+
+alt payment successful & valid signature
+    Service -> Repository: getUserUnconfirmedSeatHolds(user.id, order.id)
+    activate Repository
+    Repository --> Service: seatHolds
+    deactivate Repository
+
+    Service -> Service: generateTicketData(seatHolds)
+
+    Service -> Repository: executePaymentTransaction(order.id, user.id, ticketData)
+    activate Repository
+    note over Repository
+        The following operations are executed atomically:
+        1. Update order status to "paid"
+        2. Confirm seat holds for the specific order
+        3. Create ticket records from ticketData
+    end note
+    Repository --> Service: {order, tickets, seatCount}
+    deactivate Repository
+
+    Service -> Repository: getTicketDetails(order.id)
+    activate Repository
+    Repository --> Service: ticketDetails
+    deactivate Repository
+
+    Service -> EmailHelper: sendOrderConfirmationEmail(user, order, ticketDetails)
+    activate EmailHelper
+    EmailHelper --> Service: emailSent
+    deactivate EmailHelper
+
+    Service --> Actions: {success: true, orderId, ticketCount, ...}
+else payment failed
+    Service -> Repository: updateOrderStatus(order.id, "failed")
+    activate Repository
+    Repository --> Service: updatedOrder
+    deactivate Repository
+
+    note over Repository: Unconfirmed seat holds will expire automatically
+
+    Service --> Actions: {success: false, error: "Payment verification failed"}
+end
+deactivate Service
+
+Actions --> UI: paymentResult
+deactivate Actions
+
+alt payment successful
+    UI --> User: Redirect to order confirmation page
+else payment failed
+    UI --> User: Show error + option to retry
+end
+deactivate UI
+
+@enduml

@@ -1,6 +1,6 @@
 "use client"
 
-import { IDetectedBarcode, Scanner, useDevices } from '@yudiel/react-qr-scanner';
+import { IDetectedBarcode, Scanner } from '@yudiel/react-qr-scanner';
 import { decodeTicketQRData } from "@vieticket/utils/ticket-validation/client";
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -19,48 +19,57 @@ import { Event as PrimitiveEvent } from '@vieticket/db/pg/models/events';
 import { DisplayTicket, createDisplayTicketFromQR, updateDisplayTicketFromServer } from "@vieticket/utils/ticket-validation/display-ticket";
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
+import { useCameraDevices } from '@/hooks/use-camera-devices';
 
 type Event = Pick<PrimitiveEvent, 'id' | 'name' | 'startTime' | 'endTime' | 'location'>
+
+const loadingScreenTips = [
+    "QR code looking a bit blurry? Try switching to the 0.5x or 2x camera for a crystal-clear scan! ✨",
+    "Pro Tip: For lightning-fast scans on newer phones, the ultra-wide (0.5x) camera is your best friend! 🚀",
+    "Can't get a good focus? Tap the camera selector and try the 2x zoom for a sharper view. 🎯",
+    "Having trouble scanning? Some phones work best with the 0.5x or 2x camera for close-up QR codes. Give it a try! 👍",
+    "For a super-sharp scan, try switching to the ultra-wide (0.5x) lens. It's great for close-ups! 😉"
+];
 
 // Helper function to format status for display
 const formatStatus = (status: string) => {
     if (!status) return { text: 'Unknown', className: 'text-gray-500', icon: null };
-    
+
     // Capitalize first letter
     const formattedText = status.charAt(0).toUpperCase() + status.slice(1);
-    
+
     // Return appropriate styling and icon based on status
     switch (status.toLowerCase()) {
         case 'active':
-            return { 
-                text: formattedText, 
-                className: 'text-green-600 font-medium', 
-                icon: <CheckCircle2 className="inline-block mr-1 h-4 w-4" /> 
+            return {
+                text: formattedText,
+                className: 'text-green-600 font-medium',
+                icon: <CheckCircle2 className="inline-block mr-1 h-4 w-4" />
             };
         case 'used':
-            return { 
-                text: formattedText, 
-                className: 'text-blue-600 font-medium', 
-                icon: <Clock className="inline-block mr-1 h-4 w-4" /> 
+            return {
+                text: formattedText,
+                className: 'text-blue-600 font-medium',
+                icon: <Clock className="inline-block mr-1 h-4 w-4" />
             };
         case 'cancelled':
         case 'invalid':
-            return { 
-                text: formattedText, 
-                className: 'text-red-600 font-medium', 
-                icon: <Ban className="inline-block mr-1 h-4 w-4" /> 
+            return {
+                text: formattedText,
+                className: 'text-red-600 font-medium',
+                icon: <Ban className="inline-block mr-1 h-4 w-4" />
             };
         case 'pending':
-            return { 
-                text: formattedText, 
-                className: 'text-amber-600 font-medium', 
-                icon: <Clock className="inline-block mr-1 h-4 w-4" /> 
+            return {
+                text: formattedText,
+                className: 'text-amber-600 font-medium',
+                icon: <Clock className="inline-block mr-1 h-4 w-4" />
             };
         default:
-            return { 
-                text: formattedText, 
-                className: 'text-gray-600 font-medium', 
-                icon: null 
+            return {
+                text: formattedText,
+                className: 'text-gray-600 font-medium',
+                icon: null
             };
     }
 };
@@ -76,10 +85,23 @@ export default function InspectorPage() {
     const [inspectionResult, setInspectionResult] = useState<'valid' | 'invalid' | null>(null);
     const [isCheckInMode, setIsCheckInMode] = useState(true); // Default to check-in mode
     const [isProcessing, setIsProcessing] = useState(false); // For loading state
+    const [tip, setTip] = useState('');
 
     // Camera selection
-    const devices = useDevices();
+    const devices = useCameraDevices();
     const [selectedDeviceId, setSelectedDeviceId] = useState<string | null>(null);
+
+    useEffect(() => {
+        // Select the environment-facing camera by default, fallback to first if not found
+        if (devices.length > 0 && !selectedDeviceId) {
+            const envCamera = devices.find(
+                (device) =>
+                    device.label.toLowerCase().includes("back") ||
+                    device.label.toLowerCase().includes("environment")
+            );
+            setSelectedDeviceId((envCamera || devices[0]).deviceId);
+        }
+    }, [devices, selectedDeviceId]);
 
     // Fetch active events on component mount
     useEffect(() => {
@@ -102,11 +124,10 @@ export default function InspectorPage() {
         }
 
         fetchEvents();
-    }, []);
 
-    useEffect(() => {
-        console.log(events);
-    }, [events]);
+        const randomIndex = Math.floor(Math.random() * loadingScreenTips.length);
+        setTip(loadingScreenTips[randomIndex]);
+    }, []);
 
     const handleEventSelect = (eventId: string) => {
         setSelectedEventId(eventId);
@@ -128,14 +149,14 @@ export default function InspectorPage() {
             const decodedData = decodeTicketQRData(qrData);
 
             if (!decodedData) {
-                toast.error('Invalid QR Code', { description: "The scanned QR code is not a valid ticket"});
+                toast.error('Invalid QR Code', { description: "The scanned QR code is not a valid ticket" });
                 setInspectionResult('invalid');
                 return;
             }
 
             // Check if the ticket is for the selected event
             if (decodedData.eventId !== selectedEventId) {
-                toast.error("Wrong Event", { description: "This ticket is for a different event"});
+                toast.error("Wrong Event", { description: "This ticket is for a different event" });
                 setInspectionResult('invalid');
                 return;
             }
@@ -210,7 +231,7 @@ export default function InspectorPage() {
             if (response.success) {
                 // Update local ticket info using our helper function
                 setTicketInfo(prev => updateDisplayTicketFromServer(prev!, response.data));
-                
+
                 if (response.data?.status === 'active') {
                     setInspectionResult('valid');
                     toast.success("Check-in Successful", { description: "Ticket has been marked as used" });
@@ -238,7 +259,10 @@ export default function InspectorPage() {
     if (loading) {
         return (
             <div className="container mx-auto p-4 flex justify-center items-center min-h-screen">
-                <p>Loading events...</p>
+                <div className="flex flex-col items-center">
+                    <Loader2 className="h-8 w-8 mb-4 animate-spin text-blue-600" />
+                    <p>{tip}</p>
+                </div>
             </div>
         );
     }
@@ -247,7 +271,7 @@ export default function InspectorPage() {
         return (
             <div className="container mx-auto p-4">
                 <Alert variant="destructive">
-                    <AlertCircle className="h-4 w-4"/>
+                    <AlertCircle className="h-4 w-4" />
                     <AlertTitle>Error</AlertTitle>
                     <AlertDescription>{error}</AlertDescription>
                 </Alert>
@@ -259,7 +283,7 @@ export default function InspectorPage() {
         return (
             <div className="container mx-auto p-4">
                 <Alert>
-                    <AlertCircle className="h-4 w-4"/>
+                    <AlertCircle className="h-4 w-4" />
                     <AlertTitle>No Active Events</AlertTitle>
                     <AlertDescription>You don&apos;t have any active events available for inspection.</AlertDescription>
                 </Alert>
@@ -271,9 +295,9 @@ export default function InspectorPage() {
         <div className="container mx-auto p-4 space-y-6">
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">Ticket Inspector</h1>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
+                <Button
+                    variant="ghost"
+                    size="sm"
                     className="text-gray-500 hover:text-gray-700"
                     onClick={() => router.push('/organizer')}
                 >
@@ -291,7 +315,7 @@ export default function InspectorPage() {
                     <CardContent>
                         <Select onValueChange={handleEventSelect}>
                             <SelectTrigger>
-                                <SelectValue placeholder="Select an event"/>
+                                <SelectValue placeholder="Select an event" />
                             </SelectTrigger>
                             <SelectContent>
                                 {events.map((event) => (
@@ -320,17 +344,17 @@ export default function InspectorPage() {
                                 <CardTitle>
                                     {isProcessing ? (
                                         <div className="flex items-center text-blue-600">
-                                            <Loader2 className="mr-2 h-5 w-5 animate-spin"/>
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                             Processing Ticket
                                         </div>
                                     ) : inspectionResult === 'valid' ? (
                                         <div className="flex items-center text-green-600">
-                                            <CheckCircle2 className="mr-2 h-5 w-5"/>
+                                            <CheckCircle2 className="mr-2 h-5 w-5" />
                                             Valid Ticket
                                         </div>
                                     ) : (
                                         <div className="flex items-center text-red-600">
-                                            <AlertCircle className="mr-2 h-5 w-5"/>
+                                            <AlertCircle className="mr-2 h-5 w-5" />
                                             Invalid Ticket
                                         </div>
                                     )}
@@ -343,16 +367,16 @@ export default function InspectorPage() {
                                 {ticketInfo.seat && <p><strong>Seat:</strong> {ticketInfo.seat}</p>}
                                 <p>
                                     <strong>Status:</strong> {isProcessing ? (
-                                    <span className="inline-flex items-center">
-                                            <Loader2 className="mr-1 h-3 w-3 animate-spin"/>
+                                        <span className="inline-flex items-center">
+                                            <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                                             Verifying...
                                         </span>
-                                ) : (
-                                    <span className={formatStatus(ticketInfo.status).className}>
-                                        {formatStatus(ticketInfo.status).icon}
-                                        {formatStatus(ticketInfo.status).text}
-                                    </span>
-                                )}
+                                    ) : (
+                                        <span className={formatStatus(ticketInfo.status).className}>
+                                            {formatStatus(ticketInfo.status).icon}
+                                            {formatStatus(ticketInfo.status).text}
+                                        </span>
+                                    )}
                                 </p>
                             </CardContent>
                             <CardFooter className="flex justify-between">
@@ -382,13 +406,13 @@ export default function InspectorPage() {
 
                                 {devices && devices.length > 1 && (
                                     <div className="flex items-center space-x-2">
-                                        <Camera className="h-4 w-4"/>
+                                        <Camera className="h-4 w-4" />
                                         <Select
                                             value={selectedDeviceId || ''}
                                             onValueChange={(value) => setSelectedDeviceId(value || null)}
                                         >
                                             <SelectTrigger className="w-[180px]">
-                                                <SelectValue placeholder="Select camera"/>
+                                                <SelectValue placeholder="Select camera" />
                                             </SelectTrigger>
                                             <SelectContent>
                                                 {devices.map((device) => (
@@ -413,9 +437,11 @@ export default function InspectorPage() {
                                         onScan={handleScan}
                                         onError={handleScannerError}
                                         constraints={{
-                                            deviceId: selectedDeviceId ? {exact: selectedDeviceId} : undefined,
-                                            facingMode: !selectedDeviceId ? "environment" : undefined
+                                            deviceId: selectedDeviceId ? { exact: selectedDeviceId } : undefined,
                                         }}
+                                        formats={['qr_code']}
+                                        components={{ zoom: true, finder: true, onOff: true }}
+
                                         sound={true}
                                     />
                                 </div>
