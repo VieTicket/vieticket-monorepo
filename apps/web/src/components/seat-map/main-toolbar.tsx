@@ -7,6 +7,8 @@ import {
   useZoom,
   useShapes,
   useSelectedShapeIds,
+  useValidationErrors,
+  useValidationActions,
 } from "@/components/seat-map/store/main-store";
 import { Button } from "@/components/ui/button";
 import {
@@ -113,6 +115,11 @@ const MainToolbar = React.memo(function MainToolbar() {
   // Save state - for existing seat maps
   const [isSaving, setIsSaving] = useState(false);
 
+  // Add validation state
+  const validationErrors = useValidationErrors();
+  const { validateAllAreas } = useValidationActions();
+  const [showValidationDialog, setShowValidationDialog] = useState(false);
+
   const mainTools = [
     { id: "select", icon: MousePointer, label: "Select" },
     { id: "rect", icon: Square, label: "Rectangle" },
@@ -139,6 +146,26 @@ const MainToolbar = React.memo(function MainToolbar() {
       return;
     }
 
+    // Validate before saving
+    validateAllAreas();
+
+    // Check for validation errors
+    if (validationErrors.length > 0) {
+      setShowValidationDialog(true);
+      return;
+    }
+
+    await performSave();
+  }, [
+    seatMapId,
+    shapes,
+    stageRef,
+    isEditingExisting,
+    validationErrors,
+    validateAllAreas,
+  ]);
+
+  const performSave = useCallback(async () => {
     setIsSaving(true);
     try {
       // Step 1: Capture the current seat map as an image
@@ -172,6 +199,7 @@ const MainToolbar = React.memo(function MainToolbar() {
 
       if (result.success) {
         toast.success("Seat map saved successfully with updated preview!");
+        setShowValidationDialog(false);
       } else {
         toast.error(result.error || "Failed to save seat map");
       }
@@ -181,7 +209,7 @@ const MainToolbar = React.memo(function MainToolbar() {
     } finally {
       setIsSaving(false);
     }
-  }, [seatMapId, shapes, stageRef, isEditingExisting]);
+  }, [seatMapId, shapes, stageRef]);
 
   const handleNewCanvas = useCallback(() => {
     if (
@@ -220,6 +248,27 @@ const MainToolbar = React.memo(function MainToolbar() {
       return;
     }
 
+    // Validate before uploading
+    validateAllAreas();
+
+    // Check for validation errors
+    if (validationErrors.length > 0) {
+      setShowValidationDialog(true);
+      return;
+    }
+
+    await performUpload();
+  }, [
+    seatMapName,
+    shapes,
+    router,
+    stageRef,
+    clearStorage,
+    validationErrors,
+    validateAllAreas,
+  ]);
+
+  const performUpload = useCallback(async () => {
     setIsUploading(true);
     try {
       // Step 1: Capture the seat map as an optimized image
@@ -255,6 +304,7 @@ const MainToolbar = React.memo(function MainToolbar() {
         toast.success("Seat map uploaded successfully!");
         setIsUploadDialogOpen(false);
         setSeatMapName("");
+        setShowValidationDialog(false);
         router.push("/organizer/seat-map");
       } else {
         toast.error(result.error || "Failed to upload seat map");
@@ -447,6 +497,61 @@ const MainToolbar = React.memo(function MainToolbar() {
 
         <HelpModal />
       </div>
+
+      {/* Validation Error Dialog */}
+      <Dialog
+        open={showValidationDialog}
+        onOpenChange={setShowValidationDialog}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="text-orange-600">
+              Validation Issues Found
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+              <p className="text-orange-800 mb-3">
+                Your seat map has validation issues that should be fixed before
+                saving:
+              </p>
+              <ul className="list-disc list-inside space-y-1 text-sm text-orange-700">
+                {validationErrors.map((error, index) => (
+                  <li key={index}>
+                    <strong>{error.areaName}:</strong>{" "}
+                    {error.affectedSeats.length} seat(s) outside area boundaries
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-sm text-gray-600">
+              You can still save the seat map, but it's recommended to fix these
+              issues first for better user experience.
+            </p>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowValidationDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setShowValidationDialog(false)}
+              >
+                Fix Issues First
+              </Button>
+              <Button
+                onClick={isEditingExisting ? performSave : performUpload}
+                disabled={isSaving || isUploading}
+                className="bg-orange-600 hover:bg-orange-700"
+              >
+                {isSaving || isUploading ? "Saving..." : "Save Anyway"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Upload Dialog - Only for new seat maps */}
       {!isEditingExisting && (

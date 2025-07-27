@@ -5,8 +5,16 @@ import { createShapesSlice, type ShapesSlice } from "../slices/shapes-slice";
 import { createHistorySlice, type HistorySlice } from "../slices/history-slice";
 import { createCanvasSlice, type CanvasSlice } from "../slices/canvas-slice";
 import { createAreaSlice, type AreaSlice } from "../slices/area-slice";
+import {
+  createValidationSlice,
+  type ValidationSlice,
+} from "../slices/validation-slice";
 
-type CanvasStore = ShapesSlice & HistorySlice & CanvasSlice & AreaSlice;
+type CanvasStore = ShapesSlice &
+  HistorySlice &
+  CanvasSlice &
+  AreaSlice &
+  ValidationSlice;
 
 const initializeStore = () => {
   return create<CanvasStore>()(
@@ -16,6 +24,7 @@ const initializeStore = () => {
         ...createHistorySlice(...args),
         ...createCanvasSlice(...args),
         ...createAreaSlice(...args),
+        ...createValidationSlice(...args),
       }),
       {
         name: "canvas-store",
@@ -216,3 +225,25 @@ export const useLoadFromStorage = () =>
 
 export const useClearStorage = () =>
   useCanvasStore((state) => state.clearStorage);
+
+export const useValidationErrors = () =>
+  useCanvasStore((state) => state.validationErrors);
+export const useShowValidationErrors = () =>
+  useCanvasStore((state) => state.showValidationErrors);
+export const useHighlightedSeats = () =>
+  useCanvasStore((state) => state.highlightedSeats);
+
+export const useValidationActions = () => {
+  const store = useCanvasStore.getState();
+
+  return useMemo(
+    () => ({
+      validateAllAreas: store.validateAllAreas || (() => {}),
+      dismissValidationErrors: store.dismissValidationErrors || (() => {}),
+      highlightSeatsInArea: store.highlightSeatsInArea || (() => {}),
+      clearHighlightedSeats: store.clearHighlightedSeats || (() => {}),
+      fixArea: store.fixArea || (() => {}),
+    }),
+    []
+  );
+};

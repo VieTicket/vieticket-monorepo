@@ -28,8 +28,8 @@ export interface AreaRenderProps {
 
 export const renderAreaContent = ({
   rows,
-  selectedRowIds,
-  selectedSeatIds,
+  selectedRowIds = [],
+  selectedSeatIds = [],
   areaEvents,
   isInteractive = true,
   isCustomerView = false,

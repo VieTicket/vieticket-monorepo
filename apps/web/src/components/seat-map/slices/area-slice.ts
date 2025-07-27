@@ -9,6 +9,8 @@ import { ShapesSlice } from "./shapes-slice";
 import { HistorySlice } from "./history-slice";
 import { CanvasSlice } from "./canvas-slice";
 import { v4 as uuidv4 } from "uuid";
+import { ValidationError } from "better-auth/react";
+import { ValidationSlice } from "./validation-slice";
 
 export interface AreaSlice {
   isInAreaMode: boolean;
@@ -68,7 +70,7 @@ export interface AreaSlice {
 }
 
 export const createAreaSlice: StateCreator<
-  ShapesSlice & HistorySlice & CanvasSlice & AreaSlice,
+  ShapesSlice & HistorySlice & CanvasSlice & AreaSlice & ValidationSlice,
   [],
   [],
   AreaSlice
@@ -387,6 +389,9 @@ export const createAreaSlice: StateCreator<
     // FIX: Save to history after adding seat
     get().saveToHistory();
 
+    // Trigger validation after adding seat
+    setTimeout(() => get().validateAllAreas(), 100);
+
     return newSeat.id;
   },
 
@@ -439,6 +444,9 @@ export const createAreaSlice: StateCreator<
 
     // FIX: Save to history after adding multiple seats
     get().saveToHistory();
+
+    // Trigger validation after adding multiple seats
+    setTimeout(() => get().validateAllAreas(), 100);
 
     return newSeats.map((seat) => seat.id);
   },
@@ -503,6 +511,11 @@ export const createAreaSlice: StateCreator<
 
     // FIX: Save to history after updating seat
     get().saveToHistory();
+
+    // Trigger validation after updating seat position
+    if (updates.x !== undefined || updates.y !== undefined) {
+      setTimeout(() => get().validateAllAreas(), 100);
+    }
 
     return seatId;
   },
