@@ -38,6 +38,7 @@ const publicRoutes = [
   "/about",
   "/contact",
   "/search",
+  "/seat-map-v2/*",
 ];
 
 // Routes that require authentication but no specific role
