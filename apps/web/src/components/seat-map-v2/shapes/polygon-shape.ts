@@ -9,24 +9,27 @@ export const createPolygon = (
 ): PixiShape => {
   const graphics = new PIXI.Graphics();
 
-  // Convert points to RoundedPoint format for roundShape
-  const roundedPoints = points.map((point) => ({
-    x: point.x,
-    y: point.y,
-    radius: cornerRadius / 2, // Individual corner radius
-  }));
-
-  graphics
-    .roundShape(roundedPoints, cornerRadius)
-    .fill(0x9b59b6)
-    .stroke({ width: 2, color: 0x8e44ad });
-
-  graphics.eventMode = "static";
-  graphics.cursor = "pointer";
-
   // Calculate center point for positioning
   const centerX = points.reduce((sum, p) => sum + p.x, 0) / points.length;
   const centerY = points.reduce((sum, p) => sum + p.y, 0) / points.length;
+
+  // Create relative points from center for drawing
+  const relativePoints = points.map((point) => ({
+    x: point.x - centerX,
+    y: point.y - centerY,
+    radius: cornerRadius / 2,
+  }));
+
+  graphics
+    .roundShape(relativePoints, cornerRadius)
+    .fill(0x9b59b6)
+    .stroke({ width: 2, color: 0x8e44ad });
+
+  // Position the graphics at the center
+  graphics.x = centerX;
+  graphics.y = centerY;
+  graphics.eventMode = "static";
+  graphics.cursor = "pointer";
 
   const shape: PixiShape = {
     id: generateShapeId(),
@@ -34,10 +37,13 @@ export const createPolygon = (
     graphics,
     x: centerX,
     y: centerY,
-    points,
+    points, // Keep original points for calculations
     cornerRadius,
     color: 0x9b59b6,
     selected: false,
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
   };
 
   graphics.on("pointerdown", (event: PIXI.FederatedPointerEvent) =>
@@ -58,18 +64,28 @@ export const updatePolygonGraphics = (shape: PixiShape) => {
   const graphics = shape.graphics;
   graphics.clear();
 
-  // Convert points to RoundedPoint format
-  const roundedPoints = shape.points.map((point) => ({
-    x: point.x,
-    y: point.y,
+  // Calculate center point
+  const centerX =
+    shape.points.reduce((sum, p) => sum + p.x, 0) / shape.points.length;
+  const centerY =
+    shape.points.reduce((sum, p) => sum + p.y, 0) / shape.points.length;
+
+  // Create relative points from center
+  const relativePoints = shape.points.map((point) => ({
+    x: point.x - centerX,
+    y: point.y - centerY,
     radius: (shape.cornerRadius || 10) / 2,
   }));
 
   graphics
-    .roundShape(roundedPoints, shape.cornerRadius || 10)
+    .roundShape(relativePoints, shape.cornerRadius || 10)
     .fill(shape.color)
     .stroke({
       width: shape.selected ? 3 : 2,
       color: shape.selected ? 0xfbbf24 : 0x8e44ad,
     });
+
+  // Update position to center
+  graphics.x = shape.x;
+  graphics.y = shape.y;
 };

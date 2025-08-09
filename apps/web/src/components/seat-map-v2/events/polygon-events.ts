@@ -96,11 +96,6 @@ export const onPolygonMove = (event: PIXI.FederatedPointerEvent) => {
   );
 };
 
-export const onPolygonEnd = () => {
-  // This is handled in onPolygonStart when clicking near first point
-  // or when right-clicking to finish (if implemented)
-};
-
 export const finishPolygon = () => {
   if (polygonDrawingState.points.length >= MIN_POINTS) {
     const polygon = createPolygon(polygonDrawingState.points, 10);

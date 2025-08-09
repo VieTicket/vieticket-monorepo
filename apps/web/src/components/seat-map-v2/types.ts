@@ -19,6 +19,10 @@ export interface PixiShape {
   fill?: string;
   stroke?: string;
   strokeWidth?: number;
+
+  rotation?: number; // Rotation in radians
+  scaleX?: number; // Horizontal scale factor
+  scaleY?: number; // Vertical scale factor
 }
 
 export type Tool =

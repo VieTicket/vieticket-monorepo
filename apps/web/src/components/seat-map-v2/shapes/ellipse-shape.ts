@@ -43,6 +43,10 @@ export const createEllipse = (
     radiusY,
     color: 0x10b981,
     selected: false,
+    // Initialize transformation properties
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
   };
 
   graphics.on("pointerdown", (event: PIXI.FederatedPointerEvent) =>

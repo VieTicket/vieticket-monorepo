@@ -7,6 +7,7 @@ import { updatePolygonGraphics } from "./polygon-shape";
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
+export { updatePolygonGraphics } from "./polygon-shape";
 
 export const addShapeToStage = (shape: PixiShape) => {
   if (shapeContainer) {
@@ -23,32 +24,100 @@ export const updateShapeSelection = (shapeId: string) => {
       shape.selected = false;
     }
 
-    if (shape.graphics instanceof PIXI.Graphics) {
-      if (shape.type === "rectangle" && shape.width && shape.height) {
-        shape.graphics.clear();
-        shape.graphics
-          .roundRect(shape.x, shape.y, shape.width, shape.height, 10)
-          .fill(shape.color)
-          .stroke({
-            width: shape.selected ? 3 : 2,
-            color: shape.selected ? 0xfbbf24 : 0x1e40af,
-          });
-      } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
-        shape.graphics.clear();
-        shape.graphics
-          .ellipse(shape.x, shape.y, shape.radiusX, shape.radiusY)
-          .stroke({
-            width: shape.selected ? 3 : 2,
-            color: shape.selected ? 0xfbbf24 : 0x047857,
-          })
-          .fill(shape.color);
-      } else if (shape.type === "polygon") {
-        updatePolygonGraphics(shape);
-      }
-    } else if (shape.graphics instanceof PIXI.Text) {
-      shape.graphics.style.fill = shape.selected ? 0xfbbf24 : 0x1e40af;
-    }
+    updateShapeSelectionRectangle(shape);
   });
+};
+
+export const updateShapeSelectionRectangle = (shape: PixiShape) => {
+  if (shape.graphics instanceof PIXI.Graphics) {
+    shape.graphics.clear();
+
+    // Save current transform state
+    shape.graphics.save();
+
+    // Reset transform to apply our custom transformations
+    shape.graphics.resetTransform();
+
+    // Apply transformations in the correct order: translate -> rotate -> scale
+    shape.graphics.translateTransform(shape.x, shape.y);
+
+    // Apply rotation if the shape has rotation property
+    if (shape.rotation) {
+      shape.graphics.rotateTransform(shape.rotation);
+    }
+
+    // Apply scaling if the shape has scale properties
+    if (shape.scaleX || shape.scaleY) {
+      const scaleX = shape.scaleX || 1;
+      const scaleY = shape.scaleY || scaleX;
+      shape.graphics.scaleTransform(scaleX, scaleY);
+    }
+
+    // Draw the shape based on its type
+    if (shape.type === "rectangle" && shape.width && shape.height) {
+      // Draw rectangle centered at origin since we translated to position
+      shape.graphics
+        .roundRect(
+          -shape.width / 2,
+          -shape.height / 2,
+          shape.width,
+          shape.height,
+          10
+        )
+        .fill(shape.color)
+        .stroke({
+          width: shape.selected ? 3 : 2,
+          color: shape.selected ? 0xfbbf24 : 0x1e40af,
+        });
+    } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
+      // Draw ellipse centered at origin
+      shape.graphics
+        .ellipse(0, 0, shape.radiusX, shape.radiusY)
+        .stroke({
+          width: shape.selected ? 3 : 2,
+          color: shape.selected ? 0xfbbf24 : 0x047857,
+        })
+        .fill(shape.color);
+    } else if (shape.type === "polygon" && shape.points) {
+      // For polygons, use relative points from center
+      const centerX =
+        shape.points.reduce((sum, p) => sum + p.x, 0) / shape.points.length;
+      const centerY =
+        shape.points.reduce((sum, p) => sum + p.y, 0) / shape.points.length;
+
+      // Create relative points from center
+      const relativePoints = shape.points.map((point) => ({
+        x: point.x - centerX,
+        y: point.y - centerY,
+        radius: shape.cornerRadius || 10,
+      }));
+
+      shape.graphics
+        .roundShape(relativePoints, shape.cornerRadius || 10)
+        .fill(shape.color)
+        .stroke({
+          width: shape.selected ? 3 : 2,
+          color: shape.selected ? 0xfbbf24 : 0x8e44ad,
+        });
+    }
+
+    // Restore transform state
+    shape.graphics.restore();
+  } else if (shape.graphics instanceof PIXI.Text) {
+    // Handle text selection
+    shape.graphics.style.fill = shape.selected ? 0xfbbf24 : 0x1e40af;
+
+    // Apply text transformations if needed
+    if (shape.scaleX || shape.scaleY) {
+      const scaleX = shape.scaleX || 1;
+      const scaleY = shape.scaleY || scaleX;
+      shape.graphics.scale.set(scaleX, scaleY);
+    }
+
+    if (shape.rotation) {
+      shape.graphics.rotation = shape.rotation;
+    }
+  }
 };
 
 export const deleteShape = (shapeId: string) => {

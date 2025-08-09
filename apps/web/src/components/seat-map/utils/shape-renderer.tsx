@@ -30,7 +30,6 @@ export const renderShape = ({
   const { key, ...restProps } = commonProps;
   const hitFunc = createHitFunc(shape);
 
-  console.log(shape);
   switch (shape.type) {
     case "rect":
       return (

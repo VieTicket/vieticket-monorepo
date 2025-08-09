@@ -26,6 +26,10 @@ export const createText = (x: number, y: number, text: string): PixiShape => {
     y,
     color: 0x374151,
     selected: false,
+    // Initialize transformation properties
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
   };
 
   textGraphics.on("pointerdown", (event) => onShapeClick(event, shape));

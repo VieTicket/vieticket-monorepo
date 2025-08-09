@@ -21,12 +21,16 @@ export const createRectangle = (
     id: generateShapeId(),
     type: "rectangle",
     graphics,
-    x,
-    y,
+    x: x + width / 2, // Center point
+    y: y + height / 2, // Center point
     width,
     height,
     color: 0x3b82f6,
     selected: false,
+    // Initialize transformation properties
+    rotation: 0,
+    scaleX: 1,
+    scaleY: 1,
   };
 
   graphics.on("pointerdown", (event) => onShapeClick(event, shape));

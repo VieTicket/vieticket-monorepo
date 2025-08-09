@@ -26,6 +26,8 @@ export let polygonDrawingState: {
   previewPoints: [],
 };
 
+export let selectionContainer: PIXI.Container | null = null;
+
 // Setters for variables that need to be modified from other modules
 export const setPixiApp = (app: PIXI.Application | null) => {
   pixiApp = app;
@@ -71,6 +73,9 @@ export const setPolygonDrawingState = (
 ) => {
   polygonDrawingState = newState;
 };
+export const setSelectionContainer = (container: PIXI.Container | null) => {
+  selectionContainer = container;
+};
 
 export const resetVariables = () => {
   pixiApp = null;
@@ -89,6 +94,7 @@ export const resetVariables = () => {
     points: [],
     previewPoints: [],
   };
+  selectionContainer = null;
   // Reset Zustand store
   useSeatMapStore.getState().updateShapes(shapes);
 };

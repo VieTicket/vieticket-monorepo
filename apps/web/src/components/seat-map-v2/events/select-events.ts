@@ -1,8 +1,12 @@
 import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { currentTool, shapes } from "../variables";
-import { updateShapeSelection } from "../shapes/index";
+import {
+  updateShapeSelection,
+  updateShapeSelectionRectangle,
+} from "../shapes/index";
 import { useSeatMapStore } from "../store/seat-map-store";
+import { getSelectionTransform } from "./transform-events";
 
 export const onShapeClick = (
   event: PIXI.FederatedPointerEvent,
@@ -15,18 +19,29 @@ export const onShapeClick = (
     const selectedShapes = shapes.filter((s) => s.selected);
     useSeatMapStore.getState().setSelectedShapes(selectedShapes);
     useSeatMapStore.getState().updateShapes(shapes);
+
+    // Update selection transform
+    const selectionTransform = getSelectionTransform();
+    if (selectionTransform) {
+      selectionTransform.updateSelection(selectedShapes);
+    }
   }
 };
 
 export const onStageClick = (event: PIXI.FederatedPointerEvent) => {
   if (currentTool === "select") {
-    // Deselect all shapes when clicking on empty stage
     shapes.forEach((shape) => {
       shape.selected = false;
-      updateShapeSelection(shape.id);
+      updateShapeSelectionRectangle(shape);
     });
 
     useSeatMapStore.getState().setSelectedShapes([]);
     useSeatMapStore.getState().updateShapes(shapes);
+
+    // Update selection transform
+    const selectionTransform = getSelectionTransform();
+    if (selectionTransform) {
+      selectionTransform.updateSelection([]);
+    }
   }
 };

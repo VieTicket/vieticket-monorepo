@@ -7,7 +7,6 @@ import { currentTool } from "../variables";
 import {
   onPolygonStart,
   onPolygonMove,
-  onPolygonEnd,
   onPolygonRightClick,
 } from "./polygon-events";
 
@@ -56,9 +55,6 @@ export const onStagePointerUp = (event: PIXI.FederatedPointerEvent) => {
     case "rectangle":
     case "ellipse":
       onDrawEnd(event);
-      break;
-    case "polygon":
-      onPolygonEnd();
       break;
   }
 };

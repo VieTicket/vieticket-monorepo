@@ -14,7 +14,13 @@ import {
   setCurrentTool,
   setPan,
   resetVariables,
+  setSelectionContainer,
 } from "@/components/seat-map-v2/variables";
+import {
+  createSelectionTransform,
+  getSelectionTransform,
+  destroySelectionTransform,
+} from "@/components/seat-map-v2/events/transform-events";
 import { updateStageTransform } from "@/components/seat-map-v2/utils";
 import {
   onStagePointerDown,
@@ -34,6 +40,7 @@ import {
   handleResetView,
 } from "@/components/seat-map-v2/events/zoom-events";
 import { polygonDrawingState } from "@/components/seat-map-v2/variables";
+import { updateShapeSelectionRectangle } from "@/components/seat-map-v2/shapes/index";
 
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
@@ -42,6 +49,14 @@ const SeatMapV2Page = () => {
 
   // Use Zustand store
   const { shapes, selectedShapes, setSelectedShapes } = useSeatMapStore();
+
+  // Update selection rectangle when selected shapes change
+  useEffect(() => {
+    const selectionTransform = getSelectionTransform();
+    if (selectionTransform && selectedTool === "select") {
+      selectionTransform.updateSelection(selectedShapes);
+    }
+  }, [selectedShapes, selectedTool]);
 
   // Sync global tool state with React state
   useEffect(() => {
@@ -86,6 +101,14 @@ const SeatMapV2Page = () => {
       stageContainer.addChild(previewShapeContainer);
       setPreviewContainer(previewShapeContainer);
 
+      // Create container for selection rectangle
+      const selectionRectContainer = new PIXI.Container();
+      stageContainer.addChild(selectionRectContainer);
+      setSelectionContainer(selectionRectContainer);
+
+      // Create selection transform
+      createSelectionTransform(selectionRectContainer);
+
       // Enable interactivity
       app.stage.eventMode = "static";
       app.stage.hitArea = app.screen;
@@ -103,6 +126,7 @@ const SeatMapV2Page = () => {
     return () => {
       cancelled = true;
       if (pixiApp) {
+        destroySelectionTransform();
         pixiApp.destroy(true, { children: true, texture: true });
         resetVariables();
       }
@@ -173,6 +197,20 @@ const SeatMapV2Page = () => {
         shape.graphics.x = shape.x;
         shape.graphics.y = shape.y;
       }
+
+      // Apply transformations if they changed
+      if (updates.rotation !== undefined) {
+        shape.graphics.rotation = shape.rotation || 0;
+      }
+
+      if (updates.scaleX !== undefined || updates.scaleY !== undefined) {
+        const scaleX = shape.scaleX || 1;
+        const scaleY = shape.scaleY || scaleX;
+        shape.graphics.scale.set(scaleX, scaleY);
+      }
+
+      // Update the visual appearance
+      updateShapeSelectionRectangle(shape);
     }
   };
 
