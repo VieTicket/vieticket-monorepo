@@ -1,7 +1,6 @@
 import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { stage, zoom, pixiApp } from "../variables";
-import { updateShapeSelectionRectangle } from "../shapes/index";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate";
@@ -30,9 +29,10 @@ export class SelectionTransform {
   } | null = null;
   private handles: TransformHandle[] = [];
   private container: PIXI.Container;
-  private isDragging = false;
-  private dragType: "move" | "scale" | "rotate" | null = null;
-  private dragStart: { x: number; y: number } | null = null;
+  private isTransforming = false;
+  private transformType: "move" | "scale" | "rotate" | null = null;
+  private transformStart: { x: number; y: number } | null = null;
+  private transformPosition: string = "";
   private originalTransforms: Array<{
     scaleX: number;
     scaleY: number;
@@ -129,13 +129,14 @@ export class SelectionTransform {
 
     const localPoint = event.getLocalPosition(stage);
 
-    this.isDragging = true;
-    this.dragStart = { x: localPoint.x, y: localPoint.y };
+    this.isTransforming = true;
+    this.transformStart = { x: localPoint.x, y: localPoint.y };
+    this.transformPosition = position;
 
     if (type === "rotate") {
-      this.dragType = "rotate";
+      this.transformType = "rotate";
     } else {
-      this.dragType = "scale";
+      this.transformType = "scale";
     }
 
     // Store original transforms
@@ -146,48 +147,47 @@ export class SelectionTransform {
       x: shape.x,
       y: shape.y,
     }));
+  }
 
-    // Add stage event listeners instead of document
-    const onStagePointerMove = (moveEvent: PIXI.FederatedPointerEvent) => {
-      if (!this.isDragging || !this.dragStart || !stage) return;
+  // Make these methods public
+  public onTransformPointerMove(event: PIXI.FederatedPointerEvent) {
+    if (!this.isTransforming || !this.transformStart || !stage) return;
 
-      const stageMovePoint = moveEvent.getLocalPosition(stage);
-      const deltaX = stageMovePoint.x - this.dragStart.x;
-      const deltaY = stageMovePoint.y - this.dragStart.y;
+    const stageMovePoint = event.getLocalPosition(stage);
+    const deltaX = stageMovePoint.x - this.transformStart.x;
+    const deltaY = stageMovePoint.y - this.transformStart.y;
 
-      if (this.dragType === "scale") {
-        this.handleScale(deltaX, deltaY, position);
-      } else if (this.dragType === "rotate") {
-        this.handleRotate(deltaX, deltaY);
-      }
-    };
+    if (this.transformType === "scale") {
+      this.handleScale(deltaX, deltaY, this.transformPosition);
+    } else if (this.transformType === "rotate") {
+      this.handleRotate(deltaX, deltaY);
+    }
+  }
 
-    const onStagePointerUp = () => {
-      if (!this.isDragging) return;
+  public onTransformPointerUp() {
+    if (!this.isTransforming) return;
 
-      this.isDragging = false;
-      this.dragType = null;
-      this.dragStart = null;
-      this.originalTransforms = [];
+    this.isTransforming = false;
+    this.transformType = null;
+    this.transformStart = null;
+    this.transformPosition = "";
+    this.originalTransforms = [];
+  }
 
-      // Remove stage event listeners
-      stage?.off("pointermove", onStagePointerMove);
-      stage?.off("pointerup", onStagePointerUp);
-      stage?.off("pointerupoutside", onStagePointerUp);
-    };
-
-    // Add event listeners to stage
-    stage.on("pointermove", onStagePointerMove);
-    stage.on("pointerup", onStagePointerUp);
-    stage.on("pointerupoutside", onStagePointerUp); // Handle mouse leaving canvas
+  // Getter to check if currently dragging
+  public get isCurrentlyTransforming(): boolean {
+    return this.isTransforming;
   }
 
   private applyTransformsToShape(shape: PixiShape) {
     // Apply transforms to the actual PIXI graphics object
     if (shape.graphics) {
+      // Set position first
+      shape.graphics.position.set(shape.x, shape.y);
+
+      // Then apply scale and rotation
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.rotation = shape.rotation || 0;
-      shape.graphics.position.set(shape.x, shape.y);
     }
   }
 
@@ -232,18 +232,81 @@ export class SelectionTransform {
     scaleFactorX = Math.max(0.1, Math.min(3, scaleFactorX));
     scaleFactorY = Math.max(0.1, Math.min(3, scaleFactorY));
 
-    // Apply scaling to selected shapes
+    // Calculate anchor point based on handle position
+    let anchorX = 0.5; // Default center
+    let anchorY = 0.5; // Default center
+
+    switch (position) {
+      case "top-left":
+        anchorX = 1; // Right edge stays fixed
+        anchorY = 1; // Bottom edge stays fixed
+        break;
+      case "top-right":
+        anchorX = -1; // Left edge stays fixed
+        anchorY = 1; // Bottom edge stays fixed
+        break;
+      case "bottom-left":
+        anchorX = 1; // Right edge stays fixed
+        anchorY = -1; // Top edge stays fixed
+        break;
+      case "bottom-right":
+        anchorX = -1; // Left edge stays fixed
+        anchorY = -1; // Top edge stays fixed
+        break;
+      case "top":
+        anchorY = 1; // Bottom edge stays fixed
+        break;
+      case "bottom":
+        anchorY = -1; // Top edge stays fixed
+        break;
+      case "left":
+        anchorX = 1; // Right edge stays fixed
+        break;
+      case "right":
+        anchorX = -1; // Left edge stays fixed
+        break;
+    }
+
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
+        // Update scale properties
         shape.scaleX = original.scaleX * scaleFactorX;
         shape.scaleY = original.scaleY * scaleFactorY;
 
+        // Calculate the shape's dimensions for anchor-based positioning
+        let shapeWidth = 0;
+        let shapeHeight = 0;
+
+        if (shape.type === "rectangle" && shape.width && shape.height) {
+          shapeWidth = shape.width;
+          shapeHeight = shape.height;
+        } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
+          shapeWidth = shape.radiusX * 2;
+          shapeHeight = shape.radiusY * 2;
+        } else if (
+          shape.type === "text" &&
+          shape.graphics instanceof PIXI.Text
+        ) {
+          const bounds = shape.graphics.getBounds();
+          shapeWidth = bounds.width;
+          shapeHeight = bounds.height;
+        }
+
+        // Calculate position offset based on anchor and scaling
+        const scaleChangeX = (scaleFactorX - 1) * shapeWidth;
+        const scaleChangeY = (scaleFactorY - 1) * shapeHeight;
+
+        // Apply anchor-based position adjustment
+        const offsetX = -scaleChangeX * anchorX;
+        const offsetY = -scaleChangeY * anchorY;
+        console.log("offsetX:", offsetX, "offsetY:", offsetY);
+
+        shape.x = original.x + offsetX / 2;
+        shape.y = original.y + offsetY / 2;
+
         // Apply transforms to PIXI graphics
         this.applyTransformsToShape(shape);
-
-        // Update visual appearance
-        updateShapeSelectionRectangle(shape);
       }
     });
 
@@ -261,10 +324,8 @@ export class SelectionTransform {
       const original = this.originalTransforms[index];
       if (original) {
         shape.rotation = original.rotation + rotationDelta;
-
-        // Update visual appearance
-        updateShapeSelectionRectangle(shape);
       }
+      this.applyTransformsToShape(shape);
     });
 
     // Update selection rectangle
@@ -282,28 +343,124 @@ export class SelectionTransform {
     shapes.forEach((shape) => {
       let shapeMinX, shapeMinY, shapeMaxX, shapeMaxY;
 
+      // Get the actual scale factors applied to the shape
+      const scaleX = shape.scaleX || 1;
+      const scaleY = shape.scaleY || 1;
+      const rotation = shape.rotation || 0;
+
       if (shape.type === "rectangle" && shape.width && shape.height) {
-        shapeMinX = shape.x - shape.width / 2;
-        shapeMinY = shape.y - shape.height / 2;
-        shapeMaxX = shape.x + shape.width / 2;
-        shapeMaxY = shape.y + shape.height / 2;
-      } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
-        shapeMinX = shape.x - shape.radiusX;
-        shapeMinY = shape.y - shape.radiusY;
-        shapeMaxX = shape.x + shape.radiusX;
-        shapeMaxY = shape.y + shape.radiusY;
-      } else if (shape.type === "polygon" && shape.points) {
-        const xs = shape.points.map((p) => p.x);
-        const ys = shape.points.map((p) => p.y);
+        // Apply scaling to the dimensions
+        const scaledWidth = shape.width * scaleX;
+        const scaledHeight = shape.height * scaleY;
+
+        // Calculate rotated bounding box
+        const corners = [
+          { x: -scaledWidth / 2, y: -scaledHeight / 2 },
+          { x: scaledWidth / 2, y: -scaledHeight / 2 },
+          { x: scaledWidth / 2, y: scaledHeight / 2 },
+          { x: -scaledWidth / 2, y: scaledHeight / 2 },
+        ];
+
+        const rotatedCorners = corners.map((corner) => ({
+          x:
+            shape.x +
+            corner.x * Math.cos(rotation) -
+            corner.y * Math.sin(rotation),
+          y:
+            shape.y +
+            corner.x * Math.sin(rotation) +
+            corner.y * Math.cos(rotation),
+        }));
+
+        const xs = rotatedCorners.map((p) => p.x);
+        const ys = rotatedCorners.map((p) => p.y);
         shapeMinX = Math.min(...xs);
         shapeMinY = Math.min(...ys);
         shapeMaxX = Math.max(...xs);
         shapeMaxY = Math.max(...ys);
+      } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
+        // For ellipse, calculate rotated bounding box
+        const scaledRadiusX = shape.radiusX * scaleX;
+        const scaledRadiusY = shape.radiusY * scaleY;
+
+        // Calculate the bounding box of a rotated ellipse
+        const a = scaledRadiusX;
+        const b = scaledRadiusY;
+        const cos = Math.abs(Math.cos(rotation));
+        const sin = Math.abs(Math.sin(rotation));
+
+        const boundingWidth = a * cos + b * sin;
+        const boundingHeight = a * sin + b * cos;
+
+        shapeMinX = shape.x - boundingWidth;
+        shapeMinY = shape.y - boundingHeight;
+        shapeMaxX = shape.x + boundingWidth;
+        shapeMaxY = shape.y + boundingHeight;
+      } else if (shape.type === "polygon" && shape.points) {
+        // For polygons, apply scaling and rotation to each point
+        const centerX = shape.x;
+        const centerY = shape.y;
+
+        const transformedPoints = shape.points.map((point) => {
+          // First apply scaling
+          const scaledX = (point.x - centerX) * scaleX;
+          const scaledY = (point.y - centerY) * scaleY;
+
+          // Then apply rotation
+          return {
+            x:
+              centerX +
+              scaledX * Math.cos(rotation) -
+              scaledY * Math.sin(rotation),
+            y:
+              centerY +
+              scaledX * Math.sin(rotation) +
+              scaledY * Math.cos(rotation),
+          };
+        });
+
+        const xs = transformedPoints.map((p) => p.x);
+        const ys = transformedPoints.map((p) => p.y);
+        shapeMinX = Math.min(...xs);
+        shapeMinY = Math.min(...ys);
+        shapeMaxX = Math.max(...xs);
+        shapeMaxY = Math.max(...ys);
+      } else if (shape.type === "text" && shape.graphics instanceof PIXI.Text) {
+        // For text, use the actual bounds which include scaling and rotation
+        const bounds = shape.graphics.getBounds();
+        shapeMinX = bounds.x;
+        shapeMinY = bounds.y;
+        shapeMaxX = bounds.x + bounds.width;
+        shapeMaxY = bounds.y + bounds.height;
       } else {
-        shapeMinX = shape.x - 20;
-        shapeMinY = shape.y - 10;
-        shapeMaxX = shape.x + 20;
-        shapeMaxY = shape.y + 10;
+        // Fallback with scaling and rotation applied
+        const scaledWidth = 40 * scaleX;
+        const scaledHeight = 20 * scaleY;
+
+        const corners = [
+          { x: -scaledWidth / 2, y: -scaledHeight / 2 },
+          { x: scaledWidth / 2, y: -scaledHeight / 2 },
+          { x: scaledWidth / 2, y: scaledHeight / 2 },
+          { x: -scaledWidth / 2, y: scaledHeight / 2 },
+        ];
+
+        const rotatedCorners = corners.map((corner) => ({
+          x:
+            shape.x +
+            corner.x * Math.cos(rotation) -
+            corner.y * Math.sin(rotation),
+          y:
+            shape.y +
+            corner.x * Math.sin(rotation) +
+            corner.y * Math.cos(rotation),
+        }));
+
+        const xs = rotatedCorners.map((p) => p.x);
+        const ys = rotatedCorners.map((p) => p.y);
+        shapeMinX = Math.min(...xs);
+        shapeMinY = Math.min(...ys);
+        shapeMaxX = Math.max(...xs);
+        shapeMaxY = Math.max(...ys);
       }
 
       minX = Math.min(minX, shapeMinX);

@@ -23,12 +23,9 @@ import {
 } from "@/components/seat-map-v2/events/transform-events";
 import { updateStageTransform } from "@/components/seat-map-v2/utils";
 import {
-  onStagePointerDown,
-  onStagePointerMove,
-  onStagePointerUp,
-  onStageWheel,
-  onStageRightClick,
-} from "@/components/seat-map-v2/events/index";
+  createEventManager,
+  destroyEventManager,
+} from "@/components/seat-map-v2/events/event-manager";
 import { clearCanvas } from "@/components/seat-map-v2/shapes";
 import { MainToolbar } from "@/components/seat-map-v2/components/main-toolbar";
 import { CanvasInventory } from "@/components/seat-map-v2/components/canvas-inventory";
@@ -40,7 +37,6 @@ import {
   handleResetView,
 } from "@/components/seat-map-v2/events/zoom-events";
 import { polygonDrawingState } from "@/components/seat-map-v2/variables";
-import { updateShapeSelectionRectangle } from "@/components/seat-map-v2/shapes/index";
 
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
@@ -112,13 +108,8 @@ const SeatMapV2Page = () => {
       // Enable interactivity
       app.stage.eventMode = "static";
       app.stage.hitArea = app.screen;
-
-      // Add event listeners
-      app.stage.on("pointerdown", onStagePointerDown);
-      app.stage.on("pointermove", onStagePointerMove);
-      app.stage.on("pointerup", onStagePointerUp);
-      app.stage.on("wheel", onStageWheel);
-      app.stage.on("rightclick", onStageRightClick);
+      // Create event manager (replaces individual event listeners)
+      createEventManager();
     };
 
     init();
@@ -126,6 +117,7 @@ const SeatMapV2Page = () => {
     return () => {
       cancelled = true;
       if (pixiApp) {
+        destroyEventManager();
         destroySelectionTransform();
         pixiApp.destroy(true, { children: true, texture: true });
         resetVariables();
@@ -208,9 +200,6 @@ const SeatMapV2Page = () => {
         const scaleY = shape.scaleY || scaleX;
         shape.graphics.scale.set(scaleX, scaleY);
       }
-
-      // Update the visual appearance
-      updateShapeSelectionRectangle(shape);
     }
   };
 

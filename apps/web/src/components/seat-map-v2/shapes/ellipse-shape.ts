@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { generateShapeId } from "../utils";
 import { onShapeClick } from "../events/select-events";
+import { getEventManager } from "../events/event-manager";
 
 export const createEllipse = (
   x: number,
@@ -29,7 +30,11 @@ export const createEllipse = (
     textureSpace: "local",
   });
 
-  graphics.ellipse(x, y, radiusX, radiusY).fill(radialGradient);
+  // Draw ellipse centered at origin
+  graphics.ellipse(0, 0, radiusX, radiusY).fill(radialGradient);
+
+  // Position the graphics
+  graphics.position.set(x, y);
   graphics.eventMode = "static";
   graphics.cursor = "pointer";
 
@@ -43,14 +48,14 @@ export const createEllipse = (
     radiusY,
     color: 0x10b981,
     selected: false,
-    // Initialize transformation properties
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
   };
 
-  graphics.on("pointerdown", (event: PIXI.FederatedPointerEvent) =>
-    onShapeClick(event, shape)
-  );
+  const eventManager = getEventManager();
+  if (eventManager) {
+    eventManager.addShapeEvents(shape);
+  }
   return shape;
 };

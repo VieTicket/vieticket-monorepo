@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { generateShapeId } from "../utils";
 import { onShapeClick } from "../events/select-events";
+import { getEventManager } from "../events/event-manager";
 
 export const createText = (x: number, y: number, text: string): PixiShape => {
   const textGraphics = new PIXI.Text({
@@ -13,8 +14,10 @@ export const createText = (x: number, y: number, text: string): PixiShape => {
       align: "center",
     },
   });
-  textGraphics.x = x;
-  textGraphics.y = y;
+
+  // Set anchor to center for consistent positioning
+  textGraphics.anchor.set(0.5, 0.5);
+  textGraphics.position.set(x, y);
   textGraphics.eventMode = "static";
   textGraphics.cursor = "pointer";
 
@@ -32,6 +35,9 @@ export const createText = (x: number, y: number, text: string): PixiShape => {
     scaleY: 1,
   };
 
-  textGraphics.on("pointerdown", (event) => onShapeClick(event, shape));
+  const eventManager = getEventManager();
+  if (eventManager) {
+    eventManager.addShapeEvents(shape);
+  }
   return shape;
 };

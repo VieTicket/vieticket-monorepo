@@ -1,10 +1,7 @@
 import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { currentTool, shapes } from "../variables";
-import {
-  updateShapeSelection,
-  updateShapeSelectionRectangle,
-} from "../shapes/index";
+import { updateShapeSelection } from "../shapes/index";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getSelectionTransform } from "./transform-events";
 
@@ -32,7 +29,6 @@ export const onStageClick = (event: PIXI.FederatedPointerEvent) => {
   if (currentTool === "select") {
     shapes.forEach((shape) => {
       shape.selected = false;
-      updateShapeSelectionRectangle(shape);
     });
 
     useSeatMapStore.getState().setSelectedShapes([]);

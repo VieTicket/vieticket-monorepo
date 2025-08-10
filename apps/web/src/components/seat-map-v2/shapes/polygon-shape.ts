@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { generateShapeId } from "../utils";
 import { onShapeClick } from "../events/select-events";
+import { getEventManager } from "../events/event-manager";
 
 export const createPolygon = (
   points: Array<{ x: number; y: number }>,
@@ -46,9 +47,10 @@ export const createPolygon = (
     scaleY: 1,
   };
 
-  graphics.on("pointerdown", (event: PIXI.FederatedPointerEvent) =>
-    onShapeClick(event, shape)
-  );
+  const eventManager = getEventManager();
+  if (eventManager) {
+    eventManager.addShapeEvents(shape);
+  }
   return shape;
 };
 

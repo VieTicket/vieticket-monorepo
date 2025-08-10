@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
 import { generateShapeId } from "../utils";
 import { onShapeClick } from "../events/select-events";
+import { getEventManager } from "../events/event-manager";
 
 export const createRectangle = (
   x: number,
@@ -11,9 +12,12 @@ export const createRectangle = (
 ): PixiShape => {
   const graphics = new PIXI.Graphics();
   graphics
-    .roundRect(x, y, width, height, 10)
+    .roundRect(-width / 2, -height / 2, width, height, 10)
     .fill(0x3b82f6)
     .stroke({ width: 2, color: 0x1e40af });
+
+  // Position the graphics at the center
+  graphics.position.set(x + width / 2, y + height / 2);
   graphics.eventMode = "static";
   graphics.cursor = "pointer";
 
@@ -27,12 +31,14 @@ export const createRectangle = (
     height,
     color: 0x3b82f6,
     selected: false,
-    // Initialize transformation properties
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
   };
 
-  graphics.on("pointerdown", (event) => onShapeClick(event, shape));
+  const eventManager = getEventManager();
+  if (eventManager) {
+    eventManager.addShapeEvents(shape);
+  }
   return shape;
 };
