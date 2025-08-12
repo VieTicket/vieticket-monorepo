@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { PixiShape } from "../types";
-import { shapeContainer, shapes, addShape } from "../variables";
+import { shapeContainer, shapes, addShape, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { updatePolygonGraphics } from "./polygon-shape";
 
@@ -46,7 +46,7 @@ export const deleteShapes = () => {
       shape.graphics.destroy();
     }
   });
-  shapes.length = 0;
+  setShapes(shapes.filter((shape) => !shape.selected));
   useSeatMapStore.getState().deleteShapes();
 };
 
