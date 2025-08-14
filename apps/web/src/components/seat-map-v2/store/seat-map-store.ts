@@ -1,11 +1,11 @@
 import { create } from "zustand";
-import { PixiShape } from "../types";
+import { CanvasItem } from "../types";
 
 interface SeatMapStore {
-  shapes: PixiShape[];
-  selectedShapes: PixiShape[];
-  updateShapes: (newShapes: PixiShape[]) => void;
-  setSelectedShapes: (shapes: PixiShape[]) => void;
+  shapes: CanvasItem[];
+  selectedShapes: CanvasItem[];
+  updateShapes: (newShapes: CanvasItem[]) => void;
+  setSelectedShapes: (shapes: CanvasItem[]) => void;
   deleteShape: (shapeId: string) => void;
   deleteShapes: () => void;
 }
@@ -14,11 +14,11 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   shapes: [],
   selectedShapes: [],
 
-  updateShapes: (newShapes: PixiShape[]) => {
+  updateShapes: (newShapes: CanvasItem[]) => {
     set({ shapes: [...newShapes] });
   },
 
-  setSelectedShapes: (shapes: PixiShape[]) => {
+  setSelectedShapes: (shapes: CanvasItem[]) => {
     set({ selectedShapes: shapes });
   },
 

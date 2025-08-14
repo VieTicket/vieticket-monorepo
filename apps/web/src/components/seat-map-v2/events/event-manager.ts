@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
+import { CanvasItem } from "../types";
 import { currentTool, stage, shapes, pixiApp } from "../variables";
 import { getSelectionTransform } from "./transform-events";
 
@@ -18,7 +18,7 @@ import {
 
 export class EventManager {
   private shapeEventHandlers = new Map<string, any>();
-  private shapePointerDownTarget: PixiShape | null = null;
+  private shapePointerDownTarget: CanvasItem | null = null;
 
   constructor() {
     this.setupStageEvents();
@@ -41,7 +41,7 @@ export class EventManager {
     stage.on("wheel", onStageWheel);
   }
 
-  addShapeEvents(shape: PixiShape) {
+  addShapeEvents(shape: CanvasItem) {
     const handlers = {
       pointerdown: (event: PIXI.FederatedPointerEvent) => {
         this.onShapePointerDown(event, shape);
@@ -66,7 +66,7 @@ export class EventManager {
     this.shapeEventHandlers.set(shape.id, handlers);
   }
 
-  removeShapeEvents(shape: PixiShape) {
+  removeShapeEvents(shape: CanvasItem) {
     const handlers = this.shapeEventHandlers.get(shape.id);
     if (handlers) {
       Object.entries(handlers).forEach(([eventName, handler]) => {
@@ -145,12 +145,13 @@ export class EventManager {
 
   private onShapePointerDown(
     event: PIXI.FederatedPointerEvent,
-    shape: PixiShape
+    shape: CanvasItem
   ) {
     event.stopPropagation();
 
     switch (currentTool) {
       case "select":
+        console.log("shape clicked");
         this.shapePointerDownTarget = shape;
         startShapeDrag(event, shape);
         break;
@@ -160,7 +161,7 @@ export class EventManager {
 
   private onShapePointerUp(
     event: PIXI.FederatedPointerEvent,
-    shape: PixiShape
+    shape: CanvasItem
   ) {
     event.stopPropagation();
 
@@ -180,7 +181,7 @@ export class EventManager {
     }
   }
 
-  private onShapeHover(event: PIXI.FederatedPointerEvent, shape: PixiShape) {
+  private onShapeHover(event: PIXI.FederatedPointerEvent, shape: CanvasItem) {
     // Handle hover effects
     if (currentTool === "select") {
       shape.graphics.cursor = "move";
@@ -195,7 +196,7 @@ export class EventManager {
     }
   }
 
-  private onShapeOut(event: PIXI.FederatedPointerEvent, shape: PixiShape) {
+  private onShapeOut(event: PIXI.FederatedPointerEvent, shape: CanvasItem) {
     // Reset hover effects
     shape.graphics.cursor = "pointer";
 

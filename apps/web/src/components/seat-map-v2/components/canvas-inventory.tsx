@@ -1,159 +1,394 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import {
   Layers,
   Square,
   Circle as CircleIcon,
   Type,
   Hexagon,
+  ChevronDown,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  Lock,
+  Unlock,
+  Folder,
+  FolderOpen,
 } from "lucide-react";
-import { PixiShape, CanvasInventoryProps } from "../types";
+import { CanvasItem, ContainerGroup } from "../types";
+import { useSeatMapStore } from "../store/seat-map-store";
+import { setPan, pixiApp } from "../variables";
+import { updateStageTransform } from "../utils";
 
-export function CanvasInventory({
-  shapes,
-  selectedShapeIds,
-  onShapeSelect,
-  onShapePan,
-}: CanvasInventoryProps) {
-  const shapesByType = useMemo(() => {
-    const polygons = shapes.filter((shape) => shape.type === "polygon");
-    const rectangles = shapes.filter((shape) => shape.type === "rectangle");
-    const ellipses = shapes.filter((shape) => shape.type === "ellipse");
-    const texts = shapes.filter((shape) => shape.type === "text");
+interface CanvasInventoryProps {}
 
-    return { polygons, rectangles, ellipses, texts };
+export const CanvasInventory = React.memo(() => {
+  const [expandedContainers, setExpandedContainers] = useState<Set<string>>(
+    new Set()
+  );
+
+  // Get state from store with selectors to minimize re-renders
+  const shapes = useSeatMapStore((state) => state.shapes);
+  const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
+  const setSelectedShapes = useSeatMapStore((state) => state.setSelectedShapes);
+  const updateShapes = useSeatMapStore((state) => state.updateShapes);
+
+  const selectedShapeIds = useMemo(
+    () => selectedShapes.map((shape) => shape.id),
+    [selectedShapes]
+  );
+
+  // Get root level items (items not inside any container)
+  const rootItems = useMemo(() => {
+    const itemsInContainers = new Set<string>();
+
+    // Find all items that are inside containers
+    shapes.forEach((shape) => {
+      if (shape.type === "container") {
+        const container = shape as ContainerGroup;
+        container.children.forEach((child) => {
+          itemsInContainers.add(child.id);
+        });
+      }
+    });
+
+    // Return only items that are not inside any container
+    return shapes.filter((shape) => !itemsInContainers.has(shape.id));
   }, [shapes]);
 
-  const handleShapeClick = (shapeId: string, e: React.MouseEvent) => {
-    if (e.ctrlKey || e.metaKey) {
-      onShapePan(shapeId);
-    } else {
-      onShapeSelect(shapeId);
-    }
-  };
+  const handleShapeSelect = useCallback(
+    (shapeId: string) => {
+      const shape = shapes.find((s) => s.id === shapeId);
+      if (shape) {
+        setSelectedShapes([shape]);
+      }
+    },
+    [shapes, setSelectedShapes]
+  );
 
-  const renderShapeItem = (shape: PixiShape, icon: React.ReactNode) => {
-    const isSelected = selectedShapeIds.includes(shape.id);
-    return (
-      <div
-        key={shape.id}
-        className={`flex items-center py-1.5 px-2 ${
-          isSelected ? "bg-blue-900" : "hover:bg-gray-700"
-        } rounded cursor-pointer text-xs`}
-        onClick={(e) => handleShapeClick(shape.id, e)}
-      >
-        {icon}
-        <span className="truncate text-white">
-          {shape.name || `${shape.type} ${shape.id.slice(-5)}`}
-        </span>
-      </div>
-    );
-  };
+  const handleShapePan = useCallback(
+    (shapeId: string) => {
+      const shape = shapes.find((s) => s.id === shapeId);
+      if (shape) {
+        setPan({
+          x: -shape.x + (pixiApp?.screen.width || 400) / 2,
+          y: -shape.y + (pixiApp?.screen.height || 300) / 2,
+        });
+        updateStageTransform();
+      }
+    },
+    [shapes]
+  );
+
+  const handleMultiSelect = useCallback(
+    (shapeId: string, isCtrlHeld: boolean) => {
+      const shape = shapes.find((s) => s.id === shapeId);
+      if (!shape) return;
+
+      if (isCtrlHeld) {
+        // Toggle selection
+        const isCurrentlySelected = selectedShapes.some(
+          (s) => s.id === shapeId
+        );
+        if (isCurrentlySelected) {
+          setSelectedShapes(selectedShapes.filter((s) => s.id !== shapeId));
+        } else {
+          setSelectedShapes([...selectedShapes, shape]);
+        }
+      } else {
+        setSelectedShapes([shape]);
+      }
+    },
+    [shapes, selectedShapes, setSelectedShapes]
+  );
+
+  const handleItemUpdate = useCallback(
+    (id: string, updates: Partial<CanvasItem>) => {
+      const shape = shapes.find((s) => s.id === id);
+      if (!shape) return;
+
+      // Apply updates to the shape object
+      Object.assign(shape, updates);
+
+      // Handle graphics updates
+      if (updates.visible !== undefined) {
+        shape.graphics.visible = shape.visible;
+      }
+
+      // Update the store
+      updateShapes([...shapes]);
+    },
+    [shapes, updateShapes]
+  );
+
+  const handleGroupItems = useCallback((items: CanvasItem[]) => {
+    // Implementation for grouping items
+    console.log("Grouping items:", items);
+    // You can implement the actual grouping logic here
+  }, []);
+
+  const handleUngroupItems = useCallback((container: ContainerGroup) => {
+    // Implementation for ungrouping items
+    console.log("Ungrouping container:", container);
+    // You can implement the actual ungrouping logic here
+  }, []);
+
+  const handleShapeClick = useCallback(
+    (shapeId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+
+      if (e.ctrlKey || e.metaKey) {
+        // Multi-select or pan
+        if (e.shiftKey) {
+          handleShapePan(shapeId);
+        } else {
+          handleMultiSelect(shapeId, true);
+        }
+      } else {
+        handleShapeSelect(shapeId);
+      }
+    },
+    [handleShapeSelect, handleShapePan, handleMultiSelect]
+  );
+
+  const toggleContainer = useCallback(
+    (containerId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      setExpandedContainers((prev) => {
+        const newExpanded = new Set(prev);
+        if (newExpanded.has(containerId)) {
+          newExpanded.delete(containerId);
+        } else {
+          newExpanded.add(containerId);
+        }
+        return newExpanded;
+      });
+    },
+    []
+  );
+
+  const toggleVisibility = useCallback(
+    (itemId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const item = shapes.find((s) => s.id === itemId);
+      if (item) {
+        handleItemUpdate(itemId, { visible: !item.visible });
+      }
+    },
+    [shapes, handleItemUpdate]
+  );
+
+  const toggleLock = useCallback(
+    (itemId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const item = shapes.find((s) => s.id === itemId);
+      if (item) {
+        handleItemUpdate(itemId, { locked: !item.locked });
+      }
+    },
+    [shapes, handleItemUpdate]
+  );
+
+  const getTypeIcon = useCallback((type: string, isExpanded?: boolean) => {
+    const iconProps = { className: "w-3 h-3" };
+
+    switch (type) {
+      case "rectangle":
+        return <Square {...iconProps} />;
+      case "ellipse":
+        return <CircleIcon {...iconProps} />;
+      case "text":
+        return <Type {...iconProps} />;
+      case "polygon":
+        return <Hexagon {...iconProps} />;
+      case "container":
+        return isExpanded ? (
+          <FolderOpen {...iconProps} />
+        ) : (
+          <Folder {...iconProps} />
+        );
+      default:
+        return <Square {...iconProps} />;
+    }
+  }, []);
+
+  const getShapeColor = useCallback((shape: CanvasItem): string => {
+    switch (shape.type) {
+      case "rectangle":
+        return `#${shape.color?.toString(16).padStart(6, "0") || "3b82f6"}`;
+      case "ellipse":
+        return `#${shape.color?.toString(16).padStart(6, "0") || "10b981"}`;
+      case "polygon":
+        return `#${shape.color?.toString(16).padStart(6, "0") || "9b59b6"}`;
+      case "text":
+        return `#${shape.color?.toString(16).padStart(6, "0") || "374151"}`;
+      default:
+        return "#6b7280";
+    }
+  }, []);
+
+  const renderLayerItem = useCallback(
+    (item: CanvasItem, level: number = 0): React.ReactNode => {
+      const isSelected = selectedShapeIds.includes(item.id);
+      const isContainer = item.type === "container";
+      const isExpanded = expandedContainers.has(item.id);
+      const paddingLeft = 8 + level * 16;
+
+      return (
+        <div key={item.id} className="select-none">
+          <div
+            className={`flex items-center py-1.5 px-2 group ${
+              isSelected
+                ? "bg-blue-600 text-white"
+                : "hover:bg-gray-700 text-gray-300"
+            } cursor-pointer text-xs`}
+            style={{ paddingLeft: `${paddingLeft}px` }}
+            onClick={(e) => handleShapeClick(item.id, e)}
+          >
+            {/* Expand/Collapse for containers */}
+            {isContainer && (
+              <button
+                className="mr-1 p-0.5 hover:bg-gray-600 rounded flex-shrink-0"
+                onClick={(e) => toggleContainer(item.id, e)}
+              >
+                {isExpanded ? (
+                  <ChevronDown className="w-3 h-3" />
+                ) : (
+                  <ChevronRight className="w-3 h-3" />
+                )}
+              </button>
+            )}
+            {!isContainer && <div className="w-4" />}{" "}
+            {/* Spacer for non-containers */}
+            {/* Type icon or color indicator */}
+            <div className="mr-2 flex-shrink-0">
+              {isContainer ? (
+                getTypeIcon(item.type, isExpanded)
+              ) : (
+                <div className="flex items-center">
+                  {getTypeIcon(item.type)}
+                  <div
+                    className="w-2 h-2 ml-1 rounded-sm border border-gray-600"
+                    style={{ backgroundColor: getShapeColor(item) }}
+                  />
+                </div>
+              )}
+            </div>
+            {/* Item name */}
+            <span className="flex-1 truncate min-w-0">
+              {item.name || `${item.type} ${item.id.slice(-4)}`}
+            </span>
+            {/* Action buttons - show on hover */}
+            <div className="flex items-center ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Visibility toggle */}
+              <button
+                className="p-0.5 hover:bg-gray-600 rounded flex-shrink-0"
+                onClick={(e) => toggleVisibility(item.id, e)}
+                title={item.visible ? "Hide" : "Show"}
+              >
+                {item.visible ? (
+                  <Eye className="w-3 h-3" />
+                ) : (
+                  <EyeOff className="w-3 h-3" />
+                )}
+              </button>
+
+              {/* Lock toggle */}
+              <button
+                className="ml-1 p-0.5 hover:bg-gray-600 rounded flex-shrink-0"
+                onClick={(e) => toggleLock(item.id, e)}
+                title={item.locked ? "Unlock" : "Lock"}
+              >
+                {item.locked ? (
+                  <Lock className="w-3 h-3" />
+                ) : (
+                  <Unlock className="w-3 h-3" />
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Render children if container is expanded */}
+          {isContainer && isExpanded && (
+            <div>
+              {(item as ContainerGroup).children.map((child) =>
+                renderLayerItem(child, level + 1)
+              )}
+            </div>
+          )}
+        </div>
+      );
+    },
+    [
+      selectedShapeIds,
+      expandedContainers,
+      handleShapeClick,
+      toggleContainer,
+      toggleVisibility,
+      toggleLock,
+      getTypeIcon,
+      getShapeColor,
+    ]
+  );
+
+  const handleGroupSelected = useCallback(() => {
+    if (selectedShapeIds.length > 1) {
+      const selectedItems = shapes.filter((shape) =>
+        selectedShapeIds.includes(shape.id)
+      );
+      handleGroupItems(selectedItems);
+    }
+  }, [selectedShapeIds, shapes, handleGroupItems]);
+
+  const selectedCount = selectedShapeIds.length;
+  const totalCount = shapes.length;
 
   return (
-    <div className="bg-gray-900 text-white p-3 shadow z-10 w-64 overflow-y-auto border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold flex items-center">
-          <Layers className="w-5 h-5 mr-2" />
-          Canvas Elements
-        </h2>
+    <div className="bg-gray-900 text-white shadow z-10 w-64 flex flex-col border border-gray-700">
+      {/* Header */}
+      <div className="p-3 border-b border-gray-700">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-sm font-semibold flex items-center">
+            <Layers className="w-4 h-4 mr-2" />
+            Layers
+          </h2>
+          <div className="text-xs text-gray-400">{totalCount} items</div>
+        </div>
+
+        {/* Group button */}
+        {selectedCount > 1 && (
+          <button
+            onClick={handleGroupSelected}
+            className="w-full px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
+          >
+            Group {selectedCount} items
+          </button>
+        )}
       </div>
 
-      {/* Polygons Section */}
-      <div className="mb-4">
-        <div className="flex items-center text-xs font-medium text-gray-300 mb-2 bg-gray-700 p-1.5 rounded-sm">
-          <Hexagon className="w-3.5 h-3.5 mr-1.5" />
-          <span>Areas ({shapesByType.polygons.length})</span>
-        </div>
-        {shapesByType.polygons.length > 0 ? (
-          <div className="space-y-0.5">
-            {shapesByType.polygons.map((shape) =>
-              renderShapeItem(
-                shape,
-                <div
-                  className="w-2.5 h-2.5 mr-2 rounded-sm"
-                  style={{ backgroundColor: shape.fill || "#4a5568" }}
-                />
-              )
-            )}
+      {/* Layer list */}
+      <div className="flex-1 overflow-y-auto">
+        {rootItems.length > 0 ? (
+          <div className="p-1">
+            {rootItems.map((item) => renderLayerItem(item))}
           </div>
         ) : (
-          <div className="text-xs text-gray-500 pl-2 py-1">
-            No areas created
+          <div className="p-4 text-center text-gray-500 text-xs">
+            No layers yet
+            <div className="mt-1 text-gray-600">
+              Create shapes to see them here
+            </div>
           </div>
         )}
       </div>
 
-      {/* Rectangles Section */}
-      <div className="mb-4">
-        <div className="flex items-center text-xs font-medium text-gray-300 mb-2 bg-gray-700 p-1.5 rounded-sm">
-          <Square className="w-3.5 h-3.5 mr-1.5" />
-          <span>Rectangles ({shapesByType.rectangles.length})</span>
-        </div>
-        {shapesByType.rectangles.length > 0 ? (
-          <div className="space-y-0.5">
-            {shapesByType.rectangles.map((shape) =>
-              renderShapeItem(
-                shape,
-                <div
-                  className="w-2.5 h-2.5 mr-2 rounded"
-                  style={{ backgroundColor: shape.fill || "#3b82f6" }}
-                />
-              )
-            )}
-          </div>
-        ) : (
-          <div className="text-xs text-gray-500 pl-2 py-1">
-            No rectangles created
-          </div>
-        )}
-      </div>
-
-      {/* Ellipses Section */}
-      <div className="mb-4">
-        <div className="flex items-center text-xs font-medium text-gray-300 mb-2 bg-gray-700 p-1.5 rounded-sm">
-          <CircleIcon className="w-3.5 h-3.5 mr-1.5" />
-          <span>Ellipses ({shapesByType.ellipses.length})</span>
-        </div>
-        {shapesByType.ellipses.length > 0 ? (
-          <div className="space-y-0.5">
-            {shapesByType.ellipses.map((shape) =>
-              renderShapeItem(
-                shape,
-                <div
-                  className="w-2.5 h-2.5 mr-2 rounded-full"
-                  style={{ backgroundColor: shape.fill || "#10b981" }}
-                />
-              )
-            )}
-          </div>
-        ) : (
-          <div className="text-xs text-gray-500 pl-2 py-1">
-            No ellipses created
-          </div>
-        )}
-      </div>
-
-      {/* Text Section */}
-      <div className="mb-4">
-        <div className="flex items-center text-xs font-medium text-gray-300 mb-2 bg-gray-700 p-1.5 rounded-sm">
-          <Type className="w-3.5 h-3.5 mr-1.5" />
-          <span>Text ({shapesByType.texts.length})</span>
-        </div>
-        {shapesByType.texts.length > 0 ? (
-          <div className="space-y-0.5">
-            {shapesByType.texts.map((shape) =>
-              renderShapeItem(
-                shape,
-                <Type className="w-2.5 h-2.5 mr-2 text-gray-400" />
-              )
-            )}
-          </div>
-        ) : (
-          <div className="text-xs text-gray-500 pl-2 py-1">
-            No text elements created
-          </div>
-        )}
+      {/* Footer with instructions */}
+      <div className="p-2 border-t border-gray-700 text-xs text-gray-400">
+        <div>Click to select</div>
+        <div>Ctrl+Click to multi-select</div>
+        <div>Shift+Ctrl+Click to pan to item</div>
       </div>
     </div>
   );
-}
+});
+
+CanvasInventory.displayName = "CanvasInventory";

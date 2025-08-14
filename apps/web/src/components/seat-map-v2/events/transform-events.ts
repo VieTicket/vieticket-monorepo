@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
+import { CanvasItem } from "../types";
 import { stage, zoom, pixiApp } from "../variables";
 
 export interface TransformHandle {
@@ -18,7 +18,7 @@ export interface TransformHandle {
 }
 
 export class SelectionTransform {
-  private selectedShapes: PixiShape[] = [];
+  private selectedShapes: CanvasItem[] = [];
   private boundingBox: {
     x: number;
     y: number;
@@ -179,7 +179,7 @@ export class SelectionTransform {
     return this.isTransforming;
   }
 
-  private applyTransformsToShape(shape: PixiShape) {
+  private applyTransformsToShape(shape: CanvasItem) {
     // Apply transforms to the actual PIXI graphics object
     if (shape.graphics) {
       // Set position first
@@ -332,7 +332,7 @@ export class SelectionTransform {
     this.updateSelection(this.selectedShapes);
   }
 
-  private calculateBoundingBox(shapes: PixiShape[]) {
+  private calculateBoundingBox(shapes: CanvasItem[]) {
     if (shapes.length === 0) return null;
 
     let minX = Infinity,
@@ -562,9 +562,18 @@ export class SelectionTransform {
     this.container.addChildAt(selectionBox, 0); // Add behind handles
   }
 
-  public updateSelection(shapes: PixiShape[]) {
+  public updateSelection(shapes: CanvasItem[]) {
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
+
+    // FIX: Clear original transforms when selection changes
+    // this.originalTransforms = [];
+
+    // // Also reset any ongoing transform state to prevent coordinate bleed
+    // this.isTransforming = false;
+    // this.transformType = null;
+    // this.transformStart = null;
+    // this.transformPosition = "";
 
     if (this.boundingBox && shapes.length > 0) {
       this.drawSelectionBox();

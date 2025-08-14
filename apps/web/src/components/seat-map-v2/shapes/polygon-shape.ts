@@ -1,13 +1,12 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
+import { PolygonShape } from "../types";
 import { generateShapeId } from "../utils";
-import { onShapeClick } from "../events/select-events";
 import { getEventManager } from "../events/event-manager";
 
 export const createPolygon = (
   points: Array<{ x: number; y: number }>,
   cornerRadius: number = 10
-): PixiShape => {
+): PolygonShape => {
   const graphics = new PIXI.Graphics();
 
   // Calculate center point for positioning
@@ -32,8 +31,9 @@ export const createPolygon = (
   graphics.eventMode = "static";
   graphics.cursor = "pointer";
 
-  const shape: PixiShape = {
+  const shape: PolygonShape = {
     id: generateShapeId(),
+    name: `Polygon ${Date.now()}`,
     type: "polygon",
     graphics,
     x: centerX,
@@ -41,10 +41,15 @@ export const createPolygon = (
     points, // Keep original points for calculations
     cornerRadius,
     color: 0x9b59b6,
+    strokeColor: 0x8e44ad,
+    strokeWidth: 2,
     selected: false,
+    visible: true,
+    locked: false,
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
+    opacity: 1,
   };
 
   const eventManager = getEventManager();
@@ -54,12 +59,8 @@ export const createPolygon = (
   return shape;
 };
 
-export const updatePolygonGraphics = (shape: PixiShape) => {
-  if (
-    shape.type !== "polygon" ||
-    !shape.points ||
-    !(shape.graphics instanceof PIXI.Graphics)
-  ) {
+export const updatePolygonGraphics = (shape: PolygonShape) => {
+  if (!(shape.graphics instanceof PIXI.Graphics)) {
     return;
   }
 
@@ -76,15 +77,15 @@ export const updatePolygonGraphics = (shape: PixiShape) => {
   const relativePoints = shape.points.map((point) => ({
     x: point.x - centerX,
     y: point.y - centerY,
-    radius: (shape.cornerRadius || 10) / 2,
+    radius: shape.cornerRadius / 2,
   }));
 
   graphics
-    .roundShape(relativePoints, shape.cornerRadius || 10)
+    .roundShape(relativePoints, shape.cornerRadius)
     .fill(shape.color)
     .stroke({
-      width: shape.selected ? 3 : 2,
-      color: shape.selected ? 0xfbbf24 : 0x8e44ad,
+      width: shape.selected ? 3 : shape.strokeWidth,
+      color: shape.selected ? 0xfbbf24 : shape.strokeColor,
     });
 
   // Update position to center

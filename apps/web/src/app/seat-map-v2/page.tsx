@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import * as PIXI from "pixi.js";
 
 import { Tool } from "@/components/seat-map-v2/types";
@@ -12,16 +12,13 @@ import {
   setShapeContainer,
   setPreviewContainer,
   setCurrentTool,
-  setPan,
   resetVariables,
   setSelectionContainer,
 } from "@/components/seat-map-v2/variables";
 import {
   createSelectionTransform,
-  getSelectionTransform,
   destroySelectionTransform,
 } from "@/components/seat-map-v2/events/transform-events";
-import { updateStageTransform } from "@/components/seat-map-v2/utils";
 import {
   createEventManager,
   destroyEventManager,
@@ -41,19 +38,9 @@ import { polygonDrawingState } from "@/components/seat-map-v2/variables";
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
-  console.log("SeatMapV2Page rendered");
 
-  // Use Zustand store
-  const { shapes, selectedShapes, setSelectedShapes } = useSeatMapStore();
-
-  // Update selection rectangle when selected shapes change
-  useEffect(() => {
-    const selectionTransform = getSelectionTransform();
-    if (selectionTransform && selectedTool === "select") {
-      selectionTransform.updateSelection(selectedShapes);
-    }
-  }, [selectedShapes, selectedTool]);
-
+  // Only get shapes count for toolbar (non-reactive to individual shape changes)
+  const shapesCount = useSeatMapStore((state) => state.shapes.length);
   // Sync global tool state with React state
   useEffect(() => {
     setCurrentTool(selectedTool);
@@ -62,7 +49,6 @@ const SeatMapV2Page = () => {
   // Initialize PixiJS Application
   useEffect(() => {
     let cancelled = false;
-    console.log("Initializing PixiJS Application");
 
     const init = async () => {
       if (!pixiContainerRef.current || pixiApp) return;
@@ -105,10 +91,11 @@ const SeatMapV2Page = () => {
       // Create selection transform
       createSelectionTransform(selectionRectContainer);
 
-      // Enable interactivity
+      // Enable interactivity on main app stage
       app.stage.eventMode = "static";
       app.stage.hitArea = app.screen;
-      // Create event manager (replaces individual event listeners)
+
+      // Create event manager AFTER stage is properly configured
       createEventManager();
     };
 
@@ -140,7 +127,7 @@ const SeatMapV2Page = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedTool]);
 
-  const getToolInstructions = () => {
+  const getToolInstructions = useCallback(() => {
     switch (selectedTool) {
       case "select":
         return "Click shapes to select them";
@@ -159,55 +146,11 @@ const SeatMapV2Page = () => {
       default:
         return "";
     }
-  };
-
-  const handleShapeSelect = (shapeId: string) => {
-    const shape = shapes.find((s) => s.id === shapeId);
-    if (shape) {
-      setSelectedShapes([shape]);
-    }
-  };
-
-  const handleShapePan = (shapeId: string) => {
-    const shape = shapes.find((s) => s.id === shapeId);
-    if (shape) {
-      setPan({
-        x: -shape.x + (pixiApp?.screen.width || 400) / 2,
-        y: -shape.y + (pixiApp?.screen.height || 300) / 2,
-      });
-      updateStageTransform();
-    }
-  };
-
-  const handleShapeUpdate = (id: string, updates: any) => {
-    const shape = shapes.find((s) => s.id === id);
-    if (shape) {
-      Object.assign(shape, updates);
-
-      // Update the graphics position if x or y changed
-      if (updates.x !== undefined || updates.y !== undefined) {
-        shape.graphics.x = shape.x;
-        shape.graphics.y = shape.y;
-      }
-
-      // Apply transformations if they changed
-      if (updates.rotation !== undefined) {
-        shape.graphics.rotation = shape.rotation || 0;
-      }
-
-      if (updates.scaleX !== undefined || updates.scaleY !== undefined) {
-        const scaleX = shape.scaleX || 1;
-        const scaleY = shape.scaleY || scaleX;
-        shape.graphics.scale.set(scaleX, scaleY);
-      }
-    }
-  };
-
-  const selectedShapeIds = selectedShapes.map((shape) => shape.id);
+  }, [selectedTool]);
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Main Toolbar */}
+      {/* Main Toolbar - Memoized to prevent unnecessary re-renders */}
       <MainToolbar
         currentTool={selectedTool}
         onToolChange={setSelectedTool}
@@ -216,17 +159,12 @@ const SeatMapV2Page = () => {
         onZoomOut={handleZoomOut}
         onResetView={handleResetView}
         onClearCanvas={clearCanvas}
-        shapesCount={shapes.length}
+        shapesCount={shapesCount}
       />
 
       <div className="flex-1 flex overflow-hidden">
         {/* Left Sidebar - Canvas Inventory */}
-        <CanvasInventory
-          shapes={shapes}
-          selectedShapeIds={selectedShapeIds}
-          onShapeSelect={handleShapeSelect}
-          onShapePan={handleShapePan}
-        />
+        <CanvasInventory />
 
         {/* Main Canvas Area */}
         <div className="flex-1 relative bg-gray-100">
@@ -243,7 +181,7 @@ const SeatMapV2Page = () => {
             <div className="flex items-center space-x-4 text-gray-700">
               <span>Zoom: {Math.round(zoom * 100)}%</span>
               <span>|</span>
-              <span>Shapes: {shapes.length}</span>
+              <span>Shapes: {shapesCount}</span>
               <span>|</span>
               <span>Tool: {selectedTool}</span>
             </div>
@@ -254,10 +192,7 @@ const SeatMapV2Page = () => {
         </div>
 
         {/* Right Sidebar - Properties */}
-        <PropertiesSidebar
-          selectedShapes={selectedShapes}
-          onShapeUpdate={handleShapeUpdate}
-        />
+        <PropertiesSidebar />
       </div>
     </div>
   );

@@ -1,10 +1,9 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
+import { TextShape } from "../types";
 import { generateShapeId } from "../utils";
-import { onShapeClick } from "../events/select-events";
 import { getEventManager } from "../events/event-manager";
 
-export const createText = (x: number, y: number, text: string): PixiShape => {
+export const createText = (x: number, y: number, text: string): TextShape => {
   const textGraphics = new PIXI.Text({
     text: text,
     style: {
@@ -21,18 +20,26 @@ export const createText = (x: number, y: number, text: string): PixiShape => {
   textGraphics.eventMode = "static";
   textGraphics.cursor = "pointer";
 
-  const shape: PixiShape = {
+  const shape: TextShape = {
     id: generateShapeId(),
+    name: `Text ${Date.now()}`,
     type: "text",
     graphics: textGraphics,
     x,
     y,
+    text,
+    fontSize: 24,
+    fontFamily: "Arial",
+    fontWeight: "normal",
+    textAlign: "center",
     color: 0x374151,
     selected: false,
-    // Initialize transformation properties
+    visible: true,
+    locked: false,
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
+    opacity: 1,
   };
 
   const eventManager = getEventManager();

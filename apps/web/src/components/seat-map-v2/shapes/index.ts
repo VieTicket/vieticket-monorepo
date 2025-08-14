@@ -1,15 +1,14 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
+import { CanvasItem } from "../types";
 import { shapeContainer, shapes, addShape, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { updatePolygonGraphics } from "./polygon-shape";
 
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
 export { updatePolygonGraphics } from "./polygon-shape";
 
-export const addShapeToStage = (shape: PixiShape) => {
+export const addShapeToStage = (shape: CanvasItem) => {
   if (shapeContainer) {
     shapeContainer.addChild(shape.graphics);
     addShape(shape);

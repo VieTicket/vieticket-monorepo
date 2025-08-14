@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { PixiShape, Tool } from "./types";
+import { CanvasItem, Tool } from "./types";
 import { useSeatMapStore } from "./store/seat-map-store";
 
 // Global state for performance (outside React)
@@ -8,7 +8,7 @@ export let stage: PIXI.Container | null = null;
 export let shapeContainer: PIXI.Container | null = null;
 export let previewContainer: PIXI.Container | null = null;
 export let previewGraphics: PIXI.Graphics | null = null;
-export let shapes: PixiShape[] = [];
+export let shapes: CanvasItem[] = [];
 export let currentTool: Tool = "select";
 export let isDrawing = false;
 export let dragStart: { x: number; y: number } | null = null;
@@ -44,12 +44,12 @@ export const setPreviewContainer = (container: PIXI.Container | null) => {
 export const setPreviewGraphics = (graphics: PIXI.Graphics | null) => {
   previewGraphics = graphics;
 };
-export const setShapes = (newShapes: PixiShape[]) => {
+export const setShapes = (newShapes: CanvasItem[]) => {
   shapes = newShapes;
   useSeatMapStore.getState().updateShapes(shapes);
 };
 
-export const addShape = (shape: PixiShape) => {
+export const addShape = (shape: CanvasItem) => {
   shapes.push(shape);
   useSeatMapStore.getState().updateShapes(shapes);
 };
