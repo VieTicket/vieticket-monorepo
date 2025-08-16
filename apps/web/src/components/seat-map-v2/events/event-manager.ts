@@ -151,7 +151,6 @@ export class EventManager {
 
     switch (currentTool) {
       case "select":
-        console.log("shape clicked");
         this.shapePointerDownTarget = shape;
         startShapeDrag(event, shape);
         break;
@@ -164,9 +163,13 @@ export class EventManager {
     shape: CanvasItem
   ) {
     event.stopPropagation();
-
     switch (currentTool) {
       case "select":
+        const selectionTransform = getSelectionTransform();
+
+        if (selectionTransform?.isCurrentlyTransforming) {
+          selectionTransform.onTransformPointerUp();
+        }
         if (
           this.shapePointerDownTarget?.id === shape.id &&
           !isCurrentlyShapeDragging()

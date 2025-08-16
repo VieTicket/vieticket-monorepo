@@ -1,6 +1,7 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem } from "../types";
-import { stage, zoom, pixiApp } from "../variables";
+import { stage, zoom, pixiApp, shapes } from "../variables";
+import { useSeatMapStore } from "../store/seat-map-store";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate";
@@ -172,6 +173,7 @@ export class SelectionTransform {
     this.transformStart = null;
     this.transformPosition = "";
     this.originalTransforms = [];
+    useSeatMapStore.getState().updateShapes(shapes);
   }
 
   // Getter to check if currently dragging
@@ -300,7 +302,6 @@ export class SelectionTransform {
         // Apply anchor-based position adjustment
         const offsetX = -scaleChangeX * anchorX;
         const offsetY = -scaleChangeY * anchorY;
-        console.log("offsetX:", offsetX, "offsetY:", offsetY);
 
         shape.x = original.x + offsetX / 2;
         shape.y = original.y + offsetY / 2;
