@@ -46,44 +46,80 @@ export default function EventCard({ event }: EventCardProps) {
 
   const status = statusConfig[statusKey];
 
+  // Format dates
+  const startDate = new Date(event.startTime);
+  const endDate = new Date(event.endTime);
+
+  const formatDate = (date: Date) => {
+    return date.toLocaleDateString("vi-VN", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
+  const formatTime = (date: Date) => {
+    return date.toLocaleTimeString("vi-VN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+  };
+
+  const isSameDay = startDate.toDateString() === endDate.toDateString();
+
   return (
-    <div className="border rounded-2xl p-4 space-y-3 shadow-md bg-white hover:shadow-lg transition">
+    <div className="border rounded-2xl p-5 space-y-4 shadow-md bg-white hover:shadow-lg transition-all duration-200">
       {/* Header with name and status */}
-      <div className="flex justify-between items-start">
-        <h3 className="text-lg font-semibold text-gray-800">{event.name}</h3>
+      <div className="flex justify-between items-start gap-3">
+        <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 leading-tight">
+          {event.name}
+        </h3>
         <span
-          className={`text-xs px-3 py-1 rounded-full font-medium ${status.className}`}
+          className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 ${status.className}`}
         >
           {status.label}
         </span>
       </div>
 
-      {/* Time range */}
-      <p className="text-sm text-gray-600">
-        {new Date(event.startTime).toLocaleString()} →{" "}
-        {new Date(event.endTime).toLocaleString()}
-      </p>
+      {/* Date and Time Information */}
+      <div className="bg-gray-50 rounded-xl p-3 space-y-2">
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 flex items-center justify-center">📅</div>
+          <span className="text-sm font-medium text-gray-700">
+            {isSameDay
+              ? formatDate(startDate)
+              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-5 h-5 flex items-center justify-center">🕒</div>
+          <span className="text-sm text-gray-600">
+            {formatTime(startDate)} - {formatTime(endDate)}
+          </span>
+        </div>
+      </div>
 
       {/* Actions */}
-      <div className="flex gap-2 pt-2">
+      <div className="flex gap-3 pt-1">
         <Button
           onClick={() =>
             router.push(`/organizer/general/create?id=${event.id}`)
           }
           variant="outline"
+          className="flex-1 text-sm"
         >
-          View statistic
+          📊 View Statistics
         </Button>
-        {event.approvalStatus != "approved" ? (
+        {event.approvalStatus !== "approved" && (
           <Button
             onClick={() =>
               router.push(`/organizer/event/create?id=${event.id}`)
             }
+            className="flex-1 text-sm"
           >
-            Edit event
+            ✏️ Edit Event
           </Button>
-        ) : (
-          ""
         )}
       </div>
     </div>
