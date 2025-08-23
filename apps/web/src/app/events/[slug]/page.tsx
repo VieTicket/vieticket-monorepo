@@ -3,6 +3,7 @@ import {
   PreviewEvent,
   EventPreviewData,
 } from "@/components/create-event/preview";
+import ViewCounter from "@/components/ViewCounter";
 
 export default async function EventPage({
   params,
@@ -45,6 +46,7 @@ export default async function EventPage({
 
   return (
     <div className="bg-white min-h-screen w-full">
+      <ViewCounter eventId={raw.id} />
       <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
         <PreviewEvent
           data={{
