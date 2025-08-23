@@ -58,14 +58,6 @@ export default function EventCard({ event }: EventCardProps) {
     });
   };
 
-  const formatTime = (date: Date) => {
-    return date.toLocaleTimeString("vi-VN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-  };
-
   const isSameDay = startDate.toDateString() === endDate.toDateString();
 
   return (
@@ -82,22 +74,13 @@ export default function EventCard({ event }: EventCardProps) {
         </span>
       </div>
 
-      {/* Date and Time Information */}
-      <div className="bg-gray-50 rounded-xl p-3 space-y-2">
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 flex items-center justify-center">📅</div>
-          <span className="text-sm font-medium text-gray-700">
-            {isSameDay
-              ? formatDate(startDate)
-              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
-          </span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-5 h-5 flex items-center justify-center">🕒</div>
-          <span className="text-sm text-gray-600">
-            {formatTime(startDate)} - {formatTime(endDate)}
-          </span>
-        </div>
+      {/* Date Information */}
+      <div className="bg-gray-50 rounded-xl p-3">
+        <span className="text-sm font-medium text-gray-700">
+          {isSameDay
+            ? formatDate(startDate)
+            : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+        </span>
       </div>
 
       {/* Actions */}
@@ -109,7 +92,7 @@ export default function EventCard({ event }: EventCardProps) {
           variant="outline"
           className="flex-1 text-sm"
         >
-          📊 View Statistics
+          View Statistics
         </Button>
         {event.approvalStatus !== "approved" && (
           <Button
@@ -118,7 +101,7 @@ export default function EventCard({ event }: EventCardProps) {
             }
             className="flex-1 text-sm"
           >
-            ✏️ Edit Event
+            Edit Event
           </Button>
         )}
       </div>
