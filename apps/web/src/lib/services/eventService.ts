@@ -14,6 +14,7 @@ import {
   createAreaWithId,
   createRowWithId,
   createSeatsWithIds,
+  incrementEventView,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
@@ -139,6 +140,15 @@ export async function fetchEventDetail(slug: string) {
 
   if (!event) throw new Error("Event not found");
   return event;
+}
+
+export async function incrementEventViewCount(eventId: string) {
+  try {
+    await incrementEventView(eventId);
+  } catch (error) {
+    console.error("Failed to increment view count:", error);
+    // Không throw error để không ảnh hưởng đến việc hiển thị trang
+  }
 }
 
 // export async function getEventsByStatus(organizerId: string) {

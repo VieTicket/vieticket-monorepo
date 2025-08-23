@@ -1,5 +1,5 @@
 import { db } from "../db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 import { events, NewEvent, areas, rows, seats } from "@vieticket/db/pg/schema";
 
@@ -129,4 +129,13 @@ export async function createSeatsWithIds(
   }[]
 ) {
   return db.insert(seats).values(seatsData);
+}
+
+export async function incrementEventView(eventId: string) {
+  return db
+    .update(events)
+    .set({
+      views: sql`${events.views} + 1`,
+    })
+    .where(eq(events.id, eventId));
 }
