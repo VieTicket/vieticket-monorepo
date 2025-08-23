@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem } from "../types";
-import { currentTool, shapes } from "../variables";
+import { currentTool, setPreviouslyClickedShape, shapes } from "../variables";
 import { updateShapeSelection } from "../shapes/index";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getSelectionTransform } from "./transform-events";
@@ -32,6 +32,7 @@ export const onStageClick = (event: PIXI.FederatedPointerEvent) => {
       shape.selected = false;
     });
 
+    setPreviouslyClickedShape(null);
     useSeatMapStore.getState().setSelectedShapes([]);
     useSeatMapStore.getState().updateShapes(shapes);
 

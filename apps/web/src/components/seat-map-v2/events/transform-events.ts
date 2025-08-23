@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem } from "../types";
-import { stage, zoom, pixiApp, shapes } from "../variables";
+import { stage, zoom, pixiApp, shapes, setWasTransformed } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 
 export interface TransformHandle {
@@ -173,6 +173,7 @@ export class SelectionTransform {
     this.transformStart = null;
     this.transformPosition = "";
     this.originalTransforms = [];
+    setWasTransformed(true);
     useSeatMapStore.getState().updateShapes(shapes);
   }
 
@@ -566,15 +567,6 @@ export class SelectionTransform {
   public updateSelection(shapes: CanvasItem[]) {
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
-
-    // FIX: Clear original transforms when selection changes
-    // this.originalTransforms = [];
-
-    // // Also reset any ongoing transform state to prevent coordinate bleed
-    // this.isTransforming = false;
-    // this.transformType = null;
-    // this.transformStart = null;
-    // this.transformPosition = "";
 
     if (this.boundingBox && shapes.length > 0) {
       this.drawSelectionBox();

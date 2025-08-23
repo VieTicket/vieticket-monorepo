@@ -13,6 +13,15 @@ import { useSeatMapStore } from "../store/seat-map-store";
 import { updatePolygonGraphics } from "../shapes/polygon-shape";
 import { getSelectionTransform } from "../events/transform-events";
 import * as PIXI from "pixi.js";
+import { useDebounce } from "@/hooks/useDebounce";
+import {
+  previouslyClickedShape,
+  setPreviouslyClickedShape,
+  setWasDragged,
+  setWasTransformed,
+  wasDragged,
+  wasTransformed,
+} from "../variables";
 
 interface PropertiesSidebarProps {
   onGroupItems?: (items: CanvasItem[]) => void;
@@ -24,7 +33,6 @@ export const PropertiesSidebar = React.memo(
     const selectedItems = useSeatMapStore((state) => state.selectedShapes);
     const shapes = useSeatMapStore((state) => state.shapes);
     const updateShapes = useSeatMapStore((state) => state.updateShapes);
-    console.log("Rendering PropertiesSidebar");
 
     // Simple immediate update function - no debouncing
     const handleUpdate = useCallback(
@@ -200,6 +208,148 @@ const updateShapeGraphics = (
     }
   }
 };
+const DebouncedInput = React.memo(
+  ({
+    value,
+    onChange,
+    onUpdate,
+    isFloat = false,
+    className,
+    ...props
+  }: {
+    value: number;
+    onChange: (value: string) => void;
+    onUpdate: (value: number) => void;
+    isFloat?: boolean;
+    className?: string;
+    [key: string]: any;
+  }) => {
+    const [localValue, setLocalValue] = useState(() =>
+      formatNumber(value, isFloat)
+    );
+    const debouncedValue = useDebounce(localValue, 300);
+
+    // Update parent when debounced value changes
+    React.useEffect(() => {
+      const numericValue = parseNumber(debouncedValue);
+      if (numericValue !== value && !isNaN(numericValue)) {
+        if (wasDragged || wasTransformed) {
+          // Reset local value to current prop value
+          setLocalValue(formatNumber(value, isFloat));
+          return;
+        }
+        const selectedItems = useSeatMapStore.getState().selectedShapes;
+        const currentShape =
+          selectedItems.length === 1 ? selectedItems[0] : null;
+
+        if (
+          !previouslyClickedShape ||
+          (currentShape && previouslyClickedShape.id === currentShape.id)
+        ) {
+          onUpdate(numericValue);
+        } else {
+          setLocalValue(formatNumber(value, isFloat));
+        }
+      }
+    }, [debouncedValue, value, onUpdate, isFloat]);
+
+    // Update local value when prop value changes (when selecting different shapes)
+    React.useEffect(() => {
+      setLocalValue(formatNumber(value, isFloat));
+    }, [value, isFloat]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const inputValue = e.target.value;
+      // Reset flags and don't update
+      setWasDragged(false);
+      setWasTransformed(false);
+      setLocalValue(inputValue);
+      onChange(inputValue);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.currentTarget.blur();
+      }
+    };
+
+    return (
+      <input
+        {...props}
+        value={localValue}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className={className}
+      />
+    );
+  }
+);
+
+DebouncedInput.displayName = "DebouncedInput";
+
+// Debounced textarea component
+const DebouncedTextarea = React.memo(
+  ({
+    value,
+    onChange,
+    onUpdate,
+    className,
+    ...props
+  }: {
+    value: string;
+    onChange: (value: string) => void;
+    onUpdate: (value: string) => void;
+    className?: string;
+    [key: string]: any;
+  }) => {
+    const [localValue, setLocalValue] = useState(value);
+    const debouncedValue = useDebounce(localValue, 300);
+
+    // Update parent when debounced value changes
+    React.useEffect(() => {
+      if (debouncedValue !== value) {
+        const selectedItems = useSeatMapStore.getState().selectedShapes;
+        const currentShape =
+          selectedItems.length === 1 ? selectedItems[0] : null;
+
+        // Only update if previouslyClickedShape is null or is the same as current shape
+        if (
+          !previouslyClickedShape ||
+          (currentShape && previouslyClickedShape.id === currentShape.id)
+        ) {
+          onUpdate(debouncedValue);
+        } else {
+          // Reset to current value if trying to update a different shape
+          setLocalValue(value);
+        }
+      }
+    }, [debouncedValue, value, onUpdate]);
+
+    const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+      const inputValue = e.target.value;
+      setLocalValue(inputValue);
+      onChange(inputValue);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.currentTarget.blur();
+      }
+    };
+
+    return (
+      <textarea
+        {...props}
+        value={localValue}
+        onChange={handleChange}
+        onKeyDown={handleKeyDown}
+        className={className}
+      />
+    );
+  }
+);
+
+DebouncedTextarea.displayName = "DebouncedTextarea";
 
 // Simplified single item properties - no local state, direct updates
 const SingleItemProperties = React.memo(
@@ -210,23 +360,17 @@ const SingleItemProperties = React.memo(
     item: CanvasItem;
     onUpdate: (id: string, updates: Partial<CanvasItem>) => void;
   }) => {
-    console.log("Rendering SingleItemProperties for", item.id);
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.currentTarget.blur();
-      }
-    };
     return (
       <div className="p-4 space-y-4">
         {/* Name */}
         <div>
           <label className="block text-sm font-medium mb-1">Name</label>
-          <input
-            type="text"
+          <DebouncedTextarea
             value={item.name}
-            onKeyDown={handleKeyDown}
-            onChange={(e) => onUpdate(item.id, { name: e.target.value })}
-            className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
+            onChange={() => {}} // Not used in this case
+            onUpdate={(value) => onUpdate(item.id, { name: value })}
+            rows={1}
+            className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white resize-none"
           />
         </div>
 
@@ -234,21 +378,21 @@ const SingleItemProperties = React.memo(
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-sm font-medium mb-1">X</label>
-            <input
+            <DebouncedInput
               type="number"
-              value={Math.round(item.x)}
-              onKeyDown={handleKeyDown}
-              onChange={(e) => onUpdate(item.id, { x: Number(e.target.value) })}
+              value={item.x}
+              onChange={() => {}} // Not used in this case
+              onUpdate={(value) => onUpdate(item.id, { x: value })}
               className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Y</label>
-            <input
+            <DebouncedInput
               type="number"
-              value={Math.round(item.y)}
-              onKeyDown={handleKeyDown}
-              onChange={(e) => onUpdate(item.id, { y: Number(e.target.value) })}
+              value={item.y}
+              onChange={() => {}} // Not used in this case
+              onUpdate={(value) => onUpdate(item.id, { y: value })}
               className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
             />
           </div>
@@ -258,27 +402,25 @@ const SingleItemProperties = React.memo(
         <div className="grid grid-cols-2 gap-2">
           <div>
             <label className="block text-sm font-medium mb-1">Scale X</label>
-            <input
+            <DebouncedInput
               type="number"
-              step="0.1"
+              step="0.001"
               value={item.scaleX}
-              onKeyDown={handleKeyDown}
-              onChange={(e) =>
-                onUpdate(item.id, { scaleX: Number(e.target.value) })
-              }
+              onChange={() => {}} // Not used in this case
+              onUpdate={(value) => onUpdate(item.id, { scaleX: value })}
+              isFloat={true}
               className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
             />
           </div>
           <div>
             <label className="block text-sm font-medium mb-1">Scale Y</label>
-            <input
+            <DebouncedInput
               type="number"
-              step="0.1"
+              step="0.001"
               value={item.scaleY}
-              onKeyDown={handleKeyDown}
-              onChange={(e) =>
-                onUpdate(item.id, { scaleY: Number(e.target.value) })
-              }
+              onChange={() => {}} // Not used in this case
+              onUpdate={(value) => onUpdate(item.id, { scaleY: value })}
+              isFloat={true}
               className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
             />
           </div>
@@ -289,15 +431,15 @@ const SingleItemProperties = React.memo(
           <label className="block text-sm font-medium mb-1">
             Rotation (degrees)
           </label>
-          <input
+          <DebouncedInput
             type="number"
-            value={Math.round(item.rotation * (180 / Math.PI))}
-            onKeyDown={handleKeyDown}
-            onChange={(e) =>
-              onUpdate(item.id, {
-                rotation: Number(e.target.value) * (Math.PI / 180),
-              })
+            step="0.001"
+            value={item.rotation * (180 / Math.PI)}
+            onChange={() => {}} // Not used in this case
+            onUpdate={(value) =>
+              onUpdate(item.id, { rotation: value * (Math.PI / 180) })
             }
+            isFloat={true}
             className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
           />
         </div>
@@ -305,17 +447,18 @@ const SingleItemProperties = React.memo(
         {/* Opacity */}
         <div>
           <label className="block text-sm font-medium mb-1">Opacity</label>
-          <input
+          <DebouncedInput
             type="number"
+            step="0.001"
             min="0"
             max="1"
-            step="0.1"
             value={item.opacity}
-            onKeyDown={handleKeyDown}
-            onChange={(e) =>
-              onUpdate(item.id, { opacity: Number(e.target.value) })
+            onChange={() => {}} // Not used in this case
+            onUpdate={(value) =>
+              onUpdate(item.id, { opacity: Math.max(0, Math.min(1, value)) })
             }
-            className="w-full"
+            isFloat={true}
+            className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
           />
           <div className="text-xs text-gray-400 mt-1">
             {Math.round(item.opacity * 100)}%
@@ -340,11 +483,6 @@ const TypeSpecificProperties = React.memo(
     item: CanvasItem;
     onUpdate: (id: string, updates: Partial<CanvasItem>) => void;
   }) => {
-    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === "Enter") {
-        e.currentTarget.blur();
-      }
-    };
     switch (item.type) {
       case "rectangle":
         return (
@@ -352,25 +490,21 @@ const TypeSpecificProperties = React.memo(
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <label className="block text-sm font-medium mb-1">Width</label>
-                <input
+                <DebouncedInput
                   type="number"
                   value={item.width}
-                  onKeyDown={handleKeyDown}
-                  onChange={(e) =>
-                    onUpdate(item.id, { width: Number(e.target.value) })
-                  }
+                  onChange={() => {}}
+                  onUpdate={(value) => onUpdate(item.id, { width: value })}
                   className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
                 />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Height</label>
-                <input
+                <DebouncedInput
                   type="number"
                   value={item.height}
-                  onKeyDown={handleKeyDown}
-                  onChange={(e) =>
-                    onUpdate(item.id, { height: Number(e.target.value) })
-                  }
+                  onChange={() => {}}
+                  onUpdate={(value) => onUpdate(item.id, { height: value })}
                   className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
                 />
               </div>
@@ -379,13 +513,11 @@ const TypeSpecificProperties = React.memo(
               <label className="block text-sm font-medium mb-1">
                 Corner Radius
               </label>
-              <input
+              <DebouncedInput
                 type="number"
                 value={item.cornerRadius}
-                onKeyDown={handleKeyDown}
-                onChange={(e) =>
-                  onUpdate(item.id, { cornerRadius: Number(e.target.value) })
-                }
+                onChange={() => {}}
+                onUpdate={(value) => onUpdate(item.id, { cornerRadius: value })}
                 className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               />
             </div>
@@ -410,13 +542,11 @@ const TypeSpecificProperties = React.memo(
                 <label className="block text-sm font-medium mb-1">
                   Radius X
                 </label>
-                <input
+                <DebouncedInput
                   type="number"
                   value={item.radiusX}
-                  onKeyDown={handleKeyDown}
-                  onChange={(e) =>
-                    onUpdate(item.id, { radiusX: Number(e.target.value) })
-                  }
+                  onChange={() => {}}
+                  onUpdate={(value) => onUpdate(item.id, { radiusX: value })}
                   className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
                 />
               </div>
@@ -424,13 +554,11 @@ const TypeSpecificProperties = React.memo(
                 <label className="block text-sm font-medium mb-1">
                   Radius Y
                 </label>
-                <input
+                <DebouncedInput
                   type="number"
                   value={item.radiusY}
-                  onKeyDown={handleKeyDown}
-                  onChange={(e) =>
-                    onUpdate(item.id, { radiusY: Number(e.target.value) })
-                  }
+                  onChange={() => {}}
+                  onUpdate={(value) => onUpdate(item.id, { radiusY: value })}
                   className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
                 />
               </div>
@@ -453,24 +581,23 @@ const TypeSpecificProperties = React.memo(
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">Text</label>
-              <textarea
+              <DebouncedTextarea
                 value={item.text}
-                onChange={(e) => onUpdate(item.id, { text: e.target.value })}
-                className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
+                onChange={() => {}}
+                onUpdate={(value) => onUpdate(item.id, { text: value })}
                 rows={3}
+                className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">
                 Font Size
               </label>
-              <input
+              <DebouncedInput
                 type="number"
                 value={item.fontSize}
-                onKeyDown={handleKeyDown}
-                onChange={(e) =>
-                  onUpdate(item.id, { fontSize: Number(e.target.value) })
-                }
+                onChange={() => {}}
+                onUpdate={(value) => onUpdate(item.id, { fontSize: value })}
                 className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               />
             </div>
@@ -483,6 +610,11 @@ const TypeSpecificProperties = React.memo(
                 onChange={(e) =>
                   onUpdate(item.id, { fontFamily: e.target.value })
                 }
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.currentTarget.blur();
+                  }
+                }}
                 className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               >
                 <option value="Arial">Arial</option>
@@ -512,13 +644,11 @@ const TypeSpecificProperties = React.memo(
               <label className="block text-sm font-medium mb-1">
                 Corner Radius
               </label>
-              <input
+              <DebouncedInput
                 type="number"
                 value={item.cornerRadius}
-                onKeyDown={handleKeyDown}
-                onChange={(e) =>
-                  onUpdate(item.id, { cornerRadius: Number(e.target.value) })
-                }
+                onChange={() => {}}
+                onUpdate={(value) => onUpdate(item.id, { cornerRadius: value })}
                 className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               />
             </div>
@@ -552,17 +682,57 @@ const ColorPicker = React.memo(
     label: string;
     value: number;
     onChange: (color: number) => void;
-  }) => (
-    <div>
-      <label className="block text-sm font-medium mb-1">{label}</label>
-      <input
-        type="color"
-        value={`#${value.toString(16).padStart(6, "0")}`}
-        onChange={(e) => onChange(parseInt(e.target.value.slice(1), 16))}
-        className="w-full h-8 border border-gray-600 rounded"
-      />
-    </div>
-  )
+  }) => {
+    const [localColorValue, setLocalColorValue] = useState(
+      `#${value.toString(16).padStart(6, "0")}`
+    );
+
+    const debouncedColorValue = useDebounce(localColorValue, 300);
+
+    // Update parent when debounced value changes
+    React.useEffect(() => {
+      const debouncedColorNumber = parseInt(debouncedColorValue.slice(1), 16);
+      if (debouncedColorNumber !== value && !isNaN(debouncedColorNumber)) {
+        const selectedItems = useSeatMapStore.getState().selectedShapes;
+        const currentShape =
+          selectedItems.length === 1 ? selectedItems[0] : null;
+
+        // Only change color if previouslyClickedShape is null or is the same as current shape
+        if (
+          !previouslyClickedShape ||
+          (currentShape && previouslyClickedShape.id === currentShape.id)
+        ) {
+          onChange(debouncedColorNumber);
+        } else {
+          setLocalColorValue(`#${value.toString(16).padStart(6, "0")}`);
+        }
+      }
+    }, [debouncedColorValue, onChange, value]);
+
+    const handleColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      setLocalColorValue(e.target.value);
+      setPreviouslyClickedShape(null);
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+      if (e.key === "Enter") {
+        e.currentTarget.blur();
+      }
+    };
+
+    return (
+      <div>
+        <label className="block text-sm font-medium mb-1">{label}</label>
+        <input
+          type="color"
+          value={localColorValue}
+          onChange={handleColorChange}
+          onKeyDown={handleKeyDown}
+          className="w-full h-8 border border-gray-600 rounded"
+        />
+      </div>
+    );
+  }
 );
 
 ColorPicker.displayName = "ColorPicker";

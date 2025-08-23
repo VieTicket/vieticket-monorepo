@@ -1,6 +1,11 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem } from "../types";
-import { stage, shapes } from "../variables";
+import {
+  stage,
+  shapes,
+  setPreviouslyClickedShape,
+  setWasDragged,
+} from "../variables";
 import { getSelectionTransform } from "./transform-events";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { updatePolygonGraphics } from "../shapes";
@@ -31,6 +36,9 @@ export const startShapeDrag = (
       return;
     }
   } else {
+    setPreviouslyClickedShape(
+      useSeatMapStore.getState().selectedShapes[0] || null
+    );
     shapes.forEach((s) => (s.selected = false));
     shape.selected = true;
     draggedShapes = [shape];
@@ -110,6 +118,8 @@ export const endShapeDrag = () => {
   draggedShapes = [];
   originalPositions = [];
   originalPolygonPoints = [];
+
+  setWasDragged(true);
 
   const selectedShapes = useSeatMapStore.getState().selectedShapes;
   useSeatMapStore.getState().setSelectedShapes([...selectedShapes]);

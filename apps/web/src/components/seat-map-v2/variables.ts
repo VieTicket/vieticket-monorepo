@@ -14,6 +14,9 @@ export let isDrawing = false;
 export let dragStart: { x: number; y: number } | null = null;
 export let zoom = 1;
 export let pan = { x: 0, y: 0 };
+export let previouslyClickedShape: CanvasItem | null = null;
+export let wasDragged = false;
+export let wasTransformed = false;
 
 // Add polygon drawing state
 export let polygonDrawingState: {
@@ -47,6 +50,16 @@ export const setPreviewGraphics = (graphics: PIXI.Graphics | null) => {
 export const setShapes = (newShapes: CanvasItem[]) => {
   shapes = newShapes;
   useSeatMapStore.getState().updateShapes(shapes);
+};
+export const setPreviouslyClickedShape = (shape: CanvasItem | null) => {
+  previouslyClickedShape = shape;
+};
+export const setWasDragged = (dragged: boolean) => {
+  wasDragged = dragged;
+};
+
+export const setWasTransformed = (transformed: boolean) => {
+  wasTransformed = transformed;
 };
 
 export const addShape = (shape: CanvasItem) => {
@@ -95,6 +108,9 @@ export const resetVariables = () => {
     previewPoints: [],
   };
   selectionContainer = null;
+  previouslyClickedShape = null;
+  wasDragged = false;
+  wasTransformed = false;
   // Reset Zustand store
   useSeatMapStore.getState().updateShapes(shapes);
 };
