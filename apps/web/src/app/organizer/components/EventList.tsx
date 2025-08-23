@@ -107,6 +107,7 @@ export default function EventList({ title, events }: EventListProps) {
                   ? event.endTime.toISOString()
                   : String(event.endTime),
               approvalStatus: event.approvalStatus ?? "pending",
+              bannerUrl: event.bannerUrl ?? undefined,
             }}
           />
         ))}

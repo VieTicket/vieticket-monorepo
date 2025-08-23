@@ -12,6 +12,7 @@ interface EventCardProps {
     startTime: string;
     endTime: string;
     approvalStatus: EventApprovalStatus;
+    bannerUrl?: string;
   };
 }
 
@@ -61,49 +62,65 @@ export default function EventCard({ event }: EventCardProps) {
   const isSameDay = startDate.toDateString() === endDate.toDateString();
 
   return (
-    <div className="border rounded-2xl p-5 space-y-4 shadow-md bg-white hover:shadow-lg transition-all duration-200">
-      {/* Header with name and status */}
-      <div className="flex justify-between items-start gap-3">
-        <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 leading-tight">
-          {event.name}
-        </h3>
-        <span
-          className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 ${status.className}`}
-        >
-          {status.label}
-        </span>
-      </div>
+    <div className="border rounded-2xl overflow-hidden shadow-md bg-white hover:shadow-lg transition-all duration-200">
+      {/* Banner Image */}
+      {event.bannerUrl && (
+        <div className="relative w-full h-48 bg-gray-200">
+          <img
+            src={event.bannerUrl}
+            alt={event.name}
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+            }}
+          />
+        </div>
+      )}
 
-      {/* Date Information */}
-      <div className="bg-gray-50 rounded-xl p-3">
-        <span className="text-sm font-medium text-gray-700">
-          {isSameDay
-            ? formatDate(startDate)
-            : `${formatDate(startDate)} - ${formatDate(endDate)}`}
-        </span>
-      </div>
+      <div className="p-5 space-y-4">
+        {/* Header with name and status */}
+        <div className="flex justify-between items-start gap-3">
+          <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 leading-tight">
+            {event.name}
+          </h3>
+          <span
+            className={`text-xs px-3 py-1 rounded-full font-medium shrink-0 ${status.className}`}
+          >
+            {status.label}
+          </span>
+        </div>
 
-      {/* Actions */}
-      <div className="flex gap-3 pt-1">
-        <Button
-          onClick={() =>
-            router.push(`/organizer/general/create?id=${event.id}`)
-          }
-          variant="outline"
-          className="flex-1 text-sm"
-        >
-          View Statistics
-        </Button>
-        {event.approvalStatus !== "approved" && (
+        {/* Date Information */}
+        <div className="bg-gray-50 rounded-xl p-3">
+          <span className="text-sm font-medium text-gray-700">
+            {isSameDay
+              ? formatDate(startDate)
+              : `${formatDate(startDate)} - ${formatDate(endDate)}`}
+          </span>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-3 pt-1">
           <Button
             onClick={() =>
-              router.push(`/organizer/event/create?id=${event.id}`)
+              router.push(`/organizer/general/create?id=${event.id}`)
             }
+            variant="outline"
             className="flex-1 text-sm"
           >
-            Edit Event
+            View Statistics
           </Button>
-        )}
+          {event.approvalStatus !== "approved" && (
+            <Button
+              onClick={() =>
+                router.push(`/organizer/event/create?id=${event.id}`)
+              }
+              className="flex-1 text-sm"
+            >
+              Edit Event
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   );
