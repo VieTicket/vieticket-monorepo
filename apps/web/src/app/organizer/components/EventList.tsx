@@ -44,23 +44,51 @@ export default function EventList({ title, events }: EventListProps) {
               className="w-full md:w-60"
             />
           </Label>
-
-          <Label className="w-full md:w-auto">
-            <span className="block mb-1 text-sm font-medium text-gray-700">
-              Filter by Status
-            </span>
-            <select
-              className="w-full md:w-48 px-3 py-2 rounded-md border text-sm text-gray-700"
-              value={statusFilter ?? ""}
-              onChange={(e) => setStatusFilter(e.target.value || null)}
-            >
-              <option value="">All Status</option>
-              <option value="approved">Approved</option>
-              <option value="pending">Pending</option>
-              <option value="rejected">Rejected</option>
-            </select>
-          </Label>
         </div>
+      </div>
+
+      {/* Status Filter Tabs */}
+      <div className="inline-flex bg-gray-50 rounded-2xl p-1.5 shadow-sm border">
+        <button
+          onClick={() => setStatusFilter(null)}
+          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            statusFilter === null
+              ? "bg-white text-gray-900 shadow-md transform scale-105"
+              : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          }`}
+        >
+          All Events
+        </button>
+        <button
+          onClick={() => setStatusFilter("approved")}
+          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            statusFilter === "approved"
+              ? "bg-green-100 text-green-800 shadow-md transform scale-105 border border-green-200"
+              : "text-gray-600 hover:text-green-700 hover:bg-green-50"
+          }`}
+        >
+          ✓ Approved
+        </button>
+        <button
+          onClick={() => setStatusFilter("pending")}
+          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            statusFilter === "pending"
+              ? "bg-yellow-100 text-yellow-800 shadow-md transform scale-105 border border-yellow-200"
+              : "text-gray-600 hover:text-yellow-700 hover:bg-yellow-50"
+          }`}
+        >
+          ⏳ Pending
+        </button>
+        <button
+          onClick={() => setStatusFilter("rejected")}
+          className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
+            statusFilter === "rejected"
+              ? "bg-red-100 text-red-800 shadow-md transform scale-105 border border-red-200"
+              : "text-gray-600 hover:text-red-700 hover:bg-red-50"
+          }`}
+        >
+          ✗ Rejected
+        </button>
       </div>
 
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
