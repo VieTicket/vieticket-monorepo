@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { RectangleShape } from "../types";
-import { generateShapeId } from "../utils";
+import { generateShapeId } from "../utils/stageTransform";
 import { getEventManager } from "../events/event-manager";
 
 export const createRectangle = (

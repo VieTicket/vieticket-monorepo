@@ -10,7 +10,7 @@ import {
   setIsDrawing,
   setPan,
 } from "../variables";
-import { updateStageTransform } from "../utils";
+import { updateStageTransform } from "../utils/stageTransform";
 
 export const onPanStart = (event: PIXI.FederatedPointerEvent) => {
   if (currentTool !== "pan") return;

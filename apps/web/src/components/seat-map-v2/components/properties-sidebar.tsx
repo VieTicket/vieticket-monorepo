@@ -664,7 +664,37 @@ const TypeSpecificProperties = React.memo(
             />
           </div>
         );
-
+      case "container":
+        return (
+          <div className="space-y-3">
+            <div>
+              <label className="block text-sm font-medium mb-1">Children</label>
+              <div className="text-sm text-gray-400">
+                {(item as ContainerGroup).children.length} items
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Expanded</label>
+              <input
+                type="checkbox"
+                checked={(item as ContainerGroup).expanded}
+                onChange={(e) =>
+                  onUpdate(item.id, { expanded: e.target.checked })
+                }
+                className="w-4 h-4"
+              />
+            </div>
+            <button
+              onClick={() => {
+                const { ungroupContainer } = require("../utils/grouping");
+                ungroupContainer(item as ContainerGroup);
+              }}
+              className="w-full px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm"
+            >
+              Ungroup Container
+            </button>
+          </div>
+        );
       default:
         return null;
     }

@@ -105,6 +105,7 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
   });
 
   const selectionTransform = getSelectionTransform();
+  console.log(draggedShapes);
   if (selectionTransform && draggedShapes.length > 0) {
     selectionTransform.updateSelection(draggedShapes);
   }

@@ -80,6 +80,7 @@ export class EventManager {
   }
 
   private onStagePointerDown(event: PIXI.FederatedPointerEvent) {
+    console.log(shapes);
     // Handle tool-specific stage events
     switch (currentTool) {
       case "pan":

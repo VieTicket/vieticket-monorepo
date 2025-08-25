@@ -13,11 +13,18 @@ import {
   Unlock,
   Folder,
   FolderOpen,
+  Ungroup,
 } from "lucide-react";
 import { CanvasItem, ContainerGroup } from "../types";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { setPan, pixiApp } from "../variables";
-import { updateStageTransform } from "../utils";
+import { updateStageTransform } from "../utils/stageTransform";
+import {
+  groupItems,
+  ungroupContainer,
+  canGroup,
+  getItemsInContainers,
+} from "../utils/grouping";
 
 interface CanvasInventoryProps {}
 
@@ -39,19 +46,7 @@ export const CanvasInventory = React.memo(() => {
 
   // Get root level items (items not inside any container)
   const rootItems = useMemo(() => {
-    const itemsInContainers = new Set<string>();
-
-    // Find all items that are inside containers
-    shapes.forEach((shape) => {
-      if (shape.type === "container") {
-        const container = shape as ContainerGroup;
-        container.children.forEach((child) => {
-          itemsInContainers.add(child.id);
-        });
-      }
-    });
-
-    // Return only items that are not inside any container
+    const itemsInContainers = getItemsInContainers();
     return shapes.filter((shape) => !itemsInContainers.has(shape.id));
   }, [shapes]);
 
@@ -121,15 +116,24 @@ export const CanvasInventory = React.memo(() => {
   );
 
   const handleGroupItems = useCallback((items: CanvasItem[]) => {
-    // Implementation for grouping items
-    console.log("Grouping items:", items);
-    // You can implement the actual grouping logic here
+    if (!canGroup(items)) {
+      console.warn(
+        "Cannot group these items - they may already be in containers or insufficient count"
+      );
+      return;
+    }
+
+    const container = groupItems(items);
+    if (container) {
+      console.log("Successfully created group:", container.name);
+    }
   }, []);
 
   const handleUngroupItems = useCallback((container: ContainerGroup) => {
-    // Implementation for ungrouping items
-    console.log("Ungrouping container:", container);
-    // You can implement the actual ungrouping logic here
+    const ungroupedItems = ungroupContainer(container);
+    if (ungroupedItems.length > 0) {
+      console.log("Successfully ungrouped", ungroupedItems.length, "items");
+    }
   }, []);
 
   const handleShapeClick = useCallback(
@@ -279,6 +283,20 @@ export const CanvasInventory = React.memo(() => {
             </span>
             {/* Action buttons - show on hover */}
             <div className="flex items-center ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              {/* Ungroup button for containers */}
+              {isContainer && (
+                <button
+                  className="mr-1 p-0.5 hover:bg-gray-600 rounded flex-shrink-0"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleUngroupItems(item as ContainerGroup);
+                  }}
+                  title="Ungroup"
+                >
+                  <Ungroup className="w-3 h-3" />
+                </button>
+              )}
+
               {/* Visibility toggle */}
               <button
                 className="p-0.5 hover:bg-gray-600 rounded flex-shrink-0"
@@ -325,6 +343,7 @@ export const CanvasInventory = React.memo(() => {
       toggleContainer,
       toggleVisibility,
       toggleLock,
+      handleUngroupItems,
       getTypeIcon,
       getShapeColor,
     ]
@@ -341,6 +360,7 @@ export const CanvasInventory = React.memo(() => {
 
   const selectedCount = selectedShapeIds.length;
   const totalCount = shapes.length;
+  const canGroupSelected = selectedCount > 1 && canGroup(selectedShapes);
 
   return (
     <div className="bg-gray-900 text-white shadow z-10 w-64 flex flex-col border border-gray-700">
@@ -355,7 +375,7 @@ export const CanvasInventory = React.memo(() => {
         </div>
 
         {/* Group button */}
-        {selectedCount > 1 && (
+        {canGroupSelected && (
           <button
             onClick={handleGroupSelected}
             className="w-full px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-xs transition-colors"
@@ -386,6 +406,7 @@ export const CanvasInventory = React.memo(() => {
         <div>Click to select</div>
         <div>Ctrl+Click to multi-select</div>
         <div>Shift+Ctrl+Click to pan to item</div>
+        <div>Select multiple items to group</div>
       </div>
     </div>
   );

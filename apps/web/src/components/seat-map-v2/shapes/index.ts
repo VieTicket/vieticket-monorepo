@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { CanvasItem } from "../types";
 import { shapeContainer, shapes, addShape, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
+import { getEventManager } from "../events/event-manager";
 
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
@@ -29,6 +30,10 @@ export const deleteShape = (shapeId: string) => {
   const shapeIndex = shapes.findIndex((shape) => shape.id === shapeId);
   if (shapeIndex !== -1) {
     const shape = shapes[shapeIndex];
+    const eventManager = getEventManager();
+    if (eventManager) {
+      eventManager.removeShapeEvents(shape);
+    }
     if (shapeContainer) {
       shapeContainer.removeChild(shape.graphics);
       shape.graphics.destroy();
@@ -39,9 +44,20 @@ export const deleteShape = (shapeId: string) => {
 };
 
 export const deleteShapes = () => {
+  const eventManager = getEventManager();
   shapes.forEach((shape) => {
-    if (shapeContainer && shape.selected) {
-      shapeContainer.removeChild(shape.graphics);
+    if (shape.selected) {
+      // Remove event listeners
+      if (eventManager) {
+        eventManager.removeShapeEvents(shape);
+      }
+
+      // Remove from stage
+      if (shapeContainer && shape.graphics.parent === shapeContainer) {
+        shapeContainer.removeChild(shape.graphics);
+      }
+
+      // Destroy graphics
       shape.graphics.destroy();
     }
   });
@@ -50,11 +66,21 @@ export const deleteShapes = () => {
 };
 
 export const clearCanvas = () => {
+  const eventManager = getEventManager();
+
   shapes.forEach((shape) => {
-    if (shapeContainer) {
-      shapeContainer.removeChild(shape.graphics);
-      shape.graphics.destroy();
+    // Remove event listeners
+    if (eventManager) {
+      eventManager.removeShapeEvents(shape);
     }
+
+    // Remove from stage
+    if (shapeContainer && shape.graphics.parent === shapeContainer) {
+      shapeContainer.removeChild(shape.graphics);
+    }
+
+    // Destroy graphics
+    shape.graphics.destroy();
   });
   shapes.length = 0;
 
