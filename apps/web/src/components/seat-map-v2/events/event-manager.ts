@@ -1,13 +1,22 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
-import { currentTool, stage, shapes, pixiApp } from "../variables";
+import { CanvasItem, ContainerGroup } from "../types";
+import {
+  currentTool,
+  stage,
+  shapes,
+  pixiApp,
+  isNestedShapeSelected,
+} from "../variables";
 import { getSelectionTransform } from "./transform-events";
 
-// Import existing event handlers
 import { onPanStart, onPanMove, onPanEnd } from "./pan-events";
 import { onDrawStart, onDrawMove, onDrawEnd } from "./draw-events";
 import { onPolygonStart, onPolygonMove } from "./polygon-events";
-import { onStageClick, handleShapeSelection } from "./select-events";
+import {
+  onStageClick,
+  handleShapeSelection,
+  handleDoubleClick,
+} from "./select-events";
 import { onStageWheel } from "./zoom-events";
 import {
   startShapeDrag,
@@ -15,10 +24,14 @@ import {
   endShapeDrag,
   isCurrentlyShapeDragging,
 } from "./drag-events";
+import { findTopmostChildAtPoint } from "../shapes";
 
 export class EventManager {
   private shapeEventHandlers = new Map<string, any>();
-  private shapePointerDownTarget: PixiShape | null = null;
+  private shapePointerDownTarget: CanvasItem | null = null;
+  private lastClickTime = 0;
+  private lastClickTarget: CanvasItem | null = null;
+  private doubleClickThreshold = 300;
 
   constructor() {
     this.setupStageEvents();
@@ -41,7 +54,15 @@ export class EventManager {
     stage.on("wheel", onStageWheel);
   }
 
-  addShapeEvents(shape: PixiShape) {
+  addShapeEvents(shape: CanvasItem) {
+    if (shape.type === "container") {
+      this.addContainerEvents(shape as ContainerGroup);
+    } else {
+      this.addRegularShapeEvents(shape);
+    }
+  }
+
+  private addRegularShapeEvents(shape: CanvasItem) {
     const handlers = {
       pointerdown: (event: PIXI.FederatedPointerEvent) => {
         this.onShapePointerDown(event, shape);
@@ -57,16 +78,48 @@ export class EventManager {
       },
     };
 
-    // Add event listeners
     Object.entries(handlers).forEach(([eventName, handler]) => {
       shape.graphics.on(eventName as any, handler);
     });
 
-    // Store handlers for cleanup
     this.shapeEventHandlers.set(shape.id, handlers);
   }
 
-  removeShapeEvents(shape: PixiShape) {
+  private addContainerEvents(container: ContainerGroup) {
+    const handlers = {
+      pointerdown: (event: PIXI.FederatedPointerEvent) => {
+        if (isNestedShapeSelected) {
+          const hitChild = findTopmostChildAtPoint(container, event);
+
+          this.onShapePointerDown(event, hitChild!);
+        } else {
+          this.onShapePointerDown(event, container);
+        }
+      },
+      pointerup: (event: PIXI.FederatedPointerEvent) => {
+        if (isNestedShapeSelected) {
+          const hitChild = findTopmostChildAtPoint(container, event);
+          this.onShapePointerUp(event, hitChild!);
+        } else {
+          this.onShapePointerUp(event, container);
+        }
+      },
+      pointerover: (event: PIXI.FederatedPointerEvent) => {
+        this.onShapeHover(event, container);
+      },
+      pointerout: (event: PIXI.FederatedPointerEvent) => {
+        this.onShapeOut(event, container);
+      },
+    };
+
+    Object.entries(handlers).forEach(([eventName, handler]) => {
+      container.graphics.on(eventName as any, handler);
+    });
+
+    this.shapeEventHandlers.set(container.id, handlers);
+  }
+
+  removeShapeEvents(shape: CanvasItem) {
     const handlers = this.shapeEventHandlers.get(shape.id);
     if (handlers) {
       Object.entries(handlers).forEach(([eventName, handler]) => {
@@ -80,7 +133,6 @@ export class EventManager {
   }
 
   private onStagePointerDown(event: PIXI.FederatedPointerEvent) {
-    // Handle tool-specific stage events
     switch (currentTool) {
       case "pan":
         onPanStart(event);
@@ -145,7 +197,7 @@ export class EventManager {
 
   private onShapePointerDown(
     event: PIXI.FederatedPointerEvent,
-    shape: PixiShape
+    shape: CanvasItem
   ) {
     event.stopPropagation();
 
@@ -154,23 +206,38 @@ export class EventManager {
         this.shapePointerDownTarget = shape;
         startShapeDrag(event, shape);
         break;
-      // Other tools don't need shape-specific handling as they use stage events
     }
   }
 
   private onShapePointerUp(
     event: PIXI.FederatedPointerEvent,
-    shape: PixiShape
+    shape: CanvasItem
   ) {
     event.stopPropagation();
-
     switch (currentTool) {
       case "select":
+        const selectionTransform = getSelectionTransform();
+        if (selectionTransform?.isCurrentlyTransforming) {
+          selectionTransform.onTransformPointerUp();
+        }
         if (
           this.shapePointerDownTarget?.id === shape.id &&
           !isCurrentlyShapeDragging()
         ) {
           handleShapeSelection(event, shape);
+        }
+
+        if (this.shapePointerDownTarget?.id === shape.id) {
+          const currentTime = Date.now();
+          const isDoubleClick =
+            this.lastClickTarget?.id === shape.id &&
+            currentTime - this.lastClickTime < this.doubleClickThreshold;
+
+          if (isDoubleClick) {
+            handleDoubleClick(event, shape);
+          }
+          this.lastClickTime = currentTime;
+          this.lastClickTarget = shape;
         }
 
         if (isCurrentlyShapeDragging()) {
@@ -180,26 +247,21 @@ export class EventManager {
     }
   }
 
-  private onShapeHover(event: PIXI.FederatedPointerEvent, shape: PixiShape) {
-    // Handle hover effects
+  private onShapeHover(event: PIXI.FederatedPointerEvent, shape: CanvasItem) {
     if (currentTool === "select") {
       shape.graphics.cursor = "move";
 
-      // Optional: Add hover highlight
       if (shape.graphics instanceof PIXI.Graphics) {
         shape.graphics.alpha = 0.8;
       }
     } else {
-      // For other tools, show the tool cursor
       shape.graphics.cursor = this.getToolCursor();
     }
   }
 
-  private onShapeOut(event: PIXI.FederatedPointerEvent, shape: PixiShape) {
-    // Reset hover effects
+  private onShapeOut(event: PIXI.FederatedPointerEvent, shape: CanvasItem) {
     shape.graphics.cursor = "pointer";
 
-    // Reset hover highlight
     if (shape.graphics instanceof PIXI.Graphics) {
       shape.graphics.alpha = 1;
     }
@@ -221,18 +283,15 @@ export class EventManager {
     }
   }
 
-  // Public method to update stage events when stage changes
   public updateStage() {
     this.setupStageEvents();
   }
 
   destroy() {
-    // Clean up all event listeners
     if (stage) {
       stage.removeAllListeners();
     }
 
-    // Clean up shape events
     this.shapeEventHandlers.forEach((handlers, shapeId) => {
       const shape = shapes.find((s) => s.id === shapeId);
       if (shape) {
@@ -246,12 +305,10 @@ export class EventManager {
     });
     this.shapeEventHandlers.clear();
 
-    // Reset dragging state
     this.shapePointerDownTarget = null;
   }
 }
 
-// Global instance management
 let eventManager: EventManager | null = null;
 
 export const createEventManager = (): EventManager => {

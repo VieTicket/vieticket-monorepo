@@ -1,7 +1,6 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
-import { generateShapeId } from "../utils";
-import { onShapeClick } from "../events/select-events";
+import { EllipseShape } from "../types";
+import { generateShapeId } from "../utils/stageTransform";
 import { getEventManager } from "../events/event-manager";
 
 export const createEllipse = (
@@ -9,7 +8,7 @@ export const createEllipse = (
   y: number,
   radiusX: number,
   radiusY: number
-): PixiShape => {
+): EllipseShape => {
   const graphics = new PIXI.Graphics();
 
   graphics.stroke({
@@ -38,8 +37,9 @@ export const createEllipse = (
   graphics.eventMode = "static";
   graphics.cursor = "pointer";
 
-  const shape: PixiShape = {
+  const shape: EllipseShape = {
     id: generateShapeId(),
+    name: `Ellipse ${Date.now()}`,
     type: "ellipse",
     graphics,
     x,
@@ -47,10 +47,15 @@ export const createEllipse = (
     radiusX,
     radiusY,
     color: 0x10b981,
+    strokeColor: 0x047857,
+    strokeWidth: 2,
     selected: false,
+    visible: true,
+    locked: false,
     rotation: 0,
     scaleX: 1,
     scaleY: 1,
+    opacity: 1,
   };
 
   const eventManager = getEventManager();

@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
-import { stage, zoom, pan } from "./variables";
+import { stage, zoom, pan } from "../variables";
 
 export const generateShapeId = () => uuidv4();
 

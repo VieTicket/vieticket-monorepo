@@ -1,29 +1,80 @@
 import * as PIXI from "pixi.js";
 
-export interface PixiShape {
+export interface BaseCanvasItem {
   id: string;
-  type: "rectangle" | "ellipse" | "text" | "polygon";
-  graphics: PIXI.Graphics | PIXI.Text;
+  name: string; // User-friendly name for properties panel
+  visible: boolean;
+  locked: boolean;
+  selected?: boolean;
   x: number;
   y: number;
-  width?: number;
-  height?: number;
-  radiusX?: number;
-  radiusY?: number;
-  points?: Array<{ x: number; y: number; radius?: number }>;
-
-  cornerRadius?: number;
-  color: number;
-  selected: boolean;
-  name?: string;
-  fill?: string;
-  stroke?: string;
-  strokeWidth?: number;
-
-  rotation?: number; // Rotation in radians
-  scaleX?: number; // Horizontal scale factor
-  scaleY?: number; // Vertical scale factor
+  rotation: number;
+  scaleX: number;
+  scaleY: number;
+  opacity: number;
+  graphics: PIXI.Graphics | PIXI.Text | PIXI.Container;
 }
+
+// Shape-specific interfaces
+export interface RectangleShape extends BaseCanvasItem {
+  type: "rectangle";
+  width: number;
+  height: number;
+  cornerRadius: number;
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  graphics: PIXI.Graphics;
+}
+
+export interface EllipseShape extends BaseCanvasItem {
+  type: "ellipse";
+  radiusX: number;
+  radiusY: number;
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  graphics: PIXI.Graphics;
+}
+
+export interface TextShape extends BaseCanvasItem {
+  type: "text";
+  text: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: "normal" | "bold";
+  textAlign: "left" | "center" | "right";
+  color: number;
+  graphics: PIXI.Text;
+}
+
+export interface PolygonShape extends BaseCanvasItem {
+  type: "polygon";
+  points: Array<{ x: number; y: number }>;
+  cornerRadius: number;
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  graphics: PIXI.Graphics;
+}
+
+export interface ContainerGroup extends BaseCanvasItem {
+  type: "container";
+  children: CanvasItem[];
+  expanded: boolean; // For properties panel UI
+  graphics: PIXI.Container;
+}
+
+// Union type for all canvas items
+export type CanvasItem =
+  | RectangleShape
+  | EllipseShape
+  | TextShape
+  | PolygonShape
+  | ContainerGroup;
+
+// Helper type for just shapes (excluding containers)
+export type ShapeItem = Exclude<CanvasItem, ContainerGroup>;
 
 export type Tool =
   | "select"
@@ -34,7 +85,7 @@ export type Tool =
   | "pan";
 
 export interface CanvasInventoryProps {
-  shapes: PixiShape[];
+  shapes: CanvasItem[];
   selectedShapeIds: string[];
   onShapeSelect: (id: string) => void;
   onShapePan: (id: string) => void;

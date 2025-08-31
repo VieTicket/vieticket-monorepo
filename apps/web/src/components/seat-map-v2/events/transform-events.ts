@@ -1,6 +1,9 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
-import { stage, zoom, pixiApp } from "../variables";
+import { CanvasItem, ContainerGroup } from "../types";
+import { stage, zoom, pixiApp, shapes, setWasTransformed } from "../variables";
+import { useSeatMapStore } from "../store/seat-map-store";
+import { calculateGroupBounds } from "../utils/bounds";
+import { findParentContainer } from "../shapes";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate";
@@ -18,7 +21,7 @@ export interface TransformHandle {
 }
 
 export class SelectionTransform {
-  private selectedShapes: PixiShape[] = [];
+  private selectedShapes: CanvasItem[] = [];
   private boundingBox: {
     x: number;
     y: number;
@@ -172,6 +175,8 @@ export class SelectionTransform {
     this.transformStart = null;
     this.transformPosition = "";
     this.originalTransforms = [];
+    setWasTransformed(true);
+    useSeatMapStore.getState().updateShapes(shapes);
   }
 
   // Getter to check if currently dragging
@@ -179,16 +184,35 @@ export class SelectionTransform {
     return this.isTransforming;
   }
 
-  private applyTransformsToShape(shape: PixiShape) {
+  private applyTransformsToShape(shape: CanvasItem) {
     // Apply transforms to the actual PIXI graphics object
     if (shape.graphics) {
-      // Set position first
-      shape.graphics.position.set(shape.x, shape.y);
+      // For shapes inside containers, we need to handle positioning differently
+      const isNestedShape = this.isShapeNested(shape);
 
-      // Then apply scale and rotation
+      if (isNestedShape) {
+        // For nested shapes, position is relative to their container
+        const parentContainer = findParentContainer(shape);
+        if (parentContainer) {
+          const relativeX = shape.x - parentContainer.x;
+          const relativeY = shape.y - parentContainer.y;
+          shape.graphics.position.set(relativeX, relativeY);
+        } else {
+          shape.graphics.position.set(shape.x, shape.y);
+        }
+      } else {
+        // For top-level shapes, position is absolute
+        shape.graphics.position.set(shape.x, shape.y);
+      }
+
+      // Apply scale and rotation
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.rotation = shape.rotation || 0;
     }
+  }
+
+  private isShapeNested(shape: CanvasItem): boolean {
+    return findParentContainer(shape) !== null;
   }
 
   private handleScale(deltaX: number, deltaY: number, position: string) {
@@ -300,7 +324,6 @@ export class SelectionTransform {
         // Apply anchor-based position adjustment
         const offsetX = -scaleChangeX * anchorX;
         const offsetY = -scaleChangeY * anchorY;
-        console.log("offsetX:", offsetX, "offsetY:", offsetY);
 
         shape.x = original.x + offsetX / 2;
         shape.y = original.y + offsetY / 2;
@@ -332,151 +355,9 @@ export class SelectionTransform {
     this.updateSelection(this.selectedShapes);
   }
 
-  private calculateBoundingBox(shapes: PixiShape[]) {
+  private calculateBoundingBox(shapes: CanvasItem[]) {
     if (shapes.length === 0) return null;
-
-    let minX = Infinity,
-      minY = Infinity,
-      maxX = -Infinity,
-      maxY = -Infinity;
-
-    shapes.forEach((shape) => {
-      let shapeMinX, shapeMinY, shapeMaxX, shapeMaxY;
-
-      // Get the actual scale factors applied to the shape
-      const scaleX = shape.scaleX || 1;
-      const scaleY = shape.scaleY || 1;
-      const rotation = shape.rotation || 0;
-
-      if (shape.type === "rectangle" && shape.width && shape.height) {
-        // Apply scaling to the dimensions
-        const scaledWidth = shape.width * scaleX;
-        const scaledHeight = shape.height * scaleY;
-
-        // Calculate rotated bounding box
-        const corners = [
-          { x: -scaledWidth / 2, y: -scaledHeight / 2 },
-          { x: scaledWidth / 2, y: -scaledHeight / 2 },
-          { x: scaledWidth / 2, y: scaledHeight / 2 },
-          { x: -scaledWidth / 2, y: scaledHeight / 2 },
-        ];
-
-        const rotatedCorners = corners.map((corner) => ({
-          x:
-            shape.x +
-            corner.x * Math.cos(rotation) -
-            corner.y * Math.sin(rotation),
-          y:
-            shape.y +
-            corner.x * Math.sin(rotation) +
-            corner.y * Math.cos(rotation),
-        }));
-
-        const xs = rotatedCorners.map((p) => p.x);
-        const ys = rotatedCorners.map((p) => p.y);
-        shapeMinX = Math.min(...xs);
-        shapeMinY = Math.min(...ys);
-        shapeMaxX = Math.max(...xs);
-        shapeMaxY = Math.max(...ys);
-      } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
-        // For ellipse, calculate rotated bounding box
-        const scaledRadiusX = shape.radiusX * scaleX;
-        const scaledRadiusY = shape.radiusY * scaleY;
-
-        // Calculate the bounding box of a rotated ellipse
-        const a = scaledRadiusX;
-        const b = scaledRadiusY;
-        const cos = Math.abs(Math.cos(rotation));
-        const sin = Math.abs(Math.sin(rotation));
-
-        const boundingWidth = a * cos + b * sin;
-        const boundingHeight = a * sin + b * cos;
-
-        shapeMinX = shape.x - boundingWidth;
-        shapeMinY = shape.y - boundingHeight;
-        shapeMaxX = shape.x + boundingWidth;
-        shapeMaxY = shape.y + boundingHeight;
-      } else if (shape.type === "polygon" && shape.points) {
-        // For polygons, apply scaling and rotation to each point
-        const centerX = shape.x;
-        const centerY = shape.y;
-
-        const transformedPoints = shape.points.map((point) => {
-          // First apply scaling
-          const scaledX = (point.x - centerX) * scaleX;
-          const scaledY = (point.y - centerY) * scaleY;
-
-          // Then apply rotation
-          return {
-            x:
-              centerX +
-              scaledX * Math.cos(rotation) -
-              scaledY * Math.sin(rotation),
-            y:
-              centerY +
-              scaledX * Math.sin(rotation) +
-              scaledY * Math.cos(rotation),
-          };
-        });
-
-        const xs = transformedPoints.map((p) => p.x);
-        const ys = transformedPoints.map((p) => p.y);
-        shapeMinX = Math.min(...xs);
-        shapeMinY = Math.min(...ys);
-        shapeMaxX = Math.max(...xs);
-        shapeMaxY = Math.max(...ys);
-      } else if (shape.type === "text" && shape.graphics instanceof PIXI.Text) {
-        // For text, use the actual bounds which include scaling and rotation
-        const bounds = shape.graphics.getBounds();
-        shapeMinX = bounds.x;
-        shapeMinY = bounds.y;
-        shapeMaxX = bounds.x + bounds.width;
-        shapeMaxY = bounds.y + bounds.height;
-      } else {
-        // Fallback with scaling and rotation applied
-        const scaledWidth = 40 * scaleX;
-        const scaledHeight = 20 * scaleY;
-
-        const corners = [
-          { x: -scaledWidth / 2, y: -scaledHeight / 2 },
-          { x: scaledWidth / 2, y: -scaledHeight / 2 },
-          { x: scaledWidth / 2, y: scaledHeight / 2 },
-          { x: -scaledWidth / 2, y: scaledHeight / 2 },
-        ];
-
-        const rotatedCorners = corners.map((corner) => ({
-          x:
-            shape.x +
-            corner.x * Math.cos(rotation) -
-            corner.y * Math.sin(rotation),
-          y:
-            shape.y +
-            corner.x * Math.sin(rotation) +
-            corner.y * Math.cos(rotation),
-        }));
-
-        const xs = rotatedCorners.map((p) => p.x);
-        const ys = rotatedCorners.map((p) => p.y);
-        shapeMinX = Math.min(...xs);
-        shapeMinY = Math.min(...ys);
-        shapeMaxX = Math.max(...xs);
-        shapeMaxY = Math.max(...ys);
-      }
-
-      minX = Math.min(minX, shapeMinX);
-      minY = Math.min(minY, shapeMinY);
-      maxX = Math.max(maxX, shapeMaxX);
-      maxY = Math.max(maxY, shapeMaxY);
-    });
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-      centerX: (minX + maxX) / 2,
-      centerY: (minY + maxY) / 2,
-    };
+    return calculateGroupBounds(shapes);
   }
 
   private updateHandlePositions() {
@@ -562,7 +443,7 @@ export class SelectionTransform {
     this.container.addChildAt(selectionBox, 0); // Add behind handles
   }
 
-  public updateSelection(shapes: PixiShape[]) {
+  public updateSelection(shapes: CanvasItem[]) {
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
 

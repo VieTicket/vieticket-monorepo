@@ -1,51 +1,70 @@
 import * as PIXI from "pixi.js";
-import { PixiShape } from "../types";
-import { stage, shapes } from "../variables";
+import { CanvasItem, ContainerGroup } from "../types";
+import {
+  stage,
+  shapes,
+  setPreviouslyClickedShape,
+  setWasDragged,
+} from "../variables";
 import { getSelectionTransform } from "./transform-events";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { updatePolygonGraphics } from "../shapes";
+import {
+  clearAllSelections,
+  findParentContainer,
+  updatePolygonGraphics,
+} from "../shapes";
 
-// Track dragging state
 let isShapeDragging = false;
 let dragStart: { x: number; y: number } | null = null;
-let draggedShapes: PixiShape[] = [];
+let draggedShapes: CanvasItem[] = [];
 let originalPositions: Array<{ x: number; y: number }> = [];
 let originalPolygonPoints: Array<
   Array<{ x: number; y: number; radius?: number }>
-> = []; // Store original polygon points
+> = [];
 
 export const startShapeDrag = (
   event: PIXI.FederatedPointerEvent,
-  shape: PixiShape
+  shape: CanvasItem
 ) => {
   if (!stage) return;
 
   const selectionTransform = getSelectionTransform();
   if (selectionTransform?.isCurrentlyTransforming) return;
 
-  // Check for multi-select (Ctrl/Cmd key)
   const isMultiSelect = event.ctrlKey || event.metaKey;
 
   if (isMultiSelect) {
-    // Multi-select behavior
     if (shape.selected) {
-      // Drag all selected shapes
-      draggedShapes = shapes.filter((s) => s.selected);
+      const getAllSelectedIncludingNested = () => {
+        const selectedShapes: CanvasItem[] = [];
+        const addSelectedRecursively = (items: CanvasItem[]) => {
+          items.forEach((item) => {
+            if (item.selected) {
+              selectedShapes.push(item);
+            }
+            if (item.type === "container") {
+              addSelectedRecursively((item as ContainerGroup).children);
+            }
+          });
+        };
+        addSelectedRecursively(shapes);
+        return selectedShapes;
+      };
+      draggedShapes = getAllSelectedIncludingNested();
     } else {
-      // Shape is not selected, don't start drag (user wants to select it first)
       return;
     }
   } else {
-    // Single select behavior - unselect all and drag current shape
-    shapes.forEach((s) => (s.selected = false));
+    setPreviouslyClickedShape(
+      useSeatMapStore.getState().selectedShapes[0] || null
+    );
+    clearAllSelections();
     shape.selected = true;
     draggedShapes = [shape];
 
-    // Update store with new selection
     useSeatMapStore.getState().setSelectedShapes([shape]);
     useSeatMapStore.getState().updateShapes([...shapes]);
 
-    // Update selection transform
     if (selectionTransform) {
       selectionTransform.updateSelection([shape]);
     }
@@ -55,13 +74,11 @@ export const startShapeDrag = (
   isShapeDragging = true;
   dragStart = { x: localPoint.x, y: localPoint.y };
 
-  // Store original positions
   originalPositions = draggedShapes.map((s) => ({
     x: s.x,
     y: s.y,
   }));
 
-  // Store original polygon points for polygon shapes
   originalPolygonPoints = draggedShapes.map((s) => {
     if (s.type === "polygon" && s.points) {
       return s.points.map((point) => ({ x: point.x, y: point.y }));
@@ -77,7 +94,6 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
   const deltaX = currentPoint.x - dragStart.x;
   const deltaY = currentPoint.y - dragStart.y;
 
-  // Update positions of all dragged shapes
   draggedShapes.forEach((shape, index) => {
     const original = originalPositions[index];
 
@@ -86,33 +102,41 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
       shape.points &&
       originalPolygonPoints[index]
     ) {
-      // For polygon shapes, update individual points instead of x,y
       const originalPoints = originalPolygonPoints[index];
       shape.points = originalPoints.map((point) => ({
         x: point.x + deltaX,
         y: point.y + deltaY,
-        radius: point.radius, // Preserve radius if it exists
+        radius: point.radius,
       }));
 
-      // Update the center position for consistency (optional, but helps with other calculations)
       shape.x = original.x + deltaX;
       shape.y = original.y + deltaY;
 
-      // Update the graphics position
-      shape.graphics.position.set(shape.x, shape.y);
+      const parentContainer = findParentContainer(shape);
+      if (parentContainer) {
+        const relativeX = shape.x - parentContainer.x;
+        const relativeY = shape.y - parentContainer.y;
+        shape.graphics.position.set(relativeX, relativeY);
+      } else {
+        shape.graphics.position.set(shape.x, shape.y);
+      }
 
       updatePolygonGraphics(shape);
     } else {
-      // For non-polygon shapes, update x,y normally
       shape.x = original.x + deltaX;
       shape.y = original.y + deltaY;
 
-      // Update PIXI graphics position
-      shape.graphics.position.set(shape.x, shape.y);
+      const parentContainer = findParentContainer(shape);
+      if (parentContainer) {
+        const relativeX = shape.x - parentContainer.x;
+        const relativeY = shape.y - parentContainer.y;
+        shape.graphics.position.set(relativeX, relativeY);
+      } else {
+        shape.graphics.position.set(shape.x, shape.y);
+      }
     }
   });
 
-  // Update selection transform if shapes are selected
   const selectionTransform = getSelectionTransform();
   if (selectionTransform && draggedShapes.length > 0) {
     selectionTransform.updateSelection(draggedShapes);
@@ -128,13 +152,13 @@ export const endShapeDrag = () => {
   originalPositions = [];
   originalPolygonPoints = [];
 
-  // Update store with final positions
+  setWasDragged(true);
+
   const selectedShapes = useSeatMapStore.getState().selectedShapes;
   useSeatMapStore.getState().setSelectedShapes([...selectedShapes]);
   useSeatMapStore.getState().updateShapes([...shapes]);
 };
 
-// Export function to check if currently dragging shapes
 export const isCurrentlyShapeDragging = (): boolean => {
   return isShapeDragging;
 };
