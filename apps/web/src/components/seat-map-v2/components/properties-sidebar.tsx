@@ -263,6 +263,7 @@ const DebouncedInput = React.memo(
       // Reset flags and don't update
       setWasDragged(false);
       setWasTransformed(false);
+      setPreviouslyClickedShape(null);
       setLocalValue(inputValue);
       onChange(inputValue);
     };
@@ -312,7 +313,6 @@ const DebouncedTextarea = React.memo(
         const currentShape =
           selectedItems.length === 1 ? selectedItems[0] : null;
 
-        // Only update if previouslyClickedShape is null or is the same as current shape
         if (
           !previouslyClickedShape ||
           (currentShape && previouslyClickedShape.id === currentShape.id)
@@ -328,6 +328,7 @@ const DebouncedTextarea = React.memo(
     const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       const inputValue = e.target.value;
       setLocalValue(inputValue);
+      setPreviouslyClickedShape(null);
       onChange(inputValue);
     };
 
@@ -727,7 +728,6 @@ const ColorPicker = React.memo(
         const currentShape =
           selectedItems.length === 1 ? selectedItems[0] : null;
 
-        // Only change color if previouslyClickedShape is null or is the same as current shape
         if (
           !previouslyClickedShape ||
           (currentShape && previouslyClickedShape.id === currentShape.id)

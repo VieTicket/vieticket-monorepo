@@ -81,7 +81,11 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     const relativeX = item.x - bounds.centerX;
     const relativeY = item.y - bounds.centerY;
 
-    // Set item position relative to container
+    // Update the item's coordinates to be relative to container
+    item.x = relativeX;
+    item.y = relativeY;
+
+    // Set graphics position relative to container (which should be 0,0 since item coords are now relative)
     item.graphics.position.set(relativeX, relativeY);
 
     // Add to container
@@ -113,6 +117,7 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
 
   // Update store for UI reactivity
   useSeatMapStore.getState().setSelectedShapes([container]);
+  useSeatMapStore.getState().updateShapes(newShapes);
 
   return container;
 };
@@ -129,17 +134,14 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
   const eventManager = getEventManager();
   const ungroupedItems: CanvasItem[] = [];
 
-  // Get container's world transform
-  const containerWorldTransform = container.graphics.worldTransform;
-
   container.children.forEach((child) => {
-    // Calculate world position
-    const localPoint = new PIXI.Point(child.graphics.x, child.graphics.y);
-    const worldPoint = containerWorldTransform.apply(localPoint);
+    // Convert child's relative coordinates back to world coordinates
+    const worldX = container.x + child.x;
+    const worldY = container.y + child.y;
 
-    // Update child's world position
-    child.x = worldPoint.x;
-    child.y = worldPoint.y;
+    // Update child's coordinates to be relative to stage again
+    child.x = worldX;
+    child.y = worldY;
 
     // Apply container's transforms to child
     child.rotation += container.rotation;
@@ -191,6 +193,7 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
 
   // Update store for UI reactivity
   useSeatMapStore.getState().setSelectedShapes(ungroupedItems);
+  useSeatMapStore.getState().updateShapes(newShapes);
 
   return ungroupedItems;
 };

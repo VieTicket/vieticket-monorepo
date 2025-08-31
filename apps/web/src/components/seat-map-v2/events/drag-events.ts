@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem } from "../types";
+import { CanvasItem, ContainerGroup } from "../types";
 import {
   stage,
   shapes,
@@ -8,7 +8,11 @@ import {
 } from "../variables";
 import { getSelectionTransform } from "./transform-events";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { updatePolygonGraphics } from "../shapes";
+import {
+  clearAllSelections,
+  findParentContainer,
+  updatePolygonGraphics,
+} from "../shapes";
 
 let isShapeDragging = false;
 let dragStart: { x: number; y: number } | null = null;
@@ -31,7 +35,22 @@ export const startShapeDrag = (
 
   if (isMultiSelect) {
     if (shape.selected) {
-      draggedShapes = shapes.filter((s) => s.selected);
+      const getAllSelectedIncludingNested = () => {
+        const selectedShapes: CanvasItem[] = [];
+        const addSelectedRecursively = (items: CanvasItem[]) => {
+          items.forEach((item) => {
+            if (item.selected) {
+              selectedShapes.push(item);
+            }
+            if (item.type === "container") {
+              addSelectedRecursively((item as ContainerGroup).children);
+            }
+          });
+        };
+        addSelectedRecursively(shapes);
+        return selectedShapes;
+      };
+      draggedShapes = getAllSelectedIncludingNested();
     } else {
       return;
     }
@@ -39,7 +58,7 @@ export const startShapeDrag = (
     setPreviouslyClickedShape(
       useSeatMapStore.getState().selectedShapes[0] || null
     );
-    shapes.forEach((s) => (s.selected = false));
+    clearAllSelections();
     shape.selected = true;
     draggedShapes = [shape];
 
@@ -93,19 +112,32 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
       shape.x = original.x + deltaX;
       shape.y = original.y + deltaY;
 
-      shape.graphics.position.set(shape.x, shape.y);
+      const parentContainer = findParentContainer(shape);
+      if (parentContainer) {
+        const relativeX = shape.x - parentContainer.x;
+        const relativeY = shape.y - parentContainer.y;
+        shape.graphics.position.set(relativeX, relativeY);
+      } else {
+        shape.graphics.position.set(shape.x, shape.y);
+      }
 
       updatePolygonGraphics(shape);
     } else {
       shape.x = original.x + deltaX;
       shape.y = original.y + deltaY;
 
-      shape.graphics.position.set(shape.x, shape.y);
+      const parentContainer = findParentContainer(shape);
+      if (parentContainer) {
+        const relativeX = shape.x - parentContainer.x;
+        const relativeY = shape.y - parentContainer.y;
+        shape.graphics.position.set(relativeX, relativeY);
+      } else {
+        shape.graphics.position.set(shape.x, shape.y);
+      }
     }
   });
 
   const selectionTransform = getSelectionTransform();
-  console.log(draggedShapes);
   if (selectionTransform && draggedShapes.length > 0) {
     selectionTransform.updateSelection(draggedShapes);
   }

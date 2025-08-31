@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { CanvasItem, ContainerGroup } from "../types";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { setPan, pixiApp } from "../variables";
+import { setPan, pixiApp, setPreviouslyClickedShape } from "../variables";
 import { updateStageTransform } from "../utils/stageTransform";
 import {
   groupItems,
@@ -25,6 +25,8 @@ import {
   canGroup,
   getItemsInContainers,
 } from "../utils/grouping";
+import { getSelectionTransform } from "../events/transform-events";
+import { findShapeInContainer } from "../shapes/index";
 
 interface CanvasInventoryProps {}
 
@@ -38,6 +40,7 @@ export const CanvasInventory = React.memo(() => {
   const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
   const setSelectedShapes = useSeatMapStore((state) => state.setSelectedShapes);
   const updateShapes = useSeatMapStore((state) => state.updateShapes);
+  const selectionTransform = getSelectionTransform();
 
   const selectedShapeIds = useMemo(
     () => selectedShapes.map((shape) => shape.id),
@@ -49,16 +52,6 @@ export const CanvasInventory = React.memo(() => {
     const itemsInContainers = getItemsInContainers();
     return shapes.filter((shape) => !itemsInContainers.has(shape.id));
   }, [shapes]);
-
-  const handleShapeSelect = useCallback(
-    (shapeId: string) => {
-      const shape = shapes.find((s) => s.id === shapeId);
-      if (shape) {
-        setSelectedShapes([shape]);
-      }
-    },
-    [shapes, setSelectedShapes]
-  );
 
   const handleShapePan = useCallback(
     (shapeId: string) => {
@@ -76,7 +69,16 @@ export const CanvasInventory = React.memo(() => {
 
   const handleMultiSelect = useCallback(
     (shapeId: string, isCtrlHeld: boolean) => {
-      const shape = shapes.find((s) => s.id === shapeId);
+      let shape = shapes.find((s) => s.id === shapeId);
+      if (!shape) {
+        for (const mainShape of shapes) {
+          if (mainShape.type === "container") {
+            const containerGroup = mainShape as ContainerGroup;
+            shape = findShapeInContainer(containerGroup, shapeId);
+            if (shape) break;
+          }
+        }
+      }
       if (!shape) return;
 
       if (isCtrlHeld) {
@@ -90,10 +92,45 @@ export const CanvasInventory = React.memo(() => {
           setSelectedShapes([...selectedShapes, shape]);
         }
       } else {
+        shape.selected = true;
+        updateShapes([...shapes]);
+
+        if (selectionTransform) {
+          selectionTransform.updateSelection([shape]);
+        }
+        setPreviouslyClickedShape(selectedShapes[0] || null);
         setSelectedShapes([shape]);
       }
     },
     [shapes, selectedShapes, setSelectedShapes]
+  );
+
+  const handleShapeSelect = useCallback(
+    (shapeId: string) => {
+      let shape = shapes.find((s) => s.id === shapeId);
+
+      if (!shape) {
+        for (const mainShape of shapes) {
+          if (mainShape.type === "container") {
+            const containerGroup = mainShape as ContainerGroup;
+            shape = findShapeInContainer(containerGroup, shapeId);
+            if (shape) break;
+          }
+        }
+      }
+
+      if (shape) {
+        shape.selected = true;
+        updateShapes([...shapes]);
+
+        if (selectionTransform) {
+          selectionTransform.updateSelection([shape]);
+        }
+        setPreviouslyClickedShape(selectedShapes[0] || null);
+        setSelectedShapes([shape]);
+      }
+    },
+    [shapes, setSelectedShapes]
   );
 
   const handleItemUpdate = useCallback(
@@ -125,14 +162,12 @@ export const CanvasInventory = React.memo(() => {
 
     const container = groupItems(items);
     if (container) {
-      console.log("Successfully created group:", container.name);
     }
   }, []);
 
   const handleUngroupItems = useCallback((container: ContainerGroup) => {
     const ungroupedItems = ungroupContainer(container);
     if (ungroupedItems.length > 0) {
-      console.log("Successfully ungrouped", ungroupedItems.length, "items");
     }
   }, []);
 
@@ -140,7 +175,7 @@ export const CanvasInventory = React.memo(() => {
     (shapeId: string, e: React.MouseEvent) => {
       e.stopPropagation();
 
-      if (e.ctrlKey || e.metaKey) {
+      if (e.ctrlKey || e.shiftKey) {
         // Multi-select or pan
         if (e.shiftKey) {
           handleShapePan(shapeId);

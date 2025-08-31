@@ -1,8 +1,9 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem } from "../types";
+import { CanvasItem, ContainerGroup } from "../types";
 import { stage, zoom, pixiApp, shapes, setWasTransformed } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { calculateGroupBounds } from "../utils/bounds";
+import { findParentContainer } from "../shapes";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate";
@@ -186,13 +187,32 @@ export class SelectionTransform {
   private applyTransformsToShape(shape: CanvasItem) {
     // Apply transforms to the actual PIXI graphics object
     if (shape.graphics) {
-      // Set position first
-      shape.graphics.position.set(shape.x, shape.y);
+      // For shapes inside containers, we need to handle positioning differently
+      const isNestedShape = this.isShapeNested(shape);
 
-      // Then apply scale and rotation
+      if (isNestedShape) {
+        // For nested shapes, position is relative to their container
+        const parentContainer = findParentContainer(shape);
+        if (parentContainer) {
+          const relativeX = shape.x - parentContainer.x;
+          const relativeY = shape.y - parentContainer.y;
+          shape.graphics.position.set(relativeX, relativeY);
+        } else {
+          shape.graphics.position.set(shape.x, shape.y);
+        }
+      } else {
+        // For top-level shapes, position is absolute
+        shape.graphics.position.set(shape.x, shape.y);
+      }
+
+      // Apply scale and rotation
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.rotation = shape.rotation || 0;
     }
+  }
+
+  private isShapeNested(shape: CanvasItem): boolean {
+    return findParentContainer(shape) !== null;
   }
 
   private handleScale(deltaX: number, deltaY: number, position: string) {

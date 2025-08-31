@@ -15,6 +15,7 @@ export let dragStart: { x: number; y: number } | null = null;
 export let zoom = 1;
 export let pan = { x: 0, y: 0 };
 export let previouslyClickedShape: CanvasItem | null = null;
+export let isNestedShapeSelected: boolean = false;
 export let wasDragged = false;
 export let wasTransformed = false;
 
@@ -53,6 +54,9 @@ export const setShapes = (newShapes: CanvasItem[]) => {
 };
 export const setPreviouslyClickedShape = (shape: CanvasItem | null) => {
   previouslyClickedShape = shape;
+};
+export const setIsNestedShapeSelected = (selected: boolean) => {
+  isNestedShapeSelected = selected;
 };
 export const setWasDragged = (dragged: boolean) => {
   wasDragged = dragged;
