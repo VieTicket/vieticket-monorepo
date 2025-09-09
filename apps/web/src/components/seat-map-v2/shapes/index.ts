@@ -11,7 +11,9 @@ import {
   shapes,
   addShape,
   setShapes,
-  setIsNestedShapeSelected,
+  setSelectedContainer,
+  selectedContainer,
+  stage,
 } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
@@ -63,6 +65,124 @@ export const updateNestedShapes = (shapesToUpdate: CanvasItem[]) => {
     }
   });
 };
+export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
+  const path: ContainerGroup[] = [];
+
+  const findPathRecursively = (
+    containers: CanvasItem[],
+    currentPath: ContainerGroup[]
+  ): boolean => {
+    for (const container of containers) {
+      if (container.type === "container") {
+        const containerGroup = container as ContainerGroup;
+        const newPath = [...currentPath, containerGroup];
+
+        // Check if target is directly in this container
+        if (
+          containerGroup.children.some((child) => child.id === targetShape.id)
+        ) {
+          path.push(...newPath);
+          return true;
+        }
+
+        // Check nested containers
+        if (findPathRecursively(containerGroup.children, newPath)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  findPathRecursively(shapes, []);
+  return path;
+};
+
+// Helper function to check if two shapes are in the same container
+export const areInSameContainer = (
+  shape1: CanvasItem,
+  shape2: CanvasItem
+): boolean => {
+  const path1 = getContainerPath(shape1);
+  const path2 = getContainerPath(shape2);
+
+  // If both are at root level (no container)
+  if (path1.length === 0 && path2.length === 0) {
+    return true;
+  }
+
+  // If different path lengths, they're in different containers
+  if (path1.length !== path2.length) {
+    return false;
+  }
+
+  // Compare each level of the path
+  for (let i = 0; i < path1.length; i++) {
+    if (path1[i].id !== path2[i].id) {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+// Helper function to get the current container based on selectedContainer path
+export const getCurrentContainer = (): ContainerGroup | null => {
+  if (selectedContainer.length === 0) return null;
+  return selectedContainer[selectedContainer.length - 1];
+};
+
+// Helper function to find shape at point respecting container context
+export const findShapeAtPoint = (
+  event: PIXI.FederatedPointerEvent,
+  currentContainer: ContainerGroup | null = null
+): CanvasItem | null => {
+  if (currentContainer) {
+    // If we're inside a container, only look for children of that container
+    return findTopmostChildAtPoint(currentContainer, event);
+  } else {
+    // If we're at root level, look through all root shapes
+    const stagePoint = event.getLocalPosition(stage!);
+
+    // Check root level shapes in reverse order (topmost first)
+    for (let i = shapes.length - 1; i >= 0; i--) {
+      const shape = shapes[i];
+
+      if (!shape.visible || shape.graphics.alpha === 0) continue;
+
+      if (shape.type === "container") {
+        const container = shape as ContainerGroup;
+        const localPoint = event.getLocalPosition(container.graphics);
+
+        // Check if point is in container bounds
+        try {
+          const bounds = container.graphics.getLocalBounds();
+          const isInContainer =
+            localPoint.x >= bounds.x &&
+            localPoint.x <= bounds.x + bounds.width &&
+            localPoint.y >= bounds.y &&
+            localPoint.y <= bounds.y + bounds.height;
+
+          if (isInContainer) {
+            return container;
+          }
+        } catch (error) {
+          // Fallback to hit test
+          if (hitTestChild(container, stagePoint)) {
+            return container;
+          }
+        }
+      } else {
+        // Regular shape hit test
+        if (hitTestChild(shape, stagePoint)) {
+          return shape;
+        }
+      }
+    }
+  }
+
+  return null;
+};
 
 export const findTopmostChildAtPoint = (
   container: ContainerGroup,
@@ -83,9 +203,8 @@ export const findTopmostChildAtPoint = (
 
     // Check if the point hits this child based on its type
     const isHit = hitTestChild(child, point);
-    console.log(isHit, child);
+    // console.log(isHit, child);
     if (isHit) {
-      setIsNestedShapeSelected(true);
       // If it's a nested container, recursively check its children
       if (child.type === "container") {
         const nestedPoint = child.graphics.toLocal(point);

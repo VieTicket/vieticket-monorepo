@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, Tool } from "./types";
+import { CanvasItem, ContainerGroup, Tool } from "./types";
 import { useSeatMapStore } from "./store/seat-map-store";
 
 // Global state for performance (outside React)
@@ -15,10 +15,18 @@ export let dragStart: { x: number; y: number } | null = null;
 export let zoom = 1;
 export let pan = { x: 0, y: 0 };
 export let previouslyClickedShape: CanvasItem | null = null;
-export let isNestedShapeSelected: boolean = false;
+export let selectedContainer: ContainerGroup[] = [];
 export let wasDragged = false;
 export let wasTransformed = false;
 
+// Drag state variables
+export let isShapeDragging = false;
+export let shapeDragStart: { x: number; y: number } | null = null;
+export let draggedShapes: CanvasItem[] = [];
+export let originalPositions: Array<{ x: number; y: number }> = [];
+export let originalPolygonPoints: Array<
+  Array<{ x: number; y: number; radius?: number }>
+> = [];
 // Add polygon drawing state
 export let polygonDrawingState: {
   isDrawing: boolean;
@@ -55,8 +63,8 @@ export const setShapes = (newShapes: CanvasItem[]) => {
 export const setPreviouslyClickedShape = (shape: CanvasItem | null) => {
   previouslyClickedShape = shape;
 };
-export const setIsNestedShapeSelected = (selected: boolean) => {
-  isNestedShapeSelected = selected;
+export const setSelectedContainer = (containerPath: ContainerGroup[]) => {
+  selectedContainer = containerPath;
 };
 export const setWasDragged = (dragged: boolean) => {
   wasDragged = dragged;
@@ -64,6 +72,26 @@ export const setWasDragged = (dragged: boolean) => {
 
 export const setWasTransformed = (transformed: boolean) => {
   wasTransformed = transformed;
+};
+
+export const setIsShapeDragging = (dragging: boolean) => {
+  isShapeDragging = dragging;
+};
+export const setShapeDragStart = (start: { x: number; y: number } | null) => {
+  shapeDragStart = start;
+};
+export const setDraggedShapes = (shapes: CanvasItem[]) => {
+  draggedShapes = shapes;
+};
+export const setOriginalPositions = (
+  positions: Array<{ x: number; y: number }>
+) => {
+  originalPositions = positions;
+};
+export const setOriginalPolygonPoints = (
+  points: Array<Array<{ x: number; y: number; radius?: number }>>
+) => {
+  originalPolygonPoints = points;
 };
 
 export const addShape = (shape: CanvasItem) => {
@@ -114,7 +142,14 @@ export const resetVariables = () => {
   selectionContainer = null;
   previouslyClickedShape = null;
   wasDragged = false;
+  selectedContainer = [];
   wasTransformed = false;
+
+  isShapeDragging = false;
+  shapeDragStart = null;
+  draggedShapes = [];
+  originalPositions = [];
+  originalPolygonPoints = [];
   // Reset Zustand store
   useSeatMapStore.getState().updateShapes(shapes);
 };
