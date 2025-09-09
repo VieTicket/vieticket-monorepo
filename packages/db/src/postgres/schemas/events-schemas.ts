@@ -4,6 +4,8 @@ import {
   relations,
 } from "drizzle-orm";
 import {
+  boolean,
+  index,
   integer,
   pgTable,
   text,
@@ -33,22 +35,49 @@ export const events = pgTable("events", {
   approvalStatus: eventApprovalStatusEnum("approval_status").default("pending"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
+  // TODO: remove after code migration
   seatMapId: text("seat_map_id"),
   organizerId: text("organizer_id")
     .references(() => organizers.id)
     .notNull(),
-});
+}, table => [
+  index("events_organizer_id_idx").on(table.organizerId),
+]);
 
-export const areas = pgTable("areas", {
+export const showings = pgTable("showings", {
   id: uuid("id").defaultRandom().primaryKey(),
   eventId: uuid("event_id")
     .references(() => events.id, { onDelete: "cascade" })
     .notNull(),
+  seatMapId: text("seat_map_id"),
+  name: varchar("name", { length: 255 }),
+  startTime: timestamp("start_time").notNull(),
+  endTime: timestamp("end_time").notNull(),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+}, table => [
+  index("showings_event_id_idx").on(table.eventId),
+]);
+
+export const areas = pgTable("areas", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  // will be removed after code migration
+  eventId: uuid("event_id")
+    .references(() => events.id, { onDelete: "cascade" })
+    .notNull(),
+  // will be notNull after code migration complete
+  showingId: uuid("showing_id").references(() => showings.id, {
+    onDelete: "cascade",
+  }),
   name: varchar("name", { length: 64 }).notNull(),
   price: currency("price", { precision: 10, scale: 2 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, table => [
+  index("areas_event_id_idx").on(table.eventId),
+  index("areas_showing_id_idx").on(table.showingId),
+]);
 
 export const rows = pgTable("rows", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -58,7 +87,9 @@ export const rows = pgTable("rows", {
   rowName: varchar("row_name", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, table => [
+  index("rows_area_id_idx").on(table.areaId),
+]);
 
 export const seats = pgTable("seats", {
   id: uuid("id").defaultRandom().primaryKey(),
@@ -68,13 +99,24 @@ export const seats = pgTable("seats", {
   seatNumber: varchar("seat_number", { length: 16 }).notNull(),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
-});
+}, table => [
+  index("seats_row_id_idx").on(table.rowId),
+]);
 
 // Relations
 export const eventsRelations = relations(events, ({ one, many }) => ({
   organizer: one(organizers, {
     fields: [events.organizerId],
     references: [organizers.id],
+  }),
+  areas: many(areas),
+  showings: many(showings),
+}));
+
+export const showingsRelations = relations(showings, ({ one, many }) => ({
+  event: one(events, {
+    fields: [showings.eventId],
+    references: [events.id],
   }),
   areas: many(areas),
 }));
@@ -89,6 +131,10 @@ export const areasRelations = relations(areas, ({ one, many }) => ({
   event: one(events, {
     fields: [areas.eventId],
     references: [events.id],
+  }),
+  showing: one(showings, {
+    fields: [areas.showingId],
+    references: [showings.id],
   }),
   rows: many(rows),
 }));
