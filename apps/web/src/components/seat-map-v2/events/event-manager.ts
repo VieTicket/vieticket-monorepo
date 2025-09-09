@@ -5,7 +5,7 @@ import {
   stage,
   shapes,
   pixiApp,
-  isNestedShapeSelected,
+  selectedContainer,
 } from "../variables";
 import { getSelectionTransform } from "./transform-events";
 
@@ -14,17 +14,13 @@ import { onDrawStart, onDrawMove, onDrawEnd } from "./draw-events";
 import { onPolygonStart, onPolygonMove } from "./polygon-events";
 import {
   onStageClick,
-  handleShapeSelection,
-  handleDoubleClick,
-} from "./select-events";
-import { onStageWheel } from "./zoom-events";
-import {
-  startShapeDrag,
   handleShapeDrag,
-  endShapeDrag,
   isCurrentlyShapeDragging,
-} from "./drag-events";
-import { findTopmostChildAtPoint } from "../shapes";
+  onShapePointerDown,
+  onShapePointerUp,
+} from "./select-drag-events";
+import { onStageWheel } from "./zoom-events";
+import { getCurrentContainer, findShapeAtPoint } from "../shapes";
 
 export class EventManager {
   private shapeEventHandlers = new Map<string, any>();
@@ -55,20 +51,24 @@ export class EventManager {
   }
 
   addShapeEvents(shape: CanvasItem) {
-    if (shape.type === "container") {
-      this.addContainerEvents(shape as ContainerGroup);
-    } else {
-      this.addRegularShapeEvents(shape);
-    }
-  }
-
-  private addRegularShapeEvents(shape: CanvasItem) {
     const handlers = {
       pointerdown: (event: PIXI.FederatedPointerEvent) => {
-        this.onShapePointerDown(event, shape);
+        this.shapePointerDownTarget = shape;
+        onShapePointerDown(event, shape);
       },
       pointerup: (event: PIXI.FederatedPointerEvent) => {
-        this.onShapePointerUp(event, shape);
+        const result = onShapePointerUp(
+          event,
+          shape,
+          this.lastClickTime,
+          this.lastClickTarget,
+          this.doubleClickThreshold
+        );
+
+        if (result) {
+          this.lastClickTime = result.currentTime;
+          this.lastClickTarget = result.actualShape;
+        }
       },
       pointerover: (event: PIXI.FederatedPointerEvent) => {
         this.onShapeHover(event, shape);
@@ -83,40 +83,6 @@ export class EventManager {
     });
 
     this.shapeEventHandlers.set(shape.id, handlers);
-  }
-
-  private addContainerEvents(container: ContainerGroup) {
-    const handlers = {
-      pointerdown: (event: PIXI.FederatedPointerEvent) => {
-        if (isNestedShapeSelected) {
-          const hitChild = findTopmostChildAtPoint(container, event);
-
-          this.onShapePointerDown(event, hitChild!);
-        } else {
-          this.onShapePointerDown(event, container);
-        }
-      },
-      pointerup: (event: PIXI.FederatedPointerEvent) => {
-        if (isNestedShapeSelected) {
-          const hitChild = findTopmostChildAtPoint(container, event);
-          this.onShapePointerUp(event, hitChild!);
-        } else {
-          this.onShapePointerUp(event, container);
-        }
-      },
-      pointerover: (event: PIXI.FederatedPointerEvent) => {
-        this.onShapeHover(event, container);
-      },
-      pointerout: (event: PIXI.FederatedPointerEvent) => {
-        this.onShapeOut(event, container);
-      },
-    };
-
-    Object.entries(handlers).forEach(([eventName, handler]) => {
-      container.graphics.on(eventName as any, handler);
-    });
-
-    this.shapeEventHandlers.set(container.id, handlers);
   }
 
   removeShapeEvents(shape: CanvasItem) {
@@ -146,7 +112,13 @@ export class EventManager {
         onPolygonStart(event);
         break;
       case "select":
-        onStageClick(event);
+        // Check if we clicked on a shape in the current container context
+        const currentContainer = getCurrentContainer();
+        const hitShape = findShapeAtPoint(event, currentContainer);
+
+        if (!hitShape) {
+          onStageClick(event);
+        }
         break;
     }
   }
@@ -183,7 +155,6 @@ export class EventManager {
         if (selectionTransform?.isCurrentlyTransforming) {
           selectionTransform.onTransformPointerUp();
         }
-
         break;
       case "pan":
         onPanEnd();
@@ -191,58 +162,6 @@ export class EventManager {
       case "rectangle":
       case "ellipse":
         onDrawEnd(event);
-        break;
-    }
-  }
-
-  private onShapePointerDown(
-    event: PIXI.FederatedPointerEvent,
-    shape: CanvasItem
-  ) {
-    event.stopPropagation();
-
-    switch (currentTool) {
-      case "select":
-        this.shapePointerDownTarget = shape;
-        startShapeDrag(event, shape);
-        break;
-    }
-  }
-
-  private onShapePointerUp(
-    event: PIXI.FederatedPointerEvent,
-    shape: CanvasItem
-  ) {
-    event.stopPropagation();
-    switch (currentTool) {
-      case "select":
-        const selectionTransform = getSelectionTransform();
-        if (selectionTransform?.isCurrentlyTransforming) {
-          selectionTransform.onTransformPointerUp();
-        }
-        if (
-          this.shapePointerDownTarget?.id === shape.id &&
-          !isCurrentlyShapeDragging()
-        ) {
-          handleShapeSelection(event, shape);
-        }
-
-        if (this.shapePointerDownTarget?.id === shape.id) {
-          const currentTime = Date.now();
-          const isDoubleClick =
-            this.lastClickTarget?.id === shape.id &&
-            currentTime - this.lastClickTime < this.doubleClickThreshold;
-
-          if (isDoubleClick) {
-            handleDoubleClick(event, shape);
-          }
-          this.lastClickTime = currentTime;
-          this.lastClickTarget = shape;
-        }
-
-        if (isCurrentlyShapeDragging()) {
-          endShapeDrag();
-        }
         break;
     }
   }

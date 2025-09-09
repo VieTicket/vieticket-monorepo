@@ -88,13 +88,11 @@ export class SelectionTransform {
       const graphics = new PIXI.Graphics();
 
       if (type === "rotate") {
-        // Circular handle for rotation
         graphics
           .circle(0, 0, handleSize / 2)
           .fill(0x00ff00)
           .stroke({ width: 2, color: 0x008800 });
       } else {
-        // Square handles for scaling
         graphics
           .rect(-handleSize / 2, -handleSize / 2, handleSize, handleSize)
           .fill(0x0099ff)
@@ -105,7 +103,6 @@ export class SelectionTransform {
       graphics.cursor = cursor;
       graphics.visible = false;
 
-      // Add event listeners
       graphics.on("pointerdown", (event) =>
         this.onHandlePointerDown(event, type, position)
       );
@@ -142,7 +139,6 @@ export class SelectionTransform {
       this.transformType = "scale";
     }
 
-    // Store original transforms
     this.originalTransforms = this.selectedShapes.map((shape) => ({
       scaleX: shape.scaleX || 1,
       scaleY: shape.scaleY || 1,
@@ -152,7 +148,6 @@ export class SelectionTransform {
     }));
   }
 
-  // Make these methods public
   public onTransformPointerMove(event: PIXI.FederatedPointerEvent) {
     if (!this.isTransforming || !this.transformStart || !stage) return;
 
@@ -179,19 +174,15 @@ export class SelectionTransform {
     useSeatMapStore.getState().updateShapes(shapes);
   }
 
-  // Getter to check if currently dragging
   public get isCurrentlyTransforming(): boolean {
     return this.isTransforming;
   }
 
   private applyTransformsToShape(shape: CanvasItem) {
-    // Apply transforms to the actual PIXI graphics object
     if (shape.graphics) {
-      // For shapes inside containers, we need to handle positioning differently
       const isNestedShape = this.isShapeNested(shape);
 
       if (isNestedShape) {
-        // For nested shapes, position is relative to their container
         const parentContainer = findParentContainer(shape);
         if (parentContainer) {
           const relativeX = shape.x - parentContainer.x;
@@ -201,11 +192,9 @@ export class SelectionTransform {
           shape.graphics.position.set(shape.x, shape.y);
         }
       } else {
-        // For top-level shapes, position is absolute
         shape.graphics.position.set(shape.x, shape.y);
       }
 
-      // Apply scale and rotation
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.rotation = shape.rotation || 0;
     }
@@ -252,53 +241,49 @@ export class SelectionTransform {
         break;
     }
 
-    // Clamp scale factors
     scaleFactorX = Math.max(0.1, Math.min(3, scaleFactorX));
     scaleFactorY = Math.max(0.1, Math.min(3, scaleFactorY));
 
-    // Calculate anchor point based on handle position
-    let anchorX = 0.5; // Default center
-    let anchorY = 0.5; // Default center
+    let anchorX = 0.5;
+    let anchorY = 0.5;
 
     switch (position) {
       case "top-left":
-        anchorX = 1; // Right edge stays fixed
-        anchorY = 1; // Bottom edge stays fixed
+        anchorX = 1;
+        anchorY = 1;
         break;
       case "top-right":
-        anchorX = -1; // Left edge stays fixed
-        anchorY = 1; // Bottom edge stays fixed
+        anchorX = -1;
+        anchorY = 1;
         break;
       case "bottom-left":
-        anchorX = 1; // Right edge stays fixed
-        anchorY = -1; // Top edge stays fixed
+        anchorX = 1;
+        anchorY = -1;
         break;
       case "bottom-right":
-        anchorX = -1; // Left edge stays fixed
-        anchorY = -1; // Top edge stays fixed
+        anchorX = -1;
+        anchorY = -1;
         break;
       case "top":
-        anchorY = 1; // Bottom edge stays fixed
+        anchorY = 1;
         break;
       case "bottom":
-        anchorY = -1; // Top edge stays fixed
+        anchorY = -1;
         break;
       case "left":
-        anchorX = 1; // Right edge stays fixed
+        anchorX = 1;
         break;
       case "right":
-        anchorX = -1; // Left edge stays fixed
+        anchorX = -1;
         break;
     }
 
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
-        // Update scale properties
         shape.scaleX = original.scaleX * scaleFactorX;
         shape.scaleY = original.scaleY * scaleFactorY;
 
-        // Calculate the shape's dimensions for anchor-based positioning
         let shapeWidth = 0;
         let shapeHeight = 0;
 
@@ -317,47 +302,107 @@ export class SelectionTransform {
           shapeHeight = bounds.height;
         }
 
-        // Calculate position offset based on anchor and scaling
         const scaleChangeX = (scaleFactorX - 1) * shapeWidth;
         const scaleChangeY = (scaleFactorY - 1) * shapeHeight;
 
-        // Apply anchor-based position adjustment
         const offsetX = -scaleChangeX * anchorX;
         const offsetY = -scaleChangeY * anchorY;
 
         shape.x = original.x + offsetX / 2;
         shape.y = original.y + offsetY / 2;
 
-        // Apply transforms to PIXI graphics
         this.applyTransformsToShape(shape);
       }
     });
 
-    // Update selection rectangle
     this.updateSelection(this.selectedShapes);
   }
 
   private handleRotate(deltaX: number, deltaY: number) {
     if (!this.boundingBox) return;
 
-    const rotationDelta = (deltaX + deltaY) * 0.01; // Rotation sensitivity
+    const rotationDelta = (deltaX + deltaY) * 0.01;
 
-    // Apply rotation to selected shapes
+    // Get the center point of the bounding box in world coordinates
+    const worldCenterX = this.boundingBox.centerX;
+    const worldCenterY = this.boundingBox.centerY;
+
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
+        // Get the shape's world coordinates for rotation calculation
+        const worldCoords = this.getWorldCoordinates(shape);
+
+        // Calculate relative position to rotation center
+        const relativeX = worldCoords.x - worldCenterX;
+        const relativeY = worldCoords.y - worldCenterY;
+
+        // Apply rotation
+        const cos = Math.cos(rotationDelta);
+        const sin = Math.sin(rotationDelta);
+
+        const rotatedX = relativeX * cos - relativeY * sin;
+        const rotatedY = relativeX * sin + relativeY * cos;
+
+        // Calculate new world position
+        const newWorldX = worldCenterX + rotatedX;
+        const newWorldY = worldCenterY + rotatedY;
+
+        // Convert back to the shape's coordinate space
+        const parentContainer = findParentContainer(shape);
+        if (parentContainer) {
+          // Shape is in a container - convert world coords to container-relative coords
+          const parentWorldCoords = this.getWorldCoordinates(parentContainer);
+          shape.x = newWorldX - parentWorldCoords.x;
+          shape.y = newWorldY - parentWorldCoords.y;
+        } else {
+          // Shape is at root level - use world coords directly
+          shape.x = newWorldX;
+          shape.y = newWorldY;
+        }
+
+        // Update rotation
         shape.rotation = original.rotation + rotationDelta;
+
+        this.applyTransformsToShape(shape);
       }
-      this.applyTransformsToShape(shape);
     });
 
-    // Update selection rectangle
     this.updateSelection(this.selectedShapes);
   }
 
   private calculateBoundingBox(shapes: CanvasItem[]) {
     if (shapes.length === 0) return null;
-    return calculateGroupBounds(shapes);
+    const worldShapes = shapes.map((shape) => {
+      const worldCoords = this.getWorldCoordinates(shape);
+      return {
+        ...shape,
+        x: worldCoords.x,
+        y: worldCoords.y,
+      };
+    });
+    return calculateGroupBounds(worldShapes);
+  }
+
+  private getWorldCoordinates(shape: CanvasItem): { x: number; y: number } {
+    const parentContainer = findParentContainer(shape);
+
+    if (!parentContainer) {
+      return { x: shape.x, y: shape.y };
+    }
+
+    let worldX = shape.x;
+    let worldY = shape.y;
+
+    let currentContainer: ContainerGroup | null = parentContainer;
+    while (currentContainer) {
+      worldX += currentContainer.x;
+      worldY += currentContainer.y;
+
+      currentContainer = findParentContainer(currentContainer);
+    }
+
+    return { x: worldX, y: worldY };
   }
 
   private updateHandlePositions() {
@@ -365,7 +410,7 @@ export class SelectionTransform {
 
     const { x, y, width, height, centerX, centerY } = this.boundingBox;
     const rotateDistance = 30;
-    const handleScale = 1 / zoom; // Scale handles based on zoom level
+    const handleScale = 1 / zoom;
 
     this.handles.forEach((handle) => {
       let posX = 0,
@@ -420,17 +465,15 @@ export class SelectionTransform {
   private drawSelectionBox() {
     if (!this.boundingBox) return;
 
-    // Remove existing selection box
     this.container.children.forEach((child) => {
       if (child !== this.handles.find((h) => h.graphics === child)?.graphics) {
         this.container.removeChild(child);
       }
     });
 
-    // Create new selection box
     const selectionBox = new PIXI.Graphics();
     const { x, y, width, height } = this.boundingBox;
-    const strokeWidth = 2 / zoom; // Scale stroke width based on zoom
+    const strokeWidth = 2 / zoom;
 
     selectionBox.rect(x, y, width, height).stroke({
       width: strokeWidth,
@@ -440,7 +483,7 @@ export class SelectionTransform {
     });
 
     selectionBox.eventMode = "static";
-    this.container.addChildAt(selectionBox, 0); // Add behind handles
+    this.container.addChildAt(selectionBox, 0);
   }
 
   public updateSelection(shapes: CanvasItem[]) {
@@ -461,7 +504,6 @@ export class SelectionTransform {
   }
 }
 
-// Global selection transform instance
 let selectionTransform: SelectionTransform | null = null;
 
 export const createSelectionTransform = (
