@@ -45,12 +45,9 @@ export const getAllShapesIncludingNested = (): CanvasItem[] => {
   return allShapes;
 };
 
-// Helper function to update nested shapes
 export const updateNestedShapes = (shapesToUpdate: CanvasItem[]) => {
-  // Update the main shapes array
   useSeatMapStore.getState().updateShapes([...shapes]);
 
-  // For nested shapes, we need to find their parent containers and update them
   const updateContainerChildren = (container: ContainerGroup) => {
     container.children.forEach((child) => {
       if (child.type === "container") {
@@ -77,7 +74,6 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
         const containerGroup = container as ContainerGroup;
         const newPath = [...currentPath, containerGroup];
 
-        // Check if target is directly in this container
         if (
           containerGroup.children.some((child) => child.id === targetShape.id)
         ) {
@@ -85,7 +81,6 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
           return true;
         }
 
-        // Check nested containers
         if (findPathRecursively(containerGroup.children, newPath)) {
           return true;
         }
@@ -98,7 +93,6 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
   return path;
 };
 
-// Helper function to check if two shapes are in the same container
 export const areInSameContainer = (
   shape1: CanvasItem,
   shape2: CanvasItem
@@ -106,17 +100,14 @@ export const areInSameContainer = (
   const path1 = getContainerPath(shape1);
   const path2 = getContainerPath(shape2);
 
-  // If both are at root level (no container)
   if (path1.length === 0 && path2.length === 0) {
     return true;
   }
 
-  // If different path lengths, they're in different containers
   if (path1.length !== path2.length) {
     return false;
   }
 
-  // Compare each level of the path
   for (let i = 0; i < path1.length; i++) {
     if (path1[i].id !== path2[i].id) {
       return false;
@@ -126,25 +117,20 @@ export const areInSameContainer = (
   return true;
 };
 
-// Helper function to get the current container based on selectedContainer path
 export const getCurrentContainer = (): ContainerGroup | null => {
   if (selectedContainer.length === 0) return null;
   return selectedContainer[selectedContainer.length - 1];
 };
 
-// Helper function to find shape at point respecting container context
 export const findShapeAtPoint = (
   event: PIXI.FederatedPointerEvent,
   currentContainer: ContainerGroup | null = null
 ): CanvasItem | null => {
   if (currentContainer) {
-    // If we're inside a container, only look for children of that container
     return findTopmostChildAtPoint(currentContainer, event);
   } else {
-    // If we're at root level, look through all root shapes
     const stagePoint = event.getLocalPosition(stage!);
 
-    // Check root level shapes in reverse order (topmost first)
     for (let i = shapes.length - 1; i >= 0; i--) {
       const shape = shapes[i];
 
@@ -154,7 +140,6 @@ export const findShapeAtPoint = (
         const container = shape as ContainerGroup;
         const localPoint = event.getLocalPosition(container.graphics);
 
-        // Check if point is in container bounds
         try {
           const bounds = container.graphics.getLocalBounds();
           const isInContainer =
@@ -167,13 +152,11 @@ export const findShapeAtPoint = (
             return container;
           }
         } catch (error) {
-          // Fallback to hit test
           if (hitTestChild(container, stagePoint)) {
             return container;
           }
         }
       } else {
-        // Regular shape hit test
         if (hitTestChild(shape, stagePoint)) {
           return shape;
         }
@@ -188,7 +171,6 @@ export const findTopmostChildAtPoint = (
   container: ContainerGroup,
   event: PIXI.FederatedPointerEvent | PIXI.Point
 ): CanvasItem | null => {
-  // Handle both event and point inputs
   let point: PIXI.Point;
   if (event instanceof PIXI.Point) {
     point = event;
@@ -201,14 +183,12 @@ export const findTopmostChildAtPoint = (
 
     if (!child.visible || child.graphics.alpha === 0) continue;
 
-    // Check if the point hits this child based on its type
     const isHit = hitTestChild(child, point);
-    // console.log(isHit, child);
+
     if (isHit) {
-      // If it's a nested container, recursively check its children
       if (child.type === "container") {
         const nestedPoint = child.graphics.toLocal(point);
-        // Pass the point directly, not the event
+
         const nestedHit = findTopmostChildAtPoint(
           child as ContainerGroup,
           nestedPoint
@@ -221,7 +201,6 @@ export const findTopmostChildAtPoint = (
   return null;
 };
 
-// Helper function to perform hit testing based on shape type
 export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
   const relativePoint = {
     x: point.x - child.x,
@@ -231,7 +210,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
   switch (child.type) {
     case "rectangle": {
       const rect = child as RectangleShape;
-      // Rectangle is drawn centered, so check bounds from center
+
       const halfWidth = rect.width / 2;
       const halfHeight = rect.height / 2;
 
@@ -245,7 +224,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "ellipse": {
       const ellipse = child as EllipseShape;
-      // Check if point is inside ellipse using ellipse equation
+
       const dx = relativePoint.x / ellipse.radiusX;
       const dy = relativePoint.y / ellipse.radiusY;
       return dx * dx + dy * dy <= 1;
@@ -253,7 +232,6 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "text": {
       if (child.graphics instanceof PIXI.Text) {
-        // Get the text bounds
         const bounds = child.graphics.getLocalBounds();
         return (
           relativePoint.x >= bounds.x &&
@@ -267,7 +245,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "polygon": {
       const polygon = child as PolygonShape;
-      // Use point-in-polygon algorithm
+
       return pointInPolygon(
         new PIXI.Point(relativePoint.x, relativePoint.y),
         polygon.points
@@ -276,9 +254,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "container": {
       if (child.graphics instanceof PIXI.Container) {
-        // For containers, check if any of its display objects contain the point
         try {
-          // Use PIXI's built-in hit test for containers
           const bounds = child.graphics.getLocalBounds();
           return (
             relativePoint.x >= bounds.x &&
@@ -287,7 +263,6 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
             relativePoint.y <= bounds.y + bounds.height
           );
         } catch (error) {
-          // Fallback: assume container is hit if point is within reasonable bounds
           return false;
         }
       }
@@ -300,7 +275,6 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
   }
 };
 
-// Point-in-polygon algorithm (ray casting)
 export const pointInPolygon = (
   point: PIXI.Point,
   polygonPoints: Array<{ x: number; y: number }>
@@ -404,17 +378,14 @@ export const deleteShapes = () => {
   const eventManager = getEventManager();
   shapes.forEach((shape) => {
     if (shape.selected) {
-      // Remove event listeners
       if (eventManager) {
         eventManager.removeShapeEvents(shape);
       }
 
-      // Remove from stage
       if (shapeContainer && shape.graphics.parent === shapeContainer) {
         shapeContainer.removeChild(shape.graphics);
       }
 
-      // Destroy graphics
       shape.graphics.destroy();
     }
   });
@@ -426,17 +397,14 @@ export const clearCanvas = () => {
   const eventManager = getEventManager();
 
   shapes.forEach((shape) => {
-    // Remove event listeners
     if (eventManager) {
       eventManager.removeShapeEvents(shape);
     }
 
-    // Remove from stage
     if (shapeContainer && shape.graphics.parent === shapeContainer) {
       shapeContainer.removeChild(shape.graphics);
     }
 
-    // Destroy graphics
     shape.graphics.destroy();
   });
   shapes.length = 0;
