@@ -180,28 +180,10 @@ export class SelectionTransform {
 
   private applyTransformsToShape(shape: CanvasItem) {
     if (shape.graphics) {
-      const isNestedShape = this.isShapeNested(shape);
-
-      if (isNestedShape) {
-        const parentContainer = findParentContainer(shape);
-        if (parentContainer) {
-          const relativeX = shape.x - parentContainer.x;
-          const relativeY = shape.y - parentContainer.y;
-          shape.graphics.position.set(relativeX, relativeY);
-        } else {
-          shape.graphics.position.set(shape.x, shape.y);
-        }
-      } else {
-        shape.graphics.position.set(shape.x, shape.y);
-      }
-
+      shape.graphics.position.set(shape.x, shape.y);
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.rotation = shape.rotation || 0;
     }
-  }
-
-  private isShapeNested(shape: CanvasItem): boolean {
-    return findParentContainer(shape) !== null;
   }
 
   private handleScale(deltaX: number, deltaY: number, position: string) {
@@ -323,45 +305,36 @@ export class SelectionTransform {
 
     const rotationDelta = (deltaX + deltaY) * 0.01;
 
-    // Get the center point of the bounding box in world coordinates
     const worldCenterX = this.boundingBox.centerX;
     const worldCenterY = this.boundingBox.centerY;
 
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
-        // Get the shape's world coordinates for rotation calculation
         const worldCoords = this.getWorldCoordinates(shape);
 
-        // Calculate relative position to rotation center
         const relativeX = worldCoords.x - worldCenterX;
         const relativeY = worldCoords.y - worldCenterY;
 
-        // Apply rotation
         const cos = Math.cos(rotationDelta);
         const sin = Math.sin(rotationDelta);
 
         const rotatedX = relativeX * cos - relativeY * sin;
         const rotatedY = relativeX * sin + relativeY * cos;
 
-        // Calculate new world position
         const newWorldX = worldCenterX + rotatedX;
         const newWorldY = worldCenterY + rotatedY;
 
-        // Convert back to the shape's coordinate space
         const parentContainer = findParentContainer(shape);
         if (parentContainer) {
-          // Shape is in a container - convert world coords to container-relative coords
           const parentWorldCoords = this.getWorldCoordinates(parentContainer);
           shape.x = newWorldX - parentWorldCoords.x;
           shape.y = newWorldY - parentWorldCoords.y;
         } else {
-          // Shape is at root level - use world coords directly
           shape.x = newWorldX;
           shape.y = newWorldY;
         }
 
-        // Update rotation
         shape.rotation = original.rotation + rotationDelta;
 
         this.applyTransformsToShape(shape);

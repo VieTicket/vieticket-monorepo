@@ -38,15 +38,14 @@ import { polygonDrawingState } from "@/components/seat-map-v2/variables";
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
+  console.log("SeatMapV2Page rendered");
 
-  // Only get shapes count for toolbar (non-reactive to individual shape changes)
   const shapesCount = useSeatMapStore((state) => state.shapes.length);
-  // Sync global tool state with React state
+
   useEffect(() => {
     setCurrentTool(selectedTool);
   }, [selectedTool]);
 
-  // Initialize PixiJS Application
   useEffect(() => {
     let cancelled = false;
 
@@ -68,34 +67,27 @@ const SeatMapV2Page = () => {
       pixiContainerRef.current.appendChild(app.canvas as HTMLCanvasElement);
       setPixiApp(app);
 
-      // Create main stage container
       const stageContainer = new PIXI.Container();
       app.stage.addChild(stageContainer);
       setStage(stageContainer);
 
-      // Create container for shapes
       const shapesContainer = new PIXI.Container();
       stageContainer.addChild(shapesContainer);
       setShapeContainer(shapesContainer);
 
-      // Create container for preview shapes
       const previewShapeContainer = new PIXI.Container();
       stageContainer.addChild(previewShapeContainer);
       setPreviewContainer(previewShapeContainer);
 
-      // Create container for selection rectangle
       const selectionRectContainer = new PIXI.Container();
       stageContainer.addChild(selectionRectContainer);
       setSelectionContainer(selectionRectContainer);
 
-      // Create selection transform
       createSelectionTransform(selectionRectContainer);
 
-      // Enable interactivity on main app stage
       app.stage.eventMode = "static";
       app.stage.hitArea = app.screen;
 
-      // Create event manager AFTER stage is properly configured
       createEventManager();
     };
 
@@ -112,7 +104,6 @@ const SeatMapV2Page = () => {
     };
   }, []);
 
-  // Handle keyboard events for polygon
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape" && selectedTool === "polygon") {

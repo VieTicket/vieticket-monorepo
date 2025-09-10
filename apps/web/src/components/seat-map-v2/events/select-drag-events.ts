@@ -95,7 +95,6 @@ export const handleDoubleClick = (
 ) => {
   if (shape.type === "container") {
     const container = shape as ContainerGroup;
-    console.log(selectedContainer, container);
     const newPath = [...selectedContainer, container];
     setSelectedContainer(newPath);
 
