@@ -17,11 +17,14 @@ import {
 } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
+import { v4 as uuidv4 } from "uuid";
 
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
 export { updatePolygonGraphics } from "./polygon-shape";
+
+export const generateShapeId = () => uuidv4();
 
 export const addShapeToStage = (shape: CanvasItem) => {
   if (shapeContainer) {

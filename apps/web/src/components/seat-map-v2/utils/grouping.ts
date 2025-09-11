@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem, ContainerGroup } from "../types";
-import { generateShapeId } from "./stageTransform";
+import { generateShapeId } from "../shapes/index";
 import { shapeContainer, shapes, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";

@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { ContainerGroup } from "../types";
-import { generateShapeId } from "../utils/stageTransform";
+import { generateShapeId } from "./index";
 import { getEventManager } from "../events/event-manager";
 
 export const createContainer = (
@@ -16,7 +16,7 @@ export const createContainer = (
 
   const container: ContainerGroup = {
     id: generateShapeId(),
-    name: name || `Container ${Date.now()}`,
+    name: name || `Container `,
     type: "container",
     graphics,
     x: 0,

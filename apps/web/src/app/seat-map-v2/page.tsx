@@ -7,6 +7,7 @@ import { Tool } from "@/components/seat-map-v2/types";
 import {
   pixiApp,
   zoom,
+  pan,
   setPixiApp,
   setStage,
   setShapeContainer,
@@ -14,6 +15,7 @@ import {
   setCurrentTool,
   resetVariables,
   setSelectionContainer,
+  setPan,
 } from "@/components/seat-map-v2/variables";
 import {
   createSelectionTransform,
@@ -34,11 +36,11 @@ import {
   handleResetView,
 } from "@/components/seat-map-v2/events/zoom-events";
 import { polygonDrawingState } from "@/components/seat-map-v2/variables";
+import { updateStageTransform } from "@/components/seat-map-v2/utils/stageTransform";
 
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
-  console.log("SeatMapV2Page rendered");
 
   const shapesCount = useSeatMapStore((state) => state.shapes.length);
 
@@ -60,6 +62,8 @@ const SeatMapV2Page = () => {
         antialias: true,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
+
+        resizeTo: window,
       });
 
       if (cancelled) return;
@@ -70,6 +74,8 @@ const SeatMapV2Page = () => {
       const stageContainer = new PIXI.Container();
       app.stage.addChild(stageContainer);
       setStage(stageContainer);
+
+      stageContainer.position.set(app.screen.width / 2, app.screen.height / 2);
 
       const shapesContainer = new PIXI.Container();
       stageContainer.addChild(shapesContainer);
@@ -86,7 +92,25 @@ const SeatMapV2Page = () => {
       createSelectionTransform(selectionRectContainer);
 
       app.stage.eventMode = "static";
+      app.stage.interactive = true;
+      app.stage.interactiveChildren = true;
       app.stage.hitArea = app.screen;
+
+      setPan({ x: 0, y: 0 });
+      updateStageTransform();
+
+      const handleResize = () => {
+        stageContainer.position.set(
+          app.screen.width / 2,
+          app.screen.height / 2
+        );
+
+        updateStageTransform();
+      };
+
+      window.addEventListener("resize", handleResize);
+
+      (app as any)._resizeHandler = handleResize;
 
       createEventManager();
     };
@@ -96,6 +120,10 @@ const SeatMapV2Page = () => {
     return () => {
       cancelled = true;
       if (pixiApp) {
+        if ((pixiApp as any)._resizeHandler) {
+          window.removeEventListener("resize", (pixiApp as any)._resizeHandler);
+        }
+
         destroyEventManager();
         destroySelectionTransform();
         pixiApp.destroy(true, { children: true, texture: true });
@@ -141,7 +169,6 @@ const SeatMapV2Page = () => {
 
   return (
     <div className="h-screen flex flex-col bg-gray-50">
-      {/* Main Toolbar - Memoized to prevent unnecessary re-renders */}
       <MainToolbar
         currentTool={selectedTool}
         onToolChange={setSelectedTool}

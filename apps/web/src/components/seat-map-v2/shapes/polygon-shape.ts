@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { PolygonShape } from "../types";
-import { generateShapeId } from "../utils/stageTransform";
+import { generateShapeId } from "./index";
 import { getEventManager } from "../events/event-manager";
 
 export const createPolygon = (
@@ -33,7 +33,7 @@ export const createPolygon = (
 
   const shape: PolygonShape = {
     id: generateShapeId(),
-    name: `Polygon ${Date.now()}`,
+    name: `Polygon `,
     type: "polygon",
     graphics,
     x: centerX,
