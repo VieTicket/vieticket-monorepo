@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup } from "../types";
+import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
 import { stage, zoom, pixiApp, shapes, setWasTransformed } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { calculateGroupBounds } from "../utils/bounds";
@@ -364,6 +364,35 @@ export class SelectionTransform {
       return { x: shape.x, y: shape.y };
     }
 
+    // For polygons in containers, we need special handling
+    if (shape.type === "polygon") {
+      const polygon = shape as PolygonShape;
+
+      // Calculate the actual center of the polygon from its points
+      if (polygon.points && polygon.points.length > 0) {
+        const centerX =
+          polygon.points.reduce((sum, p) => sum + p.x, 0) /
+          polygon.points.length;
+        const centerY =
+          polygon.points.reduce((sum, p) => sum + p.y, 0) /
+          polygon.points.length;
+
+        // Add the container's world position to get the world coordinates
+        let worldX = centerX;
+        let worldY = centerY;
+
+        let currentContainer: ContainerGroup | null = parentContainer;
+        while (currentContainer) {
+          worldX += currentContainer.x;
+          worldY += currentContainer.y;
+          currentContainer = findParentContainer(currentContainer);
+        }
+
+        return { x: worldX, y: worldY };
+      }
+    }
+
+    // For other shapes, use the standard method
     let worldX = shape.x;
     let worldY = shape.y;
 
@@ -371,7 +400,6 @@ export class SelectionTransform {
     while (currentContainer) {
       worldX += currentContainer.x;
       worldY += currentContainer.y;
-
       currentContainer = findParentContainer(currentContainer);
     }
 

@@ -121,3 +121,65 @@ export const clearPolygonPreview = () => {
     previewGraphics.clear();
   }
 };
+
+export const createFreeShapePreview = () => {
+  if (!previewContainer) return;
+
+  clearFreeShapePreview();
+
+  const graphics = new PIXI.Graphics();
+  previewContainer.addChild(graphics);
+  setPreviewGraphics(graphics);
+};
+
+export const updateFreeShapePreview = (
+  points: Array<{ x: number; y: number }>,
+  shouldClose: boolean = false
+) => {
+  if (!previewGraphics || points.length === 0) return;
+
+  previewGraphics.clear();
+
+  if (points.length === 1) {
+    // Just draw a point
+    previewGraphics.circle(points[0].x, points[0].y, 3).fill(0x3b82f6);
+    return;
+  }
+
+  // Draw the preview path
+  previewGraphics.moveTo(points[0].x, points[0].y);
+
+  for (let i = 1; i < points.length; i++) {
+    previewGraphics.lineTo(points[i].x, points[i].y);
+  }
+
+  // If should close and we have enough points, show closing line
+  if (shouldClose && points.length >= 3) {
+    previewGraphics.lineTo(points[0].x, points[0].y);
+    previewGraphics
+      .fill({ color: 0x3b82f6, alpha: 0.3 })
+      .stroke({ width: 2, color: 0x1e40af });
+  } else {
+    previewGraphics.stroke({ width: 2, color: 0x3b82f6 });
+  }
+
+  // Draw points
+  points.forEach((point, index) => {
+    const color = index === 0 ? 0x10b981 : 0x3b82f6; // First point green, others blue
+    previewGraphics!
+      .circle(point.x, point.y, 4)
+      .fill(color)
+      .stroke({ width: 1, color: 0xffffff });
+  });
+};
+
+export const clearFreeShapePreview = () => {
+  if (previewGraphics) {
+    previewGraphics.clear();
+    if (previewContainer) {
+      previewContainer.removeChild(previewGraphics);
+    }
+    previewGraphics.destroy();
+    setPreviewGraphics(null);
+  }
+};

@@ -21,6 +21,7 @@ import {
 } from "./select-drag-events";
 import { onStageWheel } from "./zoom-events";
 import { getCurrentContainer, findShapeAtPoint } from "../shapes";
+import { onFreeShapeMove, onFreeShapeStart } from "./freeshape-events";
 
 export class EventManager {
   private shapeEventHandlers = new Map<string, any>();
@@ -118,6 +119,9 @@ export class EventManager {
       case "polygon":
         onPolygonStart(event);
         break;
+      case "freeshape": // Add this case
+        onFreeShapeStart(event);
+        break;
       case "select":
         // Check if we clicked on a shape in the current container context
         const currentContainer = getCurrentContainer();
@@ -151,6 +155,9 @@ export class EventManager {
         break;
       case "polygon":
         onPolygonMove(event);
+        break;
+      case "freeshape": // Add this case
+        onFreeShapeMove(event);
         break;
     }
   }
@@ -203,6 +210,7 @@ export class EventManager {
       case "rectangle":
       case "ellipse":
       case "polygon":
+      case "freeshape":
       case "text":
         return "crosshair";
       default:

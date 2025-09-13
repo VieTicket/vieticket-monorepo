@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 export interface BaseCanvasItem {
   id: string;
-  name: string; // User-friendly name for properties panel
+  name: string;
   visible: boolean;
   locked: boolean;
   selected?: boolean;
@@ -14,8 +14,6 @@ export interface BaseCanvasItem {
   opacity: number;
   graphics: PIXI.Graphics | PIXI.Text | PIXI.Container;
 }
-
-// Shape-specific interfaces
 export interface RectangleShape extends BaseCanvasItem {
   type: "rectangle";
   width: number;
@@ -58,23 +56,46 @@ export interface PolygonShape extends BaseCanvasItem {
   graphics: PIXI.Graphics;
 }
 
+export interface FreeShapePoint {
+  x: number;
+  y: number;
+  controlPoint1?: { x: number; y: number };
+  controlPoint2?: { x: number; y: number };
+  isCurved: boolean;
+}
+
+export interface FreeShape extends BaseCanvasItem {
+  type: "freeshape";
+  points: FreeShapePoint[];
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  graphics: PIXI.Graphics;
+  editMode: boolean;
+  controlPointGraphics: PIXI.Graphics[];
+}
+
 export interface ContainerGroup extends BaseCanvasItem {
   type: "container";
   children: CanvasItem[];
-  expanded: boolean; // For properties panel UI
+  expanded: boolean;
   graphics: PIXI.Container;
 }
-
-// Union type for all canvas items
 export type CanvasItem =
   | RectangleShape
   | EllipseShape
   | TextShape
   | PolygonShape
+  | FreeShape
   | ContainerGroup;
-
-// Helper type for just shapes (excluding containers)
 export type ShapeItem = Exclude<CanvasItem, ContainerGroup>;
+
+export interface FreeShapeDrawingState {
+  isDrawing: boolean;
+  points: Array<{ x: number; y: number }>;
+  previewPoints: Array<{ x: number; y: number }>;
+  curved: boolean;
+}
 
 export type Tool =
   | "select"
@@ -82,6 +103,7 @@ export type Tool =
   | "ellipse"
   | "text"
   | "polygon"
+  | "freeshape"
   | "pan";
 
 export interface CanvasInventoryProps {

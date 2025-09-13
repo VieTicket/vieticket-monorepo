@@ -1,5 +1,10 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, Tool } from "./types";
+import {
+  CanvasItem,
+  ContainerGroup,
+  Tool,
+  FreeShapeDrawingState,
+} from "./types";
 import { useSeatMapStore } from "./store/seat-map-store";
 
 // Global state for performance (outside React)
@@ -36,6 +41,13 @@ export let polygonDrawingState: {
   isDrawing: false,
   points: [],
   previewPoints: [],
+};
+
+export let freeShapeDrawingState: FreeShapeDrawingState = {
+  isDrawing: false,
+  points: [],
+  previewPoints: [],
+  curved: false,
 };
 
 export let selectionContainer: PIXI.Container | null = null;
@@ -92,6 +104,10 @@ export const setOriginalPolygonPoints = (
   points: Array<Array<{ x: number; y: number; radius?: number }>>
 ) => {
   originalPolygonPoints = points;
+};
+
+export const setFreeShapeDrawingState = (state: FreeShapeDrawingState) => {
+  freeShapeDrawingState = state;
 };
 
 export const addShape = (shape: CanvasItem) => {

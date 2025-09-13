@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 import { HiOutlineDuplicate } from "react-icons/hi";
 import { FaDrawPolygon } from "react-icons/fa";
+import { MdGesture } from "react-icons/md";
 import { ToolbarProps, Tool } from "../types";
 import { deleteShapes } from "../shapes";
 
@@ -60,6 +61,7 @@ export function MainToolbar({
     { id: "rectangle", icon: Square, label: "Rectangle" },
     { id: "ellipse", icon: Circle, label: "Ellipse" },
     { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
+    // { id: "freeshape", icon: MdGesture, label: "Free Shape" }, // Add this line
     { id: "text", icon: Type, label: "Text" },
   ] as const;
 
