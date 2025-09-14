@@ -21,6 +21,7 @@ import {
 } from "./select-drag-events";
 import { onStageWheel } from "./zoom-events";
 import { getCurrentContainer, findShapeAtPoint } from "../shapes";
+import { updateStageHitArea } from "../utils/stageTransform";
 
 export class EventManager {
   private shapeEventHandlers = new Map<string, any>();
@@ -41,7 +42,8 @@ export class EventManager {
     stage.eventMode = "static";
     stage.interactive = true;
     stage.interactiveChildren = true;
-    stage.hitArea = pixiApp!.screen;
+
+    updateStageHitArea();
 
     stage.on("pointerdown", this.onStagePointerDown.bind(this));
     stage.on("pointermove", this.onStagePointerMove.bind(this));
