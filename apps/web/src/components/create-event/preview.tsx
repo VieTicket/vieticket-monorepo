@@ -145,9 +145,25 @@ export function PreviewEvent({ data }: Props) {
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Ticket className="w-5 h-5 text-[#2a273f]" />
           <span>Ticket Sale:</span>
-          <span>{formatDateVi(new Date(data.ticketSaleStart))}</span>
+          <span>
+            {new Date(data.ticketSaleStart).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
           <span className="text-[#2a273f]">~</span>
-          <span>{formatDateVi(new Date(data.ticketSaleEnd))}</span>
+          <span>
+            {new Date(data.ticketSaleEnd).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
 
         {/* Showings Dropdown */}
