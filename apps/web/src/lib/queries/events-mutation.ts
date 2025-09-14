@@ -63,6 +63,7 @@ export async function getEventsById(eventId: string) {
           },
         },
       },
+      showings: true,
     },
   });
 

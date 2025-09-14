@@ -188,13 +188,49 @@ export async function handleUpdateEvent(formData: FormData) {
   const existingEvent = await getEventById(eventId);
   if (!existingEvent) throw new Error("Event not found");
 
+  // Parse showings data
+  const showings: {
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }[] = [];
+
+  let showingIndex = 0;
+  while (true) {
+    const name = formData.get(`showings[${showingIndex}].name`);
+    const startTime = formData.get(`showings[${showingIndex}].startTime`);
+    const endTime = formData.get(`showings[${showingIndex}].endTime`);
+
+    if (!name || !startTime || !endTime) break;
+
+    showings.push({
+      name: name.toString(),
+      startTime: new Date(startTime.toString()),
+      endTime: new Date(endTime.toString()),
+      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    });
+
+    showingIndex++;
+  }
+
+  // For compatibility, use showings to calculate event start/end times
+  const eventStartTime =
+    showings.length > 0
+      ? new Date(Math.min(...showings.map((s) => s.startTime.getTime())))
+      : existingEvent.startTime;
+  const eventEndTime =
+    showings.length > 0
+      ? new Date(Math.max(...showings.map((s) => s.endTime.getTime())))
+      : existingEvent.endTime;
+
   const eventPayload = {
     id: eventId,
     name: formData.get("name") as string,
     slug: existingEvent.slug,
     description: formData.get("description") as string | null,
-    startTime: new Date(formData.get("startTime") as string),
-    endTime: new Date(formData.get("endTime") as string),
+    startTime: eventStartTime,
+    endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
     type: (formData.get("type") as string) || null,
     ticketSaleStart: formData.get("ticketSaleStart")

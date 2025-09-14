@@ -152,6 +152,17 @@ function CreateEventPageInner() {
         setTicketingMode("simple");
       }
 
+      // Load showings data if available
+      if (event.showings?.length > 0) {
+        setShowings(
+          event.showings.map((showing: any) => ({
+            name: showing.name,
+            startTime: new Date(showing.startTime).toISOString().slice(0, 16),
+            endTime: new Date(showing.endTime).toISOString().slice(0, 16),
+          }))
+        );
+      }
+
       setPosterPreview(event.posterUrl ?? null);
       setBannerPreview(event.bannerUrl ?? null);
     };
@@ -212,84 +223,13 @@ function CreateEventPageInner() {
     }
   };
 
-  // Validation functions
-  const validateDateTime = (name: string, value: string) => {
-    const now = new Date();
-    const inputDate = new Date(value);
-    const startTime = new Date(formData.startTime);
-    const endTime = new Date(formData.endTime);
-    const ticketSaleStart = new Date(formData.ticketSaleStart);
-
-    let error = "";
-
-    switch (name) {
-      case "startTime":
-        if (inputDate < now) {
-          error = "Start time cannot be in the past";
-        }
-        break;
-      case "endTime":
-        if (inputDate < now) {
-          error = "End time cannot be in the past";
-        } else if (formData.startTime && inputDate <= startTime) {
-          error = "End time must be after start time";
-        }
-        break;
-      case "ticketSaleStart":
-        if (inputDate < now) {
-          error = "Ticket sale start cannot be in the past";
-        } else if (formData.endTime && inputDate > endTime) {
-          error = "Ticket sale start must be before event end time";
-        }
-        break;
-      case "ticketSaleEnd":
-        if (formData.ticketSaleStart && inputDate < ticketSaleStart) {
-          error = "Ticket sale end must be after ticket sale start";
-        } else if (formData.endTime && inputDate > endTime) {
-          error = "Ticket sale end must be before event end time";
-        }
-        break;
-    }
-
-    return error;
-  };
-
   const handleChange = (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => {
     const { name, value } = e.target;
-
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    if (
-      ["startTime", "endTime", "ticketSaleStart", "ticketSaleEnd"].includes(
-        name
-      )
-    ) {
-      const error = validateDateTime(name, value);
-      setErrors((prev) => ({ ...prev, [name]: error }));
-
-      if (!error) {
-        const relatedErrors: Record<string, string[]> = {
-          startTime: ["endTime"],
-          endTime: ["ticketSaleStart", "ticketSaleEnd"],
-          ticketSaleStart: ["ticketSaleEnd"],
-          ticketSaleEnd: [],
-        };
-
-        const fieldsToRevalidate = relatedErrors[name] || [];
-        fieldsToRevalidate.forEach((field) => {
-          const fieldValue =
-            name === field ? value : formData[field as keyof typeof formData];
-          if (fieldValue) {
-            const fieldError = validateDateTime(field, fieldValue);
-            setErrors((prev) => ({ ...prev, [field]: fieldError }));
-          }
-        });
-      }
-    }
   };
 
   // Form submission
@@ -299,30 +239,6 @@ function CreateEventPageInner() {
     // Check if seat map update confirmation is needed
     if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
       toast.error("Please confirm seat map update to proceed.");
-      return;
-    }
-
-    const dateTimeFields = [
-      "startTime",
-      "endTime",
-      "ticketSaleStart",
-      "ticketSaleEnd",
-    ];
-    const newErrors: Record<string, string> = {};
-
-    dateTimeFields.forEach((field) => {
-      const value = formData[field as keyof typeof formData];
-      if (value) {
-        const error = validateDateTime(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...newErrors }));
-      toast.error("Please fix the validation errors before submitting.");
       return;
     }
 
@@ -602,34 +518,6 @@ function CreateEventPageInner() {
           </Button>
           <Button
             onClick={() => {
-              if (step === 1) {
-                const dateTimeFields = [
-                  "startTime",
-                  "endTime",
-                  "ticketSaleStart",
-                  "ticketSaleEnd",
-                ];
-                const newErrors: Record<string, string> = {};
-
-                dateTimeFields.forEach((field) => {
-                  const value = formData[field as keyof typeof formData];
-                  if (value) {
-                    const error = validateDateTime(field, value);
-                    if (error) {
-                      newErrors[field] = error;
-                    }
-                  }
-                });
-
-                if (Object.keys(newErrors).length > 0) {
-                  setErrors((prev) => ({ ...prev, ...newErrors }));
-                  toast.error(
-                    "Please fix the date/time validation errors before continuing."
-                  );
-                  return;
-                }
-              }
-
               setStep(step + 1);
             }}
           >
