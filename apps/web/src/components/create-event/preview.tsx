@@ -57,6 +57,20 @@ export function PreviewEvent({ data }: Props) {
 
   const currentShowing = data.showings[selectedShowing] || data.showings[0];
 
+  // Calculate event start and end dates from all showings
+  const eventStartDate =
+    data.showings.length > 0
+      ? new Date(
+          Math.min(...data.showings.map((s) => new Date(s.startTime).getTime()))
+        )
+      : null;
+  const eventEndDate =
+    data.showings.length > 0
+      ? new Date(
+          Math.max(...data.showings.map((s) => new Date(s.endTime).getTime()))
+        )
+      : null;
+
   return (
     <>
       <header className="relative flex flex-col md:flex-row bg-white rounded-xl overflow-hidden ">
@@ -76,15 +90,11 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-2 text-sm text-gray-700">
               <div>
                 <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {currentShowing
-                  ? formatDateVi(new Date(currentShowing.startTime))
-                  : "No showing"}
+                {eventStartDate ? formatDateVi(eventStartDate) : "No showing"}
               </div>
               <div>
                 <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {currentShowing
-                  ? formatDateVi(new Date(currentShowing.endTime))
-                  : "No showing"}
+                {eventEndDate ? formatDateVi(eventEndDate) : "No showing"}
               </div>
             </div>
           </div>
