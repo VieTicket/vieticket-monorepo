@@ -42,6 +42,8 @@ export const CanvasInventory = React.memo(() => {
     new Set()
   );
 
+  console.log("Rendering CanvasInventory");
+
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
     draggedItemId: null,

@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { EllipseShape } from "../types";
-import { generateShapeId } from "./index";
+import { generateShapeId } from "../utils/stageTransform";
 import { getEventManager } from "../events/event-manager";
 
 export const createEllipse = (
@@ -39,7 +39,7 @@ export const createEllipse = (
 
   const shape: EllipseShape = {
     id: generateShapeId(),
-    name: `Ellipse `,
+    name: `Ellipse ${Date.now()}`,
     type: "ellipse",
     graphics,
     x,

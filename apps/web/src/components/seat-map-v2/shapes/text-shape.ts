@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { TextShape } from "../types";
-import { generateShapeId } from "./index";
+import { generateShapeId } from "../utils/stageTransform";
 import { getEventManager } from "../events/event-manager";
 
 export const createText = (x: number, y: number, text: string): TextShape => {
@@ -22,7 +22,7 @@ export const createText = (x: number, y: number, text: string): TextShape => {
 
   const shape: TextShape = {
     id: generateShapeId(),
-    name: `Text `,
+    name: `Text ${Date.now()}`,
     type: "text",
     graphics: textGraphics,
     x,

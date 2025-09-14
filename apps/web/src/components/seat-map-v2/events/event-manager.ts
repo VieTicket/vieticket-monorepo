@@ -35,23 +35,20 @@ export class EventManager {
   }
 
   private setupStageEvents() {
-    if (!pixiApp?.stage) return;
+    if (!stage) return;
 
-    // Use pixiApp.stage (root stage) instead of our stage container
-    const rootStage = pixiApp.stage;
+    stage.removeAllListeners();
 
-    rootStage.removeAllListeners();
+    stage.eventMode = "static";
+    stage.interactive = true;
+    stage.interactiveChildren = true;
+    stage.hitArea = pixiApp!.screen;
 
-    rootStage.eventMode = "static";
-    rootStage.interactive = true;
-    rootStage.interactiveChildren = true;
-    rootStage.hitArea = pixiApp.screen;
-
-    rootStage.on("pointerdown", this.onStagePointerDown.bind(this));
-    rootStage.on("pointermove", this.onStagePointerMove.bind(this));
-    rootStage.on("pointerup", this.onStagePointerUp.bind(this));
-    rootStage.on("pointerupoutside", this.onStagePointerUp.bind(this));
-    rootStage.on("wheel", onStageWheel);
+    stage.on("pointerdown", this.onStagePointerDown.bind(this));
+    stage.on("pointermove", this.onStagePointerMove.bind(this));
+    stage.on("pointerup", this.onStagePointerUp.bind(this));
+    stage.on("pointerupoutside", this.onStagePointerUp.bind(this));
+    stage.on("wheel", onStageWheel);
   }
 
   addShapeEvents(shape: CanvasItem) {
@@ -81,10 +78,6 @@ export class EventManager {
         this.onShapeOut(event, shape);
       },
     };
-
-    // Make sure shape graphics are interactive
-    shape.graphics.eventMode = "static";
-    shape.graphics.interactive = true;
 
     Object.entries(handlers).forEach(([eventName, handler]) => {
       shape.graphics.on(eventName as any, handler);
@@ -129,7 +122,6 @@ export class EventManager {
 
         if (!hitShape) {
           onStageClick(event);
-        } else {
         }
         break;
     }
@@ -223,8 +215,8 @@ export class EventManager {
   }
 
   destroy() {
-    if (pixiApp?.stage) {
-      pixiApp.stage.removeAllListeners();
+    if (stage) {
+      stage.removeAllListeners();
     }
 
     this.shapeEventHandlers.forEach((handlers, shapeId) => {

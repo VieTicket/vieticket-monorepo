@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { RectangleShape } from "../types";
-import { generateShapeId } from "./index";
+import { generateShapeId } from "../utils/stageTransform";
 import { getEventManager } from "../events/event-manager";
 
 export const createRectangle = (
@@ -22,7 +22,7 @@ export const createRectangle = (
 
   const shape: RectangleShape = {
     id: generateShapeId(),
-    name: `Rectangle `,
+    name: `Rectangle ${Date.now()}`,
     type: "rectangle",
     graphics,
     x: x + width / 2, // Center point
