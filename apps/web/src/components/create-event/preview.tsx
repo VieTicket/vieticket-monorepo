@@ -149,6 +149,7 @@ export function PreviewEvent({ data }: Props) {
             </div>
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowingDropdownOpen(!showingDropdownOpen)}
                 className="flex items-center justify-between w-full max-w-md px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
               >
@@ -165,6 +166,7 @@ export function PreviewEvent({ data }: Props) {
                 <div className="absolute z-10 w-full max-w-md mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
                   {data.showings.map((showing, index) => (
                     <button
+                      type="button"
                       key={index}
                       onClick={() => {
                         setSelectedShowing(index);
