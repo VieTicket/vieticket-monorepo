@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Wallet, Ticket, DollarSign, BarChart } from "lucide-react";
+import { Wallet, Ticket, DollarSign } from "lucide-react";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -19,6 +19,8 @@ import {
   Pie,
   Cell,
   Legend,
+  BarChart,
+  Bar,
 } from "recharts";
 import { useMemo, useState, useEffect } from "react";
 import { OrderStatus } from "@vieticket/db/pg/schema";
@@ -388,7 +390,7 @@ export function DashboardOverview({
         </CardHeader>
         <CardContent className="h-[350px] p-0">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart
+            <BarChart
               data={filteredRevenue}
               margin={{ top: 20, right: 30, left: 10, bottom: 0 }}
             >
@@ -420,21 +422,21 @@ export function DashboardOverview({
                 tickFormatter={(value) => `${formatLargeNumber(Number(value))}`}
               />
               <Tooltip content={<CustomAreaTooltip />} />
-              <Area
-                type="monotone"
+              <Bar
+                type="step"
                 dataKey="total"
                 stroke="#3b82f6"
                 fill="url(#colorTotal)"
                 name="Revenue"
                 strokeWidth={2}
-                activeDot={{
-                  r: 6,
-                  fill: "#3b82f6",
-                  stroke: "#fff",
-                  strokeWidth: 2,
-                }}
+                // activeDot={{
+                //   r: 6,
+                //   fill: "#3b82f6",
+                //   stroke: "#fff",
+                //   strokeWidth: 2,
+                // }}
               />
-            </AreaChart>
+            </BarChart>
           </ResponsiveContainer>
         </CardContent>
       </Card>

@@ -1,16 +1,34 @@
 import { db } from "../db";
 import { eq, sql } from "drizzle-orm";
 
-import { events, NewEvent, areas, rows, seats } from "@vieticket/db/pg/schema";
+import {
+  events,
+  NewEvent,
+  areas,
+  rows,
+  seats,
+  showings,
+} from "@vieticket/db/pg/schema";
 
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
+}
+
+export async function createShowing(showing: {
+  eventId: string;
+  name: string;
+  startTime: Date;
+  endTime: Date;
+  seatMapId?: string | null;
+}) {
+  return db.insert(showings).values(showing).returning();
 }
 
 export async function createArea(area: {
   eventId: string;
   name: string;
   price: number;
+  showingId?: string;
 }) {
   return db.insert(areas).values(area).returning();
 }

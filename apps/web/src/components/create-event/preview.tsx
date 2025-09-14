@@ -1,7 +1,15 @@
 "use client"; // Why
 
-import React from "react";
-import { Ticket, MapPin, Building2, Globe, Landmark } from "lucide-react";
+import React, { useState } from "react";
+import {
+  Ticket,
+  MapPin,
+  Building2,
+  Globe,
+  Landmark,
+  ChevronDown,
+  Clock,
+} from "lucide-react";
 import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 import { BuyTicketButton } from "../checkout/buy-ticket-button";
 
@@ -12,8 +20,6 @@ export type EventPreviewData = {
   type: string;
   location: string;
   description: string;
-  startTime: string;
-  endTime: string;
   ticketSaleStart: string;
   ticketSaleEnd: string;
   posterUrl?: string;
@@ -31,6 +37,12 @@ export type EventPreviewData = {
     name: string;
     price: number;
   }[];
+  showings: {
+    id?: string;
+    name: string;
+    startTime: string;
+    endTime: string;
+  }[];
   isPreview?: boolean;
   eventId?: string;
 };
@@ -40,6 +52,11 @@ type Props = {
 };
 
 export function PreviewEvent({ data }: Props) {
+  const [selectedShowing, setSelectedShowing] = useState(0);
+  const [showingDropdownOpen, setShowingDropdownOpen] = useState(false);
+
+  const currentShowing = data.showings[selectedShowing] || data.showings[0];
+
   return (
     <>
       <header className="relative flex flex-col md:flex-row bg-white rounded-xl overflow-hidden ">
@@ -59,11 +76,15 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-2 text-sm text-gray-700">
               <div>
                 <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {formatDateVi(new Date(data.startTime))}
+                {currentShowing
+                  ? formatDateVi(new Date(currentShowing.startTime))
+                  : "No showing"}
               </div>
               <div>
                 <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {formatDateVi(new Date(data.endTime))}
+                {currentShowing
+                  ? formatDateVi(new Date(currentShowing.endTime))
+                  : "No showing"}
               </div>
             </div>
           </div>
@@ -118,6 +139,68 @@ export function PreviewEvent({ data }: Props) {
           <span className="text-[#2a273f]">~</span>
           <span>{formatDateVi(new Date(data.ticketSaleEnd))}</span>
         </div>
+
+        {/* Showings Dropdown */}
+        {data.showings.length > 1 && (
+          <div className="relative">
+            <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
+              <Clock className="w-5 h-5 text-[#2a273f]" />
+              <span>Available Showings:</span>
+            </div>
+            <div className="relative">
+              <button
+                onClick={() => setShowingDropdownOpen(!showingDropdownOpen)}
+                className="flex items-center justify-between w-full max-w-md px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
+              >
+                <span>
+                  {currentShowing.name} -{" "}
+                  {formatDateVi(new Date(currentShowing.startTime))}
+                </span>
+                <ChevronDown
+                  className={`w-4 h-4 transition-transform ${showingDropdownOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {showingDropdownOpen && (
+                <div className="absolute z-10 w-full max-w-md mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
+                  {data.showings.map((showing, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setSelectedShowing(index);
+                        setShowingDropdownOpen(false);
+                      }}
+                      className={`w-full px-3 py-2 text-left text-sm hover:bg-gray-50 ${
+                        index === selectedShowing
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-700"
+                      }`}
+                    >
+                      <div className="font-medium">{showing.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {formatDateVi(new Date(showing.startTime))} -{" "}
+                        {formatDateVi(new Date(showing.endTime))}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Single showing display */}
+        {data.showings.length === 1 && (
+          <div className="flex items-center gap-2 text-sm text-gray-700">
+            <Clock className="w-5 h-5 text-[#2a273f]" />
+            <span>Showing:</span>
+            <span className="font-medium">
+              {currentShowing.name} -{" "}
+              {formatDateVi(new Date(currentShowing.startTime))} to{" "}
+              {formatDateVi(new Date(currentShowing.endTime))}
+            </span>
+          </div>
+        )}
 
         <div className="mt-6 w-full md:flex md:flex-row gap-4">
           {/* Description bên trái */}

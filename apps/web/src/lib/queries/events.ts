@@ -64,32 +64,36 @@ export type EventCursor = {
 };
 
 export async function getEventBySlug(slug: string): Promise<EventFull | null> {
-  const result = await db
-    .select({
-      event: events,
-      organizer: organizers,
-      avatar: user.image,
-      area: areas,
-    })
-    .from(events)
-    .leftJoin(organizers, eq(events.organizerId, organizers.id))
-    .leftJoin(user, eq(organizers.id, user.id))
-    .leftJoin(areas, eq(events.id, areas.eventId))
-    .where(eq(events.slug, slug));
+  // First, get the event using relations to include showings
+  const event = await db.query.events.findFirst({
+    where: eq(events.slug, slug),
+    with: {
+      organizer: true,
+      areas: true,
+      showings: true,
+    },
+  });
 
-  if (!result.length) return null;
+  if (!event) return null;
 
-  const { event, organizer, avatar } = result[0];
-
-  const areasList = result.filter((row) => row.area).map((row) => row.area!);
+  // Get organizer avatar from user table
+  let avatar = null;
+  if (event.organizer) {
+    const userAvatar = await db.query.user.findFirst({
+      where: eq(user.id, event.organizer.id),
+      columns: { image: true },
+    });
+    avatar = userAvatar?.image || null;
+  }
 
   return {
     ...event,
-    organizer: {
-      ...(organizer as NonNullable<typeof organizer>), // ép kiểu organizer
-      avatar,
-    },
-    areas: areasList,
+    organizer: event.organizer
+      ? {
+          ...event.organizer,
+          avatar,
+        }
+      : null,
   };
 }
 export async function getFilteredEvents({
