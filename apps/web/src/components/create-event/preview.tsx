@@ -181,7 +181,13 @@ export function PreviewEvent({ data }: Props) {
               >
                 <span>
                   {currentShowing.name} -{" "}
-                  {formatDateVi(new Date(currentShowing.startTime))}
+                  {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 transition-transform ${showingDropdownOpen ? "rotate-180" : ""}`}
@@ -206,8 +212,21 @@ export function PreviewEvent({ data }: Props) {
                     >
                       <div className="font-medium">{showing.name}</div>
                       <div className="text-xs text-gray-500">
-                        {formatDateVi(new Date(showing.startTime))} -{" "}
-                        {formatDateVi(new Date(showing.endTime))}
+                        {new Date(showing.startTime).toLocaleString("vi-VN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        -{" "}
+                        {new Date(showing.endTime).toLocaleString("vi-VN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </div>
                     </button>
                   ))}
@@ -224,8 +243,21 @@ export function PreviewEvent({ data }: Props) {
             <span>Showing:</span>
             <span className="font-medium">
               {currentShowing.name} -{" "}
-              {formatDateVi(new Date(currentShowing.startTime))} to{" "}
-              {formatDateVi(new Date(currentShowing.endTime))}
+              {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              to{" "}
+              {new Date(currentShowing.endTime).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           </div>
         )}
