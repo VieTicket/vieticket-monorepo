@@ -15,7 +15,6 @@ import {
   resetVariables,
   setSelectionContainer,
   setPan,
-  freeShapeDrawingState,
 } from "@/components/seat-map-v2/variables";
 import {
   createSelectionTransform,
@@ -108,24 +107,11 @@ const SeatMapV2Page = () => {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        if (selectedTool === "polygon") {
-          const {
-            cancelPolygonDrawing,
-          } = require("@/components/seat-map-v2/events/polygon-events");
-          cancelPolygonDrawing();
-        } else if (selectedTool === "freeshape") {
-          const {
-            cancelFreeShapeDrawing,
-          } = require("@/components/seat-map-v2/events/freeshape-events");
-          cancelFreeShapeDrawing();
-        }
-      } else if (selectedTool === "freeshape") {
-        // Handle freeshape-specific key events
+      if (event.key === "Escape" && selectedTool === "polygon") {
         const {
-          onFreeShapeKeyDown,
-        } = require("@/components/seat-map-v2/events/freeshape-events");
-        onFreeShapeKeyDown(event);
+          cancelPolygonDrawing,
+        } = require("@/components/seat-map-v2/events/polygon-events");
+        cancelPolygonDrawing();
       }
     };
 
@@ -133,7 +119,6 @@ const SeatMapV2Page = () => {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [selectedTool]);
 
-  // Update the getToolInstructions function
   const getToolInstructions = useCallback(() => {
     switch (selectedTool) {
       case "select":
@@ -146,10 +131,6 @@ const SeatMapV2Page = () => {
         return polygonDrawingState.isDrawing
           ? `Drawing polygon (${polygonDrawingState.points.length} points) - Click to add points, click near first point or right-click to finish, ESC to cancel`
           : "Click to start drawing a polygon - Click multiple points to create any shape";
-      case "freeshape":
-        return freeShapeDrawingState.isDrawing
-          ? `Drawing free shape (${freeShapeDrawingState.points.length} points) - Click to add points, press 'C' to toggle curves, click near first point or right-click to finish, ESC to cancel`
-          : "Click to start drawing a free shape - Click multiple points, press 'C' to toggle curve mode";
       case "text":
         return "Click to place text";
       case "pan":

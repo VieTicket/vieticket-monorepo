@@ -114,7 +114,7 @@ export const handleDoubleClick = (
         selectionTransform.updateSelection([hitChild]);
       }
 
-      setPreviouslyClickedShape(shape);
+      setPreviouslyClickedShape(hitChild);
     } else {
       // No child was hit, just enter the container without selecting anything
       useSeatMapStore.getState().setSelectedShapes([]);
@@ -123,7 +123,6 @@ export const handleDoubleClick = (
       if (selectionTransform) {
         selectionTransform.updateSelection([]);
       }
-      setPreviouslyClickedShape(null);
     }
 
     useSeatMapStore.getState().updateShapes([...shapes]);

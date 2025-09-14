@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
-import { generateShapeId, updatePolygonGraphics } from "../shapes/index";
+import { CanvasItem, ContainerGroup } from "../types";
+import { generateShapeId } from "../shapes/index";
 import { shapeContainer, shapes, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
@@ -81,50 +81,13 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     const relativeX = item.x - bounds.centerX;
     const relativeY = item.y - bounds.centerY;
 
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
+    // Update the item's coordinates to be relative to container
+    item.x = relativeX;
+    item.y = relativeY;
 
-      // The polygon's points are currently in world coordinates
-      // We need to keep them in world coordinates but update the polygon's center position
-      // The points themselves don't need to be modified - they stay in world space
+    // Set graphics position relative to container (which should be 0,0 since item coords are now relative)
+    item.graphics.position.set(relativeX, relativeY);
 
-      // Update the polygon's center position to be relative to container
-      item.x = relativeX;
-      item.y = relativeY;
-
-      // Update the graphics position
-      polygon.graphics.position.set(0, 0); // Reset graphics position
-
-      // Clear and redraw the polygon graphics with the updated coordinate system
-      polygon.graphics.clear();
-
-      // Create points relative to the new container-relative center
-      const containerRelativePoints = polygon.points.map((point) => ({
-        x: point.x - bounds.centerX,
-        y: point.y - bounds.centerY,
-        radius: polygon.cornerRadius / 2,
-      }));
-
-      // Redraw the polygon
-      polygon.graphics
-        .roundShape(containerRelativePoints, polygon.cornerRadius)
-        .fill(polygon.color)
-        .stroke({
-          width: polygon.selected ? 3 : polygon.strokeWidth,
-          color: polygon.selected ? 0xfbbf24 : polygon.strokeColor,
-        });
-
-      // Update the stored points to be relative to the container
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x - bounds.centerX,
-        y: point.y - bounds.centerY,
-      }));
-    } else {
-      // For other shapes, update position normally
-      item.x = relativeX;
-      item.y = relativeY;
-      item.graphics.position.set(relativeX, relativeY);
-    }
     // Add to container
     container.graphics.addChild(item.graphics);
     container.children.push(item);
@@ -176,47 +139,24 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     const worldX = container.x + child.x;
     const worldY = container.y + child.y;
 
-    if (child.type === "polygon") {
-      const polygon = child as PolygonShape;
+    // Update child's coordinates to be relative to stage again
+    child.x = worldX;
+    child.y = worldY;
 
-      // Update polygon's center position
-      child.x = worldX;
-      child.y = worldY;
+    // Apply container's transforms to child
+    child.rotation += container.rotation;
+    child.scaleX *= container.scaleX;
+    child.scaleY *= container.scaleY;
+    child.opacity *= container.opacity;
 
-      // Convert polygon points back to world coordinates
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x + container.x,
-        y: point.y + container.y,
-      }));
+    // Remove from container
+    container.graphics.removeChild(child.graphics);
 
-      // Remove from container
-      container.graphics.removeChild(child.graphics);
-
-      // Redraw the polygon with world coordinates
-      updatePolygonGraphics(polygon);
-
-      // Set position
-      child.graphics.position.set(child.x, child.y);
-    } else {
-      // For other shapes, handle normally
-      child.x = worldX;
-      child.y = worldY;
-
-      // Apply container's transforms to child
-      child.rotation += container.rotation;
-      child.scaleX *= container.scaleX;
-      child.scaleY *= container.scaleY;
-      child.opacity *= container.opacity;
-
-      // Remove from container
-      container.graphics.removeChild(child.graphics);
-
-      // Set absolute position and transforms
-      child.graphics.position.set(child.x, child.y);
-      child.graphics.rotation = child.rotation;
-      child.graphics.scale.set(child.scaleX, child.scaleY);
-      child.graphics.alpha = child.opacity;
-    }
+    // Set absolute position and transforms
+    child.graphics.position.set(child.x, child.y);
+    child.graphics.rotation = child.rotation;
+    child.graphics.scale.set(child.scaleX, child.scaleY);
+    child.graphics.alpha = child.opacity;
 
     // Add back to stage
     if (shapeContainer) {

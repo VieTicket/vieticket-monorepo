@@ -3,7 +3,6 @@ import {
   CanvasItem,
   ContainerGroup,
   EllipseShape,
-  FreeShape,
   PolygonShape,
   RectangleShape,
 } from "../types";
@@ -24,7 +23,6 @@ export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
 export { updatePolygonGraphics } from "./polygon-shape";
-export { createFreeShape, updateFreeShapeGraphics } from "./freeshape-shape";
 
 export const generateShapeId = () => uuidv4();
 
@@ -250,21 +248,11 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "polygon": {
       const polygon = child as PolygonShape;
-      if (!polygon.points || polygon.points.length < 3) return false;
 
-      return pointInPolygon(point, polygon.points);
-    }
-
-    case "freeshape": {
-      const freeShape = child as any; // FreeShape type
-      if (!freeShape.points || freeShape.points.length < 3) return false;
-
-      const testPoint = new PIXI.Point(
-        relativePoint.x - child.x,
-        relativePoint.y - child.y
+      return pointInPolygon(
+        new PIXI.Point(relativePoint.x, relativePoint.y),
+        polygon.points
       );
-
-      return pointInPolygon(testPoint, freeShape.points);
     }
 
     case "container": {
