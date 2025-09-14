@@ -6,6 +6,8 @@ import {
   getEventById,
   updateEventWithMultipleAreas,
   updateEventWithSeatMap,
+  createEventWithShowingsAndAreas,
+  createEventWithShowingsAndAreasIndividual,
 } from "@/lib/services/eventService";
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
@@ -23,12 +25,44 @@ export async function handleCreateEvent(
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
 
+  // Parse showings data
+  const showings: {
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }[] = [];
+
+  let showingIndex = 0;
+  while (true) {
+    const name = formData.get(`showings[${showingIndex}].name`);
+    const startTime = formData.get(`showings[${showingIndex}].startTime`);
+    const endTime = formData.get(`showings[${showingIndex}].endTime`);
+
+    if (!name || !startTime || !endTime) break;
+
+    showings.push({
+      name: name.toString(),
+      startTime: new Date(startTime.toString()),
+      endTime: new Date(endTime.toString()),
+      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    });
+
+    showingIndex++;
+  }
+
+  // For compatibility, use first showing's times as event start/end
+  const eventStartTime =
+    showings.length > 0 ? showings[0].startTime : new Date();
+  const eventEndTime =
+    showings.length > 0 ? showings[showings.length - 1].endTime : new Date();
+
   const eventPayload = {
     name: eventName,
     slug,
     description: formData.get("description") as string | null,
-    startTime: new Date(formData.get("startTime") as string),
-    endTime: new Date(formData.get("endTime") as string),
+    startTime: eventStartTime,
+    endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
     type: (formData.get("type") as string) || null,
     ticketSaleStart: formData.get("ticketSaleStart")
@@ -49,35 +83,93 @@ export async function handleCreateEvent(
   let result;
 
   if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
-    // Use seat map data
+    // TODO: Implement seat map with showings - for now use old method
     const parsedSeatMapData = JSON.parse(seatMapData);
     result = await createEventWithSeatMap(eventPayload, parsedSeatMapData);
   } else {
-    // Use simple ticketing
-    const areas: {
-      name: string;
-      seatCount: number;
-      ticketPrice: number;
-    }[] = [];
+    // Use simple ticketing with showings - check if using copy mode or individual configs
+    const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
-    let index = 0;
-    while (true) {
-      const name = formData.get(`areas[${index}][name]`);
-      const seatCount = formData.get(`areas[${index}][seatCount]`);
-      const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
+    if (copyMode) {
+      // All showings use the same areas configuration
+      const areas: {
+        name: string;
+        seatCount: number;
+        ticketPrice: number;
+      }[] = [];
 
-      if (!name || !seatCount || !ticketPrice) break;
+      let areaIndex = 0;
+      while (true) {
+        const name = formData.get(`areas[${areaIndex}][name]`);
+        const seatCount = formData.get(`areas[${areaIndex}][seatCount]`);
+        const ticketPrice = formData.get(`areas[${areaIndex}][ticketPrice]`);
 
-      areas.push({
-        name: name.toString(),
-        seatCount: Number(seatCount),
-        ticketPrice: Number(ticketPrice),
-      });
+        if (!name || !seatCount || !ticketPrice) break;
 
-      index++;
+        areas.push({
+          name: name.toString(),
+          seatCount: Number(seatCount),
+          ticketPrice: Number(ticketPrice),
+        });
+
+        areaIndex++;
+      }
+
+      result = await createEventWithShowingsAndAreas(
+        eventPayload,
+        showings,
+        areas
+      );
+    } else {
+      // Each showing has its own areas configuration
+      const showingAreaConfigs: Array<
+        {
+          name: string;
+          seatCount: number;
+          ticketPrice: number;
+        }[]
+      > = [];
+
+      // Parse areas for each showing
+      for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
+        const areas: {
+          name: string;
+          seatCount: number;
+          ticketPrice: number;
+        }[] = [];
+
+        let areaIndex = 0;
+        while (true) {
+          const name = formData.get(
+            `showingConfigs[${showingIdx}].areas[${areaIndex}].name`
+          );
+          const seatCount = formData.get(
+            `showingConfigs[${showingIdx}].areas[${areaIndex}].seatCount`
+          );
+          const ticketPrice = formData.get(
+            `showingConfigs[${showingIdx}].areas[${areaIndex}].ticketPrice`
+          );
+
+          if (!name || !seatCount || !ticketPrice) break;
+
+          areas.push({
+            name: name.toString(),
+            seatCount: Number(seatCount),
+            ticketPrice: Number(ticketPrice),
+          });
+
+          areaIndex++;
+        }
+
+        showingAreaConfigs.push(areas);
+      }
+
+      result = await createEventWithShowingsAndAreasIndividual(
+        eventPayload,
+        showings,
+        showingAreaConfigs
+      );
     }
-
-    result = await createEventWithMultipleAreas(eventPayload, areas);
   }
 
   revalidatePath("/organizer/events");

@@ -15,6 +15,7 @@ import {
   createRowWithId,
   createSeatsWithIds,
   incrementEventView,
+  createShowing,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
@@ -71,6 +72,156 @@ export async function createEventWithMultipleAreas(
 
   return createdEventId ? { eventId: createdEventId } : null;
 }
+
+export async function createEventWithShowingsAndAreas(
+  event: NewEvent,
+  showings: {
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }[],
+  areas: {
+    name: string;
+    seatCount: number;
+    ticketPrice: number;
+  }[]
+): Promise<{ eventId: string } | null> {
+  const result = createEventInputSchema.safeParse(event);
+  if (!result.success) {
+    throw new Error(
+      result.error.issues
+        .map((i) => `${i.path.join(".")} — ${i.message}`)
+        .join("\n")
+    );
+  }
+
+  const validEvent = result.data;
+  let createdEventId: string | null = null;
+
+  await db.transaction(async () => {
+    // 1. Create the event
+    const [createdEvent] = await createEvent(validEvent);
+    createdEventId = createdEvent.id;
+
+    // 2. Create showings
+    const createdShowings = [];
+    for (const showing of showings) {
+      const [createdShowing] = await createShowing({
+        eventId: createdEvent.id,
+        name: showing.name,
+        startTime: showing.startTime,
+        endTime: showing.endTime,
+        seatMapId: showing.seatMapId || null,
+      });
+      createdShowings.push(createdShowing);
+    }
+
+    // 3. Create areas for each showing
+    for (const showing of createdShowings) {
+      for (const area of areas) {
+        const [createdArea] = await createArea({
+          eventId: createdEvent.id,
+          showingId: showing.id,
+          name: area.name,
+          price: area.ticketPrice,
+        });
+
+        const [createdRow] = await createRow({
+          areaId: createdArea.id,
+          rowName: "A",
+        });
+
+        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
+          rowId: createdRow.id,
+          seatNumber: (i + 1).toString(),
+        }));
+
+        if (seatValues.length > 0) {
+          await createSeats(seatValues);
+        }
+      }
+    }
+  });
+
+  return createdEventId ? { eventId: createdEventId } : null;
+}
+
+export async function createEventWithShowingsAndAreasIndividual(
+  event: NewEvent,
+  showings: {
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }[],
+  showingAreaConfigs: Array<
+    {
+      name: string;
+      seatCount: number;
+      ticketPrice: number;
+    }[]
+  >
+): Promise<{ eventId: string } | null> {
+  const result = createEventInputSchema.safeParse(event);
+  if (!result.success) {
+    throw new Error(
+      result.error.issues
+        .map((i) => `${i.path.join(".")} — ${i.message}`)
+        .join("\n")
+    );
+  }
+
+  const validEvent = result.data;
+  let createdEventId: string | null = null;
+
+  await db.transaction(async () => {
+    // 1. Create the event
+    const [createdEvent] = await createEvent(validEvent);
+    createdEventId = createdEvent.id;
+
+    // 2. Create showings and their individual areas
+    for (let i = 0; i < showings.length; i++) {
+      const showing = showings[i];
+      const areas = showingAreaConfigs[i] || [];
+
+      const [createdShowing] = await createShowing({
+        eventId: createdEvent.id,
+        name: showing.name,
+        startTime: showing.startTime,
+        endTime: showing.endTime,
+        seatMapId: showing.seatMapId || null,
+      });
+
+      // 3. Create areas for this specific showing
+      for (const area of areas) {
+        const [createdArea] = await createArea({
+          eventId: createdEvent.id,
+          showingId: createdShowing.id,
+          name: area.name,
+          price: area.ticketPrice,
+        });
+
+        const [createdRow] = await createRow({
+          areaId: createdArea.id,
+          rowName: "A",
+        });
+
+        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
+          rowId: createdRow.id,
+          seatNumber: (i + 1).toString(),
+        }));
+
+        if (seatValues.length > 0) {
+          await createSeats(seatValues);
+        }
+      }
+    }
+  });
+
+  return createdEventId ? { eventId: createdEventId } : null;
+}
+
 export async function updateEventWithMultipleAreas(
   event: Event,
   areasInput: {

@@ -3,26 +3,32 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import TiptapEditorInput from "@/components/TiptapEditorInput";
+import ShowingsManagement from "@/components/create-event/ShowingsManagement";
 import type { EventFormData, Area } from "../../../../../types/event-types";
+import type { ShowingFormData } from "@/types/showings";
 
 interface EventDetailsStepProps {
   formData: EventFormData;
   errors: Record<string, string>;
   areas: Area[];
+  showings: ShowingFormData[];
   onInputChange: (
     e: React.ChangeEvent<
       HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
     >
   ) => void;
   onDescriptionChange: (value: string) => void;
+  onShowingsChange: (showings: ShowingFormData[]) => void;
 }
 
 export function EventDetailsStep({
   formData,
   errors,
   areas,
+  showings,
   onInputChange,
   onDescriptionChange,
+  onShowingsChange,
 }: EventDetailsStepProps) {
   const renderField = (
     name: keyof EventFormData,
@@ -36,11 +42,8 @@ export function EventDetailsStep({
       const currentDateTime = now.toISOString().slice(0, 16);
 
       switch (fieldName) {
-        case "startTime":
         case "ticketSaleStart":
           return currentDateTime;
-        case "endTime":
-          return formData.startTime || currentDateTime;
         case "ticketSaleEnd":
           return formData.ticketSaleStart || currentDateTime;
         default:
@@ -53,26 +56,12 @@ export function EventDetailsStep({
       switch (fieldName) {
         case "ticketSaleStart":
         case "ticketSaleEnd":
-          return formData.endTime || undefined;
+          // No max limit for ticket sale dates now that event times are in showings
+          return undefined;
         default:
           return undefined;
       }
     };
-
-    // Show date hint for end time when start time is selected
-    const getDateHint = (fieldName: string) => {
-      if (fieldName === "endTime" && formData.startTime) {
-        const startDate = new Date(formData.startTime);
-        return `Start: ${startDate.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        })}`;
-      }
-      return null;
-    };
-
-    const dateHint = getDateHint(name);
 
     return (
       <div className="space-y-1">
@@ -83,11 +72,6 @@ export function EventDetailsStep({
               ? "*"
               : ""}
           </Label>
-          {dateHint && (
-            <span className="text-xs text-blue-600 bg-blue-50 px-2 py-0.5 rounded-md whitespace-nowrap">
-              💡 {dateHint}
-            </span>
-          )}
         </div>
 
         {type === "select" && options ? (
@@ -148,10 +132,16 @@ export function EventDetailsStep({
         "Food",
         "Conference",
       ])}
+
+      {/* Showings Management Section */}
+      <ShowingsManagement
+        showings={showings}
+        onShowingsChange={onShowingsChange}
+        errors={errors}
+      />
+
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-4">
-          {renderField("startTime", "Start Time", "datetime-local")}
-          {renderField("endTime", "End Time", "datetime-local")}
           {renderField(
             "ticketSaleStart",
             "Ticket Sale Start",
@@ -166,16 +156,6 @@ export function EventDetailsStep({
         value={formData.description}
         onChange={onDescriptionChange}
         error={!!errors.description}
-        eventData={{
-          name: formData.name,
-          type: formData.type,
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          location: formData.location,
-          ticketSaleStart: formData.ticketSaleStart,
-          ticketSaleEnd: formData.ticketSaleEnd,
-          ticketPrice: areas[0]?.ticketPrice || "",
-        }}
       />
     </>
   );
