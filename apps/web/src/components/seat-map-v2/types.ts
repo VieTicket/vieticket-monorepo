@@ -50,7 +50,7 @@ export interface TextShape extends BaseCanvasItem {
 
 export interface PolygonShape extends BaseCanvasItem {
   type: "polygon";
-  points: Array<{ x: number; y: number }>;
+  points: Array<{ x: number; y: number; radius?: number }>;
   cornerRadius: number;
   color: number;
   strokeColor: number;

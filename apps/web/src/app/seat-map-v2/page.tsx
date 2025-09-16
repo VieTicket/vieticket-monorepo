@@ -39,7 +39,6 @@ import { polygonDrawingState } from "@/components/seat-map-v2/variables";
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
-  console.log("SeatMapV2Page rendered");
 
   const shapesCount = useSeatMapStore((state) => state.shapes.length);
 

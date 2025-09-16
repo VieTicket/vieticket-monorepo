@@ -24,7 +24,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
       const scaledWidth = item.width * scaleX;
       const scaledHeight = item.height * scaleY;
 
-      // Calculate rotated bounding box
       const corners = [
         { x: -scaledWidth / 2, y: -scaledHeight / 2 },
         { x: scaledWidth / 2, y: -scaledHeight / 2 },
@@ -56,7 +55,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
       const scaledRadiusX = item.radiusX * scaleX;
       const scaledRadiusY = item.radiusY * scaleY;
 
-      // Calculate the bounding box of a rotated ellipse
       const a = scaledRadiusX;
       const b = scaledRadiusY;
       const cos = Math.abs(Math.cos(rotation));
@@ -73,7 +71,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     }
 
     case "text": {
-      // Approximate text bounds
       const textWidth = item.fontSize * item.text.length * 0.6 * scaleX;
       const textHeight = item.fontSize * scaleY;
 
@@ -105,22 +102,18 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     }
 
     case "polygon": {
-      // Calculate polygon bounds with transforms
       const transformedPoints = item.points.map((point) => {
-        // Apply scaling relative to shape center
-        const scaledX = (point.x - item.x) * scaleX;
-        const scaledY = (point.y - item.y) * scaleY;
+        const scaledX = point.x * scaleX;
+        const scaledY = point.y * scaleY;
 
-        // Apply rotation around shape center
+        const rotatedX =
+          scaledX * Math.cos(rotation) - scaledY * Math.sin(rotation);
+        const rotatedY =
+          scaledX * Math.sin(rotation) + scaledY * Math.cos(rotation);
+
         return {
-          x:
-            item.x +
-            scaledX * Math.cos(rotation) -
-            scaledY * Math.sin(rotation),
-          y:
-            item.y +
-            scaledX * Math.sin(rotation) +
-            scaledY * Math.cos(rotation),
+          x: item.x + rotatedX,
+          y: item.y + rotatedY,
         };
       });
 
@@ -134,36 +127,50 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     }
 
     case "container": {
-      // For containers, calculate bounds based on children
       const containerItem = item as ContainerGroup;
       if (containerItem.children.length === 0) {
-        // Empty container - use small default bounds
         itemMinX = item.x - 25;
         itemMinY = item.y - 25;
         itemMaxX = item.x + 25;
         itemMaxY = item.y + 25;
       } else {
-        // Calculate bounds of all children in world space
-        // Children positions are relative to container, so we need to transform them to world space
         let childMinX = Infinity;
         let childMinY = Infinity;
         let childMaxX = -Infinity;
         let childMaxY = -Infinity;
 
         containerItem.children.forEach((child) => {
-          // Get child's bounds in its local space first
           const childBounds = calculateItemBounds(child);
 
-          // Transform child bounds to container's coordinate space
-          // Child graphics positions are relative to container
-          const childWorldX = item.x + child.graphics.x;
-          const childWorldY = item.y + child.graphics.y;
+          // For polygons, we need special handling since their coordinates are different
+          let childWorldX,
+            childWorldY,
+            childWorldMinX,
+            childWorldMinY,
+            childWorldMaxX,
+            childWorldMaxY;
 
-          // Calculate the child's actual world bounds
-          const childWorldMinX = childWorldX + (childBounds.x - child.x);
-          const childWorldMinY = childWorldY + (childBounds.y - child.y);
-          const childWorldMaxX = childWorldMinX + childBounds.width;
-          const childWorldMaxY = childWorldMinY + childBounds.height;
+          if (child.type === "polygon") {
+            // For polygons, child.x and child.y are already the center in container space
+            // and childBounds are calculated correctly relative to that center
+            childWorldX = item.x + child.x;
+            childWorldY = item.y + child.y;
+
+            // The bounds are already relative to the polygon's center
+            childWorldMinX = childWorldX + childBounds.x - child.x;
+            childWorldMinY = childWorldY + childBounds.y - child.y;
+            childWorldMaxX = childWorldMinX + childBounds.width;
+            childWorldMaxY = childWorldMinY + childBounds.height;
+          } else {
+            // For other shapes, use the existing logic
+            childWorldX = item.x + child.graphics.x;
+            childWorldY = item.y + child.graphics.y;
+
+            childWorldMinX = childWorldX + (childBounds.x - child.x);
+            childWorldMinY = childWorldY + (childBounds.y - child.y);
+            childWorldMaxX = childWorldMinX + childBounds.width;
+            childWorldMaxY = childWorldMinY + childBounds.height;
+          }
 
           childMinX = Math.min(childMinX, childWorldMinX);
           childMinY = Math.min(childMinY, childWorldMinY);
@@ -171,15 +178,13 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
           childMaxY = Math.max(childMaxY, childWorldMaxY);
         });
 
-        // Apply container's scale and rotation to the bounds
+        // Rest of the scaling/rotation logic remains the same...
         if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
-          // Calculate the relative bounds from container center
           const relativeMinX = (childMinX - item.x) * scaleX;
           const relativeMinY = (childMinY - item.y) * scaleY;
           const relativeMaxX = (childMaxX - item.x) * scaleX;
           const relativeMaxY = (childMaxY - item.y) * scaleY;
 
-          // Create corners for rotation
           const corners = [
             { x: relativeMinX, y: relativeMinY },
             { x: relativeMaxX, y: relativeMinY },
@@ -187,7 +192,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
             { x: relativeMinX, y: relativeMaxY },
           ];
 
-          // Apply rotation around container center
           const rotatedCorners = corners.map((corner) => ({
             x:
               item.x +
@@ -206,7 +210,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
           itemMaxX = Math.max(...xs);
           itemMaxY = Math.max(...ys);
         } else {
-          // No transforms, use bounds as-is
           itemMinX = childMinX;
           itemMinY = childMinY;
           itemMaxX = childMaxX;
@@ -217,7 +220,6 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     }
 
     default: {
-      // Fallback bounds
       const defaultSize = 50;
       const corners = [
         { x: -defaultSize / 2, y: -defaultSize / 2 },

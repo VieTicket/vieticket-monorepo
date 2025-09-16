@@ -38,7 +38,7 @@ export const createPolygon = (
     graphics,
     x: centerX,
     y: centerY,
-    points, // Keep original points for calculations
+    points: relativePoints,
     cornerRadius,
     color: 0x9b59b6,
     strokeColor: 0x8e44ad,

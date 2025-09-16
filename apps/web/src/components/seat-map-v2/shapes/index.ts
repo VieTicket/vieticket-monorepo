@@ -65,6 +65,7 @@ export const updateNestedShapes = (shapesToUpdate: CanvasItem[]) => {
     }
   });
 };
+
 export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
   const path: ContainerGroup[] = [];
 
@@ -132,37 +133,17 @@ export const findShapeAtPoint = (
   if (currentContainer) {
     return findTopmostChildAtPoint(currentContainer, event);
   } else {
-    const stagePoint = event.getLocalPosition(stage!);
-
+    // Check root level shapes using bounds-based hit testing
     for (let i = shapes.length - 1; i >= 0; i--) {
       const shape = shapes[i];
 
       if (!shape.visible || shape.graphics.alpha === 0) continue;
 
-      if (shape.type === "container") {
-        const container = shape as ContainerGroup;
-        const localPoint = event.getLocalPosition(container.graphics);
+      // Convert global point to stage local coordinates
+      const stagePoint = stage ? stage.toLocal(event.global) : event.global;
 
-        try {
-          const bounds = container.graphics.getLocalBounds();
-          const isInContainer =
-            localPoint.x >= bounds.x &&
-            localPoint.x <= bounds.x + bounds.width &&
-            localPoint.y >= bounds.y &&
-            localPoint.y <= bounds.y + bounds.height;
-
-          if (isInContainer) {
-            return container;
-          }
-        } catch (error) {
-          if (hitTestChild(container, stagePoint)) {
-            return container;
-          }
-        }
-      } else {
-        if (hitTestChild(shape, stagePoint)) {
-          return shape;
-        }
+      if (isPointInShapeBounds(stagePoint, shape)) {
+        return shape;
       }
     }
   }
@@ -174,46 +155,76 @@ export const findTopmostChildAtPoint = (
   container: ContainerGroup,
   event: PIXI.FederatedPointerEvent | PIXI.Point
 ): CanvasItem | null => {
-  let point: PIXI.Point;
+  let localPoint: PIXI.Point;
+
   if (event instanceof PIXI.Point) {
-    point = event;
+    localPoint = event;
   } else {
-    point = event.getLocalPosition(container.graphics);
+    // Convert global point to container's local coordinates
+    localPoint = container.graphics.toLocal(event.global);
   }
 
+  // Iterate through children in reverse order (top to bottom rendering)
   for (let i = container.children.length - 1; i >= 0; i--) {
     const child = container.children[i];
 
     if (!child.visible || child.graphics.alpha === 0) continue;
 
-    const isHit = hitTestChild(child, point);
-
-    if (isHit) {
+    if (hitTestChild(child, localPoint)) {
       if (child.type === "container") {
-        const nestedPoint = child.graphics.toLocal(point);
-
+        // Recursively check nested containers
+        const childLocalPoint = child.graphics.toLocal(
+          container.graphics.toGlobal(localPoint)
+        );
         const nestedHit = findTopmostChildAtPoint(
           child as ContainerGroup,
-          nestedPoint
+          childLocalPoint
         );
         return nestedHit || child;
       }
       return child;
     }
   }
+
   return null;
 };
 
+// Helper function to check if a point is within a shape's bounds
+const isPointInShapeBounds = (
+  point: PIXI.Point,
+  shape: CanvasItem
+): boolean => {
+  const localPoint = shape.graphics.toLocal(
+    shape.graphics.parent?.toGlobal(point) || point
+  );
+  return hitTestChild(shape, localPoint);
+};
+
+// Keep hitTestChild as the main hit testing method
 export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
-  const relativePoint = {
-    x: point.x - child.x,
-    y: point.y - child.y,
-  };
+  // Calculate relative point based on child's position
+  let relativePoint: { x: number; y: number };
+
+  // For shapes inside containers, point is already in container space
+  const parentContainer = findParentContainer(child);
+
+  if (parentContainer) {
+    // Child is in a container - point is in container's coordinate space
+    relativePoint = {
+      x: point.x - child.x,
+      y: point.y - child.y,
+    };
+  } else {
+    // Child is at root level
+    relativePoint = {
+      x: point.x - child.x,
+      y: point.y - child.y,
+    };
+  }
 
   switch (child.type) {
     case "rectangle": {
       const rect = child as RectangleShape;
-
       const halfWidth = rect.width / 2;
       const halfHeight = rect.height / 2;
 
@@ -227,7 +238,6 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "ellipse": {
       const ellipse = child as EllipseShape;
-
       const dx = relativePoint.x / ellipse.radiusX;
       const dy = relativePoint.y / ellipse.radiusY;
       return dx * dx + dy * dy <= 1;
@@ -235,12 +245,17 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "text": {
       if (child.graphics instanceof PIXI.Text) {
+        // For text, use the bounds from the graphics
         const bounds = child.graphics.getLocalBounds();
+        // Adjust for anchor point (text is anchored at center)
+        const adjustedX = relativePoint.x + bounds.width / 2;
+        const adjustedY = relativePoint.y + bounds.height / 2;
+
         return (
-          relativePoint.x >= bounds.x &&
-          relativePoint.x <= bounds.x + bounds.width &&
-          relativePoint.y >= bounds.y &&
-          relativePoint.y <= bounds.y + bounds.height
+          adjustedX >= bounds.x &&
+          adjustedX <= bounds.x + bounds.width &&
+          adjustedY >= bounds.y &&
+          adjustedY <= bounds.y + bounds.height
         );
       }
       return false;
@@ -248,7 +263,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
 
     case "polygon": {
       const polygon = child as PolygonShape;
-
+      // For polygons, points are already relative to the polygon's center
       return pointInPolygon(
         new PIXI.Point(relativePoint.x, relativePoint.y),
         polygon.points
@@ -258,6 +273,7 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
     case "container": {
       if (child.graphics instanceof PIXI.Container) {
         try {
+          // For containers, use the bounds of their contents
           const bounds = child.graphics.getLocalBounds();
           return (
             relativePoint.x >= bounds.x &&
@@ -266,7 +282,10 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
             relativePoint.y <= bounds.y + bounds.height
           );
         } catch (error) {
-          return false;
+          // Fallback: assume a small area around the container center
+          return (
+            Math.abs(relativePoint.x) <= 25 && Math.abs(relativePoint.y) <= 25
+          );
         }
       }
       return false;

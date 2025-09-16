@@ -98,14 +98,11 @@ export const handleDoubleClick = (
     const newPath = [...selectedContainer, container];
     setSelectedContainer(newPath);
 
-    // Find the child shape that was actually clicked
     const hitChild = findTopmostChildAtPoint(container, event);
 
-    // Clear all selections first
     clearAllSelections();
 
     if (hitChild) {
-      // Select the child shape that was clicked
       hitChild.selected = true;
       useSeatMapStore.getState().setSelectedShapes([hitChild]);
 
@@ -114,15 +111,15 @@ export const handleDoubleClick = (
         selectionTransform.updateSelection([hitChild]);
       }
 
-      setPreviouslyClickedShape(hitChild);
+      setPreviouslyClickedShape(shape);
     } else {
-      // No child was hit, just enter the container without selecting anything
       useSeatMapStore.getState().setSelectedShapes([]);
 
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
         selectionTransform.updateSelection([]);
       }
+      setPreviouslyClickedShape(hitChild);
     }
 
     useSeatMapStore.getState().updateShapes([...shapes]);
@@ -217,37 +214,29 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
     ) {
       const originalPoints = originalPolygonPoints[index];
 
-      // For polygons, we need to handle both the shape position and the point positions
       const parentContainer = findParentContainer(shape);
 
       if (parentContainer) {
-        // Shape is in a container - work in container coordinates
-        // The original positions are already in container coordinates
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
-        // Update polygon points relative to the new shape position
         shape.points = originalPoints.map((point) => ({
-          x: point.x + deltaX,
-          y: point.y + deltaY,
+          x: point.x,
+          y: point.y,
           radius: point.radius,
         }));
 
-        // Set graphics position relative to container
         shape.graphics.position.set(shape.x, shape.y);
       } else {
-        // Shape is at root level - work in world coordinates
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
-        // Update polygon points
         shape.points = originalPoints.map((point) => ({
-          x: point.x + deltaX,
-          y: point.y + deltaY,
+          x: point.x,
+          y: point.y,
           radius: point.radius,
         }));
 
-        // Set graphics position on stage
         shape.graphics.position.set(shape.x, shape.y);
       }
 
@@ -256,19 +245,14 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
       const parentContainer = findParentContainer(shape);
 
       if (parentContainer) {
-        // Shape is in a container - work in container coordinates
-        // The original positions are already in container coordinates
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
-        // Set graphics position relative to container
         shape.graphics.position.set(shape.x, shape.y);
       } else {
-        // Shape is at root level - work in world coordinates
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
-        // Set graphics position on stage
         shape.graphics.position.set(shape.x, shape.y);
       }
     }

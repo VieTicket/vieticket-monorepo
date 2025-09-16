@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup } from "../types";
-import { generateShapeId } from "../shapes/index";
+import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import { generateShapeId, updatePolygonGraphics } from "../shapes/index";
 import { shapeContainer, shapes, setShapes } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
@@ -85,6 +85,20 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     item.x = relativeX;
     item.y = relativeY;
 
+    // Special handling for polygons - update points array
+    if (item.type === "polygon") {
+      const polygon = item as PolygonShape;
+      // Update polygon points to be relative to the new container position
+      polygon.points = polygon.points.map((point) => ({
+        x: point.x - bounds.centerX,
+        y: point.y - bounds.centerY,
+        radius: point.radius,
+      }));
+
+      // Update polygon graphics with new points
+      updatePolygonGraphics(polygon);
+    }
+
     // Set graphics position relative to container (which should be 0,0 since item coords are now relative)
     item.graphics.position.set(relativeX, relativeY);
 
@@ -148,6 +162,20 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     child.scaleX *= container.scaleX;
     child.scaleY *= container.scaleY;
     child.opacity *= container.opacity;
+
+    // Special handling for polygons - update points array
+    if (child.type === "polygon") {
+      const polygon = child as PolygonShape;
+      // Convert polygon points back to world coordinates
+      polygon.points = polygon.points.map((point) => ({
+        x: point.x + container.x,
+        y: point.y + container.y,
+        radius: point.radius,
+      }));
+
+      // Update polygon graphics with new points
+      updatePolygonGraphics(polygon);
+    }
 
     // Remove from container
     container.graphics.removeChild(child.graphics);
@@ -232,6 +260,22 @@ export const addToGroup = (
     const relativeX = item.x - container.x;
     const relativeY = item.y - container.y;
 
+    // Update item position
+    item.x = relativeX;
+    item.y = relativeY;
+
+    // Special handling for polygons - update points array
+    if (item.type === "polygon") {
+      const polygon = item as PolygonShape;
+      polygon.points = polygon.points.map((point) => ({
+        x: point.x - container.x,
+        y: point.y - container.y,
+        radius: point.radius,
+      }));
+
+      updatePolygonGraphics(polygon);
+    }
+
     // Set item position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
@@ -252,9 +296,6 @@ export const addToGroup = (
   setShapes(newShapes);
 };
 
-/**
- * Removes items from a container group back to the main stage
- */
 export const removeFromGroup = (
   container: ContainerGroup,
   items: CanvasItem[]
@@ -291,6 +332,18 @@ export const removeFromGroup = (
     item.scaleX *= container.scaleX;
     item.scaleY *= container.scaleY;
     item.opacity *= container.opacity;
+
+    // Special handling for polygons - update points array
+    if (item.type === "polygon") {
+      const polygon = item as PolygonShape;
+      polygon.points = polygon.points.map((point) => ({
+        x: point.x + container.x,
+        y: point.y + container.y,
+        radius: point.radius,
+      }));
+
+      updatePolygonGraphics(polygon);
+    }
 
     // Remove from container
     container.graphics.removeChild(item.graphics);

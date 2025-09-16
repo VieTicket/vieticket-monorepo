@@ -43,6 +43,9 @@ export class SelectionTransform {
     x: number;
     y: number;
   }> = [];
+  private rotationThreshold = Math.PI * 7;
+  private accumulatedRotation = 0;
+  private hasReachedThreshold = false;
 
   constructor(container: PIXI.Container) {
     this.container = new PIXI.Container();
@@ -135,6 +138,8 @@ export class SelectionTransform {
 
     if (type === "rotate") {
       this.transformType = "rotate";
+      this.accumulatedRotation = 0;
+      this.hasReachedThreshold = false;
     } else {
       this.transformType = "scale";
     }
@@ -158,6 +163,9 @@ export class SelectionTransform {
     if (this.transformType === "scale") {
       this.handleScale(deltaX, deltaY, this.transformPosition);
     } else if (this.transformType === "rotate") {
+      if (this.selectedShapes.length > 1 && this.hasReachedThreshold) {
+        return;
+      }
       this.handleRotate(deltaX, deltaY);
     }
   }
@@ -170,28 +178,22 @@ export class SelectionTransform {
     this.transformStart = null;
     this.transformPosition = "";
     this.originalTransforms = [];
+    this.accumulatedRotation = 0;
+    this.hasReachedThreshold = false;
     setWasTransformed(true);
+
+    this.resetRotationHandleAppearance();
     useSeatMapStore.getState().updateShapes(shapes);
   }
 
   public get isCurrentlyTransforming(): boolean {
     return this.isTransforming;
   }
-
-  private applyTransformsToShape(shape: CanvasItem) {
-    if (shape.graphics) {
-      shape.graphics.position.set(shape.x, shape.y);
-      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
-      shape.graphics.rotation = shape.rotation || 0;
-    }
-  }
-
   private handleScale(deltaX: number, deltaY: number, position: string) {
     if (!this.boundingBox) return;
 
     let scaleFactorX = 1;
     let scaleFactorY = 1;
-
     const sensitivity = 0.01;
 
     switch (position) {
@@ -226,74 +228,53 @@ export class SelectionTransform {
     scaleFactorX = Math.max(0.1, Math.min(3, scaleFactorX));
     scaleFactorY = Math.max(0.1, Math.min(3, scaleFactorY));
 
-    let anchorX = 0.5;
-    let anchorY = 0.5;
-
-    switch (position) {
-      case "top-left":
-        anchorX = 1;
-        anchorY = 1;
-        break;
-      case "top-right":
-        anchorX = -1;
-        anchorY = 1;
-        break;
-      case "bottom-left":
-        anchorX = 1;
-        anchorY = -1;
-        break;
-      case "bottom-right":
-        anchorX = -1;
-        anchorY = -1;
-        break;
-      case "top":
-        anchorY = 1;
-        break;
-      case "bottom":
-        anchorY = -1;
-        break;
-      case "left":
-        anchorX = 1;
-        break;
-      case "right":
-        anchorX = -1;
-        break;
-    }
-
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
-        shape.scaleX = original.scaleX * scaleFactorX;
-        shape.scaleY = original.scaleY * scaleFactorY;
+        if (this.selectedShapes.length === 1) {
+          shape.graphics.pivot.set(0, 0);
 
-        let shapeWidth = 0;
-        let shapeHeight = 0;
+          shape.scaleX = original.scaleX * scaleFactorX;
+          shape.scaleY = original.scaleY * scaleFactorY;
 
-        if (shape.type === "rectangle" && shape.width && shape.height) {
-          shapeWidth = shape.width;
-          shapeHeight = shape.height;
-        } else if (shape.type === "ellipse" && shape.radiusX && shape.radiusY) {
-          shapeWidth = shape.radiusX * 2;
-          shapeHeight = shape.radiusY * 2;
-        } else if (
-          shape.type === "text" &&
-          shape.graphics instanceof PIXI.Text
-        ) {
-          const bounds = shape.graphics.getBounds();
-          shapeWidth = bounds.width;
-          shapeHeight = bounds.height;
+          shape.graphics.scale.set(shape.scaleX, shape.scaleY);
+          shape.graphics.position.set(shape.x, shape.y);
+          shape.graphics.rotation = shape.rotation || 0;
+        } else {
+          const worldCoords = this.getWorldCoordinates({
+            ...shape,
+            x: original.x,
+            y: original.y,
+          });
+
+          const relativeX = worldCoords.x - this.boundingBox!.centerX;
+          const relativeY = worldCoords.y - this.boundingBox!.centerY;
+
+          const scaledRelativeX = relativeX * scaleFactorX;
+          const scaledRelativeY = relativeY * scaleFactorY;
+
+          const newWorldX = this.boundingBox!.centerX + scaledRelativeX;
+          const newWorldY = this.boundingBox!.centerY + scaledRelativeY;
+
+          const parentContainer = findParentContainer(shape);
+          if (parentContainer) {
+            const parentWorldCoords = this.getWorldCoordinates(parentContainer);
+            shape.x = newWorldX - parentWorldCoords.x;
+            shape.y = newWorldY - parentWorldCoords.y;
+          } else {
+            shape.x = newWorldX;
+            shape.y = newWorldY;
+          }
+
+          shape.scaleX = original.scaleX * scaleFactorX;
+          shape.scaleY = original.scaleY * scaleFactorY;
+
+          shape.graphics.pivot.set(0, 0);
+
+          shape.graphics.scale.set(shape.scaleX, shape.scaleY);
+          shape.graphics.position.set(shape.x, shape.y);
+          shape.graphics.rotation = shape.rotation || 0;
         }
-
-        const scaleChangeX = (scaleFactorX - 1) * shapeWidth;
-        const scaleChangeY = (scaleFactorY - 1) * shapeHeight;
-
-        const offsetX = -scaleChangeX * anchorX;
-        const offsetY = -scaleChangeY * anchorY;
-
-        shape.x = original.x + offsetX / 2;
-        shape.y = original.y + offsetY / 2;
-
-        this.applyTransformsToShape(shape);
       }
     });
 
@@ -305,56 +286,109 @@ export class SelectionTransform {
 
     const rotationDelta = (deltaX + deltaY) * 0.01;
 
-    const worldCenterX = this.boundingBox.centerX;
-    const worldCenterY = this.boundingBox.centerY;
+    if (this.selectedShapes.length > 1) {
+      // Add the signed rotation delta (positive for right, negative for left)
+      this.accumulatedRotation += rotationDelta;
+
+      // Check if absolute value exceeds threshold
+      if (Math.abs(this.accumulatedRotation) >= this.rotationThreshold) {
+        this.hasReachedThreshold = true;
+        this.showThresholdReachedFeedback();
+        return;
+      }
+    }
 
     this.selectedShapes.forEach((shape, index) => {
       const original = this.originalTransforms[index];
       if (original) {
-        const worldCoords = this.getWorldCoordinates(shape);
+        if (this.selectedShapes.length === 1) {
+          shape.graphics.pivot.set(0, 0);
 
-        const relativeX = worldCoords.x - worldCenterX;
-        const relativeY = worldCoords.y - worldCenterY;
+          shape.rotation = original.rotation + rotationDelta;
 
-        const cos = Math.cos(rotationDelta);
-        const sin = Math.sin(rotationDelta);
-
-        const rotatedX = relativeX * cos - relativeY * sin;
-        const rotatedY = relativeX * sin + relativeY * cos;
-
-        const newWorldX = worldCenterX + rotatedX;
-        const newWorldY = worldCenterY + rotatedY;
-
-        const parentContainer = findParentContainer(shape);
-        if (parentContainer) {
-          const parentWorldCoords = this.getWorldCoordinates(parentContainer);
-          shape.x = newWorldX - parentWorldCoords.x;
-          shape.y = newWorldY - parentWorldCoords.y;
+          shape.graphics.rotation = shape.rotation;
+          shape.graphics.position.set(shape.x, shape.y);
+          shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
         } else {
-          shape.x = newWorldX;
-          shape.y = newWorldY;
+          const worldCoords = this.getWorldCoordinates({
+            ...shape,
+            x: original.x,
+            y: original.y,
+          });
+
+          const relativeX = worldCoords.x - this.boundingBox!.centerX;
+          const relativeY = worldCoords.y - this.boundingBox!.centerY;
+
+          const cos = Math.cos(rotationDelta);
+          const sin = Math.sin(rotationDelta);
+          const rotatedRelativeX = relativeX * cos - relativeY * sin;
+          const rotatedRelativeY = relativeX * sin + relativeY * cos;
+
+          const newWorldX = this.boundingBox!.centerX + rotatedRelativeX;
+          const newWorldY = this.boundingBox!.centerY + rotatedRelativeY;
+
+          const parentContainer = findParentContainer(shape);
+          if (parentContainer) {
+            const parentWorldCoords = this.getWorldCoordinates(parentContainer);
+            shape.x = newWorldX - parentWorldCoords.x;
+            shape.y = newWorldY - parentWorldCoords.y;
+          } else {
+            shape.x = newWorldX;
+            shape.y = newWorldY;
+          }
+
+          shape.rotation = original.rotation + rotationDelta;
+
+          shape.graphics.pivot.set(0, 0);
+
+          shape.graphics.rotation = shape.rotation;
+          shape.graphics.position.set(shape.x, shape.y);
+          shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
         }
-
-        shape.rotation = original.rotation + rotationDelta;
-
-        this.applyTransformsToShape(shape);
       }
     });
 
     this.updateSelection(this.selectedShapes);
   }
 
+  private showThresholdReachedFeedback() {
+    const rotateHandle = this.handles.find((h) => h.position === "rotate");
+    if (rotateHandle) {
+      rotateHandle.graphics.clear();
+      const handleSize = 8;
+      rotateHandle.graphics
+        .circle(0, 0, handleSize / 2)
+        .fill(0xff6b6b)
+        .stroke({ width: 2, color: 0xcc0000 });
+    }
+  }
+
   private calculateBoundingBox(shapes: CanvasItem[]) {
     if (shapes.length === 0) return null;
+
     const worldShapes = shapes.map((shape) => {
-      const worldCoords = this.getWorldCoordinates(shape);
+      const worldTransform = this.getWorldTransform(shape);
       return {
         ...shape,
-        x: worldCoords.x,
-        y: worldCoords.y,
+        x: worldTransform.x,
+        y: worldTransform.y,
+        scaleX: worldTransform.scaleX,
+        scaleY: worldTransform.scaleY,
+        rotation: worldTransform.rotation,
       };
     });
+
     return calculateGroupBounds(worldShapes);
+  }
+  private resetRotationHandleAppearance() {
+    const rotateHandle = this.handles.find((h) => h.position === "rotate");
+    if (rotateHandle) {
+      rotateHandle.graphics.clear();
+      rotateHandle.graphics
+        .circle(0, 0, 4)
+        .fill(0x00ff00)
+        .stroke({ width: 2, color: 0x008800 });
+    }
   }
 
   private getWorldCoordinates(shape: CanvasItem): { x: number; y: number } {
@@ -364,18 +398,103 @@ export class SelectionTransform {
       return { x: shape.x, y: shape.y };
     }
 
+    // Start with shape's local position
     let worldX = shape.x;
     let worldY = shape.y;
 
+    // Apply all parent container transforms
     let currentContainer: ContainerGroup | null = parentContainer;
     while (currentContainer) {
-      worldX += currentContainer.x;
-      worldY += currentContainer.y;
+      // Apply container's scale and rotation
+      const containerRotation = currentContainer.rotation || 0;
+      const containerScaleX = currentContainer.scaleX || 1;
+      const containerScaleY = currentContainer.scaleY || 1;
 
+      // Apply scaling first
+      const scaledX = worldX * containerScaleX;
+      const scaledY = worldY * containerScaleY;
+
+      // Apply rotation around container center
+      const cos = Math.cos(containerRotation);
+      const sin = Math.sin(containerRotation);
+      const rotatedX = scaledX * cos - scaledY * sin;
+      const rotatedY = scaledX * sin + scaledY * cos;
+
+      // Add container's position
+      worldX = currentContainer.x + rotatedX;
+      worldY = currentContainer.y + rotatedY;
+
+      // Move up to next parent container
       currentContainer = findParentContainer(currentContainer);
     }
 
     return { x: worldX, y: worldY };
+  }
+
+  // Add a new method to get world transforms (including scale and rotation)
+  private getWorldTransform(shape: CanvasItem): {
+    x: number;
+    y: number;
+    scaleX: number;
+    scaleY: number;
+    rotation: number;
+  } {
+    const parentContainer = findParentContainer(shape);
+
+    if (!parentContainer) {
+      return {
+        x: shape.x,
+        y: shape.y,
+        scaleX: shape.scaleX || 1,
+        scaleY: shape.scaleY || 1,
+        rotation: shape.rotation || 0,
+      };
+    }
+
+    // Start with shape's properties
+    let worldX = shape.x;
+    let worldY = shape.y;
+    let worldScaleX = shape.scaleX || 1;
+    let worldScaleY = shape.scaleY || 1;
+    let worldRotation = shape.rotation || 0;
+
+    // Apply all parent container transforms
+    let currentContainer: ContainerGroup | null = parentContainer;
+    while (currentContainer) {
+      const containerRotation = currentContainer.rotation || 0;
+      const containerScaleX = currentContainer.scaleX || 1;
+      const containerScaleY = currentContainer.scaleY || 1;
+
+      // Accumulate transforms
+      worldScaleX *= containerScaleX;
+      worldScaleY *= containerScaleY;
+      worldRotation += containerRotation;
+
+      // Apply scaling to position
+      const scaledX = worldX * containerScaleX;
+      const scaledY = worldY * containerScaleY;
+
+      // Apply rotation to position
+      const cos = Math.cos(containerRotation);
+      const sin = Math.sin(containerRotation);
+      const rotatedX = scaledX * cos - scaledY * sin;
+      const rotatedY = scaledX * sin + scaledY * cos;
+
+      // Add container's position
+      worldX = currentContainer.x + rotatedX;
+      worldY = currentContainer.y + rotatedY;
+
+      // Move up to next parent container
+      currentContainer = findParentContainer(currentContainer);
+    }
+
+    return {
+      x: worldX,
+      y: worldY,
+      scaleX: worldScaleX,
+      scaleY: worldScaleY,
+      rotation: worldRotation,
+    };
   }
 
   private updateHandlePositions() {
@@ -460,6 +579,7 @@ export class SelectionTransform {
   }
 
   public updateSelection(shapes: CanvasItem[]) {
+    console.log("Updating selection with shapes:", shapes);
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
 
