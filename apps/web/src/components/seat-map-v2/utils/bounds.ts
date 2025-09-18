@@ -1,4 +1,5 @@
-import { CanvasItem, ContainerGroup } from "../types";
+import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import { findParentContainer, transformPoint } from "../shapes";
 
 export interface BoundingBox {
   x: number;
@@ -10,252 +11,333 @@ export interface BoundingBox {
 }
 
 /**
- * Calculates the bounding box of a single item
+ * Creates a BoundingBox from min/max coordinates
  */
-export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
+const createBoundingBox = (
+  minX: number,
+  minY: number,
+  maxX: number,
+  maxY: number
+): BoundingBox => ({
+  x: minX,
+  y: minY,
+  width: maxX - minX,
+  height: maxY - minY,
+  centerX: (minX + maxX) / 2,
+  centerY: (minY + maxY) / 2,
+});
+
+/**
+ * Gets bounding box from a set of points
+ */
+const getBoundsFromPoints = (
+  points: { x: number; y: number }[]
+): BoundingBox => {
+  const xs = points.map((p) => p.x);
+  const ys = points.map((p) => p.y);
+  return createBoundingBox(
+    Math.min(...xs),
+    Math.min(...ys),
+    Math.max(...xs),
+    Math.max(...ys)
+  );
+};
+
+/**
+ * Calculates bounds for shapes with corners (rectangle, text)
+ */
+const calculateCornerBasedBounds = (
+  item: CanvasItem,
+  width: number,
+  height: number
+): BoundingBox => {
   const scaleX = item.scaleX || 1;
   const scaleY = item.scaleY || 1;
   const rotation = item.rotation || 0;
 
-  let itemMinX: number, itemMinY: number, itemMaxX: number, itemMaxY: number;
+  const corners = [
+    { x: -width / 2, y: -height / 2 },
+    { x: width / 2, y: -height / 2 },
+    { x: width / 2, y: height / 2 },
+    { x: -width / 2, y: height / 2 },
+  ];
 
+  const transformedCorners = corners.map((corner) => {
+    const transformed = transformPoint(
+      corner.x,
+      corner.y,
+      scaleX,
+      scaleY,
+      rotation
+    );
+    return {
+      x: item.x + transformed.x,
+      y: item.y + transformed.y,
+    };
+  });
+
+  return getBoundsFromPoints(transformedCorners);
+};
+
+/**
+ * Calculate the accumulated world transform for an item
+ */
+const calculateWorldTransform = (item: CanvasItem) => {
+  let transform = {
+    x: item.x,
+    y: item.y,
+    scaleX: item.scaleX || 1,
+    scaleY: item.scaleY || 1,
+    rotation: item.rotation || 0,
+  };
+
+  let currentContainer = findParentContainer(item);
+  while (currentContainer) {
+    const containerScaleX = currentContainer.scaleX || 1;
+    const containerScaleY = currentContainer.scaleY || 1;
+    const containerRotation = currentContainer.rotation || 0;
+
+    // Transform position
+    const transformed = transformPoint(
+      transform.x,
+      transform.y,
+      containerScaleX,
+      containerScaleY,
+      containerRotation
+    );
+
+    transform.x = currentContainer.x + transformed.x;
+    transform.y = currentContainer.y + transformed.y;
+
+    // Accumulate transforms
+    transform.scaleX *= containerScaleX;
+    transform.scaleY *= containerScaleY;
+    transform.rotation += containerRotation;
+
+    currentContainer = findParentContainer(currentContainer);
+  }
+
+  return transform;
+};
+
+/**
+ * Helper function to calculate polygon world bounds
+ */
+const calculatePolygonWorldBounds = (polygon: PolygonShape): BoundingBox => {
+  const worldTransform = calculateWorldTransform(polygon);
+
+  const transformedPoints = polygon.points.map((point) => {
+    const transformed = transformPoint(
+      point.x,
+      point.y,
+      worldTransform.scaleX,
+      worldTransform.scaleY,
+      worldTransform.rotation
+    );
+
+    return {
+      x: worldTransform.x + transformed.x,
+      y: worldTransform.y + transformed.y,
+    };
+  });
+
+  return getBoundsFromPoints(transformedPoints);
+};
+
+/**
+ * Calculate local bounds for different shape types
+ */
+const calculateShapeLocalBounds = (item: CanvasItem): BoundingBox => {
   switch (item.type) {
-    case "rectangle": {
-      const scaledWidth = item.width * scaleX;
-      const scaledHeight = item.height * scaleY;
+    case "rectangle":
+      return createBoundingBox(
+        -item.width / 2,
+        -item.height / 2,
+        item.width / 2,
+        item.height / 2
+      );
 
-      const corners = [
-        { x: -scaledWidth / 2, y: -scaledHeight / 2 },
-        { x: scaledWidth / 2, y: -scaledHeight / 2 },
-        { x: scaledWidth / 2, y: scaledHeight / 2 },
-        { x: -scaledWidth / 2, y: scaledHeight / 2 },
-      ];
-
-      const rotatedCorners = corners.map((corner) => ({
-        x:
-          item.x +
-          corner.x * Math.cos(rotation) -
-          corner.y * Math.sin(rotation),
-        y:
-          item.y +
-          corner.x * Math.sin(rotation) +
-          corner.y * Math.cos(rotation),
-      }));
-
-      const xs = rotatedCorners.map((p) => p.x);
-      const ys = rotatedCorners.map((p) => p.y);
-      itemMinX = Math.min(...xs);
-      itemMinY = Math.min(...ys);
-      itemMaxX = Math.max(...xs);
-      itemMaxY = Math.max(...ys);
-      break;
-    }
-
-    case "ellipse": {
-      const scaledRadiusX = item.radiusX * scaleX;
-      const scaledRadiusY = item.radiusY * scaleY;
-
-      const a = scaledRadiusX;
-      const b = scaledRadiusY;
-      const cos = Math.abs(Math.cos(rotation));
-      const sin = Math.abs(Math.sin(rotation));
-
-      const boundingWidth = a * cos + b * sin;
-      const boundingHeight = a * sin + b * cos;
-
-      itemMinX = item.x - boundingWidth;
-      itemMinY = item.y - boundingHeight;
-      itemMaxX = item.x + boundingWidth;
-      itemMaxY = item.y + boundingHeight;
-      break;
-    }
+    case "ellipse":
+      return createBoundingBox(
+        -item.radiusX,
+        -item.radiusY,
+        item.radiusX,
+        item.radiusY
+      );
 
     case "text": {
-      const textWidth = item.fontSize * item.text.length * 0.6 * scaleX;
-      const textHeight = item.fontSize * scaleY;
-
-      const corners = [
-        { x: -textWidth / 2, y: -textHeight / 2 },
-        { x: textWidth / 2, y: -textHeight / 2 },
-        { x: textWidth / 2, y: textHeight / 2 },
-        { x: -textWidth / 2, y: textHeight / 2 },
-      ];
-
-      const rotatedCorners = corners.map((corner) => ({
-        x:
-          item.x +
-          corner.x * Math.cos(rotation) -
-          corner.y * Math.sin(rotation),
-        y:
-          item.y +
-          corner.x * Math.sin(rotation) +
-          corner.y * Math.cos(rotation),
-      }));
-
-      const xs = rotatedCorners.map((p) => p.x);
-      const ys = rotatedCorners.map((p) => p.y);
-      itemMinX = Math.min(...xs);
-      itemMinY = Math.min(...ys);
-      itemMaxX = Math.max(...xs);
-      itemMaxY = Math.max(...ys);
-      break;
+      const width = item.fontSize * item.text.length * 0.6;
+      const height = item.fontSize;
+      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
     }
 
     case "polygon": {
-      const transformedPoints = item.points.map((point) => {
-        const scaledX = point.x * scaleX;
-        const scaledY = point.y * scaleY;
-
-        const rotatedX =
-          scaledX * Math.cos(rotation) - scaledY * Math.sin(rotation);
-        const rotatedY =
-          scaledX * Math.sin(rotation) + scaledY * Math.cos(rotation);
-
-        return {
-          x: item.x + rotatedX,
-          y: item.y + rotatedY,
-        };
-      });
-
-      const xs = transformedPoints.map((p) => p.x);
-      const ys = transformedPoints.map((p) => p.y);
-      itemMinX = Math.min(...xs);
-      itemMinY = Math.min(...ys);
-      itemMaxX = Math.max(...xs);
-      itemMaxY = Math.max(...ys);
-      break;
+      if (item.points.length === 0) {
+        return createBoundingBox(-25, -25, 25, 25);
+      }
+      const xs = item.points.map((p) => p.x);
+      const ys = item.points.map((p) => p.y);
+      return createBoundingBox(
+        Math.min(...xs),
+        Math.min(...ys),
+        Math.max(...xs),
+        Math.max(...ys)
+      );
     }
+
+    default:
+      return createBoundingBox(-25, -25, 25, 25);
+  }
+};
+
+/**
+ * Transform local bounds to world space
+ */
+const transformBoundsToWorld = (
+  localBounds: BoundingBox,
+  worldTransform: ReturnType<typeof calculateWorldTransform>
+): BoundingBox => {
+  const { x, y, scaleX, scaleY, rotation } = worldTransform;
+
+  if (rotation === 0) {
+    // Simple case - no rotation
+    const scaledX = localBounds.x * scaleX;
+    const scaledY = localBounds.y * scaleY;
+    const scaledWidth = localBounds.width * scaleX;
+    const scaledHeight = localBounds.height * scaleY;
+
+    return createBoundingBox(
+      x + scaledX,
+      y + scaledY,
+      x + scaledX + scaledWidth,
+      y + scaledY + scaledHeight
+    );
+  }
+
+  // With rotation - transform all corners
+  const corners = [
+    { x: localBounds.x, y: localBounds.y },
+    { x: localBounds.x + localBounds.width, y: localBounds.y },
+    {
+      x: localBounds.x + localBounds.width,
+      y: localBounds.y + localBounds.height,
+    },
+    { x: localBounds.x, y: localBounds.y + localBounds.height },
+  ];
+
+  const transformedCorners = corners.map((corner) => {
+    const transformed = transformPoint(
+      corner.x,
+      corner.y,
+      scaleX,
+      scaleY,
+      rotation
+    );
+    return { x: x + transformed.x, y: y + transformed.y };
+  });
+
+  return getBoundsFromPoints(transformedCorners);
+};
+
+/**
+ * Calculate world bounds for container children
+ */
+const calculateContainerChildrenWorldBounds = (
+  container: ContainerGroup
+): BoundingBox => {
+  if (container.children.length === 0) {
+    return createBoundingBox(0, 0, 0, 0);
+  }
+
+  const childBounds = container.children.map((child) => {
+    if (child.type === "container") {
+      // Recursive case for nested containers
+      return calculateContainerChildrenWorldBounds(child as ContainerGroup);
+    }
+
+    // Regular shapes
+    const childWorldTransform = calculateWorldTransform(child);
+    const childLocalBounds =
+      child.type === "polygon"
+        ? calculateShapeLocalBounds(child)
+        : calculateShapeLocalBounds(child);
+
+    return transformBoundsToWorld(childLocalBounds, childWorldTransform);
+  });
+
+  // Combine all child bounds
+  const allXs = childBounds.flatMap((bounds) => [
+    bounds.x,
+    bounds.x + bounds.width,
+  ]);
+  const allYs = childBounds.flatMap((bounds) => [
+    bounds.y,
+    bounds.y + bounds.height,
+  ]);
+
+  return createBoundingBox(
+    Math.min(...allXs),
+    Math.min(...allYs),
+    Math.max(...allXs),
+    Math.max(...allYs)
+  );
+};
+
+/**
+ * Calculates the bounding box of a single item
+ */
+export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
+  switch (item.type) {
+    case "rectangle":
+      return calculateCornerBasedBounds(item, item.width, item.height);
+
+    case "text": {
+      const width = item.fontSize * item.text.length * 0.6;
+      const height = item.fontSize;
+      return calculateCornerBasedBounds(item, width, height);
+    }
+
+    case "ellipse": {
+      const scaleX = item.scaleX || 1;
+      const scaleY = item.scaleY || 1;
+      const rotation = item.rotation || 0;
+
+      const scaledRadiusX = item.radiusX * scaleX;
+      const scaledRadiusY = item.radiusY * scaleY;
+
+      // For ellipses, calculate bounding box considering rotation
+      const cos = Math.abs(Math.cos(rotation));
+      const sin = Math.abs(Math.sin(rotation));
+      const boundingWidth = scaledRadiusX * cos + scaledRadiusY * sin;
+      const boundingHeight = scaledRadiusX * sin + scaledRadiusY * cos;
+
+      return createBoundingBox(
+        item.x - boundingWidth,
+        item.y - boundingHeight,
+        item.x + boundingWidth,
+        item.y + boundingHeight
+      );
+    }
+
+    case "polygon":
+      return calculatePolygonWorldBounds(item as PolygonShape);
 
     case "container": {
       const containerItem = item as ContainerGroup;
       if (containerItem.children.length === 0) {
-        itemMinX = item.x - 25;
-        itemMinY = item.y - 25;
-        itemMaxX = item.x + 25;
-        itemMaxY = item.y + 25;
-      } else {
-        let childMinX = Infinity;
-        let childMinY = Infinity;
-        let childMaxX = -Infinity;
-        let childMaxY = -Infinity;
-
-        containerItem.children.forEach((child) => {
-          const childBounds = calculateItemBounds(child);
-
-          // For polygons, we need special handling since their coordinates are different
-          let childWorldX,
-            childWorldY,
-            childWorldMinX,
-            childWorldMinY,
-            childWorldMaxX,
-            childWorldMaxY;
-
-          if (child.type === "polygon") {
-            // For polygons, child.x and child.y are already the center in container space
-            // and childBounds are calculated correctly relative to that center
-            childWorldX = item.x + child.x;
-            childWorldY = item.y + child.y;
-
-            // The bounds are already relative to the polygon's center
-            childWorldMinX = childWorldX + childBounds.x - child.x;
-            childWorldMinY = childWorldY + childBounds.y - child.y;
-            childWorldMaxX = childWorldMinX + childBounds.width;
-            childWorldMaxY = childWorldMinY + childBounds.height;
-          } else {
-            // For other shapes, use the existing logic
-            childWorldX = item.x + child.graphics.x;
-            childWorldY = item.y + child.graphics.y;
-
-            childWorldMinX = childWorldX + (childBounds.x - child.x);
-            childWorldMinY = childWorldY + (childBounds.y - child.y);
-            childWorldMaxX = childWorldMinX + childBounds.width;
-            childWorldMaxY = childWorldMinY + childBounds.height;
-          }
-
-          childMinX = Math.min(childMinX, childWorldMinX);
-          childMinY = Math.min(childMinY, childWorldMinY);
-          childMaxX = Math.max(childMaxX, childWorldMaxX);
-          childMaxY = Math.max(childMaxY, childWorldMaxY);
-        });
-
-        // Rest of the scaling/rotation logic remains the same...
-        if (scaleX !== 1 || scaleY !== 1 || rotation !== 0) {
-          const relativeMinX = (childMinX - item.x) * scaleX;
-          const relativeMinY = (childMinY - item.y) * scaleY;
-          const relativeMaxX = (childMaxX - item.x) * scaleX;
-          const relativeMaxY = (childMaxY - item.y) * scaleY;
-
-          const corners = [
-            { x: relativeMinX, y: relativeMinY },
-            { x: relativeMaxX, y: relativeMinY },
-            { x: relativeMaxX, y: relativeMaxY },
-            { x: relativeMinX, y: relativeMaxY },
-          ];
-
-          const rotatedCorners = corners.map((corner) => ({
-            x:
-              item.x +
-              corner.x * Math.cos(rotation) -
-              corner.y * Math.sin(rotation),
-            y:
-              item.y +
-              corner.x * Math.sin(rotation) +
-              corner.y * Math.cos(rotation),
-          }));
-
-          const xs = rotatedCorners.map((p) => p.x);
-          const ys = rotatedCorners.map((p) => p.y);
-          itemMinX = Math.min(...xs);
-          itemMinY = Math.min(...ys);
-          itemMaxX = Math.max(...xs);
-          itemMaxY = Math.max(...ys);
-        } else {
-          itemMinX = childMinX;
-          itemMinY = childMinY;
-          itemMaxX = childMaxX;
-          itemMaxY = childMaxY;
-        }
+        return createBoundingBox(
+          item.x - 25,
+          item.y - 25,
+          item.x + 25,
+          item.y + 25
+        );
       }
-      break;
+      return calculateContainerChildrenWorldBounds(containerItem);
     }
 
-    default: {
-      const defaultSize = 50;
-      const corners = [
-        { x: -defaultSize / 2, y: -defaultSize / 2 },
-        { x: defaultSize / 2, y: -defaultSize / 2 },
-        { x: defaultSize / 2, y: defaultSize / 2 },
-        { x: -defaultSize / 2, y: defaultSize / 2 },
-      ];
-
-      const rotatedCorners = corners.map((corner) => ({
-        x: corner.x * Math.cos(rotation) - corner.y * Math.sin(rotation),
-        y: corner.x * Math.sin(rotation) + corner.y * Math.cos(rotation),
-      }));
-
-      const xs = rotatedCorners.map((p) => p.x);
-      const ys = rotatedCorners.map((p) => p.y);
-      itemMinX = Math.min(...xs);
-      itemMinY = Math.min(...ys);
-      itemMaxX = Math.max(...xs);
-      itemMaxY = Math.max(...ys);
-      break;
-    }
+    default:
+      return createBoundingBox(25, 25, 25, 25);
   }
-
-  const width = itemMaxX - itemMinX;
-  const height = itemMaxY - itemMinY;
-  const centerX = itemMinX + width / 2;
-  const centerY = itemMinY + height / 2;
-
-  return {
-    x: itemMinX,
-    y: itemMinY,
-    width,
-    height,
-    centerX,
-    centerY,
-  };
 };
 
 /**
@@ -263,37 +345,27 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
  */
 export const calculateGroupBounds = (items: CanvasItem[]): BoundingBox => {
   if (items.length === 0) {
-    return { x: 0, y: 0, width: 0, height: 0, centerX: 0, centerY: 0 };
+    return createBoundingBox(0, 0, 0, 0);
   }
 
   if (items.length === 1) {
     return calculateItemBounds(items[0]);
   }
 
-  let minX = Infinity;
-  let minY = Infinity;
-  let maxX = -Infinity;
-  let maxY = -Infinity;
+  const allBounds = items.map(calculateItemBounds);
+  const allXs = allBounds.flatMap((bounds) => [
+    bounds.x,
+    bounds.x + bounds.width,
+  ]);
+  const allYs = allBounds.flatMap((bounds) => [
+    bounds.y,
+    bounds.y + bounds.height,
+  ]);
 
-  items.forEach((item) => {
-    const bounds = calculateItemBounds(item);
-    minX = Math.min(minX, bounds.x);
-    minY = Math.min(minY, bounds.y);
-    maxX = Math.max(maxX, bounds.x + bounds.width);
-    maxY = Math.max(maxY, bounds.y + bounds.height);
-  });
-
-  const width = maxX - minX;
-  const height = maxY - minY;
-  const centerX = minX + width / 2;
-  const centerY = minY + height / 2;
-
-  return {
-    x: minX,
-    y: minY,
-    width,
-    height,
-    centerX,
-    centerY,
-  };
+  return createBoundingBox(
+    Math.min(...allXs),
+    Math.min(...allYs),
+    Math.max(...allXs),
+    Math.max(...allYs)
+  );
 };

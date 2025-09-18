@@ -23,7 +23,6 @@ import {
   clearAllSelections,
   findTopmostChildAtPoint,
   getContainerPath,
-  areInSameContainer,
   getCurrentContainer,
   findShapeAtPoint,
   findParentContainer,
@@ -97,9 +96,9 @@ export const handleDoubleClick = (
     const container = shape as ContainerGroup;
     const newPath = [...selectedContainer, container];
     setSelectedContainer(newPath);
-
+    console.log("Entered container:", container);
     const hitChild = findTopmostChildAtPoint(container, event);
-
+    console.log("Hit child:", hitChild);
     clearAllSelections();
 
     if (hitChild) {
@@ -206,19 +205,25 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
 
   draggedShapes.forEach((shape, index) => {
     const original = originalPositions[index];
+    const parentContainer = findParentContainer(shape);
 
-    if (
-      shape.type === "polygon" &&
-      shape.points &&
-      originalPolygonPoints[index]
-    ) {
-      const originalPoints = originalPolygonPoints[index];
+    if (parentContainer) {
+      // Convert world delta to container's local coordinate system
+      const localDelta = worldDeltaToContainerLocal(
+        deltaX,
+        deltaY,
+        parentContainer
+      );
 
-      const parentContainer = findParentContainer(shape);
+      if (
+        shape.type === "polygon" &&
+        shape.points &&
+        originalPolygonPoints[index]
+      ) {
+        const originalPoints = originalPolygonPoints[index];
 
-      if (parentContainer) {
-        shape.x = original.x + deltaX;
-        shape.y = original.y + deltaY;
+        shape.x = original.x + localDelta.x;
+        shape.y = original.y + localDelta.y;
 
         shape.points = originalPoints.map((point) => ({
           x: point.x,
@@ -227,32 +232,35 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
         }));
 
         shape.graphics.position.set(shape.x, shape.y);
+        updatePolygonGraphics(shape);
       } else {
-        shape.x = original.x + deltaX;
-        shape.y = original.y + deltaY;
-
-        shape.points = originalPoints.map((point) => ({
-          x: point.x,
-          y: point.y,
-          radius: point.radius,
-        }));
-
+        shape.x = original.x + localDelta.x;
+        shape.y = original.y + localDelta.y;
         shape.graphics.position.set(shape.x, shape.y);
       }
-
-      updatePolygonGraphics(shape);
     } else {
-      const parentContainer = findParentContainer(shape);
+      // Shape is at root level - use world coordinates directly
+      if (
+        shape.type === "polygon" &&
+        shape.points &&
+        originalPolygonPoints[index]
+      ) {
+        const originalPoints = originalPolygonPoints[index];
 
-      if (parentContainer) {
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
+        shape.points = originalPoints.map((point) => ({
+          x: point.x,
+          y: point.y,
+          radius: point.radius,
+        }));
+
         shape.graphics.position.set(shape.x, shape.y);
+        updatePolygonGraphics(shape);
       } else {
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
-
         shape.graphics.position.set(shape.x, shape.y);
       }
     }
@@ -263,6 +271,44 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
     selectionTransform.updateSelection(draggedShapes);
   }
 };
+
+// Helper function to convert world delta to container's local coordinate system
+function worldDeltaToContainerLocal(
+  worldDeltaX: number,
+  worldDeltaY: number,
+  container: ContainerGroup
+): { x: number; y: number } {
+  // Calculate the accumulated rotation of all parent containers
+  let totalRotation = 0;
+  let totalScaleX = 1;
+  let totalScaleY = 1;
+
+  let currentContainer: ContainerGroup | null = container;
+  while (currentContainer) {
+    totalRotation += currentContainer.rotation || 0;
+    totalScaleX *= currentContainer.scaleX || 1;
+    totalScaleY *= currentContainer.scaleY || 1;
+    currentContainer = findParentContainer(currentContainer);
+  }
+
+  // Apply inverse transforms to convert world delta to local delta
+
+  // First, apply inverse scaling
+  const scaledDeltaX = worldDeltaX / totalScaleX;
+  const scaledDeltaY = worldDeltaY / totalScaleY;
+
+  // Then, apply inverse rotation
+  const cos = Math.cos(-totalRotation); // Negative for inverse rotation
+  const sin = Math.sin(-totalRotation);
+
+  const localDeltaX = scaledDeltaX * cos - scaledDeltaY * sin;
+  const localDeltaY = scaledDeltaX * sin + scaledDeltaY * cos;
+
+  return {
+    x: localDeltaX,
+    y: localDeltaY,
+  };
+}
 
 export const endShapeDrag = () => {
   if (!isShapeDragging) return;

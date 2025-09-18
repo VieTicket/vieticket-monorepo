@@ -85,20 +85,6 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     item.x = relativeX;
     item.y = relativeY;
 
-    // Special handling for polygons - update points array
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
-      // Update polygon points to be relative to the new container position
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x - bounds.centerX,
-        y: point.y - bounds.centerY,
-        radius: point.radius,
-      }));
-
-      // Update polygon graphics with new points
-      updatePolygonGraphics(polygon);
-    }
-
     // Set graphics position relative to container (which should be 0,0 since item coords are now relative)
     item.graphics.position.set(relativeX, relativeY);
 

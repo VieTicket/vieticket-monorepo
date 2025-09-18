@@ -22,7 +22,7 @@ import {
   wasDragged,
   wasTransformed,
 } from "../variables";
-import { findParentContainer, findShapeInContainer } from "../shapes";
+import { findParentContainer } from "../shapes";
 
 interface PropertiesSidebarProps {
   onGroupItems?: (items: CanvasItem[]) => void;
