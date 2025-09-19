@@ -1,9 +1,10 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import { CanvasItem, ContainerGroup, PolygonShape, SVGShape } from "../types";
 import { stage, zoom, shapes, setWasTransformed } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { calculateItemBounds } from "../utils/bounds";
 import { findParentContainer } from "../shapes";
+import { updateSVGGraphics } from "../shapes/svg-shape";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate";
@@ -279,9 +280,22 @@ export class SelectionTransform {
       shape.rotation = original.rotation + rotationDelta;
     }
 
-    shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
-    shape.graphics.position.set(shape.x, shape.y);
-    shape.graphics.rotation = shape.rotation || 0;
+    // Update graphics based on shape type
+    if (shape.type === "image") {
+      // Images use sprites
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+    } else if (shape.type === "svg") {
+      // SVGs use graphics but need special handling
+      const svgShape = shape as SVGShape;
+      updateSVGGraphics(svgShape);
+    } else {
+      // Default handling for other shapes
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+    }
   }
 
   private applyMultiShapeTransform(

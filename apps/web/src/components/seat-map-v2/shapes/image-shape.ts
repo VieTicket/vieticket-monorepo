@@ -4,6 +4,30 @@ import { ImageShape } from "../types";
 import * as PIXI from "pixi.js";
 
 /**
+ * Gets the actual rendered bounds of an image shape
+ */
+export const getImageBounds = (
+  shape: ImageShape
+): { width: number; height: number } => {
+  try {
+    if (shape.graphics instanceof PIXI.Sprite) {
+      const texture = shape.graphics.texture;
+      return {
+        width: texture.width || shape.originalWidth,
+        height: texture.height || shape.originalHeight,
+      };
+    }
+  } catch (error) {
+    console.warn("Failed to get image bounds from graphics:", error);
+  }
+
+  return {
+    width: shape.originalWidth,
+    height: shape.originalHeight,
+  };
+};
+
+/**
  * Updates image shape graphics
  */
 export const updateImageGraphics = (shape: ImageShape) => {
@@ -53,6 +77,18 @@ export const resizeImage = (
   shape.scaleY = newHeight / shape.originalHeight;
 
   updateImageGraphics(shape);
+};
+
+/**
+ * Gets the current scaled dimensions of an image
+ */
+export const getImageDimensions = (
+  shape: ImageShape
+): { width: number; height: number } => {
+  return {
+    width: shape.originalWidth * (shape.scaleX || 1),
+    height: shape.originalHeight * (shape.scaleY || 1),
+  };
 };
 
 /**

@@ -1,5 +1,12 @@
-import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import {
+  CanvasItem,
+  ContainerGroup,
+  PolygonShape,
+  ImageShape,
+  SVGShape,
+} from "../types";
 import { findParentContainer, transformPoint } from "../shapes";
+import * as PIXI from "pixi.js";
 
 export interface BoundingBox {
   x: number;
@@ -44,7 +51,7 @@ const getBoundsFromPoints = (
 };
 
 /**
- * Calculates bounds for shapes with corners (rectangle, text)
+ * Calculates bounds for shapes with corners (rectangle, text, image, svg)
  */
 const calculateCornerBasedBounds = (
   item: CanvasItem,
@@ -145,6 +152,26 @@ const calculatePolygonWorldBounds = (polygon: PolygonShape): BoundingBox => {
 };
 
 /**
+ * Helper function to calculate image bounds
+ */
+const calculateImageBounds = (image: ImageShape): BoundingBox => {
+  const scaledWidth = image.originalWidth * (image.scaleX || 1);
+  const scaledHeight = image.originalHeight * (image.scaleY || 1);
+
+  return calculateCornerBasedBounds(image, scaledWidth, scaledHeight);
+};
+
+/**
+ * Helper function to calculate SVG bounds
+ */
+const calculateSVGBounds = (svg: SVGShape): BoundingBox => {
+  const scaledWidth = svg.originalWidth * (svg.scaleX || 1);
+  const scaledHeight = svg.originalHeight * (svg.scaleY || 1);
+
+  return calculateCornerBasedBounds(svg, scaledWidth, scaledHeight);
+};
+
+/**
  * Calculate local bounds for different shape types
  */
 const calculateShapeLocalBounds = (item: CanvasItem): BoundingBox => {
@@ -183,6 +210,20 @@ const calculateShapeLocalBounds = (item: CanvasItem): BoundingBox => {
         Math.max(...xs),
         Math.max(...ys)
       );
+    }
+
+    case "image": {
+      const image = item as ImageShape;
+      const width = image.originalWidth;
+      const height = image.originalHeight;
+      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
+    }
+
+    case "svg": {
+      const svg = item as SVGShape;
+      const width = svg.originalWidth;
+      const height = svg.originalHeight;
+      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
     }
 
     default:
@@ -257,10 +298,7 @@ const calculateContainerChildrenWorldBounds = (
 
     // Regular shapes
     const childWorldTransform = calculateWorldTransform(child);
-    const childLocalBounds =
-      child.type === "polygon"
-        ? calculateShapeLocalBounds(child)
-        : calculateShapeLocalBounds(child);
+    const childLocalBounds = calculateShapeLocalBounds(child);
 
     return transformBoundsToWorld(childLocalBounds, childWorldTransform);
   });
@@ -322,6 +360,12 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     case "polygon":
       return calculatePolygonWorldBounds(item as PolygonShape);
 
+    case "image":
+      return calculateImageBounds(item as ImageShape);
+
+    case "svg":
+      return calculateSVGBounds(item as SVGShape);
+
     case "container": {
       const containerItem = item as ContainerGroup;
       if (containerItem.children.length === 0) {
@@ -336,7 +380,7 @@ export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
     }
 
     default:
-      return createBoundingBox(25, 25, 25, 25);
+      return createBoundingBox(-25, -25, 25, 25);
   }
 };
 
@@ -368,4 +412,47 @@ export const calculateGroupBounds = (items: CanvasItem[]): BoundingBox => {
     Math.max(...allXs),
     Math.max(...allYs)
   );
+};
+
+/**
+ * Gets the actual bounds from PIXI graphics for more accurate calculations
+ */
+export const getGraphicsBounds = (item: CanvasItem): BoundingBox | null => {
+  try {
+    let bounds;
+
+    if (item.graphics instanceof PIXI.Sprite) {
+      // For images/sprites
+      bounds = item.graphics.getBounds();
+    } else if (item.graphics instanceof PIXI.Graphics) {
+      // For SVG and other graphics
+      bounds = item.graphics.getBounds();
+    } else if (item.graphics instanceof PIXI.Text) {
+      // For text
+      bounds = item.graphics.getBounds();
+    } else if (item.graphics instanceof PIXI.Container) {
+      // For containers
+      bounds = item.graphics.getBounds();
+    } else {
+      return null;
+    }
+
+    return createBoundingBox(
+      bounds.x,
+      bounds.y,
+      bounds.x + bounds.width,
+      bounds.y + bounds.height
+    );
+  } catch (error) {
+    console.warn(`Failed to get graphics bounds for ${item.type}:`, error);
+    return calculateItemBounds(item);
+  }
+};
+
+/**
+ * Gets precise bounds using PIXI's built-in bounds calculation when available
+ */
+export const getPreciseBounds = (item: CanvasItem): BoundingBox => {
+  const graphicsBounds = getGraphicsBounds(item);
+  return graphicsBounds || calculateItemBounds(item);
 };
