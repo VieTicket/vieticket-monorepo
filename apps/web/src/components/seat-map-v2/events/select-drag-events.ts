@@ -137,8 +137,10 @@ export const startShapeDrag = (
   if (selectionTransform?.isCurrentlyTransforming) return;
 
   const isMultiSelect = event.ctrlKey || event.metaKey;
+  console.log("Starting drag for shape:", shape);
 
   if (isMultiSelect) {
+    console.log(shape);
     if (shape.selected) {
       const getAllSelectedIncludingNested = () => {
         const selectedShapes: CanvasItem[] = [];

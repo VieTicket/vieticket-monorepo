@@ -22,7 +22,7 @@ export const createText = (x: number, y: number, text: string): TextShape => {
 
   const shape: TextShape = {
     id: generateShapeId(),
-    name: `Text ${Date.now()}`,
+    name: `Text`,
     type: "text",
     graphics: textGraphics,
     x,

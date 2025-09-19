@@ -14,6 +14,7 @@ import {
   Folder,
   FolderOpen,
   Ungroup,
+  ImageIcon,
 } from "lucide-react";
 import { CanvasItem, ContainerGroup } from "../types";
 import { useSeatMapStore } from "../store/seat-map-store";
@@ -26,15 +27,25 @@ import {
   getItemsInContainers,
   addToGroup,
   removeFromGroup,
+  canGroupInSameContainer,
+  groupItemsInContainer,
+  createEmptyContainer,
 } from "../utils/grouping";
 import { getSelectionTransform } from "../events/transform-events";
 import { findShapeInContainer, findParentContainer } from "../shapes/index";
+import { ContextMenu } from "./context-menu";
 
 interface DragState {
   isDragging: boolean;
   draggedItemId: string | null;
   dragOverTarget: string | null;
   dragPosition: "above" | "below" | "inside" | null;
+}
+
+interface ContextMenuState {
+  isOpen: boolean;
+  x: number;
+  y: number;
 }
 
 export const CanvasInventory = React.memo(() => {
@@ -47,6 +58,12 @@ export const CanvasInventory = React.memo(() => {
     draggedItemId: null,
     dragOverTarget: null,
     dragPosition: null,
+  });
+
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
   });
 
   const shapes = useSeatMapStore((state) => state.shapes);
@@ -65,7 +82,10 @@ export const CanvasInventory = React.memo(() => {
     return shapes.filter((shape) => !itemsInContainers.has(shape.id));
   }, [shapes]);
 
-  // Find shape anywhere in the hierarchy
+  const canGroupSelectedInContainer = useMemo(() => {
+    return selectedShapes.length > 1 && canGroupInSameContainer(selectedShapes);
+  }, [selectedShapes]);
+
   const findShapeById = useCallback(
     (id: string): CanvasItem | null => {
       const findInShapes = (shapeList: CanvasItem[]): CanvasItem | null => {
@@ -87,7 +107,6 @@ export const CanvasInventory = React.memo(() => {
     [shapes]
   );
 
-  // Move item from one container to another or to root
   const moveItem = useCallback(
     (
       itemId: string,
@@ -101,7 +120,6 @@ export const CanvasInventory = React.memo(() => {
 
       if (!item) return;
 
-      // Prevent moving container into itself or its children
       if (item.type === "container" && targetContainer) {
         const isDescendant = (
           container: ContainerGroup,
@@ -121,7 +139,6 @@ export const CanvasInventory = React.memo(() => {
         }
       }
 
-      // Get current world coordinates before moving
       const getWorldCoordinates = (
         shape: CanvasItem
       ): { x: number; y: number } => {
@@ -130,7 +147,6 @@ export const CanvasInventory = React.memo(() => {
           return { x: shape.x, y: shape.y };
         }
 
-        // Walk up the container hierarchy to get world coordinates
         let worldX = shape.x;
         let worldY = shape.y;
         let currentContainer: ContainerGroup | null = parent;
@@ -144,51 +160,40 @@ export const CanvasInventory = React.memo(() => {
         return { x: worldX, y: worldY };
       };
 
-      // Store original world coordinates
       const originalWorldCoords = getWorldCoordinates(item);
 
-      // Remove item from current location
       const currentParent = findParentContainer(item);
       if (currentParent) {
         removeFromGroup(currentParent, [item]);
       } else {
-        // Remove from root shapes
         const rootIndex = shapes.findIndex((s) => s.id === item.id);
         if (rootIndex !== -1) {
           shapes.splice(rootIndex, 1);
         }
       }
 
-      // Add item to new location
       if (targetContainer && position === "inside") {
-        // Moving into a container
         addToGroup(targetContainer, [item]);
 
-        // Convert world coordinates to container-relative coordinates
         const targetWorldCoords = getWorldCoordinates(targetContainer);
         item.x = originalWorldCoords.x - targetWorldCoords.x;
         item.y = originalWorldCoords.y - targetWorldCoords.y;
 
-        // Update graphics position relative to container
         item.graphics.position.set(item.x, item.y);
 
-        // Expand the target container to show the moved item
         setExpandedContainers((prev) => new Set([...prev, targetContainer.id]));
       } else {
-        // Moving to root level or same level as target
         const targetParent = targetContainer
           ? findParentContainer(targetContainer)
           : null;
 
         if (targetParent) {
-          // Moving to same container as target
           addToGroup(targetParent, [item]);
           const targetParentWorldCoords = getWorldCoordinates(targetParent);
           item.x = originalWorldCoords.x - targetParentWorldCoords.x;
           item.y = originalWorldCoords.y - targetParentWorldCoords.y;
           item.graphics.position.set(item.x, item.y);
         } else {
-          // Moving to root level
           shapes.push(item);
           item.x = originalWorldCoords.x;
           item.y = originalWorldCoords.y;
@@ -201,7 +206,6 @@ export const CanvasInventory = React.memo(() => {
     [shapes, updateShapes, findShapeById]
   );
 
-  // Drag handlers
   const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", itemId);
@@ -226,8 +230,6 @@ export const CanvasInventory = React.memo(() => {
       const target = findShapeById(targetId);
       const isContainer = target?.type === "container";
 
-      // For containers, always show "inside" indicator
-      // For non-containers, don't show any indicator (items will be placed at same level)
       const position = isContainer ? "inside" : null;
 
       setDragState((prev) => ({
@@ -240,7 +242,6 @@ export const CanvasInventory = React.memo(() => {
   );
 
   const handleDragLeave = useCallback((e: React.DragEvent) => {
-    // Only clear if leaving the entire component, not just moving between child elements
     if (!e.currentTarget.contains(e.relatedTarget as Node)) {
       setDragState((prev) => ({
         ...prev,
@@ -269,10 +270,8 @@ export const CanvasInventory = React.memo(() => {
       const isContainer = target?.type === "container";
 
       if (isContainer) {
-        // Drop into container
         moveItem(draggedId, targetId, "inside");
       } else {
-        // Drop at same level as target (next to it)
         const targetParent = findParentContainer(target!);
         const targetParentId = targetParent ? targetParent.id : null;
         moveItem(draggedId, targetParentId, null);
@@ -297,7 +296,6 @@ export const CanvasInventory = React.memo(() => {
     });
   }, []);
 
-  // Drop on empty area (move to root)
   const handleContainerDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
@@ -305,7 +303,6 @@ export const CanvasInventory = React.memo(() => {
       const draggedId = dragState.draggedItemId;
       if (!draggedId) return;
 
-      // Only move to root if dropping on empty space
       if (e.target === e.currentTarget) {
         moveItem(draggedId, null, null);
       }
@@ -325,7 +322,23 @@ export const CanvasInventory = React.memo(() => {
     e.dataTransfer.dropEffect = "move";
   }, []);
 
-  // ... keep all existing handlers unchanged ...
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu({ isOpen: false, x: 0, y: 0 });
+  }, []);
+
+  const handleCreateEmptyContainer = useCallback(() => {
+    createEmptyContainer();
+  }, []);
+
   const handleShapePan = useCallback(
     (shapeId: string) => {
       const shape = shapes.find((s) => s.id === shapeId);
@@ -422,21 +435,27 @@ export const CanvasInventory = React.memo(() => {
   );
 
   const handleGroupItems = useCallback((items: CanvasItem[]) => {
-    if (!canGroup(items)) {
+    if (canGroupInSameContainer(items)) {
+      const container = groupItemsInContainer(items);
+      if (container) {
+        console.log("Items grouped within container");
+      }
+    } else if (canGroup(items)) {
+      const container = groupItems(items);
+      if (container) {
+        console.log("Items grouped at root level");
+      }
+    } else {
       console.warn(
-        "Cannot group these items - they may already be in containers or insufficient count"
+        "Cannot group these items - they may be in different containers or insufficient count"
       );
-      return;
-    }
-
-    const container = groupItems(items);
-    if (container) {
     }
   }, []);
 
   const handleUngroupItems = useCallback((container: ContainerGroup) => {
     const ungroupedItems = ungroupContainer(container);
     if (ungroupedItems.length > 0) {
+      console.log("Container ungrouped successfully");
     }
   }, []);
 
@@ -494,7 +513,7 @@ export const CanvasInventory = React.memo(() => {
     },
     [shapes, handleItemUpdate]
   );
-
+  // Add this to the getTypeIcon function in canvas-inventory.tsx
   const getTypeIcon = useCallback((type: string, isExpanded?: boolean) => {
     const iconProps = { className: "w-3 h-3" };
 
@@ -507,6 +526,10 @@ export const CanvasInventory = React.memo(() => {
         return <Type {...iconProps} />;
       case "polygon":
         return <Hexagon {...iconProps} />;
+      case "image":
+        return <ImageIcon {...iconProps} />;
+      case "svg":
+        return <ImageIcon {...iconProps} />;
       case "container":
         return isExpanded ? (
           <FolderOpen {...iconProps} />
@@ -518,6 +541,7 @@ export const CanvasInventory = React.memo(() => {
     }
   }, []);
 
+  // Add this to the getShapeColor function in canvas-inventory.tsx
   const getShapeColor = useCallback((shape: CanvasItem): string => {
     switch (shape.type) {
       case "rectangle":
@@ -528,6 +552,10 @@ export const CanvasInventory = React.memo(() => {
         return `#${shape.color?.toString(16).padStart(6, "0") || "9b59b6"}`;
       case "text":
         return `#${shape.color?.toString(16).padStart(6, "0") || "374151"}`;
+      case "image":
+        return "#8b5cf6";
+      case "svg":
+        return "#f59e0b";
       default:
         return "#6b7280";
     }
@@ -539,7 +567,6 @@ export const CanvasInventory = React.memo(() => {
         return "";
       }
 
-      // Only show highlight for containers when position is "inside"
       if (dragState.dragPosition === "inside") {
         return "bg-blue-500/20 border border-blue-500/50 rounded";
       }
@@ -686,22 +713,23 @@ export const CanvasInventory = React.memo(() => {
 
   const handleGroupSelected = useCallback(() => {
     if (selectedShapeIds.length > 1) {
-      const selectedItems = shapes.filter((shape) =>
-        selectedShapeIds.includes(shape.id)
-      );
-      handleGroupItems(selectedItems);
+      handleGroupItems(selectedShapes);
     }
-  }, [selectedShapeIds, shapes, handleGroupItems]);
+  }, [selectedShapeIds, selectedShapes, handleGroupItems]);
 
   const selectedCount = selectedShapeIds.length;
   const totalCount = shapes.length;
-  const canGroupSelected = selectedCount > 1 && canGroup(selectedShapes);
+
+  const canGroupSelected =
+    selectedCount > 1 &&
+    (canGroup(selectedShapes) || canGroupSelectedInContainer);
 
   return (
     <div
       className="bg-gray-900 text-white shadow z-10 w-64 flex flex-col border border-gray-700"
       onDragOver={handleDragOverContainer}
       onDrop={handleContainerDrop}
+      onContextMenu={handleContextMenu}
     >
       {/* Header */}
       <div className="p-3 border-b border-gray-700">
@@ -747,7 +775,18 @@ export const CanvasInventory = React.memo(() => {
         <div>Shift+Ctrl+Click to pan to item</div>
         <div>Drag to reorder/move between containers</div>
         <div>Select multiple items to group</div>
+        <div>Right-click to create empty container</div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.isOpen && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={handleCloseContextMenu}
+          onCreateEmptyContainer={handleCreateEmptyContainer}
+        />
+      )}
     </div>
   );
 });

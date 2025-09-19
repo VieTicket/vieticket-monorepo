@@ -94,6 +94,45 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
   return path;
 };
 
+/**
+ * Finds a shape by ID in the entire hierarchy (root + containers)
+ */
+const findShapeById = (
+  shapeId: string
+): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
+  // Check root level shapes first
+  const rootShape = shapes.find((shape) => shape.id === shapeId);
+  if (rootShape) {
+    return { shape: rootShape, parent: null };
+  }
+
+  // Search in containers recursively
+  const searchInContainer = (
+    container: ContainerGroup
+  ): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
+    for (const child of container.children) {
+      if (child.id === shapeId) {
+        return { shape: child, parent: container };
+      }
+
+      if (child.type === "container") {
+        const found = searchInContainer(child as ContainerGroup);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  for (const shape of shapes) {
+    if (shape.type === "container") {
+      const found = searchInContainer(shape as ContainerGroup);
+      if (found) return found;
+    }
+  }
+
+  return null;
+};
+
 export const findParentContainer = (
   targetShape: CanvasItem
 ): ContainerGroup | null => {
@@ -186,6 +225,41 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
       return pointInPolygon(localPoint, polygon.points);
     }
 
+    case "image": {
+      if (child.graphics instanceof PIXI.Sprite) {
+        const sprite = child.graphics;
+        const bounds = sprite.getLocalBounds();
+
+        // Adjust for anchor point (0.5, 0.5)
+        const adjustedX = localPoint.x + bounds.width / 2;
+        const adjustedY = localPoint.y + bounds.height / 2;
+
+        return (
+          adjustedX >= bounds.x &&
+          adjustedX <= bounds.x + bounds.width &&
+          adjustedY >= bounds.y &&
+          adjustedY <= bounds.y + bounds.height
+        );
+      }
+      return false;
+    }
+    case "svg": {
+      if (child.graphics instanceof PIXI.Graphics) {
+        try {
+          const bounds = child.graphics.getLocalBounds();
+          return (
+            localPoint.x >= bounds.x &&
+            localPoint.x <= bounds.x + bounds.width &&
+            localPoint.y >= bounds.y &&
+            localPoint.y <= bounds.y + bounds.height
+          );
+        } catch {
+          // Fallback to simple bounds check
+          return Math.abs(localPoint.x) <= 50 && Math.abs(localPoint.y) <= 50;
+        }
+      }
+      return false;
+    }
     case "container": {
       if (child.graphics instanceof PIXI.Container) {
         try {
@@ -349,39 +423,255 @@ export const clearAllSelections = () => {
   shapes.forEach(clearSelection);
 };
 
+/**
+ * Removes a shape from its parent container
+ */
+const removeShapeFromContainer = (
+  shape: CanvasItem,
+  parent: ContainerGroup
+) => {
+  const childIndex = parent.children.findIndex(
+    (child) => child.id === shape.id
+  );
+  if (childIndex !== -1) {
+    parent.children.splice(childIndex, 1);
+    parent.graphics.removeChild(shape.graphics);
+  }
+};
+
+/**
+ * Recursively collects all shapes including nested ones that match the predicate
+ */
+const collectShapesRecursively = (
+  shapesToCheck: CanvasItem[],
+  predicate: (shape: CanvasItem) => boolean | undefined
+): CanvasItem[] => {
+  const collected: CanvasItem[] = [];
+
+  const collectFromShape = (shape: CanvasItem) => {
+    if (predicate(shape)) {
+      collected.push(shape);
+    }
+
+    if (shape.type === "container") {
+      (shape as ContainerGroup).children.forEach(collectFromShape);
+    }
+  };
+
+  shapesToCheck.forEach(collectFromShape);
+  return collected;
+};
+
 export const deleteShape = (shapeId: string) => {
-  const shapeIndex = shapes.findIndex((shape) => shape.id === shapeId);
-  if (shapeIndex === -1) return;
-
-  const shape = shapes[shapeIndex];
-  const eventManager = getEventManager();
-
-  eventManager?.removeShapeEvents(shape);
-
-  if (shapeContainer) {
-    shapeContainer.removeChild(shape.graphics);
-    shape.graphics.destroy();
+  const result = findShapeById(shapeId);
+  if (!result) {
+    console.warn(`Shape with ID ${shapeId} not found`);
+    return;
   }
 
-  shapes.splice(shapeIndex, 1);
-  useSeatMapStore.getState().updateShapes(shapes);
+  const { shape, parent } = result;
+  const eventManager = getEventManager();
+
+  // Remove event listeners
+  eventManager?.removeShapeEvents(shape);
+
+  // If shape has children (container), recursively remove event listeners
+  if (shape.type === "container") {
+    const allNestedShapes = collectShapesRecursively([shape], () => true);
+    allNestedShapes.forEach((nestedShape) => {
+      eventManager?.removeShapeEvents(nestedShape);
+    });
+  }
+
+  if (parent) {
+    // Shape is inside a container - remove from parent
+    removeShapeFromContainer(shape, parent);
+  } else {
+    // Shape is at root level - remove from main shapes array
+    const shapeIndex = shapes.findIndex((s) => s.id === shapeId);
+    if (shapeIndex !== -1) {
+      shapes.splice(shapeIndex, 1);
+
+      // Remove from stage container
+      if (shapeContainer && shape.graphics.parent === shapeContainer) {
+        shapeContainer.removeChild(shape.graphics);
+      }
+    }
+  }
+
+  // Destroy graphics
+  shape.graphics.destroy();
+
+  // Update store
+  useSeatMapStore.getState().updateShapes([...shapes]);
+
+  // Remove from selected shapes if it was selected
+  const currentSelected = useSeatMapStore.getState().selectedShapes;
+  const updatedSelected = currentSelected.filter((s) => s.id !== shapeId);
+  if (updatedSelected.length !== currentSelected.length) {
+    useSeatMapStore.getState().setSelectedShapes(updatedSelected);
+  }
 };
 
 export const deleteShapes = () => {
   const eventManager = getEventManager();
+  const selectedShapesToDelete: Array<{
+    shape: CanvasItem;
+    parent: ContainerGroup | null;
+  }> = [];
 
-  shapes.forEach((shape) => {
-    if (shape.selected) {
-      eventManager?.removeShapeEvents(shape);
-      if (shapeContainer && shape.graphics.parent === shapeContainer) {
-        shapeContainer.removeChild(shape.graphics);
-      }
-      shape.graphics.destroy();
+  // Collect all selected shapes (including nested ones)
+  const allSelectedShapes = collectShapesRecursively(
+    shapes,
+    (shape) => shape.selected
+  );
+
+  // Find parent information for each selected shape
+  allSelectedShapes.forEach((shape) => {
+    const result = findShapeById(shape.id);
+    if (result) {
+      selectedShapesToDelete.push(result);
     }
   });
 
-  setShapes(shapes.filter((shape) => !shape.selected));
-  useSeatMapStore.getState().deleteShapes();
+  if (selectedShapesToDelete.length === 0) {
+    console.warn("No selected shapes to delete");
+    return;
+  }
+
+  // Remove event listeners from all shapes to be deleted
+  selectedShapesToDelete.forEach(({ shape }) => {
+    eventManager?.removeShapeEvents(shape);
+
+    // If shape is a container, remove listeners from all nested shapes
+    if (shape.type === "container") {
+      const allNestedShapes = collectShapesRecursively([shape], () => true);
+      allNestedShapes.forEach((nestedShape) => {
+        eventManager?.removeShapeEvents(nestedShape);
+      });
+    }
+  });
+
+  // Group deletions by parent to optimize container updates
+  const deletionsByParent = new Map<ContainerGroup | null, CanvasItem[]>();
+
+  selectedShapesToDelete.forEach(({ shape, parent }) => {
+    if (!deletionsByParent.has(parent)) {
+      deletionsByParent.set(parent, []);
+    }
+    deletionsByParent.get(parent)!.push(shape);
+  });
+
+  // Process deletions
+  deletionsByParent.forEach((shapesToDelete, parent) => {
+    if (parent) {
+      // Remove from container
+      shapesToDelete.forEach((shape) => {
+        removeShapeFromContainer(shape, parent);
+        shape.graphics.destroy();
+      });
+    } else {
+      // Remove from root level
+      shapesToDelete.forEach((shape) => {
+        const shapeIndex = shapes.findIndex((s) => s.id === shape.id);
+        if (shapeIndex !== -1) {
+          shapes.splice(shapeIndex, 1);
+
+          // Remove from stage container
+          if (shapeContainer && shape.graphics.parent === shapeContainer) {
+            shapeContainer.removeChild(shape.graphics);
+          }
+        }
+        shape.graphics.destroy();
+      });
+    }
+  });
+
+  // Update store
+  useSeatMapStore.getState().updateShapes([...shapes]);
+  useSeatMapStore.getState().setSelectedShapes([]);
+};
+
+/**
+ * Deletes shapes by their IDs (helper function for external use)
+ */
+export const deleteShapesByIds = (shapeIds: string[]) => {
+  if (shapeIds.length === 0) return;
+
+  const eventManager = getEventManager();
+  const shapesToDelete: Array<{
+    shape: CanvasItem;
+    parent: ContainerGroup | null;
+  }> = [];
+
+  // Find all shapes to delete
+  shapeIds.forEach((shapeId) => {
+    const result = findShapeById(shapeId);
+    if (result) {
+      shapesToDelete.push(result);
+    }
+  });
+
+  if (shapesToDelete.length === 0) {
+    console.warn("No shapes found with the provided IDs");
+    return;
+  }
+
+  // Remove event listeners
+  shapesToDelete.forEach(({ shape }) => {
+    eventManager?.removeShapeEvents(shape);
+
+    if (shape.type === "container") {
+      const allNestedShapes = collectShapesRecursively([shape], () => true);
+      allNestedShapes.forEach((nestedShape) => {
+        eventManager?.removeShapeEvents(nestedShape);
+      });
+    }
+  });
+
+  // Group deletions by parent
+  const deletionsByParent = new Map<ContainerGroup | null, CanvasItem[]>();
+
+  shapesToDelete.forEach(({ shape, parent }) => {
+    if (!deletionsByParent.has(parent)) {
+      deletionsByParent.set(parent, []);
+    }
+    deletionsByParent.get(parent)!.push(shape);
+  });
+
+  // Process deletions
+  deletionsByParent.forEach((shapes, parent) => {
+    if (parent) {
+      shapes.forEach((shape) => {
+        removeShapeFromContainer(shape, parent);
+        shape.graphics.destroy();
+      });
+    } else {
+      shapes.forEach((shape) => {
+        const shapeIndex = shapes.findIndex((s) => s.id === shape.id);
+        if (shapeIndex !== -1) {
+          shapes.splice(shapeIndex, 1);
+
+          if (shapeContainer && shape.graphics.parent === shapeContainer) {
+            shapeContainer.removeChild(shape.graphics);
+          }
+        }
+        shape.graphics.destroy();
+      });
+    }
+  });
+
+  // Update store
+  useSeatMapStore.getState().updateShapes([...shapes]);
+
+  // Remove deleted shapes from selection
+  const currentSelected = useSeatMapStore.getState().selectedShapes;
+  const updatedSelected = currentSelected.filter(
+    (shape) => !shapeIds.includes(shape.id)
+  );
+  if (updatedSelected.length !== currentSelected.length) {
+    useSeatMapStore.getState().setSelectedShapes(updatedSelected);
+  }
 };
 
 export const clearCanvas = () => {

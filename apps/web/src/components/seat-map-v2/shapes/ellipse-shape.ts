@@ -39,7 +39,7 @@ export const createEllipse = (
 
   const shape: EllipseShape = {
     id: generateShapeId(),
-    name: `Ellipse ${Date.now()}`,
+    name: `Ellipse`,
     type: "ellipse",
     graphics,
     x,

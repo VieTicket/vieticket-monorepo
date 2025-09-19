@@ -33,7 +33,7 @@ export const createPolygon = (
 
   const shape: PolygonShape = {
     id: generateShapeId(),
-    name: `Polygon ${Date.now()}`,
+    name: `Polygon`,
     type: "polygon",
     graphics,
     x: centerX,

@@ -12,7 +12,7 @@ export interface BaseCanvasItem {
   scaleX: number;
   scaleY: number;
   opacity: number;
-  graphics: PIXI.Graphics | PIXI.Text | PIXI.Container;
+  graphics: PIXI.Graphics | PIXI.Text | PIXI.Container | PIXI.Sprite;
 }
 
 // Shape-specific interfaces
@@ -58,6 +58,21 @@ export interface PolygonShape extends BaseCanvasItem {
   graphics: PIXI.Graphics;
 }
 
+export interface ImageShape extends BaseCanvasItem {
+  type: "image";
+  src: string;
+  originalWidth: number;
+  originalHeight: number;
+  graphics: PIXI.Sprite;
+}
+export interface SVGShape extends BaseCanvasItem {
+  type: "svg";
+  svgContent: string;
+  originalWidth: number;
+  originalHeight: number;
+  graphics: PIXI.Graphics;
+}
+
 export interface ContainerGroup extends BaseCanvasItem {
   type: "container";
   children: CanvasItem[];
@@ -71,6 +86,8 @@ export type CanvasItem =
   | EllipseShape
   | TextShape
   | PolygonShape
+  | ImageShape
+  | SVGShape
   | ContainerGroup;
 
 // Helper type for just shapes (excluding containers)
@@ -105,8 +122,6 @@ export interface ToolbarProps {
 export interface PolygonDrawingState {
   isDrawing: boolean;
   points: Array<{ x: number; y: number }>;
-
   previewPoints: Array<{ x: number; y: number }>;
-
   closeShape?: boolean;
 }

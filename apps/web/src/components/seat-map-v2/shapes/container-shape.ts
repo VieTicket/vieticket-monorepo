@@ -16,7 +16,7 @@ export const createContainer = (
 
   const container: ContainerGroup = {
     id: generateShapeId(),
-    name: name || `Container ${Date.now()}`,
+    name: name || `Container`,
     type: "container",
     graphics,
     x: 0,
