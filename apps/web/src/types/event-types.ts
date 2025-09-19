@@ -3,8 +3,6 @@ export interface EventFormData {
   type: string;
   ticketSaleStart: string;
   ticketSaleEnd: string;
-  startTime: string;
-  endTime: string;
   location: string;
   description: string;
   posterUrl: string;

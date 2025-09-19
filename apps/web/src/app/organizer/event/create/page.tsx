@@ -26,6 +26,7 @@ import type {
   TicketingMode,
   UploadResponse,
 } from "../../../../types/event-types";
+import { ShowingFormData } from "@/types/showings";
 
 export default function CreateEventPage() {
   return (
@@ -41,8 +42,6 @@ function CreateEventPageInner() {
     type: "",
     ticketSaleStart: "",
     ticketSaleEnd: "",
-    startTime: "",
-    endTime: "",
     location: "",
     description: "",
     posterUrl: "",
@@ -71,6 +70,13 @@ function CreateEventPageInner() {
   const [hasSeatMapChanges, setHasSeatMapChanges] = useState(false);
   const [confirmSeatMapUpdate, setConfirmSeatMapUpdate] = useState(false);
   const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
+  const [showings, setShowings] = useState<ShowingFormData[]>([
+    {
+      name: "Main Showing",
+      startTime: "",
+      endTime: "",
+    },
+  ]);
 
   // Load event data for editing
   useEffect(() => {
@@ -364,6 +370,7 @@ function CreateEventPageInner() {
             formData={formData}
             errors={errors}
             areas={areas}
+            showings={showings}
             onInputChange={handleChange}
             onDescriptionChange={(value) => {
               console.log(
@@ -372,6 +379,7 @@ function CreateEventPageInner() {
               );
               setFormData({ ...formData, description: value });
             }}
+            onShowingsChange={setShowings}
           />
         );
       case 2:
@@ -398,7 +406,7 @@ function CreateEventPageInner() {
           />
         );
       case 3:
-        return <PreviewStep formData={formData} />;
+        return <PreviewStep formData={formData} showings={showings} />;
       case 4:
         return (
           <TicketingStep
@@ -413,6 +421,7 @@ function CreateEventPageInner() {
             seatMapPreviewData={seatMapPreviewData}
             setSeatMapPreviewData={setSeatMapPreviewData}
             setShowSeatMapModal={setShowSeatMapModal}
+            showings={showings}
           />
         );
       default:
@@ -498,12 +507,26 @@ function CreateEventPageInner() {
 
               <input type="hidden" name="name" value={formData.name} />
               <input type="hidden" name="type" value={formData.type} />
-              <input
-                type="hidden"
-                name="startTime"
-                value={formData.startTime}
-              />
-              <input type="hidden" name="endTime" value={formData.endTime} />
+              {/* Add showings data */}
+              {showings.map((showing, index) => (
+                <div key={index}>
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].name`}
+                    value={showing.name}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].startTime`}
+                    value={showing.startTime}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].endTime`}
+                    value={showing.endTime}
+                  />
+                </div>
+              ))}
               <input
                 type="hidden"
                 name="ticketSaleStart"
