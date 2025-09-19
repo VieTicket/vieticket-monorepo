@@ -153,17 +153,6 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     item.x = relativeX;
     item.y = relativeY;
 
-    // Special handling for polygons - update points to be relative to new container
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x - bounds.centerX,
-        y: point.y - bounds.centerY,
-        radius: point.radius,
-      }));
-      updatePolygonGraphics(polygon);
-    }
-
     // Set graphics position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
@@ -296,17 +285,6 @@ export const groupItemsInContainer = (
     item.x = relativeX;
     item.y = relativeY;
 
-    // Special handling for polygons - update points to be relative to new container
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x - worldBounds.centerX,
-        y: point.y - worldBounds.centerY,
-        radius: point.radius,
-      }));
-      updatePolygonGraphics(polygon);
-    }
-
     // Set graphics position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
@@ -437,17 +415,6 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     child.scaleX = (child.scaleX || 1) * accumulatedTransforms.scaleX;
     child.scaleY = (child.scaleY || 1) * accumulatedTransforms.scaleY;
     child.opacity = (child.opacity || 1) * accumulatedTransforms.opacity;
-
-    // Special handling for polygons - update points array to world coordinates
-    if (child.type === "polygon") {
-      const polygon = child as PolygonShape;
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x + containerWorldX,
-        y: point.y + containerWorldY,
-        radius: point.radius,
-      }));
-      updatePolygonGraphics(polygon);
-    }
 
     // Remove from container
     container.graphics.removeChild(child.graphics);
@@ -605,18 +572,6 @@ export const addToGroup = (
     item.x = relativeX;
     item.y = relativeY;
 
-    // Special handling for polygons - update points array
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x - container.x,
-        y: point.y - container.y,
-        radius: point.radius,
-      }));
-
-      updatePolygonGraphics(polygon);
-    }
-
     // Set item position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
@@ -682,18 +637,6 @@ export const removeFromGroup = (
     item.scaleX = (item.scaleX || 1) * (container.scaleX || 1);
     item.scaleY = (item.scaleY || 1) * (container.scaleY || 1);
     item.opacity = (item.opacity || 1) * (container.opacity || 1);
-
-    // Special handling for polygons - update points array
-    if (item.type === "polygon") {
-      const polygon = item as PolygonShape;
-      polygon.points = polygon.points.map((point) => ({
-        x: point.x + containerWorldX,
-        y: point.y + containerWorldY,
-        radius: point.radius,
-      }));
-
-      updatePolygonGraphics(polygon);
-    }
 
     // Remove from container
     container.graphics.removeChild(item.graphics);
