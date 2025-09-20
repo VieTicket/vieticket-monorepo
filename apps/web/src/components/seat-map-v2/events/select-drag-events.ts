@@ -18,6 +18,7 @@ import {
   setDraggedShapes,
   setOriginalPositions,
   setOriginalPolygonPoints,
+  setShapes,
 } from "../variables";
 import {
   clearAllSelections,
@@ -27,6 +28,7 @@ import {
   findShapeAtPoint,
   findParentContainer,
   updatePolygonGraphics,
+  findShapeAtPointWithStrategy,
 } from "../shapes/index";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getSelectionTransform } from "./transform-events";
@@ -59,10 +61,14 @@ export const handleShapeSelection = (
     }
 
     const allSelectedShapes = getAllSelectedShapes();
-    useSeatMapStore.getState().setSelectedShapes(allSelectedShapes);
+
+    // ✅ Update selection without saving history
+    useSeatMapStore.getState().setSelectedShapes(allSelectedShapes, false);
   }
 
-  useSeatMapStore.getState().updateShapes([...shapes]);
+  // ✅ Update shapes without saving history
+  setShapes([...shapes]);
+  useSeatMapStore.getState().updateShapes([...shapes], false);
 
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
@@ -78,8 +84,11 @@ export const onStageClick = (event: PIXI.FederatedPointerEvent) => {
     clearAllSelections();
     setPreviouslyClickedShape(null);
     setSelectedContainer([]);
-    useSeatMapStore.getState().setSelectedShapes([]);
-    useSeatMapStore.getState().updateShapes([...shapes]);
+
+    // ✅ Clear selection without saving history
+    useSeatMapStore.getState().setSelectedShapes([], false);
+    setShapes([...shapes]);
+    useSeatMapStore.getState().updateShapes([...shapes], false);
 
     const selectionTransform = getSelectionTransform();
     if (selectionTransform) {
@@ -96,14 +105,14 @@ export const handleDoubleClick = (
     const container = shape as ContainerGroup;
     const newPath = [...selectedContainer, container];
     setSelectedContainer(newPath);
-    console.log("Entered container:", container);
     const hitChild = findTopmostChildAtPoint(container, event);
-    console.log("Hit child:", hitChild);
     clearAllSelections();
 
     if (hitChild) {
       hitChild.selected = true;
-      useSeatMapStore.getState().setSelectedShapes([hitChild]);
+
+      // ✅ Update selection without saving history
+      useSeatMapStore.getState().setSelectedShapes([hitChild], false);
 
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
@@ -112,7 +121,8 @@ export const handleDoubleClick = (
 
       setPreviouslyClickedShape(shape);
     } else {
-      useSeatMapStore.getState().setSelectedShapes([]);
+      // ✅ Clear selection without saving history
+      useSeatMapStore.getState().setSelectedShapes([], false);
 
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
@@ -121,7 +131,9 @@ export const handleDoubleClick = (
       setPreviouslyClickedShape(hitChild);
     }
 
-    useSeatMapStore.getState().updateShapes([...shapes]);
+    // ✅ Update shapes without saving history
+    setShapes([...shapes]);
+    useSeatMapStore.getState().updateShapes([...shapes], false);
   } else {
     handleShapeSelection(event, shape);
   }
@@ -137,10 +149,8 @@ export const startShapeDrag = (
   if (selectionTransform?.isCurrentlyTransforming) return;
 
   const isMultiSelect = event.ctrlKey || event.metaKey;
-  console.log("Starting drag for shape:", shape);
 
   if (isMultiSelect) {
-    console.log(shape);
     if (shape.selected) {
       const getAllSelectedIncludingNested = () => {
         const selectedShapes: CanvasItem[] = [];
@@ -169,8 +179,10 @@ export const startShapeDrag = (
     shape.selected = true;
     setDraggedShapes([shape]);
 
-    useSeatMapStore.getState().setSelectedShapes([shape]);
-    useSeatMapStore.getState().updateShapes([...shapes]);
+    // ✅ Update selection without saving history (drag already saved)
+    useSeatMapStore.getState().setSelectedShapes([shape], false);
+    setShapes([...shapes]);
+    useSeatMapStore.getState().updateShapes([...shapes], false);
 
     if (selectionTransform) {
       selectionTransform.updateSelection([shape]);
@@ -235,6 +247,13 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
 
         shape.graphics.position.set(shape.x, shape.y);
         updatePolygonGraphics(shape);
+      } else if (shape.type === "svg") {
+        // Special handling for SVG shapes due to pivot
+        shape.x = original.x + deltaX;
+        shape.y = original.y + deltaY;
+
+        // Update graphics position directly
+        shape.graphics.position.set(shape.x, shape.y);
       } else {
         shape.x = original.x + localDelta.x;
         shape.y = original.y + localDelta.y;
@@ -324,8 +343,9 @@ export const endShapeDrag = () => {
   setWasDragged(true);
 
   const selectedShapes = useSeatMapStore.getState().selectedShapes;
-  useSeatMapStore.getState().setSelectedShapes([...selectedShapes]);
-  useSeatMapStore.getState().updateShapes([...shapes]);
+  useSeatMapStore.getState().setSelectedShapes([...selectedShapes], true);
+  setShapes([...shapes]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
 };
 
 export const isCurrentlyShapeDragging = (): boolean => {
@@ -409,7 +429,11 @@ const resolveShapeForContext = (
   if (!currentContainer) {
     return clickedShape;
   }
+  const resolvedChild = findShapeAtPointWithStrategy(
+    currentContainer,
+    event,
+    "container-first"
+  );
 
-  const hitChild = findShapeAtPoint(event, currentContainer);
-  return hitChild || clickedShape;
+  return resolvedChild || clickedShape;
 };

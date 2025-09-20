@@ -1,14 +1,72 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import {
+  CanvasItem,
+  ContainerGroup,
+  ImageShape,
+  PolygonShape,
+  SVGShape,
+} from "../types";
 import {
   findParentContainer,
   generateShapeId,
   updatePolygonGraphics,
 } from "../shapes/index";
-import { shapeContainer, shapes, setShapes } from "../variables";
+import {
+  shapeContainer,
+  shapes,
+  setShapes,
+  selectedContainer,
+} from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
-import { calculateGroupBounds } from "./bounds";
+import { calculateGroupBounds, calculateItemBounds } from "./bounds";
+
+/**
+ * Helper function to check if a shape is inside a container (should not have individual events)
+ */
+const isShapeInsideContainer = (shape: CanvasItem): boolean => {
+  return findParentContainer(shape) !== null;
+};
+
+/**
+ * Helper function to check if we're currently inside a container context
+ */
+const isInContainerContext = (): boolean => {
+  return selectedContainer.length > 0;
+};
+
+/**
+ * Helper function to get the current container context
+ */
+const getCurrentContainerContext = (): ContainerGroup | null => {
+  return selectedContainer.length > 0
+    ? selectedContainer[selectedContainer.length - 1]
+    : null;
+};
+
+/**
+ * Helper function to safely add events only to shapes that should have them
+ */
+const safelyAddShapeEvents = (shape: CanvasItem): void => {
+  const eventManager = getEventManager();
+  if (!eventManager) return;
+
+  // Only add events if the shape is at root level or we're not in a container context
+  if (!isShapeInsideContainer(shape) || !isInContainerContext()) {
+    eventManager.addShapeEvents(shape);
+  }
+};
+
+/**
+ * Helper function to safely remove events from shapes
+ */
+const safelyRemoveShapeEvents = (shape: CanvasItem): void => {
+  const eventManager = getEventManager();
+  if (!eventManager) return;
+
+  // Always remove events when requested
+  eventManager.removeShapeEvents(shape);
+};
 
 /**
  * Helper function to calculate world coordinates for nested items
@@ -18,21 +76,17 @@ const calculateWorldCoordinates = (
   item: CanvasItem,
   containerPath: ContainerGroup[]
 ): { x: number; y: number } => {
-  // Start with the item's position relative to its immediate parent
   let worldX = item.x;
   let worldY = item.y;
 
-  // Apply transforms from each container in the hierarchy, starting from the innermost
   containerPath.forEach((currentContainer) => {
     const containerRotation = currentContainer.rotation || 0;
     const containerScaleX = currentContainer.scaleX || 1;
     const containerScaleY = currentContainer.scaleY || 1;
 
-    // Scale the relative position
     const scaledX = worldX * containerScaleX;
     const scaledY = worldY * containerScaleY;
 
-    // Rotate if necessary
     if (containerRotation !== 0) {
       const cos = Math.cos(containerRotation);
       const sin = Math.sin(containerRotation);
@@ -45,7 +99,6 @@ const calculateWorldCoordinates = (
       worldY = scaledY;
     }
 
-    // Add container's position
     worldX += currentContainer.x;
     worldY += currentContainer.y;
   });
@@ -61,13 +114,11 @@ const getFullContainerPath = (
 ): ContainerGroup[] => {
   const path: ContainerGroup[] = [];
 
-  // First, add the target container itself
   path.push(targetContainer);
 
-  // Then find all parent containers
   let currentContainer = findParentContainer(targetContainer);
   while (currentContainer) {
-    path.unshift(currentContainer); // Add to beginning to maintain order from root to target
+    path.unshift(currentContainer);
     currentContainer = findParentContainer(currentContainer);
   }
 
@@ -85,10 +136,8 @@ export const createContainerGroup = (
     throw new Error("Cannot create container from empty items array");
   }
 
-  // Calculate bounding box of all items
   const bounds = calculateGroupBounds(items);
 
-  // Create PIXI container
   const pixiContainer = new PIXI.Container();
   pixiContainer.eventMode = "static";
   pixiContainer.cursor = "pointer";
@@ -112,10 +161,42 @@ export const createContainerGroup = (
     expanded: true,
   };
 
-  // Set container position
   pixiContainer.position.set(containerGroup.x, containerGroup.y);
 
   return containerGroup;
+};
+
+/**
+ * Gets the actual world position of a shape, accounting for pivot points and anchors
+ */
+const getShapeWorldPosition = (shape: CanvasItem): { x: number; y: number } => {
+  if (shape.type === "svg") {
+    return { x: shape.x, y: shape.y };
+  } else if (shape.type === "image") {
+    return { x: shape.x, y: shape.y };
+  } else {
+    return { x: shape.x, y: shape.y };
+  }
+};
+
+/**
+ * Sets the relative position of a shape within a container, accounting for shape type
+ */
+const setShapeRelativePosition = (
+  shape: CanvasItem,
+  relativeX: number,
+  relativeY: number
+) => {
+  shape.x = relativeX;
+  shape.y = relativeY;
+
+  if (shape.type === "svg") {
+    shape.graphics.position.set(relativeX, relativeY);
+  } else if (shape.type === "image") {
+    shape.graphics.position.set(relativeX, relativeY);
+  } else {
+    shape.graphics.position.set(relativeX, relativeY);
+  }
 };
 
 /**
@@ -127,69 +208,57 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
     return null;
   }
 
-  const eventManager = getEventManager();
+  const itemsWithWorldPositions = items.map((item) => ({
+    ...item,
+    ...getShapeWorldPosition(item),
+  }));
 
-  // Create the container group
+  const bounds = calculateGroupBounds(itemsWithWorldPositions);
   const container = createContainerGroup(items);
-  const bounds = calculateGroupBounds(items);
 
-  // Remove items from their current parents and add to container
   items.forEach((item) => {
-    // Remove from stage container
+    // Remove from stage/parent container
     if (shapeContainer && item.graphics.parent === shapeContainer) {
       shapeContainer.removeChild(item.graphics);
     }
 
-    // Remove event listeners from individual items
-    if (eventManager) {
-      eventManager.removeShapeEvents(item);
-    }
+    // ✅ Always remove events from items being grouped
+    safelyRemoveShapeEvents(item);
 
-    // Calculate relative position to container center
-    const relativeX = item.x - bounds.centerX;
-    const relativeY = item.y - bounds.centerY;
+    const worldPos = getShapeWorldPosition(item);
+    const relativeX = worldPos.x - bounds.centerX;
+    const relativeY = worldPos.y - bounds.centerY;
 
-    // Update the item's coordinates to be relative to container
-    item.x = relativeX;
-    item.y = relativeY;
+    setShapeRelativePosition(item, relativeX, relativeY);
 
-    // Set graphics position relative to container
-    item.graphics.position.set(relativeX, relativeY);
-
-    // Add to container
     container.graphics.addChild(item.graphics);
     container.children.push(item);
-
-    // Clear individual selection
     item.selected = false;
   });
 
-  // Add container to stage
+  container.x = bounds.centerX;
+  container.y = bounds.centerY;
+  container.graphics.position.set(container.x, container.y);
+
   if (shapeContainer) {
     shapeContainer.addChild(container.graphics);
   }
 
-  // Add event listeners to container
-  if (eventManager) {
-    eventManager.addShapeEvents(container);
-  }
+  // ✅ Only add events to container if it's at root level or not in container context
+  safelyAddShapeEvents(container);
 
-  // Update the shapes array in variables.ts
   const newShapes = shapes.filter(
     (shape) => !items.some((item) => item.id === shape.id)
   );
   newShapes.push(container);
 
-  // Update variables.ts shapes array
   setShapes(newShapes);
 
-  // Update store for UI reactivity
   useSeatMapStore.getState().setSelectedShapes([container]);
-  useSeatMapStore.getState().updateShapes(newShapes);
+  useSeatMapStore.getState().updateShapes(newShapes, true);
 
   return container;
 };
-
 /**
  * Groups items that are within the same container
  */
@@ -202,53 +271,43 @@ export const groupItemsInContainer = (
   }
 
   const parentContainer = findParentContainer(items[0]);
-  const eventManager = getEventManager();
 
-  // Calculate world coordinates for all items first
-  const itemsWithWorldCoords = items.map((item) => {
-    let worldX = item.x;
-    let worldY = item.y;
+  // ✅ Calculate bounds relative to the parent container, not the stage
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
 
-    if (parentContainer) {
-      // Convert from parent container's local space to world space
-      const containerPath = getFullContainerPath(parentContainer);
-      const worldCoords = calculateWorldCoordinates(item, containerPath);
-      worldX = worldCoords.x;
-      worldY = worldCoords.y;
-    }
+  items.forEach((item) => {
+    // Use the item's current position (which is already relative to parent container)
+    const itemBounds = calculateItemBounds(item);
 
-    return {
-      item,
-      worldX,
-      worldY,
-    };
+    // Since items are already in container coordinates, use their relative positions
+    const itemCenterX = item.x;
+    const itemCenterY = item.y;
+
+    // Estimate item dimensions (this could be improved with actual bounds calculation)
+    const halfWidth = itemBounds.width / 2;
+    const halfHeight = itemBounds.height / 2;
+
+    minX = Math.min(minX, itemCenterX - halfWidth);
+    minY = Math.min(minY, itemCenterY - halfHeight);
+    maxX = Math.max(maxX, itemCenterX + halfWidth);
+    maxY = Math.max(maxY, itemCenterY + halfHeight);
   });
 
-  // Calculate bounds in world space
-  const worldBounds = calculateGroupBounds(
-    itemsWithWorldCoords.map(({ item, worldX, worldY }) => ({
-      ...item,
-      x: worldX,
-      y: worldY,
-    }))
-  );
+  // ✅ Calculate group center in parent container's coordinate system
+  const groupCenterX = (minX + maxX) / 2;
+  const groupCenterY = (minY + maxY) / 2;
 
-  // Create the container group
   const container = createContainerGroup(items);
 
-  // Set container position relative to parent container
-  if (parentContainer) {
-    container.x = worldBounds.centerX - parentContainer.x;
-    container.y = worldBounds.centerY - parentContainer.y;
-  } else {
-    container.x = worldBounds.centerX;
-    container.y = worldBounds.centerY;
-  }
+  // ✅ Set container position relative to parent container (not stage)
+  container.x = groupCenterX;
+  container.y = groupCenterY;
 
-  // Remove items from their current parent and add to new container
   items.forEach((item) => {
     if (parentContainer) {
-      // Remove from parent container
       const childIndex = parentContainer.children.findIndex(
         (child) => child.id === item.id
       );
@@ -257,7 +316,6 @@ export const groupItemsInContainer = (
         parentContainer.graphics.removeChild(item.graphics);
       }
     } else {
-      // Remove from root shapes
       const shapeIndex = shapes.findIndex((shape) => shape.id === item.id);
       if (shapeIndex !== -1) {
         shapes.splice(shapeIndex, 1);
@@ -267,43 +325,30 @@ export const groupItemsInContainer = (
       }
     }
 
-    // Remove event listeners from individual items
-    if (eventManager) {
-      eventManager.removeShapeEvents(item);
-    }
+    // ✅ Always remove events from items being grouped inside containers
+    safelyRemoveShapeEvents(item);
 
-    // Find the world coordinates for this item
-    const itemWithWorldCoords = itemsWithWorldCoords.find(
-      (iwc) => iwc.item.id === item.id
-    )!;
+    // ✅ Calculate relative position within the new container
+    // Since both the container and items are in the same coordinate system (parent container),
+    // we can directly calculate the relative positions
+    const relativeX = item.x - container.x;
+    const relativeY = item.y - container.y;
 
-    // Calculate relative position to new container center
-    const relativeX = itemWithWorldCoords.worldX - worldBounds.centerX;
-    const relativeY = itemWithWorldCoords.worldY - worldBounds.centerY;
-
-    // Update the item's coordinates to be relative to new container
     item.x = relativeX;
     item.y = relativeY;
-
-    // Set graphics position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
-    // Add to container
     container.graphics.addChild(item.graphics);
     container.children.push(item);
-
-    // Clear individual selection
     item.selected = false;
   });
 
-  // Add container to the appropriate parent
   if (parentContainer) {
-    // Add to parent container
+    // ✅ Position container relative to parent container
     container.graphics.position.set(container.x, container.y);
     parentContainer.graphics.addChild(container.graphics);
     parentContainer.children.push(container);
   } else {
-    // Add to root level
     container.graphics.position.set(container.x, container.y);
     if (shapeContainer) {
       shapeContainer.addChild(container.graphics);
@@ -311,21 +356,280 @@ export const groupItemsInContainer = (
     shapes.push(container);
   }
 
-  // Add event listeners to container
-  if (eventManager) {
-    eventManager.addShapeEvents(container);
+  // ✅ Check if we should add events to the new container
+  const shouldAddEvents =
+    !isInContainerContext() ||
+    (parentContainer && getCurrentContainerContext() === parentContainer);
+
+  if (shouldAddEvents) {
+    safelyAddShapeEvents(container);
   }
 
-  // Update variables.ts shapes array
   setShapes([...shapes]);
 
-  // Update store for UI reactivity
   useSeatMapStore.getState().setSelectedShapes([container]);
-  useSeatMapStore.getState().updateShapes([...shapes]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
 
   return container;
 };
 
+/**
+ * Helper function to get item bounds in its current coordinate system
+ */
+const getItemBoundsInCurrentSpace = (
+  item: CanvasItem
+): { minX: number; minY: number; maxX: number; maxY: number } => {
+  let width = 0;
+  let height = 0;
+
+  switch (item.type) {
+    case "rectangle":
+      width = item.width;
+      height = item.height;
+      break;
+    case "ellipse":
+      width = item.radiusX * 2;
+      height = item.radiusY * 2;
+      break;
+    case "text":
+      width = item.fontSize * item.text.length * 0.6;
+      height = item.fontSize;
+      break;
+    case "polygon":
+      const polygon = item as PolygonShape;
+      const xs = polygon.points.map((p) => p.x);
+      const ys = polygon.points.map((p) => p.y);
+      width = Math.max(...xs) - Math.min(...xs);
+      height = Math.max(...ys) - Math.min(...ys);
+      break;
+    case "image":
+      const image = item as ImageShape;
+      width = image.originalWidth;
+      height = image.originalHeight;
+      break;
+    case "svg":
+      const svg = item as SVGShape;
+      width = svg.originalWidth;
+      height = svg.originalHeight;
+      break;
+    case "container":
+      const containerBounds = calculateItemBounds(item);
+      width = containerBounds.width;
+      height = containerBounds.height;
+      break;
+    default:
+      width = 50;
+      height = 50;
+  }
+
+  // Apply scale
+  width *= item.scaleX || 1;
+  height *= item.scaleY || 1;
+
+  return {
+    minX: item.x - width / 2,
+    minY: item.y - height / 2,
+    maxX: item.x + width / 2,
+    maxY: item.y + height / 2,
+  };
+};
+
+/**
+ * Improved version of groupItemsInContainer with better bounds calculation
+ */
+export const groupItemsInContainerImproved = (
+  items: CanvasItem[]
+): ContainerGroup | null => {
+  if (!canGroupInSameContainer(items)) {
+    console.warn("Items are not in the same container");
+    return null;
+  }
+
+  const parentContainer = findParentContainer(items[0]);
+
+  // ✅ Calculate bounds in the current coordinate system (parent container space)
+  let minX = Infinity,
+    minY = Infinity,
+    maxX = -Infinity,
+    maxY = -Infinity;
+
+  items.forEach((item) => {
+    const bounds = getItemBoundsInCurrentSpace(item);
+    minX = Math.min(minX, bounds.minX);
+    minY = Math.min(minY, bounds.minY);
+    maxX = Math.max(maxX, bounds.maxX);
+    maxY = Math.max(maxY, bounds.maxY);
+  });
+
+  // ✅ Group center in parent container's coordinate system
+  const groupCenterX = (minX + maxX) / 2;
+  const groupCenterY = (minY + maxY) / 2;
+
+  const container = createContainerGroup(items);
+
+  // ✅ Container position is relative to parent container
+  container.x = groupCenterX;
+  container.y = groupCenterY;
+
+  items.forEach((item) => {
+    // Remove from current parent
+    if (parentContainer) {
+      const childIndex = parentContainer.children.findIndex(
+        (child) => child.id === item.id
+      );
+      if (childIndex !== -1) {
+        parentContainer.children.splice(childIndex, 1);
+        parentContainer.graphics.removeChild(item.graphics);
+      }
+    } else {
+      const shapeIndex = shapes.findIndex((shape) => shape.id === item.id);
+      if (shapeIndex !== -1) {
+        shapes.splice(shapeIndex, 1);
+      }
+      if (shapeContainer && item.graphics.parent === shapeContainer) {
+        shapeContainer.removeChild(item.graphics);
+      }
+    }
+
+    // Remove events from grouped items
+    safelyRemoveShapeEvents(item);
+
+    // ✅ Calculate position relative to new container center
+    const relativeX = item.x - groupCenterX;
+    const relativeY = item.y - groupCenterY;
+
+    item.x = relativeX;
+    item.y = relativeY;
+    item.graphics.position.set(relativeX, relativeY);
+
+    container.graphics.addChild(item.graphics);
+    container.children.push(item);
+    item.selected = false;
+  });
+
+  // Add container to appropriate parent
+  if (parentContainer) {
+    container.graphics.position.set(container.x, container.y);
+    parentContainer.graphics.addChild(container.graphics);
+    parentContainer.children.push(container);
+  } else {
+    container.graphics.position.set(container.x, container.y);
+    if (shapeContainer) {
+      shapeContainer.addChild(container.graphics);
+    }
+    shapes.push(container);
+  }
+
+  // Add events if appropriate
+  const shouldAddEvents =
+    !isInContainerContext() ||
+    (parentContainer && getCurrentContainerContext() === parentContainer);
+
+  if (shouldAddEvents) {
+    safelyAddShapeEvents(container);
+  }
+
+  setShapes([...shapes]);
+  useSeatMapStore.getState().setSelectedShapes([container]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
+
+  return container;
+};
+
+/**
+ * Alternative approach using relative coordinate calculation
+ */
+export const groupItemsInContainerRelative = (
+  items: CanvasItem[]
+): ContainerGroup | null => {
+  if (!canGroupInSameContainer(items)) {
+    console.warn("Items are not in the same container");
+    return null;
+  }
+
+  const parentContainer = findParentContainer(items[0]);
+
+  // ✅ Work entirely in the local coordinate system
+  const itemPositions = items.map((item) => ({
+    item,
+    x: item.x, // Already in parent container coordinates
+    y: item.y, // Already in parent container coordinates
+  }));
+
+  // Calculate bounds in local space
+  const xs = itemPositions.map((ip) => ip.x);
+  const ys = itemPositions.map((ip) => ip.y);
+  const centerX = (Math.min(...xs) + Math.max(...xs)) / 2;
+  const centerY = (Math.min(...ys) + Math.max(...ys)) / 2;
+
+  const container = createContainerGroup(items);
+
+  // ✅ Container position in parent coordinate system
+  container.x = centerX;
+  container.y = centerY;
+
+  items.forEach((item) => {
+    // Remove from current location
+    if (parentContainer) {
+      const childIndex = parentContainer.children.findIndex(
+        (child) => child.id === item.id
+      );
+      if (childIndex !== -1) {
+        parentContainer.children.splice(childIndex, 1);
+        parentContainer.graphics.removeChild(item.graphics);
+      }
+    } else {
+      const shapeIndex = shapes.findIndex((shape) => shape.id === item.id);
+      if (shapeIndex !== -1) {
+        shapes.splice(shapeIndex, 1);
+      }
+      if (shapeContainer && item.graphics.parent === shapeContainer) {
+        shapeContainer.removeChild(item.graphics);
+      }
+    }
+
+    safelyRemoveShapeEvents(item);
+
+    // ✅ Position relative to new container (simple subtraction)
+    const originalX = item.x;
+    const originalY = item.y;
+
+    item.x = originalX - centerX;
+    item.y = originalY - centerY;
+    item.graphics.position.set(item.x, item.y);
+
+    container.graphics.addChild(item.graphics);
+    container.children.push(item);
+    item.selected = false;
+  });
+
+  // Add to parent
+  if (parentContainer) {
+    container.graphics.position.set(container.x, container.y);
+    parentContainer.graphics.addChild(container.graphics);
+    parentContainer.children.push(container);
+  } else {
+    container.graphics.position.set(container.x, container.y);
+    if (shapeContainer) {
+      shapeContainer.addChild(container.graphics);
+    }
+    shapes.push(container);
+  }
+
+  const shouldAddEvents =
+    !isInContainerContext() ||
+    (parentContainer && getCurrentContainerContext() === parentContainer);
+
+  if (shouldAddEvents) {
+    safelyAddShapeEvents(container);
+  }
+
+  setShapes([...shapes]);
+  useSeatMapStore.getState().setSelectedShapes([container]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
+
+  return container;
+};
 /**
  * Creates an empty container at a specific position
  */
@@ -342,7 +646,7 @@ export const createEmptyContainer = (name?: string): ContainerGroup => {
     visible: true,
     locked: false,
     selected: false,
-    x: 100, // Default position
+    x: 100,
     y: 100,
     rotation: 0,
     scaleX: 1,
@@ -353,26 +657,21 @@ export const createEmptyContainer = (name?: string): ContainerGroup => {
     expanded: true,
   };
 
-  // Set container position
   pixiContainer.position.set(container.x, container.y);
 
-  // Add to stage
   if (shapeContainer) {
     shapeContainer.addChild(pixiContainer);
   }
 
-  // Add event listeners
-  const eventManager = getEventManager();
-  if (eventManager) {
-    eventManager.addShapeEvents(container);
+  // ✅ Only add events if not in container context
+  if (!isInContainerContext()) {
+    safelyAddShapeEvents(container);
   }
 
-  // Add to shapes array
   shapes.push(container);
   setShapes([...shapes]);
 
-  // Update store
-  useSeatMapStore.getState().updateShapes([...shapes]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
   useSeatMapStore.getState().setSelectedShapes([container]);
 
   return container;
@@ -387,13 +686,9 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     return [];
   }
 
-  const eventManager = getEventManager();
   const ungroupedItems: CanvasItem[] = [];
-
-  // Find if this container is nested inside another container
   const parentContainer = findParentContainer(container);
 
-  // Calculate container's world coordinates
   let containerWorldX = container.x;
   let containerWorldY = container.y;
 
@@ -405,71 +700,60 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
   }
 
   container.children.forEach((child) => {
-    // Calculate the child's world coordinates
     const childWorldX = containerWorldX + child.x;
     const childWorldY = containerWorldY + child.y;
 
-    // Apply container's transforms to child
     const accumulatedTransforms = getAccumulatedContainerTransforms(container);
     child.rotation = (child.rotation || 0) + accumulatedTransforms.rotation;
     child.scaleX = (child.scaleX || 1) * accumulatedTransforms.scaleX;
     child.scaleY = (child.scaleY || 1) * accumulatedTransforms.scaleY;
     child.opacity = (child.opacity || 1) * accumulatedTransforms.opacity;
 
-    // Remove from container
     container.graphics.removeChild(child.graphics);
 
-    // Determine where to place the child
     if (parentContainer) {
-      // If the container was nested, add children to the parent container
-      // Convert world coordinates to parent container's local coordinates
       child.x = childWorldX - parentContainer.x;
       child.y = childWorldY - parentContainer.y;
 
-      // Adjust child's transforms relative to parent
       child.rotation = (child.rotation || 0) - (parentContainer.rotation || 0);
       child.scaleX = (child.scaleX || 1) / (parentContainer.scaleX || 1);
       child.scaleY = (child.scaleY || 1) / (parentContainer.scaleY || 1);
       child.opacity = (child.opacity || 1) / (parentContainer.opacity || 1);
 
-      // Set graphics position and transforms
-      child.graphics.position.set(child.x, child.y);
-      child.graphics.rotation = child.rotation || 0;
-      child.graphics.scale.set(child.scaleX || 1, child.scaleY || 1);
-      child.graphics.alpha = child.opacity || 1;
+      updateShapeGraphicsAfterUngroup(child);
 
-      // Add to parent container
       parentContainer.graphics.addChild(child.graphics);
       parentContainer.children.push(child);
+
+      // ✅ Check if child should have events when moved to parent container
+      // Only add events if the parent container is the current context
+      const shouldAddEvents = getCurrentContainerContext() === parentContainer;
+      if (shouldAddEvents) {
+        safelyAddShapeEvents(child);
+      }
     } else {
-      // If the container was at root level, add children to stage
       child.x = childWorldX;
       child.y = childWorldY;
 
-      // Set graphics position and transforms
-      child.graphics.position.set(child.x, child.y);
-      child.graphics.rotation = child.rotation || 0;
-      child.graphics.scale.set(child.scaleX || 1, child.scaleY || 1);
-      child.graphics.alpha = child.opacity || 1;
+      updateShapeGraphicsAfterUngroup(child);
 
       if (shapeContainer) {
         shapeContainer.addChild(child.graphics);
       }
-      // Add to root shapes array
-      shapes.push(child);
-    }
 
-    // Add event listeners back to individual items
-    if (eventManager) {
-      eventManager.addShapeEvents(child);
+      shapes.push(child);
+
+      // ✅ Add events only if we're not in a container context (root level)
+      if (!isInContainerContext()) {
+        safelyAddShapeEvents(child);
+      }
     }
 
     ungroupedItems.push(child);
   });
 
-  // Remove container from its parent
+  // Remove the container
   if (parentContainer) {
-    // Remove from parent container
     const childIndex = parentContainer.children.findIndex(
       (child) => child.id === container.id
     );
@@ -478,7 +762,6 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     }
     parentContainer.graphics.removeChild(container.graphics);
   } else {
-    // Remove from root level
     const shapeIndex = shapes.findIndex((shape) => shape.id === container.id);
     if (shapeIndex !== -1) {
       shapes.splice(shapeIndex, 1);
@@ -488,22 +771,38 @@ export const ungroupContainer = (container: ContainerGroup): CanvasItem[] => {
     }
   }
 
-  // Remove event listeners from container
-  if (eventManager) {
-    eventManager.removeShapeEvents(container);
-  }
-
-  // Destroy container graphics
+  // ✅ Always remove events from the container being destroyed
+  safelyRemoveShapeEvents(container);
   container.graphics.destroy();
 
-  // Update variables.ts shapes array
   setShapes([...shapes]);
 
-  // Update store for UI reactivity with proper selection
   useSeatMapStore.getState().setSelectedShapes(ungroupedItems);
-  useSeatMapStore.getState().updateShapes([...shapes]);
+  useSeatMapStore.getState().updateShapes([...shapes], true);
 
   return ungroupedItems;
+};
+
+/**
+ * Helper function to update shape graphics after ungrouping
+ */
+const updateShapeGraphicsAfterUngroup = (shape: CanvasItem) => {
+  if (shape.type === "svg") {
+    const svgShape = shape as SVGShape;
+    import("../shapes/svg-shape").then(({ updateSVGGraphics }) => {
+      updateSVGGraphics(svgShape);
+    });
+  } else if (shape.type === "image") {
+    const imageShape = shape as ImageShape;
+    import("../shapes/image-shape").then(({ updateImageGraphics }) => {
+      updateImageGraphics(imageShape);
+    });
+  } else {
+    shape.graphics.position.set(shape.x, shape.y);
+    shape.graphics.rotation = shape.rotation || 0;
+    shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+    shape.graphics.alpha = shape.opacity || 1;
+  }
 };
 
 /**
@@ -515,7 +814,6 @@ const getAccumulatedContainerTransforms = (container: ContainerGroup) => {
   let accumulatedScaleY = container.scaleY || 1;
   let accumulatedOpacity = container.opacity || 1;
 
-  // Walk up the container hierarchy
   let currentContainer = findParentContainer(container);
   while (currentContainer) {
     accumulatedRotation += currentContainer.rotation || 0;
@@ -546,52 +844,42 @@ export const addToGroup = (
     return;
   }
 
-  const eventManager = getEventManager();
-
   items.forEach((item) => {
-    // Skip if item is already in the container
     if (container.children.some((child) => child.id === item.id)) {
       return;
     }
 
-    // Remove from stage container
     if (shapeContainer && item.graphics.parent === shapeContainer) {
       shapeContainer.removeChild(item.graphics);
     }
 
-    // Remove event listeners from individual item
-    if (eventManager) {
-      eventManager.removeShapeEvents(item);
-    }
+    // ✅ Remove events from items being added to group
+    safelyRemoveShapeEvents(item);
 
-    // Calculate relative position to container
     const relativeX = item.x - container.x;
     const relativeY = item.y - container.y;
 
-    // Update item position
     item.x = relativeX;
     item.y = relativeY;
-
-    // Set item position relative to container
     item.graphics.position.set(relativeX, relativeY);
 
-    // Add to container
     container.graphics.addChild(item.graphics);
     container.children.push(item);
-
-    // Clear individual selection
     item.selected = false;
   });
 
-  // Update the shapes array in variables.ts
   const newShapes = shapes.filter(
     (shape) => !items.some((item) => item.id === shape.id)
   );
 
-  // Update variables.ts shapes array
   setShapes(newShapes);
+  useSeatMapStore.getState().updateShapes([...newShapes], true);
+  useSeatMapStore.getState().setSelectedShapes([container]);
 };
 
+/**
+ * Removes items from a container group
+ */
 export const removeFromGroup = (
   container: ContainerGroup,
   items: CanvasItem[]
@@ -601,10 +889,8 @@ export const removeFromGroup = (
     return;
   }
 
-  const eventManager = getEventManager();
   const removedItems: CanvasItem[] = [];
 
-  // Calculate container's world coordinates
   let containerWorldX = container.x;
   let containerWorldY = container.y;
 
@@ -621,51 +907,44 @@ export const removeFromGroup = (
       (child) => child.id === item.id
     );
     if (childIndex === -1) {
-      return; // Item not in container
+      return;
     }
 
-    // Calculate world position
     const worldX = containerWorldX + item.x;
     const worldY = containerWorldY + item.y;
 
-    // Update item's world position
     item.x = worldX;
     item.y = worldY;
 
-    // Apply container's transforms
     item.rotation = (item.rotation || 0) + (container.rotation || 0);
     item.scaleX = (item.scaleX || 1) * (container.scaleX || 1);
     item.scaleY = (item.scaleY || 1) * (container.scaleY || 1);
     item.opacity = (item.opacity || 1) * (container.opacity || 1);
 
-    // Remove from container
     container.graphics.removeChild(item.graphics);
     container.children.splice(childIndex, 1);
 
-    // Set absolute position and transforms
     item.graphics.position.set(item.x, item.y);
     item.graphics.rotation = item.rotation;
     item.graphics.scale.set(item.scaleX, item.scaleY);
     item.graphics.alpha = item.opacity;
 
-    // Add back to stage
     if (shapeContainer) {
       shapeContainer.addChild(item.graphics);
     }
 
-    // Add event listeners back
-    if (eventManager) {
-      eventManager.addShapeEvents(item);
+    // ✅ Add events only if not in container context
+    if (!isInContainerContext()) {
+      safelyAddShapeEvents(item);
     }
 
     removedItems.push(item);
   });
 
-  // Update the shapes array in variables.ts
   const newShapes = [...shapes, ...removedItems];
-
-  // Update variables.ts shapes array
   setShapes(newShapes);
+  useSeatMapStore.getState().updateShapes([...newShapes], true);
+  useSeatMapStore.getState().setSelectedShapes([]);
 };
 
 /**
@@ -674,7 +953,6 @@ export const removeFromGroup = (
 export const canGroup = (items: CanvasItem[]): boolean => {
   if (items.length < 2) return false;
 
-  // Check if any item is already in a container using the shapes from variables.ts
   const itemsInContainers = new Set<string>();
 
   shapes.forEach((shape) => {
@@ -691,7 +969,6 @@ export const canGroup = (items: CanvasItem[]): boolean => {
     }
   });
 
-  // All items must be at root level (not in any container)
   return items.every((item) => !itemsInContainers.has(item.id));
 };
 
@@ -701,11 +978,9 @@ export const canGroup = (items: CanvasItem[]): boolean => {
 export const canGroupInSameContainer = (items: CanvasItem[]): boolean => {
   if (items.length < 2) return false;
 
-  // Check if all items are in the same container (or all at root level)
   const parentContainers = items.map((item) => findParentContainer(item));
   const firstParent = parentContainers[0];
 
-  // All items must have the same parent (null for root level, or same container)
   return parentContainers.every(
     (parent) =>
       (parent === null && firstParent === null) ||

@@ -3,7 +3,7 @@ import { stage, zoom, pan, setZoom, setPan, pixiApp } from "../variables";
 import { updateStageTransform } from "../utils/stageTransform";
 
 export const onStageWheel = (event: PIXI.FederatedWheelEvent) => {
-  event.preventDefault();
+  event.stopPropagation();
 
   if (!stage || !pixiApp) return;
 

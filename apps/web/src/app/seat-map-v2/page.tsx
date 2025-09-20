@@ -19,6 +19,7 @@ import {
 import {
   createSelectionTransform,
   destroySelectionTransform,
+  getSelectionTransform,
 } from "@/components/seat-map-v2/events/transform-events";
 import {
   createEventManager,
@@ -40,11 +41,43 @@ const SeatMapV2Page = () => {
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
 
   const shapesCount = useSeatMapStore((state) => state.shapes.length);
-
   useEffect(() => {
     setCurrentTool(selectedTool);
+    const selectionTransform = getSelectionTransform();
+    selectionTransform?.updateSelection([]);
   }, [selectedTool]);
+  // Prevent browser zoom on the canvas area
+  useEffect(() => {
+    const handleWheel = (event: WheelEvent) => {
+      // Check if the event is coming from our canvas area
+      if (pixiContainerRef.current?.contains(event.target as Node)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Prevent Ctrl/Cmd + scroll zoom
+      if (
+        (event.ctrlKey || event.metaKey) &&
+        (event.key === "+" || event.key === "-" || event.key === "0")
+      ) {
+        // Only prevent if focus is on canvas
+        if (pixiContainerRef.current?.contains(document.activeElement)) {
+          event.preventDefault();
+        }
+      }
+    };
+
+    // Add event listeners with passive: false to ensure preventDefault works
+    document.addEventListener("wheel", handleWheel, { passive: false });
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
   useEffect(() => {
     let cancelled = false;
 
@@ -88,6 +121,20 @@ const SeatMapV2Page = () => {
       app.stage.hitArea = app.screen;
 
       createEventManager();
+      // Additional wheel event prevention directly on canvas
+      const canvas = app.canvas;
+      const preventZoom = (e: WheelEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      };
+
+      canvas.addEventListener("wheel", preventZoom, { passive: false });
+
+      // Store the cleanup function
+      (canvas as any).__preventZoomCleanup = () => {
+        canvas.removeEventListener("wheel", preventZoom);
+      };
     };
 
     init();
@@ -95,6 +142,12 @@ const SeatMapV2Page = () => {
     return () => {
       cancelled = true;
       if (pixiApp) {
+        // Clean up the wheel event listener
+        const canvas = pixiApp.canvas;
+        if ((canvas as any).__preventZoomCleanup) {
+          (canvas as any).__preventZoomCleanup();
+        }
+
         destroyEventManager();
         destroySelectionTransform();
         pixiApp.destroy(true, { children: true, texture: true });
@@ -142,6 +195,12 @@ const SeatMapV2Page = () => {
             className="w-full h-full absolute inset-0"
             style={{
               cursor: selectedTool === "pan" ? "grab" : "crosshair",
+              touchAction: "none",
+            }}
+            onWheel={(e) => {
+              // Additional React-level prevention
+              e.preventDefault();
+              e.stopPropagation();
             }}
           />
         </div>

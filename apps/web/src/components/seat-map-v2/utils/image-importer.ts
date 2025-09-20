@@ -87,7 +87,7 @@ const importSVGToCanvas = async (file: File): Promise<CanvasItem> => {
         addShapeToStage(svgShape);
 
         // Update store
-        useSeatMapStore.getState().setSelectedShapes([svgShape]);
+        useSeatMapStore.getState().setSelectedShapes([svgShape], true);
 
         resolve(svgShape);
       } catch (error) {
@@ -189,7 +189,7 @@ const importImageAsSprite = async (file: File): Promise<ImageShape> => {
         }
 
         addShapeToStage(imageShape as any);
-        useSeatMapStore.getState().setSelectedShapes([imageShape as any]);
+        useSeatMapStore.getState().setSelectedShapes([imageShape as any], true);
 
         resolve(imageShape);
       } catch (error) {
@@ -290,7 +290,9 @@ const importImageAsSprite_FileReader = async (
           }
 
           addShapeToStage(imageShape as any);
-          useSeatMapStore.getState().setSelectedShapes([imageShape as any]);
+          useSeatMapStore
+            .getState()
+            .setSelectedShapes([imageShape as any], true);
 
           resolve(imageShape);
         } catch (error) {

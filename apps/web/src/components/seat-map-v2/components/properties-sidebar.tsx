@@ -92,7 +92,7 @@ export const PropertiesSidebar = React.memo(
 
         updateShapeGraphics(shape, updates);
 
-        updateShapes([...shapes]);
+        updateShapes([...shapes], true);
 
         const selectionTransform = getSelectionTransform();
         if (selectionTransform && selectedItems.some((s) => s.id === id)) {
@@ -653,26 +653,62 @@ const TypeSpecificProperties = React.memo(
           </div>
         );
 
+      // Update the polygon case in TypeSpecificProperties
       case "polygon":
         return (
           <div className="space-y-3">
             <div>
               <label className="block text-sm font-medium mb-1">Points</label>
-              <div className="text-sm text-gray-400">
+              <div className="text-sm text-gray-400 mb-2">
                 {item.points.length} points
               </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Corner Radius
-              </label>
-              <DebouncedInput
-                type="number"
-                value={item.cornerRadius}
-                onChange={() => {}}
-                onUpdate={(value) => onUpdate(item.id, { cornerRadius: value })}
-                className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
-              />
+
+              {/* Individual Point Corner Radius Controls */}
+              <div className="space-y-2 max-h-48 overflow-y-auto border border-gray-600 rounded p-2">
+                {item.points.map((point, index) => (
+                  <div key={index} className="flex items-center gap-2 text-xs">
+                    <span className="w-12 text-gray-400">P{index + 1}:</span>
+                    <div className="flex-1">
+                      <DebouncedInput
+                        type="number"
+                        min="0"
+                        step="0.1"
+                        value={point.radius || item.cornerRadius / 2}
+                        onChange={() => {}}
+                        onUpdate={(value) => {
+                          const updatedPoints = [...item.points];
+                          updatedPoints[index] = {
+                            ...updatedPoints[index],
+                            radius: value ?? 0,
+                          };
+                          onUpdate(item.id, { points: updatedPoints });
+                        }}
+                        isFloat={true}
+                        className="w-full px-2 py-1 border border-gray-600 rounded text-xs bg-gray-800 text-white"
+                        placeholder="Corner radius"
+                      />
+                    </div>
+                    <span className="text-gray-500 text-xs">
+                      ({Math.round(point.x * 100) / 100},{" "}
+                      {Math.round(point.y * 100) / 100})
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Bulk Actions */}
+              <button
+                onClick={() => {
+                  const updatedPoints = item.points.map((point) => ({
+                    ...point,
+                    radius: item.points[0].radius ?? 0,
+                  }));
+                  onUpdate(item.id, { points: updatedPoints });
+                }}
+                className="w-full flex-1 px-2 py-1 my-2 bg-gray-600 hover:bg-gray-700 text-white rounded text-xs"
+              >
+                Reset All
+              </button>
             </div>
             <ColorPicker
               label="Fill Color"

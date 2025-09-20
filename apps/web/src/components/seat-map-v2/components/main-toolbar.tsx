@@ -42,11 +42,14 @@ import { FaDrawPolygon } from "react-icons/fa";
 import { ToolbarProps, Tool } from "../types";
 import { deleteShapes } from "../shapes";
 import { importImageToCanvas } from "../utils/image-importer";
+import { duplicateSelectedShapes } from "../utils/duplication";
+import { useSeatMapStore } from "../store/seat-map-store";
+import { mirrorHorizontally, mirrorVertically } from "../utils/mirroring";
+import { performUndo, performRedo } from "../utils/undo-redo";
 
 export function MainToolbar({
   currentTool,
   onToolChange,
-  zoom,
   onZoomIn,
   onZoomOut,
   onResetView,
@@ -69,6 +72,12 @@ export function MainToolbar({
     { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
     { id: "text", icon: Type, label: "Text" },
   ] as const;
+
+  const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
+  const hasSelectedShapes = selectedShapes.length > 0;
+
+  const canUndoAction = useSeatMapStore((state) => state.canUndo());
+  const canRedoAction = useSeatMapStore((state) => state.canRedo());
 
   const handleUpload = async () => {
     if (!seatMapName.trim()) {
@@ -135,7 +144,6 @@ export function MainToolbar({
     setIsImporting(true);
     try {
       await importImageToCanvas(selectedFile);
-      alert(`Image "${selectedFile.name}" imported successfully!`);
       setIsImportDialogOpen(false);
       setSelectedFile(null);
       if (fileInputRef.current) {
@@ -158,6 +166,35 @@ export function MainToolbar({
       ) {
         onClearCanvas();
       }
+    }
+  };
+
+  const handleDuplicate = async () => {
+    try {
+      const duplicatedShapes = await duplicateSelectedShapes();
+    } catch (error) {
+      console.error("Duplication failed:", error);
+      alert("Failed to duplicate shapes. Please try again.");
+    }
+  };
+
+  const handleMirrorHorizontally = () => {
+    try {
+      mirrorHorizontally();
+      console.log("Shapes mirrored horizontally");
+    } catch (error) {
+      console.error("Failed to mirror horizontally:", error);
+      alert("Failed to mirror shapes horizontally. Please try again.");
+    }
+  };
+
+  const handleMirrorVertically = () => {
+    try {
+      mirrorVertically();
+      console.log("Shapes mirrored vertically");
+    } catch (error) {
+      console.error("Failed to mirror vertically:", error);
+      alert("Failed to mirror shapes vertically. Please try again.");
     }
   };
 
@@ -225,11 +262,23 @@ export function MainToolbar({
 
         <div className="border-l mx-2 h-6" />
 
-        {/* Edit Actions */}
-        <Button variant="ghost" size="icon" title="Undo" disabled>
+        {/* ✅ Edit Actions with functional undo/redo */}
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Undo (Ctrl+Z)"
+          onClick={performUndo}
+          disabled={!canUndoAction}
+        >
           <Undo2 className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" title="Redo" disabled>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Redo (Ctrl+Y)"
+          onClick={performRedo}
+          disabled={!canRedoAction}
+        >
           <Redo2 className="w-5 h-5" />
         </Button>
         <Button
@@ -237,27 +286,37 @@ export function MainToolbar({
           variant="ghost"
           size="icon"
           title="Delete"
+          disabled={shapesCount === 0}
         >
           <Trash2 className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" title="Duplicate" disabled>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Duplicate"
+          onClick={handleDuplicate}
+          disabled={!hasSelectedShapes}
+        >
           <HiOutlineDuplicate className="w-5 h-5" />
         </Button>
         <Button
           variant="ghost"
           size="icon"
           title="Mirror Horizontally"
-          disabled
+          onClick={handleMirrorHorizontally}
+          disabled={!hasSelectedShapes}
         >
           <FlipHorizontal className="w-5 h-5" />
         </Button>
-        <Button variant="ghost" size="icon" title="Mirror Vertically" disabled>
+        <Button
+          variant="ghost"
+          size="icon"
+          title="Mirror Vertically"
+          onClick={handleMirrorVertically}
+          disabled={!hasSelectedShapes}
+        >
           <FlipVertical className="w-5 h-5" />
         </Button>
-      </div>
-
-      <div className="flex items-center gap-4">
-        <div className="text-xl font-semibold">Seat Map Editor V2 (PixiJS)</div>
       </div>
 
       <div className="flex gap-2 items-center">
@@ -281,6 +340,7 @@ export function MainToolbar({
         </Button>
       </div>
 
+      {/* Rest of the dialogs remain the same... */}
       {/* Hidden file input */}
       <input
         ref={fileInputRef}

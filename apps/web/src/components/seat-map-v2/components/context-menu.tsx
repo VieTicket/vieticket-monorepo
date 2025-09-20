@@ -1,5 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { FolderPlus } from "lucide-react";
+import { HiOutlineDuplicate } from "react-icons/hi";
+import { duplicateSelectedShapes } from "../utils/duplication";
 
 interface ContextMenuProps {
   x: number;
@@ -37,6 +39,14 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       document.removeEventListener("keydown", handleEscape);
     };
   }, [onClose]);
+  const handleDuplicate = async () => {
+    try {
+      await duplicateSelectedShapes();
+      onClose();
+    } catch (error) {
+      console.error("Duplication failed:", error);
+    }
+  };
 
   // Ensure menu stays within viewport
   const adjustedX = Math.min(x, window.innerWidth - 200);
@@ -60,6 +70,13 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       >
         <FolderPlus className="w-4 h-4 mr-2" />
         Create Empty Container
+      </button>
+      <button
+        onClick={handleDuplicate}
+        className="w-full text-left px-3 py-2 text-sm hover:bg-gray-700 flex items-center"
+      >
+        <HiOutlineDuplicate className="w-4 h-4 mr-2" />
+        Duplicate Selected
       </button>
     </div>
   );

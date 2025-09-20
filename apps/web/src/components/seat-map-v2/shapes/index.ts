@@ -5,19 +5,20 @@ import {
   EllipseShape,
   PolygonShape,
   RectangleShape,
+  SVGShape,
 } from "../types";
 import {
   shapeContainer,
   shapes,
   addShape,
-  setShapes,
   stage,
   selectedContainer,
+  setShapes,
 } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
 import { v4 as uuidv4 } from "uuid";
-
+import { getSelectionTransform } from "../events/transform-events";
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
@@ -29,18 +30,24 @@ export const addShapeToStage = (shape: CanvasItem) => {
   if (shapeContainer) {
     shapeContainer.addChild(shape.graphics);
     addShape(shape);
+    useSeatMapStore.getState().updateShapes([...shapes], true);
   }
 };
 
 export const getAllShapesIncludingNested = (): CanvasItem[] => {
   const allShapes: CanvasItem[] = [];
-  const addRecursively = (shape: CanvasItem) => {
-    allShapes.push(shape);
-    if (shape.type === "container") {
-      (shape as ContainerGroup).children.forEach(addRecursively);
-    }
+
+  const collectShapes = (shapeList: CanvasItem[]) => {
+    shapeList.forEach((shape) => {
+      allShapes.push(shape);
+      if (shape.type === "container") {
+        const container = shape as ContainerGroup;
+        collectShapes(container.children);
+      }
+    });
   };
-  shapes.forEach(addRecursively);
+
+  collectShapes(shapes);
   return allShapes;
 };
 
@@ -54,15 +61,10 @@ export const transformPoint = (
   const scaledX = x * scaleX;
   const scaledY = y * scaleY;
 
-  if (rotation === 0) return { x: scaledX, y: scaledY };
+  const rotatedX = scaledX * Math.cos(rotation) - scaledY * Math.sin(rotation);
+  const rotatedY = scaledX * Math.sin(rotation) + scaledY * Math.cos(rotation);
 
-  const cos = Math.cos(rotation);
-  const sin = Math.sin(rotation);
-
-  return {
-    x: scaledX * cos - scaledY * sin,
-    y: scaledX * sin + scaledY * cos,
-  };
+  return { x: rotatedX, y: rotatedY };
 };
 
 export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
@@ -94,87 +96,60 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
   return path;
 };
 
-/**
- * Finds a shape by ID in the entire hierarchy (root + containers)
- */
-const findShapeById = (
-  shapeId: string
-): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
-  // Check root level shapes first
-  const rootShape = shapes.find((shape) => shape.id === shapeId);
-  if (rootShape) {
-    return { shape: rootShape, parent: null };
-  }
-
-  // Search in containers recursively
-  const searchInContainer = (
-    container: ContainerGroup
-  ): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
-    for (const child of container.children) {
-      if (child.id === shapeId) {
-        return { shape: child, parent: container };
-      }
-
-      if (child.type === "container") {
-        const found = searchInContainer(child as ContainerGroup);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  for (const shape of shapes) {
-    if (shape.type === "container") {
-      const found = searchInContainer(shape as ContainerGroup);
-      if (found) return found;
-    }
-  }
-
-  return null;
-};
-
-export const findParentContainer = (
-  targetShape: CanvasItem
-): ContainerGroup | null => {
-  const findInContainer = (
-    container: ContainerGroup
-  ): ContainerGroup | null => {
-    if (container.children.some((child) => child.id === targetShape.id)) {
-      return container;
-    }
-    for (const child of container.children) {
-      if (child.type === "container") {
-        const found = findInContainer(child as ContainerGroup);
-        if (found) return found;
-      }
-    }
-    return null;
-  };
-
-  for (const shape of shapes) {
-    if (shape.type === "container") {
-      const found = findInContainer(shape as ContainerGroup);
-      if (found) return found;
-    }
-  }
-  return null;
-};
 export const findShapeInContainer = (
   container: ContainerGroup,
   shapeId: string
-): CanvasItem | undefined => {
+): CanvasItem | null => {
   for (const child of container.children) {
     if (child.id === shapeId) {
       return child;
     }
     if (child.type === "container") {
       const found = findShapeInContainer(child as ContainerGroup, shapeId);
-      if (found) return found;
+      if (found) {
+        return found;
+      }
     }
   }
-  return undefined;
+  return null;
 };
 
+export const findParentContainer = (
+  targetShape: CanvasItem
+): ContainerGroup | null => {
+  for (const shape of shapes) {
+    if (shape.type === "container") {
+      const container = shape as ContainerGroup;
+      const found = findShapeInContainerRecursive(container, targetShape.id);
+      if (found) {
+        return found.parent;
+      }
+    }
+  }
+  return null;
+};
+const findShapeInContainerRecursive = (
+  container: ContainerGroup,
+  shapeId: string,
+  parent: ContainerGroup | null = null
+): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
+  for (const child of container.children) {
+    if (child.id === shapeId) {
+      return { shape: child, parent: container };
+    }
+    if (child.type === "container") {
+      const found = findShapeInContainerRecursive(
+        child as ContainerGroup,
+        shapeId,
+        child as ContainerGroup
+      );
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+};
 export const getCurrentContainer = (): ContainerGroup | null => {
   if (selectedContainer.length === 0) return null;
   return selectedContainer[selectedContainer.length - 1];
@@ -246,16 +221,31 @@ export const hitTestChild = (child: CanvasItem, point: PIXI.Point): boolean => {
     case "svg": {
       if (child.graphics instanceof PIXI.Graphics) {
         try {
-          const bounds = child.graphics.getLocalBounds();
+          const localBounds = child.graphics.getLocalBounds();
+
+          // Since SVG graphics are pivoted to center, the local bounds
+          // are relative to the pivot point (which is at the center)
+          const halfWidth = localBounds.width / 2;
+          const halfHeight = localBounds.height / 2;
+
           return (
-            localPoint.x >= bounds.x &&
-            localPoint.x <= bounds.x + bounds.width &&
-            localPoint.y >= bounds.y &&
-            localPoint.y <= bounds.y + bounds.height
+            localPoint.x >= -halfWidth &&
+            localPoint.x <= halfWidth &&
+            localPoint.y >= -halfHeight &&
+            localPoint.y <= halfHeight
           );
         } catch {
-          // Fallback to simple bounds check
-          return Math.abs(localPoint.x) <= 50 && Math.abs(localPoint.y) <= 50;
+          // Fallback to simple bounds check using original dimensions
+          const svg = child as SVGShape;
+          const halfWidth = svg.originalWidth / 2;
+          const halfHeight = svg.originalHeight / 2;
+
+          return (
+            localPoint.x >= -halfWidth &&
+            localPoint.x <= halfWidth &&
+            localPoint.y >= -halfHeight &&
+            localPoint.y <= halfHeight
+          );
         }
       }
       return false;
@@ -361,7 +351,36 @@ export const findShapeAtPoint = (
   return null;
 };
 
-export const findTopmostChildAtPoint = (
+/**
+ * Enhanced version that allows choosing the resolution strategy
+ */
+export const findShapeAtPointWithStrategy = (
+  container: ContainerGroup,
+  event: PIXI.FederatedPointerEvent | PIXI.Point,
+  strategy:
+    | "container-first"
+    | "depth-first"
+    | "breadth-first"
+    | "original" = "container-first"
+): CanvasItem | null => {
+  switch (strategy) {
+    case "container-first":
+      return resolveShapeForContext(container, event);
+    case "depth-first":
+      return resolveShapeForContextDeepSearch(container, event);
+    case "breadth-first":
+      return resolveShapeForContextBreadthFirst(container, event);
+    case "original":
+      return findTopmostChildAtPoint(container, event);
+    default:
+      return resolveShapeForContext(container, event);
+  }
+};
+
+/**
+ * Depth-first search approach
+ */
+export const resolveShapeForContextDeepSearch = (
   container: ContainerGroup,
   event: PIXI.FederatedPointerEvent | PIXI.Point
 ): CanvasItem | null => {
@@ -373,21 +392,140 @@ export const findTopmostChildAtPoint = (
     worldPoint = stage ? stage.toLocal(event.global) : event.global;
   }
 
-  for (let i = container.children.length - 1; i >= 0; i--) {
+  // Recursive function to find the first nested container
+  const findFirstNestedContainer = (
+    currentContainer: ContainerGroup
+  ): CanvasItem | null => {
+    for (let i = 0; i < currentContainer.children.length; i++) {
+      const child = currentContainer.children[i];
+      if (!child.visible || child.graphics.alpha === 0) continue;
+
+      if (hitTestChild(child, worldPoint)) {
+        if (child.type === "container") {
+          // Found a container, check if it has nested containers first
+          const nestedContainer = findFirstNestedContainer(
+            child as ContainerGroup
+          );
+          if (nestedContainer) {
+            return nestedContainer;
+          }
+          // If no nested containers, return this container
+          return child;
+        }
+      }
+    }
+    return null;
+  };
+
+  // First, try to find any nested container
+  const nestedContainer = findFirstNestedContainer(container);
+  if (nestedContainer) {
+    return nestedContainer;
+  }
+
+  // If no nested containers found, return the first child that hits
+  for (let i = 0; i < container.children.length; i++) {
+    const child = container.children[i];
+    if (!child.visible || child.graphics.alpha === 0) continue;
+
+    if (hitTestChild(child, worldPoint)) {
+      return child;
+    }
+  }
+
+  return null;
+};
+
+/**
+ * Breadth-first search approach
+ */
+export const resolveShapeForContextBreadthFirst = (
+  container: ContainerGroup,
+  event: PIXI.FederatedPointerEvent | PIXI.Point
+): CanvasItem | null => {
+  let worldPoint: PIXI.Point;
+
+  if (event instanceof PIXI.Point) {
+    worldPoint = event;
+  } else {
+    worldPoint = stage ? stage.toLocal(event.global) : event.global;
+  }
+
+  const hitChildren: CanvasItem[] = [];
+  const hitContainers: CanvasItem[] = [];
+
+  // Collect all hit children, separating containers from other shapes
+  for (let i = 0; i < container.children.length; i++) {
     const child = container.children[i];
     if (!child.visible || child.graphics.alpha === 0) continue;
 
     if (hitTestChild(child, worldPoint)) {
       if (child.type === "container") {
-        const nestedHit = findTopmostChildAtPoint(
-          child as ContainerGroup,
-          worldPoint
-        );
-        return nestedHit || child;
+        hitContainers.push(child);
+      } else {
+        hitChildren.push(child);
       }
-      return child;
     }
   }
+
+  // Priority 1: Return the first container found at this level
+  if (hitContainers.length > 0) {
+    return hitContainers[0];
+  }
+
+  // Priority 2: Return the first non-container child
+  if (hitChildren.length > 0) {
+    return hitChildren[0];
+  }
+
+  return null;
+};
+
+// Update the existing findTopmostChildAtPoint to use the new logic
+export const findTopmostChildAtPoint = (
+  container: ContainerGroup,
+  event: PIXI.FederatedPointerEvent | PIXI.Point
+): CanvasItem | null => {
+  // Use the new container-first resolution logic instead of the old top-most approach
+  return resolveShapeForContext(container, event);
+};
+
+/**
+ * Resolves the appropriate shape for the current context
+ * Priority: first nested container found, then first child of any shape
+ */
+export const resolveShapeForContext = (
+  container: ContainerGroup,
+  event: PIXI.FederatedPointerEvent | PIXI.Point
+): CanvasItem | null => {
+  let worldPoint: PIXI.Point;
+
+  if (event instanceof PIXI.Point) {
+    worldPoint = event;
+  } else {
+    worldPoint = stage ? stage.toLocal(event.global) : event.global;
+  }
+
+  // First pass: look for nested containers (priority)
+  for (let i = 0; i < container.children.length; i++) {
+    const child = container.children[i];
+    if (!child.visible || child.graphics.alpha === 0) continue;
+
+    if (hitTestChild(child, worldPoint) && child.type === "container") {
+      return child; // Return first nested container found
+    }
+  }
+
+  // Second pass: return first child of any type
+  for (let i = 0; i < container.children.length; i++) {
+    const child = container.children[i];
+    if (!child.visible || child.graphics.alpha === 0) continue;
+
+    if (hitTestChild(child, worldPoint)) {
+      return child; // Return first child found
+    }
+  }
+
   return null;
 };
 
@@ -423,96 +561,6 @@ export const clearAllSelections = () => {
   shapes.forEach(clearSelection);
 };
 
-/**
- * Removes a shape from its parent container
- */
-const removeShapeFromContainer = (
-  shape: CanvasItem,
-  parent: ContainerGroup
-) => {
-  const childIndex = parent.children.findIndex(
-    (child) => child.id === shape.id
-  );
-  if (childIndex !== -1) {
-    parent.children.splice(childIndex, 1);
-    parent.graphics.removeChild(shape.graphics);
-  }
-};
-
-/**
- * Recursively collects all shapes including nested ones that match the predicate
- */
-const collectShapesRecursively = (
-  shapesToCheck: CanvasItem[],
-  predicate: (shape: CanvasItem) => boolean | undefined
-): CanvasItem[] => {
-  const collected: CanvasItem[] = [];
-
-  const collectFromShape = (shape: CanvasItem) => {
-    if (predicate(shape)) {
-      collected.push(shape);
-    }
-
-    if (shape.type === "container") {
-      (shape as ContainerGroup).children.forEach(collectFromShape);
-    }
-  };
-
-  shapesToCheck.forEach(collectFromShape);
-  return collected;
-};
-
-export const deleteShape = (shapeId: string) => {
-  const result = findShapeById(shapeId);
-  if (!result) {
-    console.warn(`Shape with ID ${shapeId} not found`);
-    return;
-  }
-
-  const { shape, parent } = result;
-  const eventManager = getEventManager();
-
-  // Remove event listeners
-  eventManager?.removeShapeEvents(shape);
-
-  // If shape has children (container), recursively remove event listeners
-  if (shape.type === "container") {
-    const allNestedShapes = collectShapesRecursively([shape], () => true);
-    allNestedShapes.forEach((nestedShape) => {
-      eventManager?.removeShapeEvents(nestedShape);
-    });
-  }
-
-  if (parent) {
-    // Shape is inside a container - remove from parent
-    removeShapeFromContainer(shape, parent);
-  } else {
-    // Shape is at root level - remove from main shapes array
-    const shapeIndex = shapes.findIndex((s) => s.id === shapeId);
-    if (shapeIndex !== -1) {
-      shapes.splice(shapeIndex, 1);
-
-      // Remove from stage container
-      if (shapeContainer && shape.graphics.parent === shapeContainer) {
-        shapeContainer.removeChild(shape.graphics);
-      }
-    }
-  }
-
-  // Destroy graphics
-  shape.graphics.destroy();
-
-  // Update store
-  useSeatMapStore.getState().updateShapes([...shapes]);
-
-  // Remove from selected shapes if it was selected
-  const currentSelected = useSeatMapStore.getState().selectedShapes;
-  const updatedSelected = currentSelected.filter((s) => s.id !== shapeId);
-  if (updatedSelected.length !== currentSelected.length) {
-    useSeatMapStore.getState().setSelectedShapes(updatedSelected);
-  }
-};
-
 export const deleteShapes = () => {
   const eventManager = getEventManager();
   const selectedShapesToDelete: Array<{
@@ -520,157 +568,63 @@ export const deleteShapes = () => {
     parent: ContainerGroup | null;
   }> = [];
 
-  // Collect all selected shapes (including nested ones)
-  const allSelectedShapes = collectShapesRecursively(
-    shapes,
-    (shape) => shape.selected
-  );
+  const selectedShapes = useSeatMapStore.getState().selectedShapes;
+  if (selectedShapes.length === 0) return;
 
-  // Find parent information for each selected shape
-  allSelectedShapes.forEach((shape) => {
-    const result = findShapeById(shape.id);
-    if (result) {
-      selectedShapesToDelete.push(result);
+  selectedShapes.forEach((selectedShape) => {
+    const foundInMain = shapes.find((s) => s.id === selectedShape.id);
+    if (foundInMain) {
+      selectedShapesToDelete.push({ shape: foundInMain, parent: null });
+    } else {
+      for (const mainShape of shapes) {
+        if (mainShape.type === "container") {
+          const containerGroup = mainShape as ContainerGroup;
+          const foundShape = findShapeInContainer(
+            containerGroup,
+            selectedShape.id
+          );
+          if (foundShape) {
+            selectedShapesToDelete.push({
+              shape: foundShape,
+              parent: containerGroup,
+            });
+            break;
+          }
+        }
+      }
     }
   });
-
-  if (selectedShapesToDelete.length === 0) {
-    console.warn("No selected shapes to delete");
-    return;
-  }
-
-  // Remove event listeners from all shapes to be deleted
-  selectedShapesToDelete.forEach(({ shape }) => {
-    eventManager?.removeShapeEvents(shape);
-
-    // If shape is a container, remove listeners from all nested shapes
-    if (shape.type === "container") {
-      const allNestedShapes = collectShapesRecursively([shape], () => true);
-      allNestedShapes.forEach((nestedShape) => {
-        eventManager?.removeShapeEvents(nestedShape);
-      });
-    }
-  });
-
-  // Group deletions by parent to optimize container updates
-  const deletionsByParent = new Map<ContainerGroup | null, CanvasItem[]>();
 
   selectedShapesToDelete.forEach(({ shape, parent }) => {
-    if (!deletionsByParent.has(parent)) {
-      deletionsByParent.set(parent, []);
+    if (eventManager) {
+      eventManager.removeShapeEvents(shape);
     }
-    deletionsByParent.get(parent)!.push(shape);
-  });
 
-  // Process deletions
-  deletionsByParent.forEach((shapesToDelete, parent) => {
+    if (shape.graphics && shape.graphics.parent) {
+      shape.graphics.parent.removeChild(shape.graphics);
+    }
+
     if (parent) {
-      // Remove from container
-      shapesToDelete.forEach((shape) => {
-        removeShapeFromContainer(shape, parent);
-        shape.graphics.destroy();
-      });
+      const index = parent.children.findIndex((child) => child.id === shape.id);
+      if (index !== -1) {
+        parent.children.splice(index, 1);
+      }
     } else {
-      // Remove from root level
-      shapesToDelete.forEach((shape) => {
-        const shapeIndex = shapes.findIndex((s) => s.id === shape.id);
-        if (shapeIndex !== -1) {
-          shapes.splice(shapeIndex, 1);
-
-          // Remove from stage container
-          if (shapeContainer && shape.graphics.parent === shapeContainer) {
-            shapeContainer.removeChild(shape.graphics);
-          }
-        }
-        shape.graphics.destroy();
-      });
+      const index = shapes.findIndex((s) => s.id === shape.id);
+      if (index !== -1) {
+        shapes.splice(index, 1);
+      }
     }
   });
 
-  // Update store
-  useSeatMapStore.getState().updateShapes([...shapes]);
-  useSeatMapStore.getState().setSelectedShapes([]);
-};
+  setShapes([...shapes]);
 
-/**
- * Deletes shapes by their IDs (helper function for external use)
- */
-export const deleteShapesByIds = (shapeIds: string[]) => {
-  if (shapeIds.length === 0) return;
+  // ✅ History automatically saved inside deleteShapes
+  useSeatMapStore.getState().deleteShapes();
 
-  const eventManager = getEventManager();
-  const shapesToDelete: Array<{
-    shape: CanvasItem;
-    parent: ContainerGroup | null;
-  }> = [];
-
-  // Find all shapes to delete
-  shapeIds.forEach((shapeId) => {
-    const result = findShapeById(shapeId);
-    if (result) {
-      shapesToDelete.push(result);
-    }
-  });
-
-  if (shapesToDelete.length === 0) {
-    console.warn("No shapes found with the provided IDs");
-    return;
-  }
-
-  // Remove event listeners
-  shapesToDelete.forEach(({ shape }) => {
-    eventManager?.removeShapeEvents(shape);
-
-    if (shape.type === "container") {
-      const allNestedShapes = collectShapesRecursively([shape], () => true);
-      allNestedShapes.forEach((nestedShape) => {
-        eventManager?.removeShapeEvents(nestedShape);
-      });
-    }
-  });
-
-  // Group deletions by parent
-  const deletionsByParent = new Map<ContainerGroup | null, CanvasItem[]>();
-
-  shapesToDelete.forEach(({ shape, parent }) => {
-    if (!deletionsByParent.has(parent)) {
-      deletionsByParent.set(parent, []);
-    }
-    deletionsByParent.get(parent)!.push(shape);
-  });
-
-  // Process deletions
-  deletionsByParent.forEach((shapes, parent) => {
-    if (parent) {
-      shapes.forEach((shape) => {
-        removeShapeFromContainer(shape, parent);
-        shape.graphics.destroy();
-      });
-    } else {
-      shapes.forEach((shape) => {
-        const shapeIndex = shapes.findIndex((s) => s.id === shape.id);
-        if (shapeIndex !== -1) {
-          shapes.splice(shapeIndex, 1);
-
-          if (shapeContainer && shape.graphics.parent === shapeContainer) {
-            shapeContainer.removeChild(shape.graphics);
-          }
-        }
-        shape.graphics.destroy();
-      });
-    }
-  });
-
-  // Update store
-  useSeatMapStore.getState().updateShapes([...shapes]);
-
-  // Remove deleted shapes from selection
-  const currentSelected = useSeatMapStore.getState().selectedShapes;
-  const updatedSelected = currentSelected.filter(
-    (shape) => !shapeIds.includes(shape.id)
-  );
-  if (updatedSelected.length !== currentSelected.length) {
-    useSeatMapStore.getState().setSelectedShapes(updatedSelected);
+  const selectionTransform = getSelectionTransform();
+  if (selectionTransform) {
+    selectionTransform.updateSelection([]);
   }
 };
 
@@ -686,6 +640,6 @@ export const clearCanvas = () => {
   });
 
   shapes.length = 0;
-  useSeatMapStore.getState().updateShapes(shapes);
+  useSeatMapStore.getState().updateShapes([]);
   useSeatMapStore.getState().setSelectedShapes([]);
 };

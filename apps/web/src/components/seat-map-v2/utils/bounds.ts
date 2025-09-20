@@ -1,3 +1,4 @@
+import * as PIXI from "pixi.js";
 import {
   CanvasItem,
   ContainerGroup,
@@ -5,8 +6,7 @@ import {
   ImageShape,
   SVGShape,
 } from "../types";
-import { findParentContainer, transformPoint } from "../shapes";
-import * as PIXI from "pixi.js";
+import { findParentContainer } from "../shapes";
 
 export interface BoundingBox {
   x: number;
@@ -17,50 +17,74 @@ export interface BoundingBox {
   centerY: number;
 }
 
-/**
- * Creates a BoundingBox from min/max coordinates
- */
-const createBoundingBox = (
-  minX: number,
-  minY: number,
-  maxX: number,
-  maxY: number
-): BoundingBox => ({
-  x: minX,
-  y: minY,
-  width: maxX - minX,
-  height: maxY - minY,
-  centerX: (minX + maxX) / 2,
-  centerY: (minY + maxY) / 2,
-});
+interface WorldTransform {
+  x: number;
+  y: number;
+  scaleX: number;
+  scaleY: number;
+  rotation: number;
+}
 
 /**
- * Gets bounding box from a set of points
+ * Calculate world transform for an item, accumulating all parent transforms
  */
-const getBoundsFromPoints = (
-  points: { x: number; y: number }[]
-): BoundingBox => {
-  const xs = points.map((p) => p.x);
-  const ys = points.map((p) => p.y);
-  return createBoundingBox(
-    Math.min(...xs),
-    Math.min(...ys),
-    Math.max(...xs),
-    Math.max(...ys)
-  );
+export const calculateWorldTransform = (item: CanvasItem): WorldTransform => {
+  let worldX = item.x;
+  let worldY = item.y;
+  let worldScaleX = item.scaleX || 1;
+  let worldScaleY = item.scaleY || 1;
+  let worldRotation = item.rotation || 0;
+
+  let currentContainer = findParentContainer(item);
+
+  while (currentContainer) {
+    const containerScaleX = currentContainer.scaleX || 1;
+    const containerScaleY = currentContainer.scaleY || 1;
+    const containerRotation = currentContainer.rotation || 0;
+
+    // Apply container's scale to the accumulated position
+    const scaledX = worldX * containerScaleX;
+    const scaledY = worldY * containerScaleY;
+
+    // Apply container's rotation to the scaled position
+    if (containerRotation !== 0) {
+      const cos = Math.cos(containerRotation);
+      const sin = Math.sin(containerRotation);
+      const rotatedX = scaledX * cos - scaledY * sin;
+      const rotatedY = scaledX * sin + scaledY * cos;
+      worldX = currentContainer.x + rotatedX;
+      worldY = currentContainer.y + rotatedY;
+    } else {
+      worldX = currentContainer.x + scaledX;
+      worldY = currentContainer.y + scaledY;
+    }
+
+    // Accumulate transforms
+    worldScaleX *= containerScaleX;
+    worldScaleY *= containerScaleY;
+    worldRotation += containerRotation;
+
+    currentContainer = findParentContainer(currentContainer);
+  }
+
+  return {
+    x: worldX,
+    y: worldY,
+    scaleX: worldScaleX,
+    scaleY: worldScaleY,
+    rotation: worldRotation,
+  };
 };
 
 /**
- * Calculates bounds for shapes with corners (rectangle, text, image, svg)
+ * Helper function to calculate corner-based bounds (for rectangle, text, image, svg)
  */
-const calculateCornerBasedBounds = (
-  item: CanvasItem,
+export const calculateCornerBasedBounds = (
+  worldTransform: WorldTransform,
   width: number,
   height: number
 ): BoundingBox => {
-  const scaleX = item.scaleX || 1;
-  const scaleY = item.scaleY || 1;
-  const rotation = item.rotation || 0;
+  const rotation = worldTransform.rotation || 0;
 
   const corners = [
     { x: -width / 2, y: -height / 2 },
@@ -70,389 +94,347 @@ const calculateCornerBasedBounds = (
   ];
 
   const transformedCorners = corners.map((corner) => {
-    const transformed = transformPoint(
-      corner.x,
-      corner.y,
-      scaleX,
-      scaleY,
-      rotation
-    );
-    return {
-      x: item.x + transformed.x,
-      y: item.y + transformed.y,
-    };
-  });
-
-  return getBoundsFromPoints(transformedCorners);
-};
-
-/**
- * Calculate the accumulated world transform for an item
- */
-const calculateWorldTransform = (item: CanvasItem) => {
-  let transform = {
-    x: item.x,
-    y: item.y,
-    scaleX: item.scaleX || 1,
-    scaleY: item.scaleY || 1,
-    rotation: item.rotation || 0,
-  };
-
-  let currentContainer = findParentContainer(item);
-  while (currentContainer) {
-    const containerScaleX = currentContainer.scaleX || 1;
-    const containerScaleY = currentContainer.scaleY || 1;
-    const containerRotation = currentContainer.rotation || 0;
-
-    // Transform position
-    const transformed = transformPoint(
-      transform.x,
-      transform.y,
-      containerScaleX,
-      containerScaleY,
-      containerRotation
-    );
-
-    transform.x = currentContainer.x + transformed.x;
-    transform.y = currentContainer.y + transformed.y;
-
-    // Accumulate transforms
-    transform.scaleX *= containerScaleX;
-    transform.scaleY *= containerScaleY;
-    transform.rotation += containerRotation;
-
-    currentContainer = findParentContainer(currentContainer);
-  }
-
-  return transform;
-};
-
-/**
- * Helper function to calculate polygon world bounds
- */
-const calculatePolygonWorldBounds = (polygon: PolygonShape): BoundingBox => {
-  const worldTransform = calculateWorldTransform(polygon);
-
-  const transformedPoints = polygon.points.map((point) => {
-    const transformed = transformPoint(
-      point.x,
-      point.y,
-      worldTransform.scaleX,
-      worldTransform.scaleY,
-      worldTransform.rotation
-    );
-
-    return {
-      x: worldTransform.x + transformed.x,
-      y: worldTransform.y + transformed.y,
-    };
-  });
-
-  return getBoundsFromPoints(transformedPoints);
-};
-
-/**
- * Helper function to calculate image bounds
- */
-const calculateImageBounds = (image: ImageShape): BoundingBox => {
-  const scaledWidth = image.originalWidth * (image.scaleX || 1);
-  const scaledHeight = image.originalHeight * (image.scaleY || 1);
-
-  return calculateCornerBasedBounds(image, scaledWidth, scaledHeight);
-};
-
-/**
- * Helper function to calculate SVG bounds
- */
-const calculateSVGBounds = (svg: SVGShape): BoundingBox => {
-  const scaledWidth = svg.originalWidth * (svg.scaleX || 1);
-  const scaledHeight = svg.originalHeight * (svg.scaleY || 1);
-
-  return calculateCornerBasedBounds(svg, scaledWidth, scaledHeight);
-};
-
-/**
- * Calculate local bounds for different shape types
- */
-const calculateShapeLocalBounds = (item: CanvasItem): BoundingBox => {
-  switch (item.type) {
-    case "rectangle":
-      return createBoundingBox(
-        -item.width / 2,
-        -item.height / 2,
-        item.width / 2,
-        item.height / 2
-      );
-
-    case "ellipse":
-      return createBoundingBox(
-        -item.radiusX,
-        -item.radiusY,
-        item.radiusX,
-        item.radiusY
-      );
-
-    case "text": {
-      const width = item.fontSize * item.text.length * 0.6;
-      const height = item.fontSize;
-      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
+    if (rotation === 0) {
+      return {
+        x: worldTransform.x + corner.x,
+        y: worldTransform.y + corner.y,
+      };
     }
 
-    case "polygon": {
-      if (item.points.length === 0) {
-        return createBoundingBox(-25, -25, 25, 25);
+    const cos = Math.cos(rotation);
+    const sin = Math.sin(rotation);
+    const rotatedX = corner.x * cos - corner.y * sin;
+    const rotatedY = corner.x * sin + corner.y * cos;
+
+    return {
+      x: worldTransform.x + rotatedX,
+      y: worldTransform.y + rotatedY,
+    };
+  });
+
+  const xs = transformedCorners.map((p) => p.x);
+  const ys = transformedCorners.map((p) => p.y);
+
+  return {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys),
+    centerX: worldTransform.x,
+    centerY: worldTransform.y,
+  };
+};
+/**
+ * Calculate polygon bounds with world transform using visual center pivot
+ */
+export const calculatePolygonBounds = (
+  polygon: PolygonShape,
+  worldTransform: WorldTransform
+): BoundingBox => {
+  const transformedPoints = polygon.points.map((point) => {
+    const scaledX = point.x * worldTransform.scaleX;
+    const scaledY = point.y * worldTransform.scaleY;
+
+    const rotatedX =
+      scaledX * Math.cos(worldTransform.rotation) -
+      scaledY * Math.sin(worldTransform.rotation);
+    const rotatedY =
+      scaledX * Math.sin(worldTransform.rotation) +
+      scaledY * Math.cos(worldTransform.rotation);
+
+    return {
+      x: worldTransform.x + rotatedX,
+      y: worldTransform.y + rotatedY,
+    };
+  });
+
+  const xs = transformedPoints.map((p) => p.x);
+  const ys = transformedPoints.map((p) => p.y);
+  const minX = Math.min(...xs);
+  const minY = Math.min(...ys);
+  const maxX = Math.max(...xs);
+  const maxY = Math.max(...ys);
+
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+    centerX: (minX + maxX) / 2, // This is now the true visual center
+    centerY: (minY + maxY) / 2,
+  };
+};
+
+/**
+ * Calculate bounds for a shape with given world transform - unified method
+ */
+export const calculateShapeBoundsWithWorldTransform = (
+  shape: CanvasItem,
+  worldTransform: WorldTransform
+): BoundingBox => {
+  switch (shape.type) {
+    case "svg": {
+      const svg = shape as SVGShape;
+      try {
+        if (svg.graphics instanceof PIXI.Graphics) {
+          const localBounds = svg.graphics.getLocalBounds();
+
+          if (localBounds.width > 0 && localBounds.height > 0) {
+            // Calculate the scaled dimensions
+            const scaledWidth = localBounds.width * worldTransform.scaleX;
+            const scaledHeight = localBounds.height * worldTransform.scaleY;
+
+            // Since SVG is centered (pivot is at center), the bounds extend from center
+            const halfWidth = scaledWidth / 2;
+            const halfHeight = scaledHeight / 2;
+
+            // Calculate corners relative to the center position
+            const corners = [
+              { x: -halfWidth, y: -halfHeight },
+              { x: halfWidth, y: -halfHeight },
+              { x: halfWidth, y: halfHeight },
+              { x: -halfWidth, y: halfHeight },
+            ];
+
+            // Apply rotation if any
+            const rotation = worldTransform.rotation;
+            const transformedCorners = corners.map((corner) => {
+              if (rotation === 0) {
+                return {
+                  x: worldTransform.x + corner.x,
+                  y: worldTransform.y + corner.y,
+                };
+              }
+
+              const cos = Math.cos(rotation);
+              const sin = Math.sin(rotation);
+              const rotatedX = corner.x * cos - corner.y * sin;
+              const rotatedY = corner.x * sin + corner.y * cos;
+
+              return {
+                x: worldTransform.x + rotatedX,
+                y: worldTransform.y + rotatedY,
+              };
+            });
+
+            const xs = transformedCorners.map((p) => p.x);
+            const ys = transformedCorners.map((p) => p.y);
+
+            return {
+              x: Math.min(...xs),
+              y: Math.min(...ys),
+              width: Math.max(...xs) - Math.min(...xs),
+              height: Math.max(...ys) - Math.min(...ys),
+              centerX: worldTransform.x,
+              centerY: worldTransform.y,
+            };
+          }
+        }
+      } catch (error) {
+        console.warn("Failed to get SVG graphics bounds:", error);
       }
-      const xs = item.points.map((p) => p.x);
-      const ys = item.points.map((p) => p.y);
-      return createBoundingBox(
-        Math.min(...xs),
-        Math.min(...ys),
-        Math.max(...xs),
-        Math.max(...ys)
+
+      // Fallback to calculated bounds using original dimensions
+      const scaledWidth = svg.originalWidth * worldTransform.scaleX;
+      const scaledHeight = svg.originalHeight * worldTransform.scaleY;
+
+      return calculateCornerBasedBounds(
+        worldTransform,
+        scaledWidth,
+        scaledHeight
       );
     }
 
     case "image": {
-      const image = item as ImageShape;
-      const width = image.originalWidth;
-      const height = image.originalHeight;
-      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
+      const image = shape as ImageShape;
+      const scaledWidth = image.originalWidth * worldTransform.scaleX;
+      const scaledHeight = image.originalHeight * worldTransform.scaleY;
+
+      return calculateCornerBasedBounds(
+        worldTransform,
+        scaledWidth,
+        scaledHeight
+      );
     }
 
-    case "svg": {
-      const svg = item as SVGShape;
-      const width = svg.originalWidth;
-      const height = svg.originalHeight;
-      return createBoundingBox(-width / 2, -height / 2, width / 2, height / 2);
+    case "rectangle": {
+      const scaledWidth = shape.width * worldTransform.scaleX;
+      const scaledHeight = shape.height * worldTransform.scaleY;
+
+      return calculateCornerBasedBounds(
+        worldTransform,
+        scaledWidth,
+        scaledHeight
+      );
     }
-
-    default:
-      return createBoundingBox(-25, -25, 25, 25);
-  }
-};
-
-/**
- * Transform local bounds to world space
- */
-const transformBoundsToWorld = (
-  localBounds: BoundingBox,
-  worldTransform: ReturnType<typeof calculateWorldTransform>
-): BoundingBox => {
-  const { x, y, scaleX, scaleY, rotation } = worldTransform;
-
-  if (rotation === 0) {
-    // Simple case - no rotation
-    const scaledX = localBounds.x * scaleX;
-    const scaledY = localBounds.y * scaleY;
-    const scaledWidth = localBounds.width * scaleX;
-    const scaledHeight = localBounds.height * scaleY;
-
-    return createBoundingBox(
-      x + scaledX,
-      y + scaledY,
-      x + scaledX + scaledWidth,
-      y + scaledY + scaledHeight
-    );
-  }
-
-  // With rotation - transform all corners
-  const corners = [
-    { x: localBounds.x, y: localBounds.y },
-    { x: localBounds.x + localBounds.width, y: localBounds.y },
-    {
-      x: localBounds.x + localBounds.width,
-      y: localBounds.y + localBounds.height,
-    },
-    { x: localBounds.x, y: localBounds.y + localBounds.height },
-  ];
-
-  const transformedCorners = corners.map((corner) => {
-    const transformed = transformPoint(
-      corner.x,
-      corner.y,
-      scaleX,
-      scaleY,
-      rotation
-    );
-    return { x: x + transformed.x, y: y + transformed.y };
-  });
-
-  return getBoundsFromPoints(transformedCorners);
-};
-
-/**
- * Calculate world bounds for container children
- */
-const calculateContainerChildrenWorldBounds = (
-  container: ContainerGroup
-): BoundingBox => {
-  if (container.children.length === 0) {
-    return createBoundingBox(0, 0, 0, 0);
-  }
-
-  const childBounds = container.children.map((child) => {
-    if (child.type === "container") {
-      // Recursive case for nested containers
-      return calculateContainerChildrenWorldBounds(child as ContainerGroup);
-    }
-
-    // Regular shapes
-    const childWorldTransform = calculateWorldTransform(child);
-    const childLocalBounds = calculateShapeLocalBounds(child);
-
-    return transformBoundsToWorld(childLocalBounds, childWorldTransform);
-  });
-
-  // Combine all child bounds
-  const allXs = childBounds.flatMap((bounds) => [
-    bounds.x,
-    bounds.x + bounds.width,
-  ]);
-  const allYs = childBounds.flatMap((bounds) => [
-    bounds.y,
-    bounds.y + bounds.height,
-  ]);
-
-  return createBoundingBox(
-    Math.min(...allXs),
-    Math.min(...allYs),
-    Math.max(...allXs),
-    Math.max(...allYs)
-  );
-};
-
-/**
- * Calculates the bounding box of a single item
- */
-export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
-  switch (item.type) {
-    case "rectangle":
-      return calculateCornerBasedBounds(item, item.width, item.height);
 
     case "text": {
-      const width = item.fontSize * item.text.length * 0.6;
-      const height = item.fontSize;
-      return calculateCornerBasedBounds(item, width, height);
+      const width = shape.fontSize * shape.text.length * 0.6;
+      const height = shape.fontSize;
+      const scaledWidth = width * worldTransform.scaleX;
+      const scaledHeight = height * worldTransform.scaleY;
+
+      return calculateCornerBasedBounds(
+        worldTransform,
+        scaledWidth,
+        scaledHeight
+      );
     }
 
     case "ellipse": {
-      const scaleX = item.scaleX || 1;
-      const scaleY = item.scaleY || 1;
-      const rotation = item.rotation || 0;
+      const scaleX = worldTransform.scaleX;
+      const scaleY = worldTransform.scaleY;
+      const rotation = worldTransform.rotation;
 
-      const scaledRadiusX = item.radiusX * scaleX;
-      const scaledRadiusY = item.radiusY * scaleY;
+      const scaledRadiusX = shape.radiusX * scaleX;
+      const scaledRadiusY = shape.radiusY * scaleY;
 
-      // For ellipses, calculate bounding box considering rotation
       const cos = Math.abs(Math.cos(rotation));
       const sin = Math.abs(Math.sin(rotation));
       const boundingWidth = scaledRadiusX * cos + scaledRadiusY * sin;
       const boundingHeight = scaledRadiusX * sin + scaledRadiusY * cos;
 
-      return createBoundingBox(
-        item.x - boundingWidth,
-        item.y - boundingHeight,
-        item.x + boundingWidth,
-        item.y + boundingHeight
-      );
+      return {
+        x: worldTransform.x - boundingWidth,
+        y: worldTransform.y - boundingHeight,
+        width: boundingWidth * 2,
+        height: boundingHeight * 2,
+        centerX: worldTransform.x,
+        centerY: worldTransform.y,
+      };
     }
 
-    case "polygon":
-      return calculatePolygonWorldBounds(item as PolygonShape);
-
-    case "image":
-      return calculateImageBounds(item as ImageShape);
-
-    case "svg":
-      return calculateSVGBounds(item as SVGShape);
+    case "polygon": {
+      return calculatePolygonBounds(shape as PolygonShape, worldTransform);
+    }
 
     case "container": {
-      const containerItem = item as ContainerGroup;
-      if (containerItem.children.length === 0) {
-        return createBoundingBox(
-          item.x - 25,
-          item.y - 25,
-          item.x + 25,
-          item.y + 25
-        );
+      const container = shape as ContainerGroup;
+      if (container.children.length === 0) {
+        // Empty container - return bounds centered on the container position
+        const halfSize = 25;
+        return {
+          x: worldTransform.x - halfSize,
+          y: worldTransform.y - halfSize,
+          width: halfSize * 2,
+          height: halfSize * 2,
+          centerX: worldTransform.x,
+          centerY: worldTransform.y,
+        };
       }
-      return calculateContainerChildrenWorldBounds(containerItem);
+
+      // ✅ Use the same logic as multi-shape selection (calculateBoundingBox)
+      const childBounds = container.children.map((child) => {
+        const childWorldTransform = calculateWorldTransform(child);
+        return calculateShapeBoundsWithWorldTransform(
+          child,
+          childWorldTransform
+        );
+      });
+
+      if (childBounds.length === 0) {
+        const halfSize = 25;
+        return {
+          x: worldTransform.x - halfSize,
+          y: worldTransform.y - halfSize,
+          width: halfSize * 2,
+          height: halfSize * 2,
+          centerX: worldTransform.x,
+          centerY: worldTransform.y,
+        };
+      }
+
+      // Combine bounds the same way as multi-select
+      const minX = Math.min(...childBounds.map((b) => b.x));
+      const minY = Math.min(...childBounds.map((b) => b.y));
+      const maxX = Math.max(...childBounds.map((b) => b.x + b.width));
+      const maxY = Math.max(...childBounds.map((b) => b.y + b.height));
+
+      return {
+        x: minX,
+        y: minY,
+        width: maxX - minX,
+        height: maxY - minY,
+        centerX: (minX + maxX) / 2,
+        centerY: (minY + maxY) / 2,
+      };
     }
 
     default:
-      return createBoundingBox(-25, -25, 25, 25);
+      // Fallback for unknown types
+      return {
+        x: worldTransform.x - 25,
+        y: worldTransform.y - 25,
+        width: 50,
+        height: 50,
+        centerX: worldTransform.x,
+        centerY: worldTransform.y,
+      };
   }
 };
 
 /**
- * Calculates the bounding box of multiple items
+ * Calculate bounds for a single item using world transform
+ */
+export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
+  const worldTransform = calculateWorldTransform(item);
+  return calculateShapeBoundsWithWorldTransform(item, worldTransform);
+};
+
+/**
+ * Calculate bounds for multiple items (unified with transform-events logic)
  */
 export const calculateGroupBounds = (items: CanvasItem[]): BoundingBox => {
   if (items.length === 0) {
-    return createBoundingBox(0, 0, 0, 0);
+    return { x: 0, y: 0, width: 0, height: 0, centerX: 0, centerY: 0 };
   }
 
-  if (items.length === 1) {
-    return calculateItemBounds(items[0]);
-  }
+  // Use the same logic as transform-events calculateBoundingBox
+  const bounds = items.map((item) => {
+    const worldTransform = calculateWorldTransform(item);
+    return calculateShapeBoundsWithWorldTransform(item, worldTransform);
+  });
 
-  const allBounds = items.map(calculateItemBounds);
-  const allXs = allBounds.flatMap((bounds) => [
-    bounds.x,
-    bounds.x + bounds.width,
-  ]);
-  const allYs = allBounds.flatMap((bounds) => [
-    bounds.y,
-    bounds.y + bounds.height,
-  ]);
+  const minX = Math.min(...bounds.map((b) => b.x));
+  const minY = Math.min(...bounds.map((b) => b.y));
+  const maxX = Math.max(...bounds.map((b) => b.x + b.width));
+  const maxY = Math.max(...bounds.map((b) => b.y + b.height));
 
-  return createBoundingBox(
-    Math.min(...allXs),
-    Math.min(...allYs),
-    Math.max(...allXs),
-    Math.max(...allYs)
-  );
+  return {
+    x: minX,
+    y: minY,
+    width: maxX - minX,
+    height: maxY - minY,
+    centerX: (minX + maxX) / 2,
+    centerY: (minY + maxY) / 2,
+  };
 };
 
 /**
- * Gets the actual bounds from PIXI graphics for more accurate calculations
+ * Get graphics bounds from PIXI object (fallback method)
  */
 export const getGraphicsBounds = (item: CanvasItem): BoundingBox | null => {
   try {
-    let bounds;
-
-    if (item.graphics instanceof PIXI.Sprite) {
-      // For images/sprites
-      bounds = item.graphics.getBounds();
-    } else if (item.graphics instanceof PIXI.Graphics) {
-      // For SVG and other graphics
-      bounds = item.graphics.getBounds();
-    } else if (item.graphics instanceof PIXI.Text) {
-      // For text
-      bounds = item.graphics.getBounds();
-    } else if (item.graphics instanceof PIXI.Container) {
-      // For containers
-      bounds = item.graphics.getBounds();
-    } else {
-      return null;
+    if (item.graphics && typeof item.graphics.getBounds === "function") {
+      const bounds = item.graphics.getBounds();
+      return {
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width,
+        height: bounds.height,
+        centerX: bounds.x + bounds.width / 2,
+        centerY: bounds.y + bounds.height / 2,
+      };
     }
-
-    return createBoundingBox(
-      bounds.x,
-      bounds.y,
-      bounds.x + bounds.width,
-      bounds.y + bounds.height
-    );
   } catch (error) {
-    console.warn(`Failed to get graphics bounds for ${item.type}:`, error);
-    return calculateItemBounds(item);
+    console.warn("Failed to get graphics bounds:", error);
   }
+  return null;
 };
 
 /**
- * Gets precise bounds using PIXI's built-in bounds calculation when available
+ * Get precise bounds for an item (preferred method)
  */
 export const getPreciseBounds = (item: CanvasItem): BoundingBox => {
-  const graphicsBounds = getGraphicsBounds(item);
-  return graphicsBounds || calculateItemBounds(item);
+  return calculateItemBounds(item);
 };

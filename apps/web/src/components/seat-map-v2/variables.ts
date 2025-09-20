@@ -58,7 +58,6 @@ export const setPreviewGraphics = (graphics: PIXI.Graphics | null) => {
 };
 export const setShapes = (newShapes: CanvasItem[]) => {
   shapes = newShapes;
-  useSeatMapStore.getState().updateShapes(shapes);
 };
 export const setPreviouslyClickedShape = (shape: CanvasItem | null) => {
   previouslyClickedShape = shape;
@@ -96,7 +95,6 @@ export const setOriginalPolygonPoints = (
 
 export const addShape = (shape: CanvasItem) => {
   shapes.push(shape);
-  useSeatMapStore.getState().updateShapes(shapes);
 };
 export const setCurrentTool = (tool: Tool) => {
   currentTool = tool;
@@ -151,5 +149,5 @@ export const resetVariables = () => {
   originalPositions = [];
   originalPolygonPoints = [];
   // Reset Zustand store
-  useSeatMapStore.getState().updateShapes(shapes);
+  useSeatMapStore.getState().updateShapes(shapes, true);
 };

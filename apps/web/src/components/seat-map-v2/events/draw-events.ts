@@ -34,7 +34,7 @@ export const onDrawStart = (event: PIXI.FederatedPointerEvent) => {
   if (currentTool === "text") {
     const shape = createText(localPoint.x, localPoint.y, "Sample Text");
     addShapeToStage(shape);
-    useSeatMapStore.getState().updateShapes(shapes);
+    useSeatMapStore.getState().updateShapes(shapes, false);
   } else if (currentTool === "rectangle" || currentTool === "ellipse") {
     createPreviewGraphics();
   }
@@ -96,6 +96,6 @@ export const onDrawEnd = (event: PIXI.FederatedPointerEvent) => {
   setDragStart(null);
 
   if (shapeCreated) {
-    useSeatMapStore.getState().updateShapes(shapes);
+    useSeatMapStore.getState().updateShapes(shapes, true);
   }
 };

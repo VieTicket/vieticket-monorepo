@@ -1,9 +1,9 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, PolygonShape, SVGShape } from "../types";
+import { CanvasItem, PolygonShape, SVGShape } from "../types";
 import { stage, zoom, shapes, setWasTransformed } from "../variables";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { calculateItemBounds } from "../utils/bounds";
-import { findParentContainer } from "../shapes";
+import { calculateGroupBounds, BoundingBox } from "../utils/bounds";
+import { findParentContainer, updatePolygonGraphics } from "../shapes";
 import { updateSVGGraphics } from "../shapes/svg-shape";
 
 export interface TransformHandle {
@@ -19,15 +19,6 @@ export interface TransformHandle {
     | "right"
     | "rotate";
   graphics: PIXI.Graphics;
-}
-
-interface BoundingBox {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-  centerX: number;
-  centerY: number;
 }
 
 interface WorldTransform {
@@ -76,7 +67,6 @@ export class SelectionTransform {
     this.createHandles();
   }
 
-  // Handle Creation
   private createHandles() {
     const handleConfigs = [
       { type: "corner", position: "top-left", cursor: "nw-resize" },
@@ -123,7 +113,6 @@ export class SelectionTransform {
     return graphics;
   }
 
-  // Event Handlers
   private onHandlePointerDown(
     event: PIXI.FederatedPointerEvent,
     type: string,
@@ -172,14 +161,13 @@ export class SelectionTransform {
     this.resetState();
     this.resetRotationHandleAppearance();
     setWasTransformed(true);
-    useSeatMapStore.getState().updateShapes(shapes);
+    useSeatMapStore.getState().updateShapes([...shapes], true);
   }
 
   public get isCurrentlyTransforming(): boolean {
     return this.state.isTransforming;
   }
 
-  // Transform Operations
   private handleScale(deltaX: number, deltaY: number) {
     if (!this.boundingBox) return;
 
@@ -269,7 +257,9 @@ export class SelectionTransform {
     scaleFactors: { scaleX: number; scaleY: number } | null,
     rotationDelta: number | null
   ) {
-    shape.graphics.pivot.set(0, 0);
+    if (shape.type !== "svg") {
+      shape.graphics.pivot.set(0, 0);
+    }
 
     if (scaleFactors) {
       shape.scaleX = original.scaleX * scaleFactors.scaleX;
@@ -280,18 +270,22 @@ export class SelectionTransform {
       shape.rotation = original.rotation + rotationDelta;
     }
 
-    // Update graphics based on shape type
     if (shape.type === "image") {
-      // Images use sprites
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.position.set(shape.x, shape.y);
       shape.graphics.rotation = shape.rotation || 0;
     } else if (shape.type === "svg") {
-      // SVGs use graphics but need special handling
       const svgShape = shape as SVGShape;
       updateSVGGraphics(svgShape);
+    } else if (shape.type === "polygon") {
+      // ✅ Update polygon graphics properly
+      const polygon = shape as PolygonShape;
+      console.log(polygon, polygon.graphics.pivot);
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+      updatePolygonGraphics(polygon);
     } else {
-      // Default handling for other shapes
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.position.set(shape.x, shape.y);
       shape.graphics.rotation = shape.rotation || 0;
@@ -349,13 +343,29 @@ export class SelectionTransform {
   }
 
   private updateShapeGraphics(shape: CanvasItem) {
-    shape.graphics.pivot.set(0, 0);
-    shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
-    shape.graphics.position.set(shape.x, shape.y);
-    shape.graphics.rotation = shape.rotation || 0;
+    if (shape.type === "svg") {
+      const svgShape = shape as SVGShape;
+      updateSVGGraphics(svgShape);
+    } else if (shape.type === "polygon") {
+      // ✅ Handle polygon pivot correctly for transformations
+      const polygon = shape as PolygonShape;
+
+      // Since polygon points are already relative to visual center, pivot should be at origin
+      shape.graphics.pivot.set(0, 0);
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+
+      // Update the polygon graphics to ensure consistency
+      updatePolygonGraphics(polygon);
+    } else {
+      shape.graphics.pivot.set(0, 0);
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+    }
   }
 
-  // World Transform Calculations
   private getWorldCoordinates(shape: CanvasItem): { x: number; y: number } {
     let worldX = shape.x;
     let worldY = shape.y;
@@ -381,189 +391,14 @@ export class SelectionTransform {
     return { x: worldX, y: worldY };
   }
 
-  private getWorldTransform(shape: CanvasItem): WorldTransform {
-    const parentContainer = findParentContainer(shape);
-
-    if (!parentContainer) {
-      return {
-        x: shape.x,
-        y: shape.y,
-        scaleX: shape.scaleX || 1,
-        scaleY: shape.scaleY || 1,
-        rotation: shape.rotation || 0,
-      };
-    }
-
-    if (shape.type === "polygon") {
-      const polygonBounds = this.getPolygonWorldBounds(shape as PolygonShape);
-      return {
-        x: polygonBounds.centerX,
-        y: polygonBounds.centerY,
-        scaleX: shape.scaleX || 1,
-        scaleY: shape.scaleY || 1,
-        rotation: shape.rotation || 0,
-      };
-    }
-
-    let worldX = shape.x;
-    let worldY = shape.y;
-    let worldScaleX = shape.scaleX || 1;
-    let worldScaleY = shape.scaleY || 1;
-    let worldRotation = shape.rotation || 0;
-
-    let currentContainer = findParentContainer(shape);
-    while (currentContainer) {
-      const { rotation = 0, scaleX = 1, scaleY = 1 } = currentContainer;
-
-      worldScaleX *= scaleX;
-      worldScaleY *= scaleY;
-      worldRotation += rotation;
-
-      const scaledX = worldX * scaleX;
-      const scaledY = worldY * scaleY;
-
-      const cos = Math.cos(rotation);
-      const sin = Math.sin(rotation);
-      const rotatedX = scaledX * cos - scaledY * sin;
-      const rotatedY = scaledX * sin + scaledY * cos;
-
-      worldX = currentContainer.x + rotatedX;
-      worldY = currentContainer.y + rotatedY;
-
-      currentContainer = findParentContainer(currentContainer);
-    }
-
-    return {
-      x: worldX,
-      y: worldY,
-      scaleX: worldScaleX,
-      scaleY: worldScaleY,
-      rotation: worldRotation,
-    };
-  }
-
-  // Polygon Bounds Calculation
-  private getPolygonWorldBounds(polygon: PolygonShape): BoundingBox {
-    const parentContainer = findParentContainer(polygon);
-
-    if (!parentContainer) {
-      return this.calculatePolygonBounds(polygon, {
-        x: polygon.x,
-        y: polygon.y,
-        scaleX: polygon.scaleX || 1,
-        scaleY: polygon.scaleY || 1,
-        rotation: polygon.rotation || 0,
-      });
-    }
-
-    let currentCenterX = polygon.x;
-    let currentCenterY = polygon.y;
-    let accumulatedScaleX = polygon.scaleX || 1;
-    let accumulatedScaleY = polygon.scaleY || 1;
-    let accumulatedRotation = polygon.rotation || 0;
-
-    let currentContainer = findParentContainer(polygon);
-    while (currentContainer) {
-      const { rotation = 0, scaleX = 1, scaleY = 1 } = currentContainer;
-
-      const scaledCenterX = currentCenterX * scaleX;
-      const scaledCenterY = currentCenterY * scaleY;
-
-      const cos = Math.cos(rotation);
-      const sin = Math.sin(rotation);
-      const rotatedCenterX = scaledCenterX * cos - scaledCenterY * sin;
-      const rotatedCenterY = scaledCenterX * sin + scaledCenterY * cos;
-
-      currentCenterX = currentContainer.x + rotatedCenterX;
-      currentCenterY = currentContainer.y + rotatedCenterY;
-
-      accumulatedScaleX *= scaleX;
-      accumulatedScaleY *= scaleY;
-      accumulatedRotation += rotation;
-
-      currentContainer = findParentContainer(currentContainer);
-    }
-
-    return this.calculatePolygonBounds(polygon, {
-      x: currentCenterX,
-      y: currentCenterY,
-      scaleX: accumulatedScaleX,
-      scaleY: accumulatedScaleY,
-      rotation: accumulatedRotation,
-    });
-  }
-
-  private calculatePolygonBounds(
-    polygon: PolygonShape,
-    transform: WorldTransform
-  ): BoundingBox {
-    const transformedPoints = polygon.points.map((point) => {
-      const scaledX = point.x * transform.scaleX;
-      const scaledY = point.y * transform.scaleY;
-
-      const rotatedX =
-        scaledX * Math.cos(transform.rotation) -
-        scaledY * Math.sin(transform.rotation);
-      const rotatedY =
-        scaledX * Math.sin(transform.rotation) +
-        scaledY * Math.cos(transform.rotation);
-
-      return {
-        x: transform.x + rotatedX,
-        y: transform.y + rotatedY,
-      };
-    });
-
-    const xs = transformedPoints.map((p) => p.x);
-    const ys = transformedPoints.map((p) => p.y);
-    const minX = Math.min(...xs);
-    const minY = Math.min(...ys);
-    const maxX = Math.max(...xs);
-    const maxY = Math.max(...ys);
-
-    return {
-      x: minX,
-      y: minY,
-      width: maxX - minX,
-      height: maxY - minY,
-      centerX: (minX + maxX) / 2,
-      centerY: (minY + maxY) / 2,
-    };
-  }
-
-  // Bounding Box Calculation
+  // ✅ Simplified - now uses bounds.ts methods
   private calculateBoundingBox(shapes: CanvasItem[]): BoundingBox | null {
     if (shapes.length === 0) return null;
 
-    if (shapes.length === 1) {
-      const shape = shapes[0];
-      return shape.type === "polygon"
-        ? this.getPolygonWorldBounds(shape)
-        : calculateItemBounds({ ...shape, ...this.getWorldTransform(shape) });
-    } else {
-      const bounds = shapes.map((shape) =>
-        shape.type === "polygon"
-          ? this.getPolygonWorldBounds(shape)
-          : calculateItemBounds({ ...shape, ...this.getWorldTransform(shape) })
-      );
-
-      const minX = Math.min(...bounds.map((b) => b.x));
-      const minY = Math.min(...bounds.map((b) => b.y));
-      const maxX = Math.max(...bounds.map((b) => b.x + b.width));
-      const maxY = Math.max(...bounds.map((b) => b.y + b.height));
-
-      return {
-        x: minX,
-        y: minY,
-        width: maxX - minX,
-        height: maxY - minY,
-        centerX: (minX + maxX) / 2,
-        centerY: (minY + maxY) / 2,
-      };
-    }
+    // Use the unified bounds calculation from bounds.ts
+    return calculateGroupBounds(shapes);
   }
 
-  // UI Updates
   private updateHandlePositions() {
     if (!this.boundingBox) return;
 
@@ -597,7 +432,6 @@ export class SelectionTransform {
   private drawSelectionBox() {
     if (!this.boundingBox) return;
 
-    // Remove non-handle children
     this.container.children
       .filter((child) => !this.handles.some((h) => h.graphics === child))
       .forEach((child) => this.container.removeChild(child));
@@ -650,7 +484,6 @@ export class SelectionTransform {
     };
   }
 
-  // Public API
   public updateSelection(shapes: CanvasItem[]) {
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
@@ -669,7 +502,6 @@ export class SelectionTransform {
   }
 }
 
-// Module exports
 let selectionTransform: SelectionTransform | null = null;
 
 export const createSelectionTransform = (

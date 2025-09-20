@@ -12,8 +12,6 @@ import {
   updatePolygonPreview,
   clearPolygonPreview,
 } from "../preview";
-import { useSeatMapStore } from "../store/seat-map-store";
-import { shapes } from "../variables";
 
 const CLOSE_THRESHOLD = 15; // pixels
 const MIN_POINTS = 3;
@@ -99,8 +97,9 @@ export const onPolygonMove = (event: PIXI.FederatedPointerEvent) => {
 export const finishPolygon = () => {
   if (polygonDrawingState.points.length >= MIN_POINTS) {
     const polygon = createPolygon(polygonDrawingState.points, 10);
-    addShapeToStage(polygon);
-    useSeatMapStore.getState().updateShapes(shapes);
+    if (polygon) {
+      addShapeToStage(polygon);
+    }
   }
 
   resetPolygonDrawing();

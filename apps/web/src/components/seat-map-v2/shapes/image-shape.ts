@@ -4,6 +4,55 @@ import { ImageShape } from "../types";
 import * as PIXI from "pixi.js";
 
 /**
+ * Create an image shape from a texture or URL
+ */
+export const createImage = async (
+  x: number,
+  y: number,
+  src: string,
+  name?: string
+): Promise<ImageShape> => {
+  try {
+    const texture = await PIXI.Assets.load(src);
+    const sprite = new PIXI.Sprite(texture);
+
+    sprite.anchor.set(0.5, 0.5);
+    sprite.position.set(x, y);
+    sprite.eventMode = "static";
+    sprite.cursor = "pointer";
+
+    const shape: ImageShape = {
+      id: generateShapeId(),
+      name: name || `Image`,
+      type: "image",
+      graphics: sprite,
+      x,
+      y,
+      src, // Store the source URL
+      originalWidth: texture.width,
+      originalHeight: texture.height,
+      rotation: 0,
+      scaleX: 1,
+      scaleY: 1,
+      opacity: 1,
+      visible: true,
+      locked: false,
+      selected: false,
+    };
+
+    const eventManager = getEventManager();
+    if (eventManager) {
+      eventManager.addShapeEvents(shape);
+    }
+
+    return shape;
+  } catch (error) {
+    console.error("Failed to load image:", error);
+    throw new Error(`Failed to load image from ${src}`);
+  }
+};
+
+/**
  * Gets the actual rendered bounds of an image shape
  */
 export const getImageBounds = (
