@@ -27,7 +27,23 @@ export default async function AuthPage({
 
   const authRouter = (pathname: string) => {
     if (pathname === "sign-up-organizer") {
-      return <SignUpOrganizer />;
+      return (
+        <div>
+          <SignUpOrganizer />
+          <CardFooter className="pl-4 mr-6">
+            <div className="flex justify-center w-full border-t py-4">
+              <p className="text-center text-xs text-neutral-500">
+                <Link
+                  href="/auth/sign-up"
+                  className="text-blue-500 hover:text-blue-700 transition-colors text-sm font-medium"
+                >
+                  Sign up as Customer
+                </Link>
+              </p>
+            </div>
+          </CardFooter>
+        </div>
+      );
     } else if (pathname === "sign-in") {
       return <SignIn />;
     } else if (pathname === "sign-up") {
@@ -41,7 +57,7 @@ export default async function AuthPage({
                   href="/auth/sign-up-organizer"
                   className="text-blue-500 hover:text-blue-700 transition-colors text-sm font-medium"
                 >
-                  Sign up as an organizer
+                  Sign up as Organizer
                 </Link>
               </p>
             </div>
