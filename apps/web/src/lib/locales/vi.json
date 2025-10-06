@@ -1,0 +1,19 @@
+{
+  "greeting": "Xin chào, {{name}}!",
+  "home": {
+    "title": "Chào mừng đến với thế giới sự kiện",
+    "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
+"categories": {
+        "title": "Khám Phá Danh Mục",
+        "types":{
+            "Entertainment": "Giải Trí",
+            "Technology & Innovation": "Công Nghệ & Đổi Mới",
+            "Business": "Kinh Doanh",
+            "Cultural & Arts": "Văn Hóa & Nghệ Thuật",
+            "Sports & Fitness": "Thể Thao & Sức Khỏe",
+            "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
+        }
+    }  
+}
+  
+}

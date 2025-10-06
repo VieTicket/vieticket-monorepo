@@ -8,10 +8,15 @@ import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useTranslations } from "next-intl";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations();
 
   const navItems = [
     { label: "Home", href: "/" },
@@ -49,10 +54,12 @@ export default function Header() {
           );
         })}
       </nav>
+      
 
       {/* Auth Section */}
       {!session?.user ? (
         <div className="flex items-center gap-4">
+          <LanguageSwitcher />
           <Link href="/auth/sign-in">Log In</Link>
           <Button
             variant="outline"
@@ -64,6 +71,7 @@ export default function Header() {
         </div>
       ) : (
         <div className="flex items-center gap-6 text-xs">
+        <LanguageSwitcher />
           <Link href="/tickets" className="flex flex-col items-center">
             <Ticket className="w-5 h-5" />
             <span>Tickets</span>

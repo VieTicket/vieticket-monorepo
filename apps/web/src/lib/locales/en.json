@@ -1,0 +1,18 @@
+{
+  "greeting": "Hello, {{name}}!",
+  "home": {
+    "title": "Welcome to Event World",
+    "description": "Find the best events around you.",
+    "categories": {
+        "title": "Explore Categories",
+        "types":{
+            "Entertainment": "Entertainment",
+            "Technology & Innovation": "Technology & Innovation",
+            "Business": "Business",
+            "Cultural & Arts": "Cultural & Arts",
+            "Sports & Fitness": "Sports & Fitness",
+            "Competition & Game shows": "Competition & Game shows"
+        }
+    }
+  }
+}

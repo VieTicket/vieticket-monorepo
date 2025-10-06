@@ -1,7 +1,7 @@
 import CategoryList from "@/components/events/category-cards";
 import { EventGridSection } from "@/components/events/event-grid";
 import { getEventSummaries } from "@/lib/queries/events";
-import HeroCarousel from "@/components/HeroCarousel"; // Import carousel
+import HeroCarousel from "@/components/HeroCarousel";
 
 export default async function Home() {
   const eventPromise = getEventSummaries({
