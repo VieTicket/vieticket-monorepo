@@ -16,14 +16,12 @@ export default function Header() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
   const locale = useLocale();
-  const t = useTranslations();
+  const t = useTranslations("home");
 
-  const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Events", href: "/events" },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
-  ];
+  const navItems = t.raw("nav") as {
+    label: string;
+    href: string;
+  }[];
 
   return (
     <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between">
@@ -60,13 +58,13 @@ export default function Header() {
       {!session?.user ? (
         <div className="flex items-center gap-4">
           <LanguageSwitcher />
-          <Link href="/auth/sign-in">Log In</Link>
+          <Link href="/auth/sign-in">{t("logIn")}</Link>
           <Button
             variant="outline"
             className="bg-yellow-400 text-black hover:bg-yellow-300"
             asChild
           >
-            <Link href="/auth/sign-up">Sign Up</Link>
+            <Link href="/auth/sign-up">{t("signUp")}</Link>
           </Button>
         </div>
       ) : (

@@ -32,39 +32,6 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ title, imageUrl }) => {
   );
 };
 
-const categories = [
-  {
-    title: "Entertainment",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091047/e336de09-2f3a-4575-bdb1-4c1692e60ef0.png",
-  },
-  {
-    title: "Technology & Innovation",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093218/11f6010a-49ff-4a7d-bda5-8c8b612ac54a.png",
-  },
-  {
-    title: "Business",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091186/d2ce054c-a7f7-4b10-9636-628d50ed8fef.png",
-  },
-  {
-    title: "Cultural & Arts",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091193/d2b15a65-0dc6-48b4-80ab-cc791764bc52.png",
-  },
-  {
-    title: "Sports & Fitness",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093166/066bc76b-201a-4757-94be-1130e5d21653.png",
-  },
-  {
-    title: "Competition & Game shows",
-    imageUrl:
-      "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093221/326d759b-4b52-4abb-8b6b-72af066af729.png",
-  },
-];
-
 export default function CategoryList() {
   const t = useTranslations("home")
   const categories = [

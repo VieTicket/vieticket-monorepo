@@ -14,6 +14,8 @@ import {
   SortableEventColumnKey,
 } from "@/lib/queries/events";
 import { Button } from "../ui/button";
+import { useTranslations } from "next-intl";
+
 
 interface EventGridProps {
   events: EventSummary[];
@@ -107,14 +109,12 @@ export function StaticEventGrid({ events }: EventGridProps) {
 }
 
 interface EventGridSectionProps {
-  title?: string;
   initialEvents: EventSummaryResponse;
   sortColumnKey?: SortableEventColumnKey;
   limit?: number;
 }
 
 export function EventGridSection({
-  title = "Discover Best of Online Events",
   initialEvents,
   sortColumnKey = "startTime",
   limit = 12,
@@ -123,6 +123,8 @@ export function EventGridSection({
   const [events, setEvents] = useState<EventSummary[]>(awaitedResult.events);
   const [hasMore, setHasMore] = useState(awaitedResult.hasMore);
   const [isPending, startTransition] = useTransition();
+  const t = useTranslations("home");
+
 
   const handleClickSeeMore = () => {
     if (!hasMore || isPending) return;
@@ -158,7 +160,7 @@ export function EventGridSection({
   return (
     <section className="px-4 py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-        {title}
+        {t("titlecategories")}
       </h2>
 
       <StaticEventGrid events={events} />
@@ -171,7 +173,7 @@ export function EventGridSection({
             variant="outline"
             size="lg"
           >
-            See More
+            {t("seeMore")}
           </Button>
         </div>
       )}

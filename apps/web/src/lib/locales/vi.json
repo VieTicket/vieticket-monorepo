@@ -1,9 +1,29 @@
 {
-  "greeting": "Xin chào, {{name}}!",
   "home": {
-    "title": "Chào mừng đến với thế giới sự kiện",
+    "logIn": "Đăng Nhập",
+    "signUp": "Đăng Ký",
+    "nav":[
+        { "label": "Trang Chủ", "href": "/" },
+        { "label": "Sự Kiện", "href": "/events" },
+        { "label": "Giới Thiệu", "href": "/about" },
+        { "label": "Liên Hệ", "href": "/contact" }
+    ],
+    "carousel": {
+        "slide1": {
+            "title": "Chào mừng đến với VieTicket",
+            "subtitle": "Khám phá một thế giới sự kiện sôi động đang chờ bạn."
+        },
+        "slide2": {
+            "title": "Tạo Sơ Đồ Chỗ Ngồi Đơn Giản",
+            "subtitle": "Dễ dàng thiết kế sơ đồ chỗ ngồi cho bất kỳ sự kiện nào một cách dễ dàng."
+        },
+        "slide3": {
+            "title": "Đa Dạng Địa Điểm Âm Nhạc",
+            "subtitle": "Thưởng thức các thể loại âm nhạc đa dạng tại các địa điểm tuyệt vời của chúng tôi."
+        }
+    },
     "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
-"categories": {
+    "categories": {
         "title": "Khám Phá Danh Mục",
         "types":{
             "Entertainment": "Giải Trí",
@@ -13,7 +33,42 @@
             "Sports & Fitness": "Thể Thao & Sức Khỏe",
             "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
         }
-    }  
+    }, 
+    "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
+    "seeMore": "Xem Thêm"
+    },
+    "footer": {
+    "companyInfo":{
+        "title": "Thông Tin Công Ty",
+        "properties": [
+        "Về Chúng Tôi",
+        "Liên Hệ",
+        "Tuyển Dụng",
+        "Câu Hỏi Thường Giao",
+        "Điều Khoản Dịch Vụ",
+        "Chính Sách Bảo Mật"
+        ]
+    },
+    "help":{
+        "title": "Trợ Giúp",
+        "properties": [
+        "Hỗ Trợ Tài Khoản",
+        "Đăng Sự Kiện",
+        "Vé Sự Kiện",
+        "Điều Khoản & Điều Kiện Mua Vé"
+        ]
+        },
+    "categories": {
+        "title": "Khám Phá Danh Mục",
+        "properties":[
+            "Giải Trí",
+            "Công Nghệ & Đổi Mới",
+            "Kinh Doanh",
+            "Văn Hóa & Nghệ Thuật",
+            "Thể Thao & Sức Khỏe",
+            "Cuộc Thi & Chương Trình Trò Chơi"
+        ]
+    },
+    "followUs": "Theo Dõi Chúng Tôi"
 }
-  
 }
