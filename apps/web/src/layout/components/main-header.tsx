@@ -8,17 +8,20 @@ import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { useLocale } from "@/providers/LocaleProvider";
+import { useTranslations } from "next-intl";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
+  const locale = useLocale();
+  const t = useTranslations("home");
 
-  const navItems = [
-    { label: "Home", href: "/" },
-    { label: "Events", href: "/events" },
-    { label: "About", href: "/about" },
-    { label: "Contact", href: "/contact" },
-  ];
+  const navItems = t.raw("nav") as {
+    label: string;
+    href: string;
+  }[];
 
   return (
     <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between">
@@ -49,21 +52,24 @@ export default function Header() {
           );
         })}
       </nav>
+      
 
       {/* Auth Section */}
       {!session?.user ? (
         <div className="flex items-center gap-4">
-          <Link href="/auth/sign-in">Log In</Link>
+          <LanguageSwitcher />
+          <Link href="/auth/sign-in">{t("logIn")}</Link>
           <Button
             variant="outline"
             className="bg-yellow-400 text-black hover:bg-yellow-300"
             asChild
           >
-            <Link href="/auth/sign-up">Sign Up</Link>
+            <Link href="/auth/sign-up">{t("signUp")}</Link>
           </Button>
         </div>
       ) : (
         <div className="flex items-center gap-6 text-xs">
+        <LanguageSwitcher />
           <Link href="/tickets" className="flex flex-col items-center">
             <Ticket className="w-5 h-5" />
             <span>Tickets</span>
