@@ -26,7 +26,7 @@ import type {
   TicketingMode,
   UploadResponse,
 } from "../../../../types/event-types";
-import { ShowingFormData } from "@/types/showings";
+import { ShowingFormData, ShowingWithAreas } from "@/types/showings";
 
 export default function CreateEventPage() {
   return (
@@ -70,11 +70,12 @@ function CreateEventPageInner() {
   const [hasSeatMapChanges, setHasSeatMapChanges] = useState(false);
   const [confirmSeatMapUpdate, setConfirmSeatMapUpdate] = useState(false);
   const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
-  const [showings, setShowings] = useState<ShowingFormData[]>([
+  const [showings, setShowings] = useState<ShowingWithAreas[]>([
     {
       name: "Main Showing",
       startTime: "",
       endTime: "",
+      areas: [],
     },
   ]);
 
@@ -94,12 +95,6 @@ function CreateEventPageInner() {
           : "",
         ticketSaleEnd: event.ticketSaleEnd
           ? new Date(event.ticketSaleEnd).toISOString().slice(0, 16)
-          : "",
-        startTime: event.startTime
-          ? new Date(event.startTime).toISOString().slice(0, 16)
-          : "",
-        endTime: event.endTime
-          ? new Date(event.endTime).toISOString().slice(0, 16)
           : "",
         location: event.location ?? "",
         description: event.description ?? "",
@@ -139,8 +134,21 @@ function CreateEventPageInner() {
           toast.error("Failed to load seat map data");
         }
       } else {
-        // Load simple ticketing areas
-        if (event.areas?.length > 0) {
+        // Load simple ticketing areas from showings
+        if (event.showings?.length > 0) {
+          // For simple ticketing, use areas from the first showing as default
+          const firstShowing = event.showings[0];
+          if (firstShowing.areas?.length > 0) {
+            setAreas(
+              firstShowing.areas.map((area: any) => ({
+                name: area.name,
+                ticketPrice: area.price.toString(),
+                seatCount: area.seatCount?.toString() || "0",
+              }))
+            );
+          }
+        } else if (event.areas?.length > 0) {
+          // Fallback to legacy event.areas if no showings
           setAreas(
             event.areas.map((area: any) => ({
               name: area.name,
@@ -155,10 +163,44 @@ function CreateEventPageInner() {
       // Load showings data if available
       if (event.showings?.length > 0) {
         setShowings(
-          event.showings.map((showing: any) => ({
-            name: showing.name,
-            startTime: new Date(showing.startTime).toISOString().slice(0, 16),
-            endTime: new Date(showing.endTime).toISOString().slice(0, 16),
+          event.showings.map((showing: any) => {
+            // Ensure we have valid dates
+            const startTime = showing.startTime
+              ? new Date(showing.startTime)
+              : new Date();
+            const endTime = showing.endTime
+              ? new Date(showing.endTime)
+              : new Date();
+
+            // Check if dates are valid
+            const isValidStartTime =
+              startTime instanceof Date && !isNaN(startTime.getTime());
+            const isValidEndTime =
+              endTime instanceof Date && !isNaN(endTime.getTime());
+
+            return {
+              name: showing.name,
+              startTime: isValidStartTime
+                ? startTime.toISOString().slice(0, 16)
+                : "",
+              endTime: isValidEndTime ? endTime.toISOString().slice(0, 16) : "",
+              areas:
+                showing.areas?.map((area: any) => ({
+                  name: area.name,
+                  ticketPrice: area.price.toString(),
+                  seatCount: area.seatCount?.toString() || "0",
+                })) || [],
+            };
+          })
+        );
+
+        console.log(
+          "Loaded showings with areas:",
+          event.showings.map((s: any) => ({
+            name: s.name,
+            areasCount: s.areas?.length || 0,
+            areas:
+              s.areas?.map((a: any) => `${a.name}: ${a.seatCount} seats`) || [],
           }))
         );
       }
@@ -434,24 +476,24 @@ function CreateEventPageInner() {
                   <input
                     type="hidden"
                     name={`showings[${index}].startTime`}
-                    value={showing.startTime}
+                    value={showing.startTime || ""}
                   />
                   <input
                     type="hidden"
                     name={`showings[${index}].endTime`}
-                    value={showing.endTime}
+                    value={showing.endTime || ""}
                   />
                 </div>
               ))}
               <input
                 type="hidden"
                 name="ticketSaleStart"
-                value={formData.ticketSaleStart}
+                value={formData.ticketSaleStart || ""}
               />
               <input
                 type="hidden"
                 name="ticketSaleEnd"
-                value={formData.ticketSaleEnd}
+                value={formData.ticketSaleEnd || ""}
               />
               <input type="hidden" name="location" value={formData.location} />
               <input

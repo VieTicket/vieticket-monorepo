@@ -16,6 +16,14 @@ import {
   createSeatsWithIds,
   incrementEventView,
   createShowing,
+  updateEventWithShowingsOptimized,
+  updateEventWithShowingsIndividualOptimized,
+  createEventWithShowingsOptimized,
+  createEventWithShowingsIndividualOptimized,
+  createEventWithAreasOptimized,
+  getEventByIdOptimized,
+  getEventsByOrganizerOptimized,
+  checkEventSeatsData,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
@@ -41,36 +49,14 @@ export async function createEventWithMultipleAreas(
 
   const validEvent = result.data;
 
-  let createdEventId: string | null = null;
-
-  await db.transaction(async () => {
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
-
-    for (const area of areas) {
-      const [createdArea] = await createArea({
-        eventId: createdEvent.id,
-        name: area.name,
-        price: area.ticketPrice,
-      });
-
-      const [createdRow] = await createRow({
-        areaId: createdArea.id,
-        rowName: "A",
-      });
-
-      const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-        rowId: createdRow.id,
-        seatNumber: (i + 1).toString(),
-      }));
-
-      if (seatValues.length > 0) {
-        await createSeats(seatValues);
-      }
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
+  try {
+    // Use optimized bulk operation for creating event with areas
+    const { eventId } = await createEventWithAreasOptimized(validEvent, areas);
+    return { eventId };
+  } catch (error) {
+    console.error("Error creating event with areas:", error);
+    return null;
+  }
 }
 
 export async function createEventWithShowingsAndAreas(
@@ -97,54 +83,23 @@ export async function createEventWithShowingsAndAreas(
   }
 
   const validEvent = result.data;
-  let createdEventId: string | null = null;
 
-  await db.transaction(async () => {
-    // 1. Create the event
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
+  try {
+    // Use optimized bulk operation for creating event with showings (copy mode)
+    const showingsData = showings.map((showing) => ({
+      showing,
+      areas,
+    }));
 
-    // 2. Create showings
-    const createdShowings = [];
-    for (const showing of showings) {
-      const [createdShowing] = await createShowing({
-        eventId: createdEvent.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-      createdShowings.push(createdShowing);
-    }
-
-    // 3. Create areas for each showing
-    for (const showing of createdShowings) {
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: createdEvent.id,
-          showingId: showing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
+    const { eventId } = await createEventWithShowingsOptimized(
+      validEvent,
+      showingsData
+    );
+    return { eventId };
+  } catch (error) {
+    console.error("Error creating event with showings:", error);
+    return null;
+  }
 }
 
 export async function createEventWithShowingsAndAreasIndividual(
@@ -173,53 +128,26 @@ export async function createEventWithShowingsAndAreasIndividual(
   }
 
   const validEvent = result.data;
-  let createdEventId: string | null = null;
 
-  await db.transaction(async () => {
-    // 1. Create the event
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
+  try {
+    // Use optimized bulk operation for creating event with individual showing configs
+    const showingsData = showings.map((showing, index) => ({
+      showing,
+      areas: showingAreaConfigs[index] || [],
+    }));
 
-    // 2. Create showings and their individual areas
-    for (let i = 0; i < showings.length; i++) {
-      const showing = showings[i];
-      const areas = showingAreaConfigs[i] || [];
-
-      const [createdShowing] = await createShowing({
-        eventId: createdEvent.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-
-      // 3. Create areas for this specific showing
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: createdEvent.id,
-          showingId: createdShowing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
+    const { eventId } = await createEventWithShowingsIndividualOptimized(
+      validEvent,
+      showingsData
+    );
+    return { eventId };
+  } catch (error) {
+    console.error(
+      "Error creating event with individual showing configs:",
+      error
+    );
+    return null;
+  }
 }
 
 export async function updateEventWithMultipleAreas(
@@ -317,10 +245,12 @@ export async function incrementEventViewCount(eventId: string) {
 // }
 
 export async function getEventsByOrganizer(organizerId: string) {
-  return await getEventsByOrganizerId(organizerId);
+  // Use optimized function for much faster loading of organizer's events
+  return await getEventsByOrganizerOptimized(organizerId);
 }
 export const getEventById = async (eventId: string) => {
-  const result = await getEventsById(eventId);
+  // Use optimized function for much faster loading
+  const result = await getEventByIdOptimized(eventId);
   return result[0] || null;
 };
 
@@ -430,4 +360,54 @@ export async function updateEventWithSeatMap(
       }
     }
   });
+}
+
+// ========== OPTIMIZED UPDATE FUNCTIONS ==========
+
+export async function updateEventWithShowingsAndAreas(
+  eventPayload: any,
+  showings: Array<{
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }>,
+  areas: Array<{
+    name: string;
+    seatCount: number;
+    ticketPrice: number;
+  }>
+) {
+  // Prepare data for optimized function
+  const showingsData = showings.map((showing) => ({
+    showing,
+    areas,
+  }));
+
+  return updateEventWithShowingsOptimized(eventPayload, showingsData);
+}
+
+export async function updateEventWithShowingsAndAreasIndividual(
+  eventPayload: any,
+  showings: Array<{
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    seatMapId?: string;
+  }>,
+  showingAreaConfigs: Array<
+    Array<{
+      name: string;
+      seatCount: number;
+      ticketPrice: number;
+    }>
+  >
+) {
+  // Prepare data for optimized function
+  const showingsData = showings.map((showing, index) => ({
+    showing,
+    areas: showingAreaConfigs[index] || [],
+  }));
+
+  return updateEventWithShowingsIndividualOptimized(eventPayload, showingsData);
 }
