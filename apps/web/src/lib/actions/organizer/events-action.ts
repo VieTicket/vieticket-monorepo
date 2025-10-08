@@ -78,8 +78,11 @@ export async function handleCreateEvent(
     type: (formData.get("type") as string) || null,
     ticketSaleStart: formData.get("ticketSaleStart")
       ? (() => {
-          const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
-          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "") return null;
+          const ticketSaleStartValue = formData.get(
+            "ticketSaleStart"
+          ) as string;
+          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+            return null;
           const date = new Date(ticketSaleStartValue);
           return isNaN(date.getTime()) ? null : date;
         })()
@@ -87,7 +90,8 @@ export async function handleCreateEvent(
     ticketSaleEnd: formData.get("ticketSaleEnd")
       ? (() => {
           const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "") return null;
+          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+            return null;
           const date = new Date(ticketSaleEndValue);
           return isNaN(date.getTime()) ? null : date;
         })()
@@ -239,7 +243,10 @@ export async function handleUpdateEvent(formData: FormData) {
     if (!name || !startTime || !endTime) break;
 
     // Skip if startTime or endTime is empty string
-    if (startTime.toString().trim() === "" || endTime.toString().trim() === "") {
+    if (
+      startTime.toString().trim() === "" ||
+      endTime.toString().trim() === ""
+    ) {
       console.log(`Skipping showing ${name} due to empty time fields`);
       showingIndex++;
       continue;
@@ -275,7 +282,9 @@ export async function handleUpdateEvent(formData: FormData) {
             })
           )
         )
-      : existingEvent.startTime ? new Date(existingEvent.startTime) : new Date();
+      : existingEvent.startTime
+        ? new Date(existingEvent.startTime)
+        : new Date();
   const eventEndTime =
     showings.length > 0
       ? new Date(
@@ -286,7 +295,9 @@ export async function handleUpdateEvent(formData: FormData) {
             })
           )
         )
-      : existingEvent.endTime ? new Date(existingEvent.endTime) : new Date();
+      : existingEvent.endTime
+        ? new Date(existingEvent.endTime)
+        : new Date();
 
   const eventPayload = {
     id: eventId,
@@ -299,8 +310,11 @@ export async function handleUpdateEvent(formData: FormData) {
     type: (formData.get("type") as string) || null,
     ticketSaleStart: formData.get("ticketSaleStart")
       ? (() => {
-          const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
-          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "") return null;
+          const ticketSaleStartValue = formData.get(
+            "ticketSaleStart"
+          ) as string;
+          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+            return null;
           const date = new Date(ticketSaleStartValue);
           return isNaN(date.getTime()) ? null : date;
         })()
@@ -308,7 +322,8 @@ export async function handleUpdateEvent(formData: FormData) {
     ticketSaleEnd: formData.get("ticketSaleEnd")
       ? (() => {
           const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "") return null;
+          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+            return null;
           const date = new Date(ticketSaleEndValue);
           return isNaN(date.getTime()) ? null : date;
         })()
@@ -318,7 +333,9 @@ export async function handleUpdateEvent(formData: FormData) {
     seatMapId: seatMapId || null,
     updatedAt: new Date(),
     organizerId,
-    createdAt: existingEvent.createdAt ? new Date(existingEvent.createdAt) : new Date(),
+    createdAt: existingEvent.createdAt
+      ? new Date(existingEvent.createdAt)
+      : new Date(),
     views: existingEvent.views,
     approvalStatus: existingEvent.approvalStatus,
   };
