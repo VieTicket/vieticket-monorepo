@@ -93,8 +93,42 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
           ...event.organizer,
           avatar,
         }
-      : null,
-  };
+      : undefined,
+  } as EventFull;
+}
+
+export async function getEventByIdFull(eventId: string): Promise<EventFull | null> {
+  // Get the event using relations to include organizer, areas, and showings
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    with: {
+      organizer: true,
+      areas: true,
+      showings: true,
+    },
+  });
+
+  if (!event) return null;
+
+  // Get organizer avatar from user table
+  let avatar = null;
+  if (event.organizer) {
+    const userAvatar = await db.query.user.findFirst({
+      where: eq(user.id, event.organizer.id),
+      columns: { image: true },
+    });
+    avatar = userAvatar?.image || null;
+  }
+
+  return {
+    ...event,
+    organizer: event.organizer
+      ? {
+          ...event.organizer,
+          avatar,
+        }
+      : undefined,
+  } as EventFull;
 }
 export async function getFilteredEvents({
   page = 1,

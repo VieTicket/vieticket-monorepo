@@ -1,0 +1,40 @@
+import { NextResponse } from "next/server";
+import { getAuthSession } from "@/lib/auth/auth";
+import { submitEventRating } from "@vieticket/services";
+import { getEventRatingSummary, listEventRatings } from "@vieticket/repos/ratings";
+
+export async function GET(
+  _req: Request,
+  { params }: { params: Promise<{ eventId: string }> }
+) {
+  const { eventId } = await params;
+  const [summary, recent] = await Promise.all([
+    getEventRatingSummary(eventId),
+    listEventRatings(eventId, 10),
+  ]);
+  return NextResponse.json({ summary, recent });
+}
+
+export async function POST(
+  req: Request,
+  { params }: { params: Promise<{ eventId: string }> }
+) {
+  const session = await getAuthSession(req.headers as any);
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { eventId } = await params;
+  const body = await req.json();
+  const stars = Number(body?.stars);
+  const comment: string | undefined = body?.comment;
+
+  try {
+    const summary = await submitEventRating(session.user.id, eventId, stars, comment);
+    return NextResponse.json({ success: true, summary });
+  } catch (e: any) {
+    return NextResponse.json({ success: false, error: e?.message ?? "Error" }, { status: 400 });
+  }
+}
+
+

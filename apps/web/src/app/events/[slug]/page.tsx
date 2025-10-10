@@ -4,6 +4,11 @@ import {
   EventPreviewData,
 } from "@/components/create-event/preview";
 import ViewCounter from "@/components/ViewCounter";
+import RatingWidget from "@/components/event/RatingWidget";
+import { CompareEventButton } from "@/components/event/CompareEventButton";
+import { auth } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+
 
 export default async function EventPage({
   params,
@@ -12,6 +17,18 @@ export default async function EventPage({
 }) {
   const { slug } = await params;
   const raw = await fetchEventDetail(slug);
+
+  // Check authentication on server side
+  let isAuthenticated = false;
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers()
+    });
+    isAuthenticated = !!session?.user;
+  } catch (error) {
+    console.error('Error checking auth:', error);
+    isAuthenticated = false;
+  }
 
   const event: EventPreviewData = {
     eventId: raw.id,
@@ -22,9 +39,6 @@ export default async function EventPage({
     description: raw.description ?? "",
     location: raw.location ?? "",
     type: raw.type ?? "",
-    // Use first showing times for legacy fields
-    startTime: raw.showings[0]?.startTime.toISOString() ?? "",
-    endTime: raw.showings[0]?.endTime.toISOString() ?? "",
     ticketSaleStart: raw.ticketSaleStart?.toISOString() ?? "",
     ticketSaleEnd: raw.ticketSaleEnd?.toISOString() ?? "",
     seatMapId: raw.seatMapId ?? null,
@@ -54,13 +68,24 @@ export default async function EventPage({
   return (
     <div className="bg-white min-h-screen w-full">
       <ViewCounter eventId={raw.id} />
-      <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
-        <PreviewEvent
-          data={{
-            ...event,
-            isPreview: false,
-          }}
-        />
+      <div className="relative">
+        {/* Compare button positioned at top right */}
+        <div className="absolute top-4 right-4 z-10">
+          <CompareEventButton 
+            event={raw} 
+            isAuthenticated={isAuthenticated}
+          />
+        </div>
+        
+        <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
+          <PreviewEvent
+            data={{
+              ...event,
+              isPreview: false,
+            }}
+          />
+          <RatingWidget eventId={raw.id} />
+        </div>
       </div>
     </div>
   );

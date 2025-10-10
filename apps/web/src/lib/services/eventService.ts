@@ -20,7 +20,7 @@ import {
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
 import { Event, NewEvent } from "@vieticket/db/pg/schema";
-import { getEventBySlug } from "../queries/events";
+import { getEventBySlug, getEventByIdFull } from "../queries/events";
 import { SeatMapPreviewData } from "@/types/event-types";
 export async function createEventWithMultipleAreas(
   event: NewEvent,
@@ -288,6 +288,13 @@ export async function updateEventWithMultipleAreas(
 }
 export async function fetchEventDetail(slug: string) {
   const event = await getEventBySlug(slug);
+
+  if (!event) throw new Error("Event not found");
+  return event;
+}
+
+export async function fetchEventById(eventId: string) {
+  const event = await getEventByIdFull(eventId);
 
   if (!event) throw new Error("Event not found");
   return event;
