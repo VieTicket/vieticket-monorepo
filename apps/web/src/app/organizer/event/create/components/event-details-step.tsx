@@ -156,6 +156,22 @@ export function EventDetailsStep({
         value={formData.description}
         onChange={onDescriptionChange}
         error={!!errors.description}
+        eventData={{
+          name: formData.name,
+          type: formData.type,
+          startTime:
+            showings.length > 0
+              ? showings[0].startTime
+              : formData.ticketSaleStart,
+          endTime:
+            showings.length > 0
+              ? showings[showings.length - 1].endTime
+              : formData.ticketSaleEnd,
+          location: formData.location,
+          ticketSaleStart: formData.ticketSaleStart,
+          ticketSaleEnd: formData.ticketSaleEnd,
+          ticketPrice: formData.ticketPrice,
+        }}
       />
     </>
   );
