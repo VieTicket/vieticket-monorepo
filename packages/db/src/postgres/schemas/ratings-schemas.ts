@@ -9,6 +9,7 @@ export const eventRatings = pgTable(
     eventId: uuid("event_id")
       .references(() => events.id, { onDelete: "cascade" })
       .notNull(),
+    // keep user_id as text to match users.id (which is text in your DB)
     userId: text("user_id")
       .references(() => user.id, { onDelete: "cascade" })
       .notNull(),

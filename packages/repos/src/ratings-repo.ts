@@ -1,22 +1,35 @@
 import { and, desc, eq, lt, sql } from "drizzle-orm";
 import { db } from "@vieticket/db/pg";
 import { eventRatings, events, tickets, orders } from "@vieticket/db/pg/schema";
+import { randomUUID } from "crypto";
 
 export async function hasUserPurchasedEvent(userId: string, eventId: string) {
-  // Has any ticket for seats under this event's areas
-  const existsRes = await db.execute<{ exists: boolean }>(sql`
-    select exists (
-      select 1
-      from tickets t
-      join orders o on o.id = t.order_id and o.user_id = ${userId} and o.status in ('paid', 'refunded')
-      join seats s on s.id = t.seat_id
-      join rows rw on rw.id = s.row_id
-      join areas ar on ar.id = rw.area_id
-      where ar.event_id = ${eventId}
-    ) as exists;
-  `);
-  const existsRow = (existsRes as any).rows?.[0] as { exists: boolean } | undefined;
-  return !!existsRow?.exists;
+  try {
+    const existsRes = await db.execute<{ exists_result: boolean }>(sql`
+      SELECT EXISTS (
+        SELECT 1
+        FROM tickets t
+        JOIN orders o ON o.id = t.order_id
+        JOIN seats s ON s.id = t.seat_id
+        JOIN rows rw ON rw.id = s.row_id
+        JOIN areas ar ON ar.id = rw.area_id
+        WHERE o.user_id = ${userId}
+          AND o.status IN ('paid', 'refunded')
+          AND ar.event_id = ${eventId}
+      ) AS exists_result;
+    `);
+
+    const existsRow = (existsRes as any).rows?.[0] as { exists_result?: boolean } | undefined;
+    return !!existsRow?.exists_result;
+  } catch (err) {
+    console.error("hasUserPurchasedEvent error:", {
+      userId,
+      eventId,
+      error: err && (err as any).message ? (err as any).message : err,
+      stack: err && (err as any).stack ? (err as any).stack : undefined,
+    });
+    throw err;
+  }
 }
 
 export async function isEventEnded(eventId: string) {
@@ -35,18 +48,34 @@ export async function upsertEventRating(
   stars: number,
   comment?: string
 ) {
-  // Upsert (nếu bảng đã có unique constraint (event_id, user_id) có thể dùng on conflict)
-  const existing = await db.query.eventRatings.findFirst({
-    where: (er, { and, eq }) => and(eq(er.userId, userId), eq(er.eventId, eventId)),
-  });
+  try {
+    // Try to update an existing rating first
+    const updateRes = await db.execute<{ id: string }>(sql`
+      UPDATE ratings
+      SET stars = ${stars}, comment = ${comment}, created_at = now()
+      WHERE user_id = ${userId} AND event_id = ${eventId}
+      RETURNING id;
+    `);
 
-  if (existing) {
-    await db
-      .update(eventRatings)
-      .set({ stars, comment })
-      .where(eq(eventRatings.id, existing.id));
-  } else {
-    await db.insert(eventRatings).values({ userId, eventId, stars, comment });
+    const updated = (updateRes as any).rows?.[0];
+    if (updated) return;
+
+    // If no existing row was updated, insert a new rating using server-generated UUID
+    const id = randomUUID();
+    await db.execute(sql`
+      INSERT INTO ratings (id, user_id, event_id, stars, comment, created_at)
+      VALUES (${id}, ${userId}, ${eventId}, ${stars}, ${comment}, now());
+    `);
+  } catch (err) {
+    console.error("upsertEventRating error:", {
+      userId,
+      eventId,
+      stars,
+      comment,
+      error: err && (err as any).message ? (err as any).message : err,
+      stack: err && (err as any).stack ? (err as any).stack : undefined,
+    });
+    throw err;
   }
 }
 

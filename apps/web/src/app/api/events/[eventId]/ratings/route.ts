@@ -25,15 +25,17 @@ export async function POST(
   }
 
   const { eventId } = await params;
-  const body = await req.json();
+const body = await req.json();
   const stars = Number(body?.stars);
   const comment: string | undefined = body?.comment;
-
+  console.log("Received rating:", { stars, comment });
   try {
     const summary = await submitEventRating(session.user.id, eventId, stars, comment);
     return NextResponse.json({ success: true, summary });
   } catch (e: any) {
-    return NextResponse.json({ success: false, error: e?.message ?? "Error" }, { status: 400 });
+    // log full error server-side for debugging
+    console.error("POST /api/events/[eventId]/ratings error:", e);
+    return NextResponse.json({ success: false, error: e?.message ?? "Error" }, { status: 500 });
   }
 }
 
