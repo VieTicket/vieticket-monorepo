@@ -2,11 +2,23 @@
   "home": {
     "logIn": "Log In",
     "signUp": "Sign Up",
-    "nav":[
-        { "label": "Home", "href": "/" },
-        { "label": "Events", "href": "/events" },
-        { "label": "About", "href": "/about" },
-        { "label": "Contact", "href": "/contact" }
+    "nav": [
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Events",
+        "href": "/events"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
     ],
     "carousel": {
       "slide1": {
@@ -24,23 +36,23 @@
     },
     "description": "Find the best events around you.",
     "categories": {
-        "title": "Explore Categories",
-        "types":{
-            "Entertainment": "Entertainment",
-            "Technology & Innovation": "Technology & Innovation",
-            "Business": "Business",
-            "Cultural & Arts": "Cultural & Arts",
-            "Sports & Fitness": "Sports & Fitness",
-            "Competition & Game shows": "Competition & Game shows"
-        }
+      "title": "Explore Categories",
+      "types": {
+        "Entertainment": "Entertainment",
+        "Technology & Innovation": "Technology & Innovation",
+        "Business": "Business",
+        "Cultural & Arts": "Cultural & Arts",
+        "Sports & Fitness": "Sports & Fitness",
+        "Competition & Game shows": "Competition & Game shows"
+      }
     },
     "titlecategories": "Explore the Best Online Events",
     "seeMore": "See More"
   },
   "footer": {
-    "companyInfo":{
-        "title": "Company Info",
-        "properties": [
+    "companyInfo": {
+      "title": "Company Info",
+      "properties": [
         "About Us",
         "Contact Us",
         "Careers",
@@ -49,26 +61,91 @@
         "Privacy Policy"
       ]
     },
-    "help":{
-        "title": "Help",
-        "properties": [
+    "help": {
+      "title": "Help",
+      "properties": [
         "Account Support",
         "Listing Events",
         "Event Ticketing",
         "Ticket Purchase Terms & Conditions"
-      ]  
+      ]
     },
     "categories": {
-        "title": "Explore Categories",
-        "properties":[
-            "Entertainment",
-            "Technology & Innovation",
-            "Business",
-            "Cultural & Arts",
-            "Sports & Fitness",
-            "Competition & Game shows"
-        ]
+      "title": "Explore Categories",
+      "properties": [
+        "Entertainment",
+        "Technology & Innovation",
+        "Business",
+        "Cultural & Arts",
+        "Sports & Fitness",
+        "Competition & Game shows"
+      ]
     },
     "followUs": "Follow Us"
-}
+  },
+  "event-sidebar": {
+    "priceOptions": [
+      {
+        "label": "Under 500,000₫",
+        "value": "lt500k"
+      },
+      {
+        "label": "500,000₫ - 1,000,000₫",
+        "value": "500k-1m"
+      },
+      {
+        "label": "1,000,000₫ - 3,000,000₫",
+        "value": "1m-3m"
+      },
+      {
+        "label": "Over 5,000,000₫",
+        "value": "gt5m"
+      }
+    ],
+    "seeMore": "See More",
+    "dateOptions": [
+      {
+        "label": "All",
+        "value": "all"
+      },
+      {
+        "label": "Today",
+        "value": "today"
+      },
+      {
+        "label": "This Week",
+        "value": "thisWeek"
+      }
+    ],
+    "categoryOptions": [
+      {
+        "label": "All Categories",
+        "value": "all"
+      },
+      {
+        "label": "Entertainment",
+        "value": "Entertainment"
+      },
+      {
+        "label": "Technology & Innovation",
+        "value": "Technology & Innovation"
+      },
+      {
+        "label": "Business",
+        "value": "Business"
+      },
+      {
+        "label": "Cultural & Arts",
+        "value": "Cultural & Arts"
+      },
+      {
+        "label": "Sports & Fitness",
+        "value": "Sports & Fitness"
+      },
+      {
+        "label": "Competition & Game shows",
+        "value": "Competition & Game shows"
+      }
+    ]
+  }
 }

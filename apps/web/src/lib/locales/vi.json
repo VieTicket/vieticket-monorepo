@@ -1,74 +1,151 @@
 {
-  "home": {
-    "logIn": "Đăng Nhập",
-    "signUp": "Đăng Ký",
-    "nav":[
-        { "label": "Trang Chủ", "href": "/" },
-        { "label": "Sự Kiện", "href": "/events" },
-        { "label": "Giới Thiệu", "href": "/about" },
-        { "label": "Liên Hệ", "href": "/contact" }
-    ],
-    "carousel": {
-        "slide1": {
-            "title": "Chào mừng đến với VieTicket",
-            "subtitle": "Khám phá một thế giới sự kiện sôi động đang chờ bạn."
+    "home": {
+        "logIn": "Đăng Nhập",
+        "signUp": "Đăng Ký",
+        "nav": [
+            {
+                "label": "Trang Chủ",
+                "href": "/"
+            },
+            {
+                "label": "Sự Kiện",
+                "href": "/events"
+            },
+            {
+                "label": "Giới Thiệu",
+                "href": "/about"
+            },
+            {
+                "label": "Liên Hệ",
+                "href": "/contact"
+            }
+        ],
+        "carousel": {
+            "slide1": {
+                "title": "Chào mừng đến với VieTicket",
+                "subtitle": "Khám phá một thế giới sự kiện sôi động đang chờ bạn."
+            },
+            "slide2": {
+                "title": "Tạo Sơ Đồ Chỗ Ngồi Đơn Giản",
+                "subtitle": "Dễ dàng thiết kế sơ đồ chỗ ngồi cho bất kỳ sự kiện nào một cách dễ dàng."
+            },
+            "slide3": {
+                "title": "Đa Dạng Địa Điểm Âm Nhạc",
+                "subtitle": "Thưởng thức các thể loại âm nhạc đa dạng tại các địa điểm tuyệt vời của chúng tôi."
+            }
         },
-        "slide2": {
-            "title": "Tạo Sơ Đồ Chỗ Ngồi Đơn Giản",
-            "subtitle": "Dễ dàng thiết kế sơ đồ chỗ ngồi cho bất kỳ sự kiện nào một cách dễ dàng."
+        "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
+        "categories": {
+            "title": "Khám Phá Danh Mục",
+            "types": {
+                "Entertainment": "Giải Trí",
+                "Technology & Innovation": "Công Nghệ & Đổi Mới",
+                "Business": "Kinh Doanh",
+                "Cultural & Arts": "Văn Hóa & Nghệ Thuật",
+                "Sports & Fitness": "Thể Thao & Sức Khỏe",
+                "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
+            }
         },
-        "slide3": {
-            "title": "Đa Dạng Địa Điểm Âm Nhạc",
-            "subtitle": "Thưởng thức các thể loại âm nhạc đa dạng tại các địa điểm tuyệt vời của chúng tôi."
-        }
-    },
-    "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
-    "categories": {
-        "title": "Khám Phá Danh Mục",
-        "types":{
-            "Entertainment": "Giải Trí",
-            "Technology & Innovation": "Công Nghệ & Đổi Mới",
-            "Business": "Kinh Doanh",
-            "Cultural & Arts": "Văn Hóa & Nghệ Thuật",
-            "Sports & Fitness": "Thể Thao & Sức Khỏe",
-            "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
-        }
-    }, 
-    "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
-    "seeMore": "Xem Thêm"
+        "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
+        "seeMore": "Xem Thêm"
     },
     "footer": {
-    "companyInfo":{
-        "title": "Thông Tin Công Ty",
-        "properties": [
-        "Về Chúng Tôi",
-        "Liên Hệ",
-        "Tuyển Dụng",
-        "Câu Hỏi Thường Giao",
-        "Điều Khoản Dịch Vụ",
-        "Chính Sách Bảo Mật"
-        ]
-    },
-    "help":{
-        "title": "Trợ Giúp",
-        "properties": [
-        "Hỗ Trợ Tài Khoản",
-        "Đăng Sự Kiện",
-        "Vé Sự Kiện",
-        "Điều Khoản & Điều Kiện Mua Vé"
-        ]
+        "companyInfo": {
+            "title": "Thông Tin Công Ty",
+            "properties": [
+                "Về Chúng Tôi",
+                "Liên Hệ",
+                "Tuyển Dụng",
+                "Câu Hỏi Thường Giao",
+                "Điều Khoản Dịch Vụ",
+                "Chính Sách Bảo Mật"
+            ]
         },
-    "categories": {
-        "title": "Khám Phá Danh Mục",
-        "properties":[
-            "Giải Trí",
-            "Công Nghệ & Đổi Mới",
-            "Kinh Doanh",
-            "Văn Hóa & Nghệ Thuật",
-            "Thể Thao & Sức Khỏe",
-            "Cuộc Thi & Chương Trình Trò Chơi"
-        ]
+        "help": {
+            "title": "Trợ Giúp",
+            "properties": [
+                "Hỗ Trợ Tài Khoản",
+                "Đăng Sự Kiện",
+                "Vé Sự Kiện",
+                "Điều Khoản & Điều Kiện Mua Vé"
+            ]
+        },
+        "categories": {
+            "title": "Khám Phá Danh Mục",
+            "properties": [
+                "Giải Trí",
+                "Công Nghệ & Đổi Mới",
+                "Kinh Doanh",
+                "Văn Hóa & Nghệ Thuật",
+                "Thể Thao & Sức Khỏe",
+                "Cuộc Thi & Chương Trình Trò Chơi"
+            ]
+        },
+        "followUs": "Theo Dõi Chúng Tôi"
     },
-    "followUs": "Theo Dõi Chúng Tôi"
-}
+    "event-sidebar": {
+        "priceOptions": [
+            {
+                "label": "Dưới 500.000₫",
+                "value": "lt500k"
+            },
+            {
+                "label": "500.000₫ - 1.000.000₫",
+                "value": "500k-1m"
+            },
+            {
+                "label": "1.000.000₫ - 3.000.000₫",
+                "value": "1m-3m"
+            },
+            {
+                "label": "Hơn 5.000.000₫",
+                "value": "gt5m"
+            }
+        ],
+        "seeMore": "Xem Thêm",
+        "dateOptions": [
+            {
+                "label": "Tất cả",
+                "value": "all"
+            },
+            {
+                "label": "Hôm nay",
+                "value": "today"
+            },
+            {
+                "label": "Tuần này",
+                "value": "thisWeek"
+            }
+        ],
+        "categoryOptions": [
+            {
+                "label": "Tất cả danh mục",
+                "value": "all"
+            },
+            {
+                "label": "Giải trí",
+                "value": "Entertainment"
+            },
+            {
+                "label": "Công Nghệ & Đổi Mới",
+                "value": "Technology & Innovation"
+            },
+            {
+                "label": "Kinh Doanh",
+                "value": "Business"
+            },
+            {
+                "label": "Văn Hóa & Nghệ Thuật",
+                "value": "Cultural & Arts"
+            },
+            {
+                "label": "Thể Thao & Sức Khỏe",
+                "value": "Sports & Fitness"
+            },
+            {
+                "label": "Cuộc Thi & Chương Trình Trò Chơi",
+                "value": "Competition & Game shows"
+            }
+        ]
+    }
 }

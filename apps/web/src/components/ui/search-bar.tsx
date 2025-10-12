@@ -12,16 +12,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
-// Bỏ dấu và chuyển về chữ thường
-function normalize(str: string) {
-  return str.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
-}
-
-// Bỏ tiền tố "Tỉnh", "Thành phố"
-function simplifyProvince(name: string) {
-  return name.replace(/^(tỉnh|thành phố)\s+/i, "").trim();
-}
-
 // Debounce
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
   let timeout: NodeJS.Timeout;
@@ -41,17 +31,15 @@ export default function SearchBar() {
 
   useEffect(() => {
     async function fetchProvinces() {
-      try {
-        const res = await fetch("https://provinces.open-api.vn/api/p");
-        const data = await res.json();
-        const simplified = data.map((prov: any) => simplifyProvince(prov.name));
-        setProvinces(simplified);
-      } catch (error) {
-        console.error("Error loading provinces", error);
-      }
+      const res = await fetch(
+        "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json"
+      );
+      const data = await res.json();
+      setProvinces(Object.values(data).map((p: any) => p.name));
     }
     fetchProvinces();
   }, []);
+
 
   const debouncedSearch = useRef(
     debounce((val: string, loc: string) => {
@@ -72,7 +60,7 @@ export default function SearchBar() {
       router.replace(`?${params.toString()}`);
     }, 500)
   ).current;
-  
+
   const handleInputChange = (val: string) => {
     setQuery(val);
     debouncedSearch(val, location);

@@ -8,6 +8,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 interface Props {
   selectedPriceRange: string;
@@ -15,34 +16,6 @@ interface Props {
   selectedLocation: string;
   selectedCategory: string;
   onChange: (key: string, value: string) => void;
-}
-
-const priceOptions = [
-  { label: "Under 500.000₫", value: "lt500k" },
-  { label: "500.000₫ - 1.000.000₫", value: "500k-1m" },
-  { label: "1.000.000₫ - 3.000.000₫", value: "1m-3m" },
-  { label: "3.000.000₫ - 5.000.000₫", value: "3m-5m" },
-  { label: "Over 5.000.000₫", value: "gt5m" },
-];
-
-const dateOptions = [
-  { label: "All", value: "all" },
-  { label: "Today", value: "today" },
-  { label: "This Week", value: "thisWeek" },
-];
-
-const categoryOptions = [
-  { label: "All Categories", value: "all" },
-  { label: "Entertainment", value: "Entertainment" },
-  { label: "Technology & Innovation", value: "Technology & Innovation" },
-  { label: "Business", value: "Business" },
-  { label: "Cultural & Arts", value: "Cultural & Arts" },
-  { label: "Sports & Fitness", value: "Sports & Fitness" },
-  { label: "Competition & Game shows", value: "Competition & Game shows" },
-];
-
-function simplifyProvince(name: string) {
-  return name.replace(/^(tỉnh|thành phố)\s+/i, "").trim();
 }
 
 export default function EventFiltersSidebar({
@@ -53,19 +26,34 @@ export default function EventFiltersSidebar({
   onChange,
 }: Props) {
   const [provinces, setProvinces] = useState<string[]>([]);
+  const t = useTranslations("event-sidebar");
+
+  const priceOptions = t.raw("priceOptions") as {
+    label: string;
+    value: string;
+  }[];
+
+  const dateOptions = t.raw("dateOptions") as {
+    label: string;
+    value: string;
+  }[];
+
+  const categoryOptions = t.raw("categoryOptions") as {
+    label: string;
+    value: string;
+  }[];
 
   useEffect(() => {
     async function fetchProvinces() {
-      try {
-        const res = await fetch("https://provinces.open-api.vn/api/p");
-        const data = await res.json();
-        setProvinces(data.map((prov: any) => simplifyProvince(prov.name)));
-      } catch (error) {
-        console.error("Lỗi khi tải danh sách tỉnh/thành", error);
-      }
+      const res = await fetch(
+        "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json"
+      );
+      const data = await res.json();
+      setProvinces(Object.values(data).map((p: any) => p.name));
     }
     fetchProvinces();
   }, []);
+
 
   return (
     <aside className="bg-white p-4 rounded shadow-md space-y-6 text-sm">
