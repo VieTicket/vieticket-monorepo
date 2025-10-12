@@ -38,42 +38,12 @@ export function AITextGenerator({
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateEventDescription = async () => {
-    if (!prompt.trim()) {
-      toast.error("Vui lòng nhập yêu cầu cho phần mô tả");
-      return;
-    }
-
-    setIsGenerating(true);
-
-    try {
-      // Tạo prompt với thông tin event
-      const eventInfo = createEventPrompt(eventData, prompt);
-
-      // Gọi Pollinations AI để tạo text
-      const response = await fetch(
-        `https://text.pollinations.ai/${encodeURIComponent(eventInfo)}?json=false`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate text");
-      }
-
-      const generatedText = await response.text();
-
-      // Convert text thành HTML format cho TipTap
-      const htmlContent = convertToTipTapHTML(generatedText);
-
-      // Gửi về parent component
-      onTextGenerated(htmlContent);
-
-      toast.success("Đã tạo mô tả sự kiện thành công!");
-      setIsOpen(false);
+  // Handle dialog open/close properly
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      // Reset states when closing
       setPrompt("");
-    } catch (error) {
-      console.error("Error generating text:", error);
-      toast.error("Không thể tạo mô tả sự kiện. Vui lòng thử lại.");
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -113,45 +83,110 @@ export function AITextGenerator({
 
 🎨 YÊU CẦU ĐẶC BIỆT: ${userPrompt}
 
-🔥 NHIỆM VỤ: Tạo mô tả sự kiện SIÊU HẤP DẪN với format HTML đẹp mắt:
+🔥 NHIỆM VỤ: Tạo mô tả sự kiện SIÊU HẤP DẪN theo mẫu bên dưới:
 
-📝 CẤU TRÚC BẮT BUỘC:
-1. 🎯 TIÊU ĐỀ CHÍNH siêu hấp dẫn (<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center;">)
+� CẤU TRÚC THEO MẪU MỚI (dựa trên ví dụ "ĐÊM NHẠC HUYỀN ẢO"):
 
-2. 🌟 ĐOẠN MỞ ĐẦU tạo cảm xúc mạnh (<p style="font-size: 18px; color: #374151; text-align: center; margin-bottom: 20px; font-weight: 500;">)
+1. 🎯 TIÊU ĐỀ CHÍNH hấp dẫn với emoji + tên sự kiện + slogan cảm xúc
+   Ví dụ: "🔥 [TÊN SỰ KIỆN]: [Slogan hấp dẫn] – [Cảm xúc mạnh] Tại [Địa điểm]! 🔥"
 
-3. ✨ ĐIỂM NỔI BẬT với icon và styling đẹp:
-   <h3 style="color: #dc2626; font-size: 20px; margin: 20px 0 12px 0;">🎪 Điểm Nổi Bật</h3>
-   <ul style="list-style: none; padding: 0; margin: 0 0 20px 0;">
-   <li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">🔥 Điểm nổi bật 1</li>
-   <li style="background: linear-gradient(90deg, #ddd6fe, #8b5cf6); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #7c3aed;">⭐ Điểm nổi bật 2</li>
-   </ul>
+2. 🌟 ĐOẠN MỞ ĐẦU tạo cảm xúc và FOMO (2-3 câu)
+   - Tạo câu hỏi kích thích 
+   - Mô tả trải nghiệm độc đáo
+   - Kết thúc bằng lời kêu gọi hành động
 
-4. 🎁 LỢI ÍCH với highlight:
-   <h3 style="color: #059669; font-size: 20px; margin: 20px 0 12px 0;">🎁 Bạn Sẽ Nhận Được</h3>
-   <p style="background: linear-gradient(90deg, #d1fae5, #34d399); padding: 15px; border-radius: 10px; margin: 15px 0; font-weight: 500;">Lợi ích cụ thể...</p>
+3. 🎪 ĐIỂM NỔI BẬT (3-4 điểm quan trọng nhất)
+   - Mỗi điểm bắt đầu bằng emoji + tiêu đề ngắn gọn
+   - Mô tả chi tiết lợi ích/trải nghiệm
+   - Sử dụng từ ngữ cảm xúc mạnh
 
-5. 🚀 CALL TO ACTION mạnh mẽ:
-   <div style="text-align: center; margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-   <p style="color: white; font-size: 20px; font-weight: bold; margin: 0;">🎯 ĐĂNG KÝ NGAY - SỐ LƯỢNG CÓ HẠN!</p>
-   </div>
+4. � BẠN SẼ NHẬN ĐƯỢC (2-3 lợi ích cụ thể)
+   - Ưu đãi cụ thể (giảm giá, quà tặng...)
+   - Trải nghiệm độc quyền
+   - Kỷ niệm/giá trị mang về
+
+5. 🎯 CALL TO ACTION mạnh mẽ cuối bài
+   - Tạo urgency với thời hạn cụ thể
+   - Nhấn mạnh số lượng có hạn
+   - Kêu gọi hành động ngay lập tức
 
 💡 QUY TẮC VÀNG:
-- Sử dụng EMOJIS để tạo điểm nhấn
-- Áp dụng CSS inline để tạo màu sắc đẹp mắt
-- Dùng gradient và border-radius cho hiệu ứng hiện đại
-- Tạo contrast mạnh để highlight thông tin quan trọng
-- Ngôn ngữ cảm xúc, tạo FOMO (Fear of Missing Out)
-- Dài 250-350 từ, cân bằng thông tin và marketing
+- Sử dụng NHIỀU EMOJIS để tạo điểm nhấn thị giác
+- Tạo FOMO mạnh mẽ (Fear of Missing Out)
+- Ngôn ngữ cảm xúc, năng động, trẻ trung
+- Highlight các từ khóa quan trọng: GIẢM GIÁ, ĐỘC QUYỀN, SỐ LƯỢNG CÓ HẠN, NGAY, NHANH TAY
+- Dài 200-300 từ, súc tích nhưng đầy đủ thông tin
+- Kết thúc bằng lời kêu gọi hành động CỰC MẠNH
 
-🎨 STYLE GUIDE:
-- Primary: #2563eb (blue)
-- Success: #059669 (green)  
-- Warning: #f59e0b (amber)
-- Danger: #dc2626 (red)
-- Purple: #7c3aed
+⚠️ QUAN TRỌNG: 
+- Đây là nội dung TEXT THUẦN, KHÔNG PHẢI HTML hay Markdown
+- Hệ thống sẽ tự động làm IN ĐẬM (bold) các từ khóa quan trọng như: ĐĂNG KÝ NGAY, GIẢM GIÁ, SỐ LƯỢNG CÓ HẠN, NGHỆ SĨ NỔI TIẾNG, TRẢI NGHIỆM, v.v.
+- Tập trung vào nội dung hấp dẫn và cảm xúc mạnh
+- Sử dụng nhiều từ khóa mạnh để hệ thống tự động highlight
 
-CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
+CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
+  };
+
+  // Sử dụng fetch trực tiếp thay vì useCompletion
+  console.log("� Component rendered, prompt state:", prompt);
+
+  // Clean up component
+  const handleGenerateClick = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (!prompt.trim()) {
+      toast.error("Vui lòng nhập yêu cầu cho phần mô tả");
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const requestBody = {
+        prompt: prompt,
+        eventInfo: createEventPrompt(eventData, prompt),
+      };
+
+      const response = await fetch("/api/ai/generate-description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(`API Error: ${errorText}`);
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        toast.error("Không thể đọc response");
+        return;
+      }
+
+      let fullResponse = "";
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        fullResponse += chunk;
+      }
+
+      const htmlContent = convertToTipTapHTML(fullResponse);
+      onTextGenerated(htmlContent);
+      toast.success("Đã tạo mô tả sự kiện thành công!");
+      handleOpenChange(false);
+    } catch (error) {
+      console.error("Error in API call:", error);
+      toast.error("Có lỗi xảy ra khi gọi AI. Vui lòng thử lại.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const convertToTipTapHTML = (text: string): string => {
@@ -162,6 +197,106 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
     htmlContent = htmlContent.replace(/```html\n?|```\n?/g, "");
     htmlContent = htmlContent.replace(/```\n?/g, "");
 
+    // Convert markdown formatting to HTML
+    // Handle bold text: **text** -> <strong>text</strong>
+    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // Handle italic text: *text* -> <em>text</em>
+    htmlContent = htmlContent.replace(/\*(.*?)\*/g, "<em>$1</em>");
+
+    // Smart highlighting function for important keywords - Simplified to use <strong> only
+    const highlightImportantText = (content: string): string => {
+      // Important keywords that should be bold
+      const importantKeywords = [
+        // Action/Urgent words
+        "ĐĂNG KÝ NGAY",
+        "SỐ LƯỢNG CÓ HẠN",
+        "CHỈ CÒN",
+        "NHANH TAY",
+        "CHỚP LẤY",
+        "CƠ HỘI VÀNG",
+        "CHỚP THỜI CƠ",
+        "ĐỂ LỠ",
+        "CUỐI CÙNG",
+
+        // Discount/Price
+        "GIẢM GIÁ",
+        "EARLY BIRD",
+        "ƯU ĐÃI",
+        "MIỄN PHÍ",
+        "ƯU ĐÃI ĐỘC QUYỀN",
+        "GIẢM ĐẾN",
+
+        // Event highlights
+        "NGHỆ SĨ NỔI TIẾNG",
+        "ĐÊM NHẠC",
+        "DIỄN GIẢ",
+        "CHUYÊN GIA",
+        "VIP",
+        "PREMIUM",
+        "EXCLUSIVE",
+        "ĐỘC QUYỀN",
+        "ĐẲNG CẤP",
+        "HUYỀN ẢO",
+        "ĐỈNH CAO",
+
+        // Experience words
+        "TRẢI NGHIỆM",
+        "KHÔNG THỂ QUÊN",
+        "HOÀNH TRÁNG",
+        "LÃNG MẠN",
+        "BÙNG CHÁY",
+        "THĂNG HOA",
+        "DIỆU KỲ",
+        "XUẤT THẦN",
+        "BAY BỔNG",
+
+        // Emotional words
+        "RUNG ĐỘNG",
+        "SIÊU HẤP DẪN",
+        "TUYỆT VỜI",
+        "CHẤT LƯỢNG",
+        "ĐẶC BIỆT",
+        "SỐNG TRỌN",
+        "KỶ NIỆM VĨNH CỬU",
+        "CẢM XÚC",
+        "NĂNG ĐỘNG",
+
+        // Special terms
+        "COUPLES",
+        "1-0-2",
+        "NGỌT NGÀO",
+      ];
+
+      let highlightedContent = content;
+
+      // Create pattern for numbers with % (like "30%", "giảm 25%")
+      const percentPattern = /(\d+%|GIẢM \d+%|GIẢM GIÁ ĐẾN \d+%)/gi;
+      highlightedContent = highlightedContent.replace(
+        percentPattern,
+        (match) => {
+          if (match.includes("<strong>") || match.includes("</strong>")) {
+            return match;
+          }
+          return `<strong>${match}</strong>`;
+        }
+      );
+
+      // Highlight each important keyword
+      importantKeywords.forEach((keyword) => {
+        const regex = new RegExp(`(${keyword})`, "gi");
+        highlightedContent = highlightedContent.replace(regex, (match) => {
+          // Avoid double highlighting
+          if (match.includes("<strong>") || match.includes("</strong>")) {
+            return match;
+          }
+          return `<strong>${match}</strong>`;
+        });
+      });
+
+      return highlightedContent;
+    };
+
     // If the response doesn't contain proper HTML structure, enhance it
     if (!htmlContent.includes("<h2") && !htmlContent.includes("style=")) {
       // This is plain text, let's structure it with beautiful styling
@@ -170,25 +305,29 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
       if (lines.length > 0) {
         let styledContent = "";
 
-        // First line as styled heading
-        styledContent += `<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center; font-weight: bold;">${lines[0]}</h2>`;
+        // First line as styled heading with smart highlighting
+        const highlightedTitle = highlightImportantText(lines[0]);
+        styledContent += `<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center; font-weight: bold;">${highlightedTitle}</h2>`;
 
         // Process remaining content
         const remainingLines = lines.slice(1);
         let currentSection = "";
 
         remainingLines.forEach((line) => {
+          const highlightedLine = highlightImportantText(line);
+
           if (line.includes("•") || line.includes("-") || line.includes("*")) {
             // This looks like a list item
             const cleanLine = line.replace(/^[•\-*]\s*/, "");
-            currentSection += `<li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">✨ ${cleanLine}</li>`;
+            const highlightedCleanLine = highlightImportantText(cleanLine);
+            currentSection += `<li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">✨ ${highlightedCleanLine}</li>`;
           } else if (line.length > 5) {
             // Regular paragraph
             if (currentSection.includes("<li")) {
               styledContent += `<ul style="list-style: none; padding: 0; margin: 20px 0;">${currentSection}</ul>`;
               currentSection = "";
             }
-            styledContent += `<p style="font-size: 16px; color: #374151; margin: 15px 0; line-height: 1.6;">${line}</p>`;
+            styledContent += `<p style="font-size: 16px; color: #374151; margin: 15px 0; line-height: 1.6;">${highlightedLine}</p>`;
           }
         });
 
@@ -197,13 +336,19 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
           styledContent += `<ul style="list-style: none; padding: 0; margin: 20px 0;">${currentSection}</ul>`;
         }
 
-        // Add call to action
+        // Add call to action with highlighting
+        const ctaText = highlightImportantText(
+          "🎯 ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!"
+        );
         styledContent += `<div style="text-align: center; margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">🎯 ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!</p>
+          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">${ctaText}</p>
         </div>`;
 
         htmlContent = styledContent;
       }
+    } else {
+      // If already contains HTML, apply smart highlighting to the content
+      htmlContent = highlightImportantText(htmlContent);
     }
 
     // Clean up multiple spaces and empty elements
@@ -215,7 +360,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogTrigger asChild>
         <Button
           variant="outline"
@@ -326,7 +471,11 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
               <Textarea
                 id="prompt"
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  console.log("🔄 Prompt changing:", newValue);
+                  setPrompt(newValue);
+                }}
                 placeholder="💡 Ví dụ sáng tạo:
 • Nhấn mạnh cơ hội networking độc đáo
 • Giới thiệu diễn giả/nghệ sĩ nổi tiếng  
@@ -418,24 +567,78 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                   💻 <strong>Tech Conference:</strong> Expert insights + Startup
                   networking + Exclusive demos
                 </button>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setPrompt(
+                      "Sự kiện âm nhạc huyền ảo bùng cháy cảm xúc, nghệ sĩ nổi tiếng, hệ thống âm thanh ánh sáng hoành tráng, không gian lãng mạn dành cho couples, ưu đãi early bird giảm 30%, trải nghiệm không thể quên"
+                    )
+                  }
+                  className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
+                >
+                  🔥 <strong>Đêm nhạc huyền ảo:</strong> Bùng cháy cảm xúc +
+                  Nghệ sĩ nổi tiếng + Early bird 30%
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         <DialogFooter className="border-t pt-4 flex gap-3">
+          {/* Debug info - chỉ hiện khi development */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="text-xs text-gray-500 flex-1 space-y-1">
+              <div>Debug: prompt="{prompt}"</div>
+              <div>
+                length={prompt.length} | trimmed="{prompt.trim()}" |
+                trim().length={prompt.trim().length}
+              </div>
+              <div>
+                isGenerating={isGenerating.toString()} | !prompt.trim()=
+                {(!prompt.trim()).toString()}
+              </div>
+              <div>disabled={(isGenerating || !prompt.trim()).toString()}</div>
+            </div>
+          )}
+
           <Button
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isGenerating}
             className="flex-1"
           >
             ❌ Hủy
           </Button>
+
+          {/* Test button để debug */}
+          {process.env.NODE_ENV === "development" && (
+            <Button
+              type="button"
+              onClick={() => {
+                console.log("🧪 Test button clicked!");
+                alert("Test button works!");
+              }}
+              className="bg-red-500 text-white px-2 py-1 text-xs"
+            >
+              Test
+            </Button>
+          )}
+
           <Button
-            onClick={generateEventDescription}
+            type="button"
+            onClick={(e) => {
+              console.log("🎯 Button onClick triggered");
+              handleGenerateClick(e);
+            }}
+            onMouseDown={() => console.log("🖱️ Button mouseDown")}
+            onMouseUp={() => console.log("🖱️ Button mouseUp")}
             disabled={isGenerating || !prompt.trim()}
-            className="flex-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold"
+            className="flex-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              pointerEvents: isGenerating || !prompt.trim() ? "none" : "auto",
+              position: "relative",
+              zIndex: 10,
+            }}
           >
             {isGenerating ? (
               <>
@@ -444,7 +647,8 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />✨ Tạo Mô Tả Siêu Hấp Dẫn
+                <Sparkles className="mr-2 h-4 w-4" />
+                Tạo Mô Tả Siêu Hấp Dẫn
               </>
             )}
           </Button>
