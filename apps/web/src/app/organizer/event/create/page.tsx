@@ -335,13 +335,10 @@ function CreateEventPageInner() {
             newErrors.ticketSaleStart = `Ticket sale must start at least ${minDaysBeforeEvent} days before the event`;
           }
 
-          // Ticket sale end must be at least 3 days before event starts
-          const maxSaleEnd = new Date(
-            eventDate.getTime() - minDaysBeforeEvent * 24 * 60 * 60 * 1000
-          );
-
-          if (saleEnd > maxSaleEnd) {
-            newErrors.ticketSaleEnd = `Ticket sale must end at least ${minDaysBeforeEvent} days before the event`;
+          // Ticket sale end must be before event starts
+          if (saleEnd >= eventDate) {
+            newErrors.ticketSaleEnd =
+              "Ticket sale must end before the event starts";
           }
         }
       }
