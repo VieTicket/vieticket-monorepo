@@ -75,7 +75,7 @@ export function EventDetailsStep({
           }
           return undefined;
         case "ticketSaleEnd":
-          // Ticket sale end must be before the earliest event showing
+          // Ticket sale end must be at least 3 days before the earliest event showing
           if (showings.length > 0) {
             const earliestShowing = showings
               .filter((s) => s.startTime)
@@ -87,7 +87,10 @@ export function EventDetailsStep({
 
             if (earliestShowing?.startTime) {
               const eventDate = new Date(earliestShowing.startTime);
-              return eventDate.toISOString().slice(0, 16);
+              const maxSaleEnd = new Date(
+                eventDate.getTime() - 3 * 24 * 60 * 60 * 1000
+              ); // 3 days before
+              return maxSaleEnd.toISOString().slice(0, 16);
             }
           }
           return undefined;
