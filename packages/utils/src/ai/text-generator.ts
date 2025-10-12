@@ -24,5 +24,13 @@ export function streamTextFromGoogle(
     model: modelInstance,
     system: systemPrompt,
     messages: userMessages,
+    providerOptions: {
+      google: {
+        thinkingConfig: {
+          thinkingBudget: 0, // disable reasoning
+          includeThoughts: false, // don’t return thoughts
+        },
+      },
+    },
   });
 }
