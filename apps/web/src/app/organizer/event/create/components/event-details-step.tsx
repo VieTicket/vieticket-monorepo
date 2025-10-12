@@ -55,8 +55,41 @@ export function EventDetailsStep({
     const getMaxDateTime = (fieldName: string) => {
       switch (fieldName) {
         case "ticketSaleStart":
+          // Ticket sale start must be at least 3 days before the earliest event showing
+          if (showings.length > 0) {
+            const earliestShowing = showings
+              .filter((s) => s.startTime)
+              .sort(
+                (a, b) =>
+                  new Date(a.startTime).getTime() -
+                  new Date(b.startTime).getTime()
+              )[0];
+
+            if (earliestShowing?.startTime) {
+              const eventDate = new Date(earliestShowing.startTime);
+              const maxSaleStart = new Date(
+                eventDate.getTime() - 3 * 24 * 60 * 60 * 1000
+              ); // 3 days before
+              return maxSaleStart.toISOString().slice(0, 16);
+            }
+          }
+          return undefined;
         case "ticketSaleEnd":
-          // No max limit for ticket sale dates now that event times are in showings
+          // Ticket sale end must be before the earliest event showing
+          if (showings.length > 0) {
+            const earliestShowing = showings
+              .filter((s) => s.startTime)
+              .sort(
+                (a, b) =>
+                  new Date(a.startTime).getTime() -
+                  new Date(b.startTime).getTime()
+              )[0];
+
+            if (earliestShowing?.startTime) {
+              const eventDate = new Date(earliestShowing.startTime);
+              return eventDate.toISOString().slice(0, 16);
+            }
+          }
           return undefined;
         default:
           return undefined;
@@ -139,6 +172,9 @@ export function EventDetailsStep({
         onShowingsChange={onShowingsChange}
         errors={errors}
       />
+      {errors.showings && (
+        <p className="text-red-500 text-sm mt-1">{errors.showings}</p>
+      )}
 
       <div className="space-y-2">
         <div className="grid grid-cols-2 gap-4">

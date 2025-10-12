@@ -272,6 +272,106 @@ function CreateEventPageInner() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Clear related errors when user types
+    if (
+      (name === "ticketSaleStart" || name === "ticketSaleEnd") &&
+      errors[name]
+    ) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
+  };
+
+  // Validation function for step 1 (Event Details)
+  const validateStep1 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Required fields validation
+    if (!formData.name.trim()) {
+      newErrors.name = "Event name is required";
+    }
+    if (!formData.location.trim()) {
+      newErrors.location = "Location is required";
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = "Description is required";
+    }
+    if (showings.length === 0 || !showings[0].startTime) {
+      newErrors.showings = "At least one showing with start time is required";
+    }
+
+    // Ticket sale dates validation
+    if (formData.ticketSaleStart && formData.ticketSaleEnd) {
+      const saleStart = new Date(formData.ticketSaleStart);
+      const saleEnd = new Date(formData.ticketSaleEnd);
+
+      if (saleStart >= saleEnd) {
+        newErrors.ticketSaleEnd = "Ticket sale end must be after start date";
+      }
+
+      // Check if ticket sale dates are valid relative to event showings
+      if (showings.length > 0) {
+        const earliestShowing = showings
+          .filter((s) => s.startTime)
+          .sort(
+            (a, b) =>
+              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+          )[0];
+
+        if (earliestShowing?.startTime) {
+          const eventDate = new Date(earliestShowing.startTime);
+
+          // Ticket sale start must be at least 3 days before event
+          const minDaysBeforeEvent = 3;
+          const maxSaleStart = new Date(
+            eventDate.getTime() - minDaysBeforeEvent * 24 * 60 * 60 * 1000
+          );
+
+          if (saleStart > maxSaleStart) {
+            newErrors.ticketSaleStart = `Ticket sale must start at least ${minDaysBeforeEvent} days before the event`;
+          }
+
+          // Ticket sale end must be before event starts
+          if (saleEnd >= eventDate) {
+            newErrors.ticketSaleEnd =
+              "Ticket sale must end before the event starts";
+          }
+        }
+      }
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  // Handle step navigation with validation
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (!validateStep1()) {
+        toast.error("Please fix the errors before continuing");
+        return;
+      }
+    }
+    setStep(step + 1);
+  };
+
+  // Handle showings change with error clearing
+  const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
+    setShowings(newShowings);
+    // Clear showings-related errors when showings change
+    if (errors.showings || errors.ticketSaleStart || errors.ticketSaleEnd) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.showings;
+        delete newErrors.ticketSaleStart;
+        delete newErrors.ticketSaleEnd;
+        return newErrors;
+      });
+    }
   };
 
   // Form submission
@@ -337,7 +437,7 @@ function CreateEventPageInner() {
               );
               setFormData({ ...formData, description: value });
             }}
-            onShowingsChange={setShowings}
+            onShowingsChange={handleShowingsChange}
           />
         );
       case 2:
@@ -558,13 +658,7 @@ function CreateEventPageInner() {
           >
             Go back
           </Button>
-          <Button
-            onClick={() => {
-              setStep(step + 1);
-            }}
-          >
-            Save & Continue
-          </Button>
+          <Button onClick={handleNextStep}>Save & Continue</Button>
         </div>
       )}
 
