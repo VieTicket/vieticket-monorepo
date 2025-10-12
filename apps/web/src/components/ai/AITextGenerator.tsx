@@ -204,99 +204,6 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
     // Handle italic text: *text* -> <em>text</em>
     htmlContent = htmlContent.replace(/\*(.*?)\*/g, "<em>$1</em>");
 
-    // Smart highlighting function for important keywords - Simplified to use <strong> only
-    const highlightImportantText = (content: string): string => {
-      // Important keywords that should be bold
-      const importantKeywords = [
-        // Action/Urgent words
-        "ĐĂNG KÝ NGAY",
-        "SỐ LƯỢNG CÓ HẠN",
-        "CHỈ CÒN",
-        "NHANH TAY",
-        "CHỚP LẤY",
-        "CƠ HỘI VÀNG",
-        "CHỚP THỜI CƠ",
-        "ĐỂ LỠ",
-        "CUỐI CÙNG",
-
-        // Discount/Price
-        "GIẢM GIÁ",
-        "EARLY BIRD",
-        "ƯU ĐÃI",
-        "MIỄN PHÍ",
-        "ƯU ĐÃI ĐỘC QUYỀN",
-        "GIẢM ĐẾN",
-
-        // Event highlights
-        "NGHỆ SĨ NỔI TIẾNG",
-        "ĐÊM NHẠC",
-        "DIỄN GIẢ",
-        "CHUYÊN GIA",
-        "VIP",
-        "PREMIUM",
-        "EXCLUSIVE",
-        "ĐỘC QUYỀN",
-        "ĐẲNG CẤP",
-        "HUYỀN ẢO",
-        "ĐỈNH CAO",
-
-        // Experience words
-        "TRẢI NGHIỆM",
-        "KHÔNG THỂ QUÊN",
-        "HOÀNH TRÁNG",
-        "LÃNG MẠN",
-        "BÙNG CHÁY",
-        "THĂNG HOA",
-        "DIỆU KỲ",
-        "XUẤT THẦN",
-        "BAY BỔNG",
-
-        // Emotional words
-        "RUNG ĐỘNG",
-        "SIÊU HẤP DẪN",
-        "TUYỆT VỜI",
-        "CHẤT LƯỢNG",
-        "ĐẶC BIỆT",
-        "SỐNG TRỌN",
-        "KỶ NIỆM VĨNH CỬU",
-        "CẢM XÚC",
-        "NĂNG ĐỘNG",
-
-        // Special terms
-        "COUPLES",
-        "1-0-2",
-        "NGỌT NGÀO",
-      ];
-
-      let highlightedContent = content;
-
-      // Create pattern for numbers with % (like "30%", "giảm 25%")
-      const percentPattern = /(\d+%|GIẢM \d+%|GIẢM GIÁ ĐẾN \d+%)/gi;
-      highlightedContent = highlightedContent.replace(
-        percentPattern,
-        (match) => {
-          if (match.includes("<strong>") || match.includes("</strong>")) {
-            return match;
-          }
-          return `<strong>${match}</strong>`;
-        }
-      );
-
-      // Highlight each important keyword
-      importantKeywords.forEach((keyword) => {
-        const regex = new RegExp(`(${keyword})`, "gi");
-        highlightedContent = highlightedContent.replace(regex, (match) => {
-          // Avoid double highlighting
-          if (match.includes("<strong>") || match.includes("</strong>")) {
-            return match;
-          }
-          return `<strong>${match}</strong>`;
-        });
-      });
-
-      return highlightedContent;
-    };
-
     // If the response doesn't contain proper HTML structure, enhance it
     if (!htmlContent.includes("<h2") && !htmlContent.includes("style=")) {
       // This is plain text, let's structure it with beautiful styling
@@ -305,29 +212,25 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
       if (lines.length > 0) {
         let styledContent = "";
 
-        // First line as styled heading with smart highlighting
-        const highlightedTitle = highlightImportantText(lines[0]);
-        styledContent += `<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center; font-weight: bold;">${highlightedTitle}</h2>`;
+        // First line as styled heading
+        styledContent += `<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center; font-weight: bold;">${lines[0]}</h2>`;
 
         // Process remaining content
         const remainingLines = lines.slice(1);
         let currentSection = "";
 
         remainingLines.forEach((line) => {
-          const highlightedLine = highlightImportantText(line);
-
           if (line.includes("•") || line.includes("-") || line.includes("*")) {
             // This looks like a list item
             const cleanLine = line.replace(/^[•\-*]\s*/, "");
-            const highlightedCleanLine = highlightImportantText(cleanLine);
-            currentSection += `<li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">✨ ${highlightedCleanLine}</li>`;
+            currentSection += `<li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">✨ ${cleanLine}</li>`;
           } else if (line.length > 5) {
             // Regular paragraph
             if (currentSection.includes("<li")) {
               styledContent += `<ul style="list-style: none; padding: 0; margin: 20px 0;">${currentSection}</ul>`;
               currentSection = "";
             }
-            styledContent += `<p style="font-size: 16px; color: #374151; margin: 15px 0; line-height: 1.6;">${highlightedLine}</p>`;
+            styledContent += `<p style="font-size: 16px; color: #374151; margin: 15px 0; line-height: 1.6;">${line}</p>`;
           }
         });
 
@@ -336,19 +239,13 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
           styledContent += `<ul style="list-style: none; padding: 0; margin: 20px 0;">${currentSection}</ul>`;
         }
 
-        // Add call to action with highlighting
-        const ctaText = highlightImportantText(
-          "🎯 ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!"
-        );
+        // Add call to action
         styledContent += `<div style="text-align: center; margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">${ctaText}</p>
+          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">🎯 ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!</p>
         </div>`;
 
         htmlContent = styledContent;
       }
-    } else {
-      // If already contains HTML, apply smart highlighting to the content
-      htmlContent = highlightImportantText(htmlContent);
     }
 
     // Clean up multiple spaces and empty elements
