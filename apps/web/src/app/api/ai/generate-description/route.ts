@@ -31,7 +31,7 @@ export async function POST(req: Request) {
 
     // Gọi hàm utility và stream kết quả về client
     const result = await streamTextFromGoogle(
-      "gemini-2.5-flash",
+      "gemini-2.5-flash-lite",
       systemPrompt,
       userMessages
     );
