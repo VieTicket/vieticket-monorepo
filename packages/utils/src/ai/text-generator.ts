@@ -1,5 +1,5 @@
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
-import { CoreMessage, streamText } from "ai";
+import { ModelMessage, streamText } from "ai";
 
 // Khởi tạo một lần duy nhất để tái sử dụng
 const google = createGoogleGenerativeAI({
@@ -16,7 +16,7 @@ const google = createGoogleGenerativeAI({
 export function streamTextFromGoogle(
   model: string,
   systemPrompt: string,
-  userMessages: CoreMessage[]
+  userMessages: ModelMessage[]
 ) {
   const modelInstance = google(model);
 
