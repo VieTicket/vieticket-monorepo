@@ -120,7 +120,7 @@
                 "value": "thisWeek"
             }
         ],
-        "Category": "Danh Mục" ,
+        "Category": "Danh Mục",
         "categoryOptions": [
             {
                 "label": "Tất cả danh mục",
@@ -153,5 +153,69 @@
         ],
         "Location": "Địa Điểm",
         "AllLocation": "Tất cả địa điểm"
+    },
+    "organizer-dashboard": {
+        "General": {
+            "general": "Tổng Quan",
+            "revenue": "Doanh Thu",
+            "organizerOverview": "Tổng Quan Nhà Tổ Chức",
+            "totalRevenue": "Tổng Doanh Thu",
+            "actual(-20%)": "Thực Tế (-20%)",        
+            "totalEvents": "Tổng Số Sự Kiện",
+            "ticketsSold": "Vé Đã Bán",
+            "featuredEvent": "Sự Kiện Nổi Bật",
+            "revenue:": "Doanh Thu:",
+            "revenueFluctuation": "Biến Động Doanh Thu",
+            "revenueOverTime": "Doanh Thu Theo Thời Gian",
+            "allTime": "Tất cả thời gian",
+            "last7Days": "7 ngày qua",
+            "last30Days": "30 ngày qua",
+            "custom": "Tùy Chỉnh",
+            "revenueStructure": "Cơ Cấu Doanh Thu",
+            "revenueDistributionByEvent": "Phân Bổ Doanh Thu Theo Sự Kiện",
+            "topEventsByRevenue": "Sự Kiện Hàng Đầu Theo Doanh Thu",
+            "event": "Sự Kiện",
+            "status": "Trạng Thái"
+        },
+        "CreateEvent": {
+            "createEvent": "Tạo Sự Kiện",
+            "editEvent": "Chỉnh Sửa Sự Kiện",
+            "seatMapUpdateRequired": "⚠️ Cần Cập Nhật Sơ Đồ Chỗ Ngồi",
+            "text1": "Bạn đã thay đổi cấu hình chỗ ngồi. Điều này sẽ:",
+            "text2": "Xóa tất cả các khu vực và chỗ ngồi hiện có.",
+            "text3": "Tạo lại toàn bộ cấu trúc chỗ ngồi.",
+            "text4": "Hành động này không thể hoàn tác.",
+            "text5": "Tôi hiểu và xác nhận việc cập nhật sơ đồ chỗ ngồi",
+            "goback": "Quay Lại",
+            "updating": "Đang Cập Nhật...",
+            "creating": "Đang Tạo...",
+            "updateEvent": "Cập Nhật Sự Kiện",
+            "createEventt": "🎉 Tạo Sự Kiện Mới",
+            "saveandcontinue": "Lưu & Tiếp Tục"
+        },
+        "SeatMap": {
+            "seatMap": "Sơ Đồ Chỗ Ngồi"
+        },
+        "ListEvent": {
+            "listEvent": "Danh Sách Sự Kiện"
+        },
+        "Rating": {
+            "rating": "Đánh Giá"
+        },
+        "RequestPayout": {
+            "requestPayout": "Yêu Cầu Thanh Toán"
+        },  
+        "InspectTicket": {
+            "inspectTicket": "Kiểm Tra Vé"
+        },
+        "ChatWithAdmin": {
+            "chatWithAdmin": "Liên Lạc Với Admin"
+        },
+        "Profile": {
+            "profile": "Hồ Sơ"
+        },
+        "SignOut": {
+            "signOut": "Đăng Xuất"
+        }
     }
 }
