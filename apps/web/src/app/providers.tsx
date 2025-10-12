@@ -9,6 +9,7 @@ import { LayoutProvider } from "@/providers/LayoutProvider";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
+import { LocaleProvider } from "@/providers/LocaleProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -27,21 +28,23 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <LayoutProvider>
-        <AuthUIProvider
-          authClient={authClient}
-          navigate={router.push}
-          replace={router.replace}
-          onSessionChange={() => {
-            router.refresh();
-          }}
-          Link={Link}
-          providers={["google"]}
-          emailVerification={true}
-        >
-          {children}
-        </AuthUIProvider>
-      </LayoutProvider>
+      <LocaleProvider>          
+        <LayoutProvider>
+          <AuthUIProvider
+            authClient={authClient}
+            navigate={router.push}
+            replace={router.replace}
+            onSessionChange={() => {
+              router.refresh();
+            }}
+            Link={Link}
+            providers={["google"]}
+            emailVerification={true}
+          >
+            {children}
+          </AuthUIProvider>
+        </LayoutProvider>
+      </LocaleProvider>
       <ReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>
   );

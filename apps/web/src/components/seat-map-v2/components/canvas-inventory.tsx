@@ -14,6 +14,7 @@ import {
   Folder,
   FolderOpen,
   Ungroup,
+  ImageIcon,
 } from "lucide-react";
 import { CanvasItem, ContainerGroup } from "../types";
 import { useSeatMapStore } from "../store/seat-map-store";
@@ -24,18 +25,47 @@ import {
   ungroupContainer,
   canGroup,
   getItemsInContainers,
+  addToGroup,
+  removeFromGroup,
+  canGroupInSameContainer,
+  groupItemsInContainer,
+  createEmptyContainer,
 } from "../utils/grouping";
 import { getSelectionTransform } from "../events/transform-events";
-import { findShapeInContainer } from "../shapes/index";
+import { findShapeInContainer, findParentContainer } from "../shapes/index";
+import { ContextMenu } from "./context-menu";
 
-interface CanvasInventoryProps {}
+interface DragState {
+  isDragging: boolean;
+  draggedItemId: string | null;
+  dragOverTarget: string | null;
+  dragPosition: "above" | "below" | "inside" | null;
+}
+
+interface ContextMenuState {
+  isOpen: boolean;
+  x: number;
+  y: number;
+}
 
 export const CanvasInventory = React.memo(() => {
   const [expandedContainers, setExpandedContainers] = useState<Set<string>>(
     new Set()
   );
 
-  // Get state from store with selectors to minimize re-renders
+  const [dragState, setDragState] = useState<DragState>({
+    isDragging: false,
+    draggedItemId: null,
+    dragOverTarget: null,
+    dragPosition: null,
+  });
+
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+  });
+
   const shapes = useSeatMapStore((state) => state.shapes);
   const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
   const setSelectedShapes = useSeatMapStore((state) => state.setSelectedShapes);
@@ -47,11 +77,267 @@ export const CanvasInventory = React.memo(() => {
     [selectedShapes]
   );
 
-  // Get root level items (items not inside any container)
   const rootItems = useMemo(() => {
     const itemsInContainers = getItemsInContainers();
     return shapes.filter((shape) => !itemsInContainers.has(shape.id));
   }, [shapes]);
+
+  const canGroupSelectedInContainer = useMemo(() => {
+    return selectedShapes.length > 1 && canGroupInSameContainer(selectedShapes);
+  }, [selectedShapes]);
+
+  const findShapeById = useCallback(
+    (id: string): CanvasItem | null => {
+      const findInShapes = (shapeList: CanvasItem[]): CanvasItem | null => {
+        for (const shape of shapeList) {
+          if (shape.id === id) {
+            return shape;
+          }
+          if (shape.type === "container") {
+            const container = shape as ContainerGroup;
+            const found = findInShapes(container.children);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+
+      return findInShapes(shapes);
+    },
+    [shapes]
+  );
+
+  const moveItem = useCallback(
+    (
+      itemId: string,
+      targetContainerId: string | null,
+      position: "above" | "below" | "inside" | null
+    ) => {
+      const item = findShapeById(itemId);
+      const targetContainer = targetContainerId
+        ? (findShapeById(targetContainerId) as ContainerGroup)
+        : null;
+
+      if (!item) return;
+
+      if (item.type === "container" && targetContainer) {
+        const isDescendant = (
+          container: ContainerGroup,
+          targetId: string
+        ): boolean => {
+          if (container.id === targetId) return true;
+          return container.children.some(
+            (child) =>
+              child.type === "container" &&
+              isDescendant(child as ContainerGroup, targetId)
+          );
+        };
+
+        if (isDescendant(item as ContainerGroup, targetContainer.id)) {
+          console.warn("Cannot move container into itself or its descendants");
+          return;
+        }
+      }
+
+      const getWorldCoordinates = (
+        shape: CanvasItem
+      ): { x: number; y: number } => {
+        const parent = findParentContainer(shape);
+        if (!parent) {
+          return { x: shape.x, y: shape.y };
+        }
+
+        let worldX = shape.x;
+        let worldY = shape.y;
+        let currentContainer: ContainerGroup | null = parent;
+
+        while (currentContainer) {
+          worldX += currentContainer.x;
+          worldY += currentContainer.y;
+          currentContainer = findParentContainer(currentContainer);
+        }
+
+        return { x: worldX, y: worldY };
+      };
+
+      const originalWorldCoords = getWorldCoordinates(item);
+
+      const currentParent = findParentContainer(item);
+      if (currentParent) {
+        removeFromGroup(currentParent, [item]);
+      } else {
+        const rootIndex = shapes.findIndex((s) => s.id === item.id);
+        if (rootIndex !== -1) {
+          shapes.splice(rootIndex, 1);
+        }
+      }
+
+      if (targetContainer && position === "inside") {
+        addToGroup(targetContainer, [item]);
+
+        const targetWorldCoords = getWorldCoordinates(targetContainer);
+        item.x = originalWorldCoords.x - targetWorldCoords.x;
+        item.y = originalWorldCoords.y - targetWorldCoords.y;
+
+        item.graphics.position.set(item.x, item.y);
+
+        setExpandedContainers((prev) => new Set([...prev, targetContainer.id]));
+      } else {
+        const targetParent = targetContainer
+          ? findParentContainer(targetContainer)
+          : null;
+
+        if (targetParent) {
+          addToGroup(targetParent, [item]);
+          const targetParentWorldCoords = getWorldCoordinates(targetParent);
+          item.x = originalWorldCoords.x - targetParentWorldCoords.x;
+          item.y = originalWorldCoords.y - targetParentWorldCoords.y;
+          item.graphics.position.set(item.x, item.y);
+        } else {
+          shapes.push(item);
+          item.x = originalWorldCoords.x;
+          item.y = originalWorldCoords.y;
+          item.graphics.position.set(item.x, item.y);
+        }
+      }
+
+      updateShapes([...shapes]);
+    },
+    [shapes, updateShapes, findShapeById]
+  );
+
+  const handleDragStart = useCallback((e: React.DragEvent, itemId: string) => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", itemId);
+
+    setDragState({
+      isDragging: true,
+      draggedItemId: itemId,
+      dragOverTarget: null,
+      dragPosition: null,
+    });
+  }, []);
+
+  const handleDragOver = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+
+      if (!dragState.isDragging || dragState.draggedItemId === targetId) {
+        return;
+      }
+
+      const target = findShapeById(targetId);
+      const isContainer = target?.type === "container";
+
+      const position = isContainer ? "inside" : null;
+
+      setDragState((prev) => ({
+        ...prev,
+        dragOverTarget: targetId,
+        dragPosition: position,
+      }));
+    },
+    [dragState.isDragging, dragState.draggedItemId, findShapeById]
+  );
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragState((prev) => ({
+        ...prev,
+        dragOverTarget: null,
+        dragPosition: null,
+      }));
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, targetId: string) => {
+      e.preventDefault();
+
+      const draggedId = dragState.draggedItemId;
+      if (!draggedId || draggedId === targetId) {
+        setDragState({
+          isDragging: false,
+          draggedItemId: null,
+          dragOverTarget: null,
+          dragPosition: null,
+        });
+        return;
+      }
+
+      const target = findShapeById(targetId);
+      const isContainer = target?.type === "container";
+
+      if (isContainer) {
+        moveItem(draggedId, targetId, "inside");
+      } else {
+        const targetParent = findParentContainer(target!);
+        const targetParentId = targetParent ? targetParent.id : null;
+        moveItem(draggedId, targetParentId, null);
+      }
+
+      setDragState({
+        isDragging: false,
+        draggedItemId: null,
+        dragOverTarget: null,
+        dragPosition: null,
+      });
+    },
+    [dragState, moveItem, findShapeById]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragState({
+      isDragging: false,
+      draggedItemId: null,
+      dragOverTarget: null,
+      dragPosition: null,
+    });
+  }, []);
+
+  const handleContainerDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+
+      const draggedId = dragState.draggedItemId;
+      if (!draggedId) return;
+
+      if (e.target === e.currentTarget) {
+        moveItem(draggedId, null, null);
+      }
+
+      setDragState({
+        isDragging: false,
+        draggedItemId: null,
+        dragOverTarget: null,
+        dragPosition: null,
+      });
+    },
+    [dragState.draggedItemId, moveItem]
+  );
+
+  const handleDragOverContainer = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  }, []);
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+    });
+  }, []);
+
+  const handleCloseContextMenu = useCallback(() => {
+    setContextMenu({ isOpen: false, x: 0, y: 0 });
+  }, []);
+
+  const handleCreateEmptyContainer = useCallback(() => {
+    createEmptyContainer();
+  }, []);
 
   const handleShapePan = useCallback(
     (shapeId: string) => {
@@ -82,7 +368,6 @@ export const CanvasInventory = React.memo(() => {
       if (!shape) return;
 
       if (isCtrlHeld) {
-        // Toggle selection
         const isCurrentlySelected = selectedShapes.some(
           (s) => s.id === shapeId
         );
@@ -138,36 +423,39 @@ export const CanvasInventory = React.memo(() => {
       const shape = shapes.find((s) => s.id === id);
       if (!shape) return;
 
-      // Apply updates to the shape object
       Object.assign(shape, updates);
 
-      // Handle graphics updates
       if (updates.visible !== undefined) {
         shape.graphics.visible = shape.visible;
       }
 
-      // Update the store
       updateShapes([...shapes]);
     },
     [shapes, updateShapes]
   );
 
   const handleGroupItems = useCallback((items: CanvasItem[]) => {
-    if (!canGroup(items)) {
+    if (canGroupInSameContainer(items)) {
+      const container = groupItemsInContainer(items);
+      if (container) {
+        console.log("Items grouped within container");
+      }
+    } else if (canGroup(items)) {
+      const container = groupItems(items);
+      if (container) {
+        console.log("Items grouped at root level");
+      }
+    } else {
       console.warn(
-        "Cannot group these items - they may already be in containers or insufficient count"
+        "Cannot group these items - they may be in different containers or insufficient count"
       );
-      return;
-    }
-
-    const container = groupItems(items);
-    if (container) {
     }
   }, []);
 
   const handleUngroupItems = useCallback((container: ContainerGroup) => {
     const ungroupedItems = ungroupContainer(container);
     if (ungroupedItems.length > 0) {
+      console.log("Container ungrouped successfully");
     }
   }, []);
 
@@ -176,7 +464,6 @@ export const CanvasInventory = React.memo(() => {
       e.stopPropagation();
 
       if (e.ctrlKey || e.shiftKey) {
-        // Multi-select or pan
         if (e.shiftKey) {
           handleShapePan(shapeId);
         } else {
@@ -226,7 +513,7 @@ export const CanvasInventory = React.memo(() => {
     },
     [shapes, handleItemUpdate]
   );
-
+  // Add this to the getTypeIcon function in canvas-inventory.tsx
   const getTypeIcon = useCallback((type: string, isExpanded?: boolean) => {
     const iconProps = { className: "w-3 h-3" };
 
@@ -239,6 +526,10 @@ export const CanvasInventory = React.memo(() => {
         return <Type {...iconProps} />;
       case "polygon":
         return <Hexagon {...iconProps} />;
+      case "image":
+        return <ImageIcon {...iconProps} />;
+      case "svg":
+        return <ImageIcon {...iconProps} />;
       case "container":
         return isExpanded ? (
           <FolderOpen {...iconProps} />
@@ -250,6 +541,7 @@ export const CanvasInventory = React.memo(() => {
     }
   }, []);
 
+  // Add this to the getShapeColor function in canvas-inventory.tsx
   const getShapeColor = useCallback((shape: CanvasItem): string => {
     switch (shape.type) {
       case "rectangle":
@@ -260,10 +552,29 @@ export const CanvasInventory = React.memo(() => {
         return `#${shape.color?.toString(16).padStart(6, "0") || "9b59b6"}`;
       case "text":
         return `#${shape.color?.toString(16).padStart(6, "0") || "374151"}`;
+      case "image":
+        return "#8b5cf6";
+      case "svg":
+        return "#f59e0b";
       default:
         return "#6b7280";
     }
   }, []);
+
+  const getDragIndicatorClasses = useCallback(
+    (itemId: string) => {
+      if (!dragState.isDragging || dragState.dragOverTarget !== itemId) {
+        return "";
+      }
+
+      if (dragState.dragPosition === "inside") {
+        return "bg-blue-500/20 border border-blue-500/50 rounded";
+      }
+
+      return "";
+    },
+    [dragState]
+  );
 
   const renderLayerItem = useCallback(
     (item: CanvasItem, level: number = 0): React.ReactNode => {
@@ -271,6 +582,7 @@ export const CanvasInventory = React.memo(() => {
       const isContainer = item.type === "container";
       const isExpanded = expandedContainers.has(item.id);
       const paddingLeft = 8 + level * 16;
+      const isDraggedItem = dragState.draggedItemId === item.id;
 
       return (
         <div key={item.id} className="select-none">
@@ -279,8 +591,14 @@ export const CanvasInventory = React.memo(() => {
               isSelected
                 ? "bg-blue-600 text-white"
                 : "hover:bg-gray-700 text-gray-300"
-            } cursor-pointer text-xs`}
+            } ${isDraggedItem ? "opacity-50" : ""} ${getDragIndicatorClasses(item.id)} cursor-pointer text-xs`}
             style={{ paddingLeft: `${paddingLeft}px` }}
+            draggable={!item.locked}
+            onDragStart={(e) => handleDragStart(e, item.id)}
+            onDragOver={(e) => handleDragOver(e, item.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={(e) => handleDrop(e, item.id)}
+            onDragEnd={handleDragEnd}
             onClick={(e) => handleShapeClick(item.id, e)}
           >
             {/* Expand/Collapse for containers */}
@@ -296,8 +614,8 @@ export const CanvasInventory = React.memo(() => {
                 )}
               </button>
             )}
-            {!isContainer && <div className="w-4" />}{" "}
-            {/* Spacer for non-containers */}
+            {!isContainer && <div className="w-4" />}
+
             {/* Type icon or color indicator */}
             <div className="mr-2 flex-shrink-0">
               {isContainer ? (
@@ -312,10 +630,12 @@ export const CanvasInventory = React.memo(() => {
                 </div>
               )}
             </div>
+
             {/* Item name */}
             <span className="flex-1 truncate min-w-0">
               {item.name || `${item.type} ${item.id.slice(-4)}`}
             </span>
+
             {/* Action buttons - show on hover */}
             <div className="flex items-center ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
               {/* Ungroup button for containers */}
@@ -374,6 +694,7 @@ export const CanvasInventory = React.memo(() => {
     [
       selectedShapeIds,
       expandedContainers,
+      dragState,
       handleShapeClick,
       toggleContainer,
       toggleVisibility,
@@ -381,24 +702,35 @@ export const CanvasInventory = React.memo(() => {
       handleUngroupItems,
       getTypeIcon,
       getShapeColor,
+      getDragIndicatorClasses,
+      handleDragStart,
+      handleDragOver,
+      handleDragLeave,
+      handleDrop,
+      handleDragEnd,
     ]
   );
 
   const handleGroupSelected = useCallback(() => {
     if (selectedShapeIds.length > 1) {
-      const selectedItems = shapes.filter((shape) =>
-        selectedShapeIds.includes(shape.id)
-      );
-      handleGroupItems(selectedItems);
+      handleGroupItems(selectedShapes);
     }
-  }, [selectedShapeIds, shapes, handleGroupItems]);
+  }, [selectedShapeIds, selectedShapes, handleGroupItems]);
 
   const selectedCount = selectedShapeIds.length;
   const totalCount = shapes.length;
-  const canGroupSelected = selectedCount > 1 && canGroup(selectedShapes);
+
+  const canGroupSelected =
+    selectedCount > 1 &&
+    (canGroup(selectedShapes) || canGroupSelectedInContainer);
 
   return (
-    <div className="bg-gray-900 text-white shadow z-10 w-64 flex flex-col border border-gray-700">
+    <div
+      className="bg-gray-900 text-white shadow z-10 w-64 flex flex-col border border-gray-700"
+      onDragOver={handleDragOverContainer}
+      onDrop={handleContainerDrop}
+      onContextMenu={handleContextMenu}
+    >
       {/* Header */}
       <div className="p-3 border-b border-gray-700">
         <div className="flex items-center justify-between mb-2">
@@ -441,8 +773,20 @@ export const CanvasInventory = React.memo(() => {
         <div>Click to select</div>
         <div>Ctrl+Click to multi-select</div>
         <div>Shift+Ctrl+Click to pan to item</div>
+        <div>Drag to reorder/move between containers</div>
         <div>Select multiple items to group</div>
+        <div>Right-click to create empty container</div>
       </div>
+
+      {/* Context Menu */}
+      {contextMenu.isOpen && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          onClose={handleCloseContextMenu}
+          onCreateEmptyContainer={handleCreateEmptyContainer}
+        />
+      )}
     </div>
   );
 });

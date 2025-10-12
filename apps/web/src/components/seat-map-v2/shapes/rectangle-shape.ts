@@ -22,7 +22,7 @@ export const createRectangle = (
 
   const shape: RectangleShape = {
     id: generateShapeId(),
-    name: `Rectangle ${Date.now()}`,
+    name: `Rectangle`,
     type: "rectangle",
     graphics,
     x: x + width / 2, // Center point
