@@ -84,6 +84,8 @@
         "followUs": "Theo Dõi Chúng Tôi"
     },
     "event-sidebar": {
+        "Searchevents": "Tìm kiếm sự kiện...",
+        "PriceRange": "Khoảng Giá",
         "priceOptions": [
             {
                 "label": "Dưới 500.000₫",
@@ -103,6 +105,7 @@
             }
         ],
         "seeMore": "Xem Thêm",
+        "StartDate": "Ngày Bắt Đầu",
         "dateOptions": [
             {
                 "label": "Tất cả",
@@ -117,6 +120,7 @@
                 "value": "thisWeek"
             }
         ],
+        "Category": "Danh Mục" ,
         "categoryOptions": [
             {
                 "label": "Tất cả danh mục",
@@ -146,6 +150,8 @@
                 "label": "Cuộc Thi & Chương Trình Trò Chơi",
                 "value": "Competition & Game shows"
             }
-        ]
+        ],
+        "Location": "Địa Điểm",
+        "AllLocation": "Tất cả địa điểm"
     }
 }

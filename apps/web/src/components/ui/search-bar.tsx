@@ -11,6 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 // Debounce
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
@@ -28,6 +29,7 @@ export default function SearchBar() {
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [location, setLocation] = useState(searchParams.get("location") || "all");
   const [provinces, setProvinces] = useState<string[]>([]);
+  const t = useTranslations("event-sidebar");
 
   useEffect(() => {
     async function fetchProvinces() {
@@ -78,7 +80,7 @@ export default function SearchBar() {
         <LucideSearch className="w-5 h-5 text-gray-400" />
         <Input
           type="text"
-          placeholder="Search events..."
+          placeholder={t("Searchevents")}
           value={query}
           onChange={(e) => handleInputChange(e.target.value)}
           className="border-0 focus:ring-0 shadow-none"
@@ -96,7 +98,7 @@ export default function SearchBar() {
         </SelectTrigger>
         <SelectContent className="max-h-60 overflow-y-auto">
           <SelectItem key="all" value="all">
-            All Locations
+            {t("AllLocation")}
           </SelectItem>
           {provinces.map((prov) => (
             <SelectItem key={prov} value={prov}>

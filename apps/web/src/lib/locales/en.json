@@ -84,6 +84,8 @@
     "followUs": "Follow Us"
   },
   "event-sidebar": {
+    "Searchevents": "Search events...",
+    "PriceRange": "Price Range",
     "priceOptions": [
       {
         "label": "Under 500,000₫",
@@ -103,6 +105,7 @@
       }
     ],
     "seeMore": "See More",
+    "StartDate": "Start Date",
     "dateOptions": [
       {
         "label": "All",
@@ -117,6 +120,7 @@
         "value": "thisWeek"
       }
     ],
+    "Category": "Categories",
     "categoryOptions": [
       {
         "label": "All Categories",
@@ -146,6 +150,8 @@
         "label": "Competition & Game shows",
         "value": "Competition & Game shows"
       }
-    ]
+    ],
+    "Location": "Location",
+    "AllLocation": "All Locations"
   }
 }

@@ -59,7 +59,7 @@ export default function EventFiltersSidebar({
     <aside className="bg-white p-4 rounded shadow-md space-y-6 text-sm">
       {/* Price Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Price Range</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("PriceRange")}</h3>
         {priceOptions.map(({ label, value }) => (
           <label key={value} className="block mb-1 cursor-pointer">
             <input
@@ -77,7 +77,7 @@ export default function EventFiltersSidebar({
 
       {/* Date Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Start Date</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("StartDate")}</h3>
         {dateOptions.map(({ label, value }) => (
           <label key={value} className="block mb-1 cursor-pointer">
             <input
@@ -95,7 +95,7 @@ export default function EventFiltersSidebar({
 
       {/* Location Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Location</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("Location")}</h3>
         <Select
           value={selectedLocation}
           onValueChange={(val) => onChange("location", val)}
@@ -104,7 +104,7 @@ export default function EventFiltersSidebar({
             <SelectValue placeholder="All Locations" />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
-            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="all">{t("AllLocation")}</SelectItem>
             {provinces.map((name) => (
               <SelectItem key={name} value={name}>
                 {name}
@@ -116,7 +116,7 @@ export default function EventFiltersSidebar({
 
       {/* Category Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Category</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("Category")}</h3>
         <Select
           value={selectedCategory}
           onValueChange={(val) => onChange("category", val)}
