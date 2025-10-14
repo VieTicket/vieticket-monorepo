@@ -48,6 +48,8 @@ function CreateEventPageInner() {
     bannerUrl: "",
     seatCount: "",
     ticketPrice: "",
+    startTime: "",
+    endTime: "",
   });
   const [step, setStep] = useState(1);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);

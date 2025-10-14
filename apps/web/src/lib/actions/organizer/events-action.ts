@@ -205,6 +205,7 @@ export async function handleUpdateEvent(formData: FormData) {
       : null,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
+    maxTicketsByOrder: 36,
     seatMapId: seatMapId || null,
     updatedAt: new Date(),
     organizerId,

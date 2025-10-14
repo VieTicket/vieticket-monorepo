@@ -9,6 +9,8 @@ export interface EventFormData {
   bannerUrl: string;
   seatCount: string;
   ticketPrice: string;
+  startTime: string;
+  endTime: string;
 }
 
 export interface Area {
