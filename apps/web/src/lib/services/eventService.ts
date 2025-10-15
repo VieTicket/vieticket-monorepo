@@ -11,6 +11,7 @@ import {
   getRowsByAreaId,
   deleteSeatsByRowId,
   deleteAreasByEventId,
+  deleteShowingsByEventId,
   createAreaWithId,
   createRowWithId,
   createSeatsWithIds,
@@ -39,7 +40,9 @@ export async function createEventWithMultipleAreas(
   }[]
 ): Promise<{ eventId: string } | null> {
   const result = createEventInputSchema.safeParse(event);
+  console.log("DEBUG validation input:", event);
   if (!result.success) {
+    console.log("DEBUG validation errors:", result.error.issues);
     throw new Error(
       result.error.issues
         .map((i) => `${i.path.join(".")} — ${i.message}`)
@@ -48,6 +51,7 @@ export async function createEventWithMultipleAreas(
   }
 
   const validEvent = result.data;
+  console.log("DEBUG validated event:", validEvent);
 
   try {
     // Use optimized bulk operation for creating event with areas
@@ -65,6 +69,8 @@ export async function createEventWithShowingsAndAreas(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   areas: {
@@ -74,7 +80,12 @@ export async function createEventWithShowingsAndAreas(
   }[]
 ): Promise<{ eventId: string } | null> {
   const result = createEventInputSchema.safeParse(event);
+  console.log(
+    "DEBUG validation result for createEventWithShowingsAndAreas:",
+    result
+  );
   if (!result.success) {
+    console.error("Validation failed:", result.error.issues);
     throw new Error(
       result.error.issues
         .map((i) => `${i.path.join(".")} — ${i.message}`)
@@ -83,6 +94,7 @@ export async function createEventWithShowingsAndAreas(
   }
 
   const validEvent = result.data;
+  console.log("DEBUG validEvent after validation:", validEvent);
 
   try {
     // Use optimized bulk operation for creating event with showings (copy mode)
@@ -90,6 +102,11 @@ export async function createEventWithShowingsAndAreas(
       showing,
       areas,
     }));
+
+    console.log(
+      "DEBUG showingsData being passed to optimized function:",
+      showingsData
+    );
 
     const { eventId } = await createEventWithShowingsOptimized(
       validEvent,
@@ -108,6 +125,8 @@ export async function createEventWithShowingsAndAreasIndividual(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   showingAreaConfigs: Array<
@@ -365,11 +384,13 @@ export async function updateEventWithSeatMap(
 // ========== OPTIMIZED UPDATE FUNCTIONS ==========
 
 export async function updateEventWithShowingsAndAreas(
-  eventPayload: any,
+  eventPayload: Event,
   showings: Array<{
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }>,
   areas: Array<{
@@ -378,21 +399,28 @@ export async function updateEventWithShowingsAndAreas(
     ticketPrice: number;
   }>
 ) {
-  // Prepare data for optimized function
-  const showingsData = showings.map((showing) => ({
-    showing,
-    areas,
-  }));
+  try {
+    // Prepare data for optimized function
+    const showingsData = showings.map((showing) => ({
+      showing,
+      areas,
+    }));
 
-  return updateEventWithShowingsOptimized(eventPayload, showingsData);
+    return updateEventWithShowingsOptimized(eventPayload, showingsData);
+  } catch (error) {
+    console.error("Error updating event with showings:", error);
+    return null;
+  }
 }
 
 export async function updateEventWithShowingsAndAreasIndividual(
-  eventPayload: any,
+  eventPayload: Event,
   showings: Array<{
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }>,
   showingAreaConfigs: Array<
@@ -403,11 +431,22 @@ export async function updateEventWithShowingsAndAreasIndividual(
     }>
   >
 ) {
-  // Prepare data for optimized function
-  const showingsData = showings.map((showing, index) => ({
-    showing,
-    areas: showingAreaConfigs[index] || [],
-  }));
+  try {
+    // Prepare data for optimized function
+    const showingsData = showings.map((showing, index) => ({
+      showing,
+      areas: showingAreaConfigs[index] || [],
+    }));
 
-  return updateEventWithShowingsIndividualOptimized(eventPayload, showingsData);
+    return updateEventWithShowingsIndividualOptimized(
+      eventPayload,
+      showingsData
+    );
+  } catch (error) {
+    console.error(
+      "Error updating event with individual showing configs:",
+      error
+    );
+    return null;
+  }
 }

@@ -210,15 +210,13 @@ export function EventDetailsStep({
           name="maxTicketsByOrder"
           type="number"
           value={formData.maxTicketsByOrder || ""}
-          onChange={(e) =>
-            onInputChange({
-              ...e,
-              target: {
-                ...e.target,
-                value: e.target.value,
-              },
-            })
-          }
+          onChange={(e) => {
+            console.log(
+              "DEBUG: onChange triggered with value:",
+              e.target.value
+            );
+            onInputChange(e);
+          }}
           className={errors.maxTicketsByOrder ? "border-red-500" : ""}
           min="1"
           max="20"

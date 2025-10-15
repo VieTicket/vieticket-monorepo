@@ -19,6 +19,8 @@ export async function createShowing(showing: {
   name: string;
   startTime: Date;
   endTime: Date;
+  ticketSaleStart?: Date | null;
+  ticketSaleEnd?: Date | null;
   seatMapId?: string | null;
 }) {
   return db.insert(showings).values(showing).returning();
@@ -102,6 +104,10 @@ export async function getRowsByAreaId(areaId: string) {
 }
 export async function deleteAreasByEventId(eventId: string) {
   return db.delete(areas).where(eq(areas.eventId, eventId));
+}
+
+export async function deleteShowingsByEventId(eventId: string) {
+  return db.delete(showings).where(eq(showings.eventId, eventId));
 }
 
 export async function deleteSeatsByRowId(rowId: string) {
@@ -395,6 +401,8 @@ export async function createEventWithShowingsOptimized(
       name: string;
       startTime: Date;
       endTime: Date;
+      ticketSaleStart?: Date | null;
+      ticketSaleEnd?: Date | null;
       seatMapId?: string;
     };
     areas: Array<{
@@ -419,8 +427,8 @@ export async function createEventWithShowingsOptimized(
 
       // Insert showing
       await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
+        INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
+        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
       // Bulk insert areas + rows + seats for this showing
@@ -493,6 +501,8 @@ export async function createEventWithShowingsIndividualOptimized(
       name: string;
       startTime: Date;
       endTime: Date;
+      ticketSaleStart?: Date | null;
+      ticketSaleEnd?: Date | null;
       seatMapId?: string;
     };
     areas: Array<{
@@ -517,8 +527,8 @@ export async function createEventWithShowingsIndividualOptimized(
 
       // Insert showing
       await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
+        INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
+        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
       // Bulk insert areas for this specific showing
@@ -671,6 +681,8 @@ export async function updateEventWithShowingsOptimized(
       name: string;
       startTime: Date;
       endTime: Date;
+      ticketSaleStart?: Date | null;
+      ticketSaleEnd?: Date | null;
       seatMapId?: string;
     };
     areas: Array<{
@@ -727,8 +739,8 @@ export async function updateEventWithShowingsOptimized(
 
       // Insert showing
       await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
+        INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
+        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
       // Bulk insert areas + rows + seats for this showing
@@ -801,6 +813,8 @@ export async function updateEventWithShowingsIndividualOptimized(
       name: string;
       startTime: Date;
       endTime: Date;
+      ticketSaleStart?: Date | null;
+      ticketSaleEnd?: Date | null;
       seatMapId?: string;
     };
     areas: Array<{
@@ -857,8 +871,8 @@ export async function updateEventWithShowingsIndividualOptimized(
 
       // Insert showing
       await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
+        INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
+        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
       // Bulk insert areas for this specific showing

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, Suspense } from "react";
+import { useState, useEffect, useTransition, Suspense, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -48,7 +48,7 @@ function CreateEventPageInner() {
     bannerUrl: "",
     seatCount: "",
     ticketPrice: "",
-    maxTicketsByOrder: 5,
+    maxTicketsByOrder: undefined, // Let user input, don't hardcode
   });
   const [step, setStep] = useState(1);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
@@ -272,10 +272,12 @@ function CreateEventPageInner() {
     >
   ) => {
     const { name, value } = e.target;
+    console.log("DEBUG handleChange:", name, value);
 
     // Handle numeric fields
     if (name === "maxTicketsByOrder") {
-      const numValue = parseInt(value) || 0;
+      const numValue = value === "" ? undefined : parseInt(value) || undefined;
+      console.log("DEBUG maxTicketsByOrder numValue:", numValue);
       setFormData((prev) => ({ ...prev, [name]: numValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
@@ -325,6 +327,10 @@ function CreateEventPageInner() {
 
   // Handle step navigation with validation
   const handleNextStep = () => {
+    console.log("DEBUG: handleNextStep called at step:", step);
+    console.log("DEBUG: Current formData:", formData);
+    console.log("DEBUG: Current showings:", showings);
+
     if (step === 1) {
       if (!validateStep1()) {
         toast.error("Please fix the errors before continuing");
@@ -620,6 +626,11 @@ function CreateEventPageInner() {
               />
               <input
                 type="hidden"
+                name="maxTicketsByOrder"
+                value={formData.maxTicketsByOrder || ""}
+              />
+              <input
+                type="hidden"
                 name="seatCount"
                 value={formData.seatCount}
               />
@@ -629,6 +640,38 @@ function CreateEventPageInner() {
                 value={formData.ticketPrice}
               />
               <input type="hidden" name="ticketingMode" value={ticketingMode} />
+
+              {/* Hidden inputs for showings data including ticket sale times */}
+              {showings.map((showing, index) => (
+                <Fragment key={index}>
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].name`}
+                    value={showing.name}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].startTime`}
+                    value={showing.startTime}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].endTime`}
+                    value={showing.endTime}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].ticketSaleStart`}
+                    value={showing.ticketSaleStart || ""}
+                  />
+                  <input
+                    type="hidden"
+                    name={`showings[${index}].ticketSaleEnd`}
+                    value={showing.ticketSaleEnd || ""}
+                  />
+                </Fragment>
+              ))}
+
               {selectedSeatMap && (
                 <input type="hidden" name="seatMapId" value={selectedSeatMap} />
               )}

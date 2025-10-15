@@ -18,6 +18,21 @@ import { slugify } from "@/lib/utils";
 export async function handleCreateEvent(
   formData: FormData
 ): Promise<{ eventId?: string } | void> {
+  console.log(
+    "DEBUG: handleCreateEvent called with formData:",
+    Array.from(formData.entries())
+  );
+
+  console.log(
+    "DEBUG: Raw maxTicketsByOrder value:",
+    formData.get("maxTicketsByOrder")
+  );
+  console.log(
+    "DEBUG: Raw ticketSaleStart value:",
+    formData.get("ticketSaleStart")
+  );
+  console.log("DEBUG: Raw ticketSaleEnd value:", formData.get("ticketSaleEnd"));
+
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
@@ -27,11 +42,34 @@ export async function handleCreateEvent(
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
 
+  // Parse event-level ticket sale times first
+  const eventTicketSaleStart = formData.get("ticketSaleStart")
+    ? (() => {
+        const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
+        if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+          return null;
+        const date = new Date(ticketSaleStartValue);
+        return isNaN(date.getTime()) ? null : date;
+      })()
+    : null;
+
+  const eventTicketSaleEnd = formData.get("ticketSaleEnd")
+    ? (() => {
+        const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
+        if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+          return null;
+        const date = new Date(ticketSaleEndValue);
+        return isNaN(date.getTime()) ? null : date;
+      })()
+    : null;
+
   // Parse showings data
   const showings: {
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[] = [];
 
@@ -40,6 +78,12 @@ export async function handleCreateEvent(
     const name = formData.get(`showings[${showingIndex}].name`);
     const startTime = formData.get(`showings[${showingIndex}].startTime`);
     const endTime = formData.get(`showings[${showingIndex}].endTime`);
+    const ticketSaleStart = formData.get(
+      `showings[${showingIndex}].ticketSaleStart`
+    );
+    const ticketSaleEnd = formData.get(
+      `showings[${showingIndex}].ticketSaleEnd`
+    );
 
     if (!name || !startTime || !endTime) break;
 
@@ -52,10 +96,39 @@ export async function handleCreateEvent(
       throw new Error(`Invalid date format in showing: ${name}`);
     }
 
+    // Parse ticket sale dates for this specific showing
+    const ticketSaleStartDate =
+      ticketSaleStart && ticketSaleStart.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleStart.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            // Default: 7 days before showing start
+            const date = new Date(startDate);
+            date.setDate(date.getDate() - 7);
+            return date;
+          })();
+
+    const ticketSaleEndDate =
+      ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleEnd.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            // Default: 1 hour before showing start
+            const date = new Date(startDate);
+            date.setHours(date.getHours() - 1);
+            return date;
+          })();
+
     showings.push({
       name: name.toString(),
       startTime: startDate,
       endTime: endDate,
+      ticketSaleStart: ticketSaleStartDate,
+      ticketSaleEnd: ticketSaleEndDate,
       seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
     });
 
@@ -76,34 +149,30 @@ export async function handleCreateEvent(
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
     type: (formData.get("type") as string) || null,
-    ticketSaleStart: formData.get("ticketSaleStart")
-      ? (() => {
-          const ticketSaleStartValue = formData.get(
-            "ticketSaleStart"
-          ) as string;
-          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
-            return null;
-          const date = new Date(ticketSaleStartValue);
-          return isNaN(date.getTime()) ? null : date;
-        })()
+    maxTicketsByOrder: formData.get("maxTicketsByOrder")
+      ? Number(formData.get("maxTicketsByOrder"))
       : null,
-    ticketSaleEnd: formData.get("ticketSaleEnd")
-      ? (() => {
-          const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
-            return null;
-          const date = new Date(ticketSaleEndValue);
-          return isNaN(date.getTime()) ? null : date;
-        })()
-      : null,
+    ticketSaleStart: eventTicketSaleStart,
+    ticketSaleEnd: eventTicketSaleEnd,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
     seatMapId: seatMapId || null,
     organizerId,
+    approvalStatus: "pending" as const,
     views: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
   };
+
+  console.log("DEBUG eventPayload:", eventPayload);
+  console.log(
+    "DEBUG showings with ticket sale times:",
+    showings.map((s) => ({
+      name: s.name,
+      ticketSaleStart: s.ticketSaleStart,
+      ticketSaleEnd: s.ticketSaleEnd,
+    }))
+  );
 
   let result;
 
@@ -231,6 +300,8 @@ export async function handleUpdateEvent(formData: FormData) {
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[] = [];
 
@@ -239,6 +310,12 @@ export async function handleUpdateEvent(formData: FormData) {
     const name = formData.get(`showings[${showingIndex}].name`);
     const startTime = formData.get(`showings[${showingIndex}].startTime`);
     const endTime = formData.get(`showings[${showingIndex}].endTime`);
+    const ticketSaleStart = formData.get(
+      `showings[${showingIndex}].ticketSaleStart`
+    );
+    const ticketSaleEnd = formData.get(
+      `showings[${showingIndex}].ticketSaleEnd`
+    );
 
     if (!name || !startTime || !endTime) break;
 
@@ -261,10 +338,29 @@ export async function handleUpdateEvent(formData: FormData) {
       throw new Error(`Invalid date format in showing: ${name}`);
     }
 
+    // Parse ticket sale dates for showing
+    const ticketSaleStartDate =
+      ticketSaleStart && ticketSaleStart.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleStart.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : null;
+
+    const ticketSaleEndDate =
+      ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleEnd.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : null;
+
     showings.push({
       name: name.toString(),
       startTime: startDate,
       endTime: endDate,
+      ticketSaleStart: ticketSaleStartDate,
+      ticketSaleEnd: ticketSaleEndDate,
       seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
     });
 
@@ -308,6 +404,9 @@ export async function handleUpdateEvent(formData: FormData) {
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
     type: (formData.get("type") as string) || null,
+    maxTicketsByOrder: formData.get("maxTicketsByOrder")
+      ? Number(formData.get("maxTicketsByOrder"))
+      : null,
     ticketSaleStart: formData.get("ticketSaleStart")
       ? (() => {
           const ticketSaleStartValue = formData.get(

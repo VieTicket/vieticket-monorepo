@@ -19,8 +19,19 @@ export const baseEventSchema = z.object({
     (val) => (val === "" ? null : val),
     z.string().max(64).nullable().default(null)
   ),
-  ticketSaleStart: z.coerce.date().nullable().default(null),
-  ticketSaleEnd: z.coerce.date().nullable().default(null),
+  ticketSaleStart: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    return new Date(val as string);
+  }, z.date().nullable().default(null)),
+  ticketSaleEnd: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    return new Date(val as string);
+  }, z.date().nullable().default(null)),
+  maxTicketsByOrder: z.preprocess((val) => {
+    if (val === "" || val === null || val === undefined) return null;
+    const num = Number(val);
+    return isNaN(num) ? null : num;
+  }, z.number().int().positive().nullable().default(null)),
   posterUrl: z.preprocess(
     (val) => (val === "" ? null : val),
     z.string().url().max(255).nullable().default(null)
@@ -34,6 +45,9 @@ export const baseEventSchema = z.object({
     (val) => (val === "" ? null : val),
     z.string().nullable().default(null)
   ),
+  approvalStatus: z
+    .enum(["pending", "approved", "rejected"])
+    .default("pending"),
   views: z.number().int().nonnegative().default(0),
   createdAt: z.coerce.date().default(new Date()),
   updatedAt: z.coerce.date().default(new Date()),
