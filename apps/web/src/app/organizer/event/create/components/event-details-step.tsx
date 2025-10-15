@@ -176,17 +176,64 @@ export function EventDetailsStep({
         <p className="text-red-500 text-sm mt-1">{errors.showings}</p>
       )}
 
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-4">
-          {renderField(
-            "ticketSaleStart",
-            "Ticket Sale Start",
-            "datetime-local"
-          )}
-          {renderField("ticketSaleEnd", "Ticket Sale End", "datetime-local")}
+      {/* Auto-calculated ticket sale info */}
+      {showings.length > 0 && showings[0].startTime && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="flex items-start gap-2">
+            <div className="text-blue-600 mt-0.5">ℹ️</div>
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">Ticket Sale Schedule</p>
+              <p>
+                Ticket sale dates are automatically calculated based on your
+                showings:
+              </p>
+              <ul className="mt-1 list-disc list-inside text-blue-700">
+                <li>Sale starts: 7 days before the earliest showing</li>
+                <li>Sale ends: 1 hour before the earliest showing</li>
+              </ul>
+              <p className="mt-1 text-xs">
+                Individual showings can have their own ticket sale schedules in
+                the next step.
+              </p>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
       {renderField("location", "Where will your event take place?")}
+
+      {/* Max Tickets per Order */}
+      <div className="space-y-1">
+        <Label htmlFor="maxTicketsByOrder">Maximum Tickets per Order</Label>
+        <Input
+          id="maxTicketsByOrder"
+          name="maxTicketsByOrder"
+          type="number"
+          value={formData.maxTicketsByOrder || ""}
+          onChange={(e) =>
+            onInputChange({
+              ...e,
+              target: {
+                ...e.target,
+                value: e.target.value,
+              },
+            })
+          }
+          className={errors.maxTicketsByOrder ? "border-red-500" : ""}
+          min="1"
+          max="20"
+          placeholder="e.g., 5"
+        />
+        {errors.maxTicketsByOrder && (
+          <p className="text-red-500 text-xs mt-1">
+            {errors.maxTicketsByOrder}
+          </p>
+        )}
+        <p className="text-sm text-gray-500">
+          Set the maximum number of tickets a customer can purchase in a single
+          order
+        </p>
+      </div>
 
       <TiptapEditorInput
         value={formData.description}

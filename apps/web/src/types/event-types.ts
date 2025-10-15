@@ -9,6 +9,7 @@ export interface EventFormData {
   bannerUrl: string;
   seatCount: string;
   ticketPrice: string;
+  maxTicketsByOrder?: number;
 }
 
 export interface Area {

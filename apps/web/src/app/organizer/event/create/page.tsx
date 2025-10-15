@@ -48,6 +48,7 @@ function CreateEventPageInner() {
     bannerUrl: "",
     seatCount: "",
     ticketPrice: "",
+    maxTicketsByOrder: 5,
   });
   const [step, setStep] = useState(1);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
@@ -271,13 +272,17 @@ function CreateEventPageInner() {
     >
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+
+    // Handle numeric fields
+    if (name === "maxTicketsByOrder") {
+      const numValue = parseInt(value) || 0;
+      setFormData((prev) => ({ ...prev, [name]: numValue }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
 
     // Clear related errors when user types
-    if (
-      (name === "ticketSaleStart" || name === "ticketSaleEnd") &&
-      errors[name]
-    ) {
+    if (name === "maxTicketsByOrder" && errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
@@ -304,44 +309,14 @@ function CreateEventPageInner() {
       newErrors.showings = "At least one showing with start time is required";
     }
 
-    // Ticket sale dates validation
-    if (formData.ticketSaleStart && formData.ticketSaleEnd) {
-      const saleStart = new Date(formData.ticketSaleStart);
-      const saleEnd = new Date(formData.ticketSaleEnd);
-
-      if (saleStart >= saleEnd) {
-        newErrors.ticketSaleEnd = "Ticket sale end must be after start date";
-      }
-
-      // Check if ticket sale dates are valid relative to event showings
-      if (showings.length > 0) {
-        const earliestShowing = showings
-          .filter((s) => s.startTime)
-          .sort(
-            (a, b) =>
-              new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-          )[0];
-
-        if (earliestShowing?.startTime) {
-          const eventDate = new Date(earliestShowing.startTime);
-
-          // Ticket sale start must be at least 3 days before event
-          const minDaysBeforeEvent = 3;
-          const maxSaleStart = new Date(
-            eventDate.getTime() - minDaysBeforeEvent * 24 * 60 * 60 * 1000
-          );
-
-          if (saleStart > maxSaleStart) {
-            newErrors.ticketSaleStart = `Ticket sale must start at least ${minDaysBeforeEvent} days before the event`;
-          }
-
-          // Ticket sale end must be before event starts
-          if (saleEnd >= eventDate) {
-            newErrors.ticketSaleEnd =
-              "Ticket sale must end before the event starts";
-          }
-        }
-      }
+    // Max tickets validation
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
+      newErrors.maxTicketsByOrder =
+        "Maximum tickets per order must be at least 1";
+    }
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
+      newErrors.maxTicketsByOrder =
+        "Maximum tickets per order cannot exceed 20";
     }
 
     setErrors(newErrors);
@@ -362,6 +337,38 @@ function CreateEventPageInner() {
   // Handle showings change with error clearing
   const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
     setShowings(newShowings);
+
+    // Auto-calculate ticket sale dates based on showings
+    if (newShowings.length > 0) {
+      const validShowings = newShowings.filter((s) => s.startTime);
+
+      if (validShowings.length > 0) {
+        // Find earliest and latest showing times
+        const sortedShowings = validShowings.sort(
+          (a, b) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+
+        const earliestShowing = sortedShowings[0];
+        const latestShowing = sortedShowings[sortedShowings.length - 1];
+
+        // Set ticket sale start to 7 days before earliest showing
+        const ticketSaleStart = new Date(earliestShowing.startTime);
+        ticketSaleStart.setDate(ticketSaleStart.getDate() - 7);
+
+        // Set ticket sale end to 1 hour before earliest showing
+        const ticketSaleEnd = new Date(earliestShowing.startTime);
+        ticketSaleEnd.setHours(ticketSaleEnd.getHours() - 1);
+
+        // Update form data with calculated dates
+        setFormData((prev) => ({
+          ...prev,
+          ticketSaleStart: ticketSaleStart.toISOString().slice(0, 16),
+          ticketSaleEnd: ticketSaleEnd.toISOString().slice(0, 16),
+        }));
+      }
+    }
+
     // Clear showings-related errors when showings change
     if (errors.showings || errors.ticketSaleStart || errors.ticketSaleEnd) {
       setErrors((prev) => {
