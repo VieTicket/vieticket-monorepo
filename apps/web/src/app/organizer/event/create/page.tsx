@@ -332,12 +332,13 @@ function CreateEventPageInner() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Helper function to scroll to top smoothly
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   // Handle step navigation with validation
   const handleNextStep = () => {
-    console.log("DEBUG: handleNextStep called at step:", step);
-    console.log("DEBUG: Current formData:", formData);
-    console.log("DEBUG: Current showings:", showings);
-
     if (step === 1) {
       if (!validateStep1()) {
         toast.error("Please fix the errors before continuing");
@@ -345,6 +346,9 @@ function CreateEventPageInner() {
       }
     }
     setStep(step + 1);
+
+    // Scroll to top when moving to next step
+    scrollToTop();
   };
 
   // Handle showings change with error clearing
@@ -554,7 +558,13 @@ function CreateEventPageInner() {
             )}
 
             <div className="flex justify-end mt-8 space-x-4">
-              <Button variant="outline" onClick={() => setStep(step - 1)}>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep(step - 1);
+                  scrollToTop();
+                }}
+              >
                 Go back
               </Button>
               {eventId && (
@@ -710,7 +720,10 @@ function CreateEventPageInner() {
         <div className="flex justify-end mt-8 space-x-4">
           <Button
             variant="outline"
-            onClick={() => setStep(step - 1)}
+            onClick={() => {
+              setStep(step - 1);
+              scrollToTop();
+            }}
             disabled={step === 1}
           >
             Go back
