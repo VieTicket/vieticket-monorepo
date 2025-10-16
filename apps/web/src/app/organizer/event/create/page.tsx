@@ -101,6 +101,7 @@ function CreateEventPageInner() {
         description: event.description ?? "",
         posterUrl: event.posterUrl ?? "",
         bannerUrl: event.bannerUrl ?? "",
+        maxTicketsByOrder: event.maxTicketsByOrder ?? undefined,
         seatCount: "",
         ticketPrice: "",
       });
@@ -185,6 +186,12 @@ function CreateEventPageInner() {
                 ? startTime.toISOString().slice(0, 16)
                 : "",
               endTime: isValidEndTime ? endTime.toISOString().slice(0, 16) : "",
+              ticketSaleStart: showing.ticketSaleStart
+                ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
+                : "",
+              ticketSaleEnd: showing.ticketSaleEnd
+                ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
+                : "",
               areas:
                 showing.areas?.map((area: any) => ({
                   name: area.name,
