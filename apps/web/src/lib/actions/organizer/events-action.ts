@@ -14,6 +14,53 @@ import {
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
+import DOMPurify from "isomorphic-dompurify";
+
+// Configure DOMPurify to allow safe HTML tags
+const sanitizeHTML = (html: string): string => {
+  return DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p",
+      "br",
+      "strong",
+      "em",
+      "u",
+      "ol",
+      "ul",
+      "li",
+      "h1",
+      "h2",
+      "h3",
+      "h4",
+      "h5",
+      "h6",
+      "blockquote",
+      "a",
+    ],
+    ALLOWED_ATTR: ["href", "title", "target"],
+    ALLOW_DATA_ATTR: false,
+    FORBID_TAGS: [
+      "script",
+      "style",
+      "iframe",
+      "object",
+      "embed",
+      "form",
+      "input",
+      "button",
+    ],
+    FORBID_ATTR: [
+      "onclick",
+      "onload",
+      "onerror",
+      "onmouseover",
+      "onfocus",
+      "onblur",
+      "onchange",
+      "onsubmit",
+    ],
+  });
+};
 
 export async function handleCreateEvent(
   formData: FormData
@@ -144,7 +191,9 @@ export async function handleCreateEvent(
   const eventPayload = {
     name: eventName,
     slug,
-    description: formData.get("description") as string | null,
+    description: formData.get("description")
+      ? sanitizeHTML(formData.get("description") as string)
+      : null,
     startTime: eventStartTime,
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
@@ -399,7 +448,9 @@ export async function handleUpdateEvent(formData: FormData) {
     id: eventId,
     name: formData.get("name") as string,
     slug: existingEvent.slug,
-    description: formData.get("description") as string | null,
+    description: formData.get("description")
+      ? sanitizeHTML(formData.get("description") as string)
+      : null,
     startTime: eventStartTime,
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
