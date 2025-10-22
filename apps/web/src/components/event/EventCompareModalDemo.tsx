@@ -50,19 +50,13 @@ interface EventComparisonData {
   name: string;
   price: { min: number; max: number; avg: number };
   location: string;
-  organizer: { 
-    id: string;
-    name: string; 
-    type: string;
-    rating?: { average: number; count: number };
-  };
+  organizer: { name: string; type: string };
   category: string;
 }
 
 interface ComparisonResult {
   events: EventComparisonData[];
   priceRanking: EventComparisonData[];
-  organizerRanking: EventComparisonData[];
 }
 
 export function EventCompareModal({ 
@@ -157,7 +151,7 @@ export function EventCompareModal({
 
       // Perform comparison with all events including current event
       const allEvents = [currentEvent, ...validEvents];
-      const result = await compareMultipleEvents(allEvents);
+      const result = compareMultipleEvents(allEvents);
       setComparisonResult(result);
     } catch (err) {
       setError("Có lỗi xảy ra khi so sánh sự kiện");
@@ -214,34 +208,13 @@ export function EventCompareModal({
     }
   };
 
-  // Fetch organizer rating
-  const fetchOrganizerRating = async (organizerId: string): Promise<{ average: number; count: number }> => {
-    try {
-      const response = await fetch(`/api/organizers/${organizerId}/rating`);
-      if (!response.ok) {
-        return { average: 0, count: 0 };
-      }
-      const data = await response.json();
-      return data.rating || { average: 0, count: 0 };
-    } catch (error) {
-      console.error("Error fetching organizer rating:", error);
-      return { average: 0, count: 0 };
-    }
-  };
-
-  const compareMultipleEvents = async (events: EventFull[]): Promise<ComparisonResult> => {
-    // Convert events to comparison data and fetch organizer ratings
-    const eventDataPromises = events.map(async (event) => {
+  const compareMultipleEvents = (events: EventFull[]): ComparisonResult => {
+    // Convert events to comparison data
+    const eventData: EventComparisonData[] = events.map(event => {
       const prices = event.areas.map(area => Number(area.price));
       const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
       const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
       const avgPrice = prices.length > 0 ? prices.reduce((a, b) => a + b, 0) / prices.length : 0;
-
-      // Fetch organizer rating if organizer exists
-      let organizerRating = { average: 0, count: 0 };
-      if (event.organizer?.id) {
-        organizerRating = await fetchOrganizerRating(event.organizer.id);
-      }
 
       return {
         id: event.id,
@@ -249,29 +222,19 @@ export function EventCompareModal({
         price: { min: minPrice, max: maxPrice, avg: avgPrice },
         location: event.location || "Không có thông tin",
         organizer: {
-          id: event.organizer?.id || "",
           name: event.organizer?.name || "Không có thông tin",
           type: event.organizer?.organizerType || "Không có thông tin",
-          rating: organizerRating,
         },
         category: event.type || "Không có thông tin",
       };
     });
 
-    const eventData = await Promise.all(eventDataPromises);
-
     // Create rankings
     const priceRanking = [...eventData].sort((a, b) => a.price.avg - b.price.avg);
-    const organizerRanking = [...eventData].sort((a, b) => {
-      const aRating = a.organizer.rating?.average || 0;
-      const bRating = b.organizer.rating?.average || 0;
-      return bRating - aRating; // Higher rating first
-    });
 
     return {
       events: eventData,
       priceRanking,
-      organizerRanking,
     };
   };
 
@@ -454,46 +417,21 @@ export function EventCompareModal({
                 </CardContent>
               </Card>
 
-              {/* Organizer Ranking */}
+              {/* Organizer List */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
-                    <Trophy className="h-5 w-5" />
-                    <span>Xếp hạng nhà tổ chức</span>
+                    <User className="h-5 w-5" />
+                    <span>Nhà tổ chức</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {comparisonResult.organizerRanking.map((event, index) => (
+                  {comparisonResult.events.map((event) => (
                     <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                        <div>
-                          <p className="text-sm font-medium truncate" title={event.organizer.name}>{event.organizer.name}</p>
-                          <p className="text-xs text-gray-500 truncate" title={event.name}>{event.name}</p>
-                        </div>
-                      </div>
+                      <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
                       <div className="text-right">
-                        {event.organizer.rating && event.organizer.rating.average > 0 ? (
-                          <div className="flex items-center space-x-1">
-                            <div className="flex items-center gap-1">
-                              {Array.from({ length: 5 }, (_, i) => (
-                                <span
-                                  key={i}
-                                  className={`text-sm ${
-                                    i < Math.round(event.organizer.rating!.average) ? "text-yellow-500" : "text-gray-300"
-                                  }`}
-                                >
-                                  ★
-                                </span>
-                              ))}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              {event.organizer.rating.average.toFixed(1)} ({event.organizer.rating.count})
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="text-xs text-gray-400">Chưa có đánh giá</div>
-                        )}
+                        <p className="text-sm text-gray-600 truncate max-w-32" title={event.organizer.name}>{event.organizer.name}</p>
+                        <p className="text-xs text-gray-500" title={event.organizer.type}>{event.organizer.type}</p>
                       </div>
                     </div>
                   ))}

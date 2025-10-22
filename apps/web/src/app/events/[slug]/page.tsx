@@ -5,9 +5,11 @@ import {
 } from "@/components/create-event/preview";
 import ViewCounter from "@/components/ViewCounter";
 import RatingWidget from "@/components/event/RatingWidget";
+import RatingList from "@/components/event/RatingList";
 import { CompareEventButton } from "@/components/event/CompareEventButton";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
+import { getOrganizerAverageRating } from "@vieticket/repos/ratings";
 
 
 export default async function EventPage({
@@ -30,6 +32,16 @@ export default async function EventPage({
     isAuthenticated = false;
   }
 
+  // Get organizer rating if organizer exists
+  let organizerRating = null;
+  if (raw.organizer) {
+    try {
+      organizerRating = await getOrganizerAverageRating(raw.organizer.id);
+    } catch (error) {
+      console.error("Error fetching organizer rating:", error);
+    }
+  }
+
   const event: EventPreviewData = {
     eventId: raw.id,
     name: raw.name,
@@ -50,6 +62,7 @@ export default async function EventPage({
           address: raw.organizer.address,
           avatar: raw.organizer.avatar,
           organizerType: raw.organizer.organizerType,
+          rating: organizerRating || undefined,
         }
       : null,
     areas: raw.areas.map((a) => ({
@@ -84,7 +97,10 @@ export default async function EventPage({
               isPreview: false,
             }}
           />
-          <RatingWidget eventId={raw.id} />
+          <div className="mt-8 space-y-6">
+            <RatingWidget eventId={raw.id} />
+            <RatingList eventId={raw.id} />
+          </div>
         </div>
       </div>
     </div>

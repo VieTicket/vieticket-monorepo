@@ -1,18 +1,34 @@
 import { NextResponse } from "next/server";
 import { getAuthSession } from "@/lib/auth/auth";
 import { submitEventRating } from "@vieticket/services";
-import { getEventRatingSummary, listEventRatings } from "@vieticket/repos/ratings";
+import { getEventRatingSummary, listEventRatings, getUserEventRating } from "@vieticket/repos/ratings";
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ eventId: string }> }
 ) {
   const { eventId } = await params;
+  console.log("Fetching ratings for eventId:", eventId);
+  
+  // Try to get current user's session
+  let userRating = null;
+  try {
+    const session = await getAuthSession(req.headers as any);
+    if (session?.user?.id) {
+      userRating = await getUserEventRating(session.user.id, eventId);
+    }
+  } catch (error) {
+    console.log("No authenticated user or error getting user rating:", error);
+  }
+  
   const [summary, recent] = await Promise.all([
     getEventRatingSummary(eventId),
     listEventRatings(eventId, 10),
   ]);
-  return NextResponse.json({ summary, recent });
+  console.log("Rating summary:", summary);
+  console.log("Recent ratings count:", recent.length);
+  console.log("User rating:", userRating);
+  return NextResponse.json({ summary, recent, userRating });
 }
 
 export async function POST(

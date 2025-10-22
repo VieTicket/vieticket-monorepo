@@ -23,10 +23,10 @@ export function CompareEventButton({ event, isAuthenticated }: CompareEventButto
     setIsModalOpen(true);
   };
 
-  const handleAddToCompare = (eventId: string) => {
-    // Here you can implement logic to add event to a comparison list
+  const handleAddToCompare = (eventIds: string[]) => {
+    // Here you can implement logic to add events to a comparison list
     // For now, we'll just show a success message
-    alert(`Đã thêm sự kiện ${eventId} vào danh sách so sánh!`);
+    alert(`Đã thêm ${eventIds.length} sự kiện vào danh sách so sánh!`);
   };
 
   return (

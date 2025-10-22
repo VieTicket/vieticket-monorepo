@@ -1,6 +1,6 @@
-import { and, desc, eq, lt, sql } from "drizzle-orm";
+import { and, desc, eq, lt, sql, count, avg, inArray } from "drizzle-orm";
 import { db } from "@vieticket/db/pg";
-import { eventRatings, events, tickets, orders } from "@vieticket/db/pg/schema";
+import { eventRatings, events, tickets, orders, user } from "@vieticket/db/pg/schema";
 import { randomUUID } from "crypto";
 
 export async function hasUserPurchasedEvent(userId: string, eventId: string) {
@@ -80,34 +80,114 @@ export async function upsertEventRating(
 }
 
 export async function getEventRatingSummary(eventId: string) {
-  const sumRes = await db.execute<{
-    avgStars: number | null;
-    countRatings: number;
-  }>(sql`
-    select avg(stars)::float as avgStars, count(*) as countRatings
-    from ratings
-    where event_id = ${eventId}
-  `);
-  const row = (sumRes as any).rows?.[0] as { avgStars: number | null; countRatings: number } | undefined;
-  return { average: row?.avgStars ?? 0, count: Number(row?.countRatings ?? 0) };
+  try {
+    console.log("Getting rating summary for eventId:", eventId);
+    
+    // Use Drizzle ORM instead of raw SQL
+    const result = await db
+      .select({
+        average: avg(eventRatings.stars),
+        count: count(eventRatings.id),
+      })
+      .from(eventRatings)
+      .where(eq(eventRatings.eventId, eventId));
+    
+    const row = result[0];
+    const summary = { 
+      average: Number(row?.average ?? 0), 
+      count: Number(row?.count ?? 0) 
+    };
+    
+    console.log("Rating summary result:", summary);
+    return summary;
+  } catch (error) {
+    console.error("Error getting rating summary:", error);
+    return { average: 0, count: 0 };
+  }
 }
 
 export async function getOrganizerAverageRating(organizerId: string) {
-  const stat = await db.query.organizerRatingStats.findFirst({
-    where: (s, { eq }) => eq(s.organizerId, organizerId),
-  });
-  if (!stat || stat.ratingsCount === 0) return 0;
-  return stat.totalStars / stat.ratingsCount;
+  try {
+    // Get all events by this organizer
+    const organizerEvents = await db
+      .select({ id: events.id })
+      .from(events)
+      .where(eq(events.organizerId, organizerId));
+
+    if (organizerEvents.length === 0) {
+      return { average: 0, count: 0 };
+    }
+
+    const eventIds = organizerEvents.map(e => e.id);
+
+    if (eventIds.length === 0) {
+      return { average: 0, count: 0 };
+    }
+
+    // Calculate average rating across all events
+    const result = await db
+      .select({
+        average: sql<number>`COALESCE(AVG(${eventRatings.stars}), 0)`,
+        count: sql<number>`COUNT(*)`
+      })
+      .from(eventRatings)
+      .where(inArray(eventRatings.eventId, eventIds));
+
+    const stats = result[0];
+    
+    if (!stats) {
+      return { average: 0, count: 0 };
+    }
+    
+    const average = stats.average !== null && stats.average !== undefined 
+      ? Number(stats.average) 
+      : 0;
+    
+    return {
+      average: average > 0 ? Number(average.toFixed(1)) : 0,
+      count: Number(stats.count) || 0
+    };
+  } catch (error) {
+    console.error("Error getting organizer average rating:", error);
+    return { average: 0, count: 0 };
+  }
 }
 
 export async function listEventRatings(eventId: string, limit = 10) {
   const rows = await db
-    .select()
+    .select({
+      id: eventRatings.id,
+      eventId: eventRatings.eventId,
+      userId: eventRatings.userId,
+      stars: eventRatings.stars,
+      comment: eventRatings.comment,
+      createdAt: eventRatings.createdAt,
+      userName: user.name,
+      userImage: user.image,
+    })
     .from(eventRatings)
+    .leftJoin(user, eq(eventRatings.userId, user.id))
     .where(eq(eventRatings.eventId, eventId))
     .orderBy(desc(eventRatings.createdAt))
     .limit(limit);
   return rows;
+}
+
+export async function getUserEventRating(userId: string, eventId: string) {
+  const row = await db
+    .select({
+      id: eventRatings.id,
+      eventId: eventRatings.eventId,
+      userId: eventRatings.userId,
+      stars: eventRatings.stars,
+      comment: eventRatings.comment,
+      createdAt: eventRatings.createdAt,
+    })
+    .from(eventRatings)
+    .where(and(eq(eventRatings.userId, userId), eq(eventRatings.eventId, eventId)))
+    .limit(1);
+  
+  return row[0] || null;
 }
 
 

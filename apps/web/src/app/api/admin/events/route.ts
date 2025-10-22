@@ -45,7 +45,7 @@ export async function GET() {
       organizer_name: event.organizer?.name || "Unknown",
       organizer_email: event.organizer?.email || "",
       created_at: event.createdAt?.toISOString() || "",
-      approvalStatus: event.approvalStatus,
+      approvalStatus: event.approvalStatus || "pending", // Ensure we have a default value
       image_url: event.posterUrl || "",
       category: event.type || "General",
     }));
