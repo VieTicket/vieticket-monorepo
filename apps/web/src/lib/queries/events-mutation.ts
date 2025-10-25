@@ -165,6 +165,48 @@ export async function incrementEventView(eventId: string) {
     .where(eq(events.id, eventId));
 }
 
+export async function deleteEvent(eventId: string) {
+  return db.transaction(async (tx) => {
+    // Delete all related data in proper order due to foreign key constraints
+
+    // 1. Delete seats first
+    await tx.execute(sql`
+      DELETE FROM seats 
+      WHERE row_id IN (
+        SELECT r.id FROM rows r
+        JOIN areas a ON r.area_id = a.id
+        WHERE a.event_id = ${eventId}
+      )
+    `);
+
+    // 2. Delete rows
+    await tx.execute(sql`
+      DELETE FROM rows 
+      WHERE area_id IN (
+        SELECT id FROM areas WHERE event_id = ${eventId}
+      )
+    `);
+
+    // 3. Delete areas
+    await tx.execute(sql`
+      DELETE FROM areas WHERE event_id = ${eventId}
+    `);
+
+    // 4. Delete showings
+    await tx.execute(sql`
+      DELETE FROM showings WHERE event_id = ${eventId}
+    `);
+
+    // 5. Finally delete the event
+    const [deletedEvent] = await tx
+      .delete(events)
+      .where(eq(events.id, eventId))
+      .returning();
+
+    return deletedEvent;
+  });
+}
+
 // ========== OPTIMIZED BULK OPERATIONS ==========
 
 export async function deleteAllShowingDataForEvent(eventId: string) {
