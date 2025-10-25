@@ -33,7 +33,7 @@ export default function OrganizerDashboardPage() {
     return (
       <main className="p-6 space-y-10">
         <div className="flex justify-center items-center h-64">
-          <div className="text-lg">Đang tải...</div>
+          <div className="text-lg">Loading...</div>
         </div>
       </main>
     );

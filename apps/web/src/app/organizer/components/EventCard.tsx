@@ -85,17 +85,17 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
       const result = await deleteEventAction(event.id);
 
       if (result.success) {
-        toast.success("Xóa sự kiện thành công!");
+        toast.success("Event deleted successfully!");
         // Call the callback to refresh the event list
         if (onEventDeleted) {
           onEventDeleted();
         }
         router.refresh(); // Fallback refresh
       } else {
-        toast.error(result.error || "Có lỗi xảy ra khi xóa sự kiện");
+        toast.error(result.error || "Failed to delete event");
       }
     } catch (error) {
-      toast.error("Có lỗi xảy ra khi xóa sự kiện");
+      toast.error("Failed to delete event");
       console.error("Delete error:", error);
     } finally {
       setIsDeleting(false);
@@ -182,20 +182,19 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Xác nhận xóa sự kiện</AlertDialogTitle>
+                  <AlertDialogTitle>Confirm Delete Event</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Bạn có chắc chắn muốn xóa sự kiện "{event.name}"? Hành động
-                    này không thể hoàn tác và sẽ xóa tất cả dữ liệu liên quan
-                    đến sự kiện.
+                    Are you sure you want to delete the event "{event.name}"? 
+                    This action cannot be undone and will delete all related data.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Hủy</AlertDialogCancel>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
                   <AlertDialogAction
                     onClick={handleDeleteEvent}
                     className="bg-red-600 hover:bg-red-700"
                   >
-                    Xóa sự kiện
+                    Delete Event
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
