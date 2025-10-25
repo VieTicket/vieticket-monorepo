@@ -184,8 +184,9 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
                 <AlertDialogHeader>
                   <AlertDialogTitle>Confirm Delete Event</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Are you sure you want to delete the event "{event.name}"? 
-                    This action cannot be undone and will delete all related data.
+                    Are you sure you want to delete the event "{event.name}"?
+                    This action cannot be undone and will delete all related
+                    data.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
