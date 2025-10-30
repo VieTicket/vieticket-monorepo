@@ -22,8 +22,10 @@ export default async function EventPage({
     description: raw.description ?? "",
     location: raw.location ?? "",
     type: raw.type ?? "",
-    startTime: raw.startTime.toISOString(),
-    endTime: raw.endTime.toISOString(),
+    // Use first showing times for legacy fields
+    // @ts-ignore
+    startTime: raw.showings[0]?.startTime.toISOString() ?? "",
+    endTime: raw.showings[0]?.endTime.toISOString() ?? "",
     ticketSaleStart: raw.ticketSaleStart?.toISOString() ?? "",
     ticketSaleEnd: raw.ticketSaleEnd?.toISOString() ?? "",
     seatMapId: raw.seatMapId ?? null,
@@ -41,6 +43,12 @@ export default async function EventPage({
       id: a.id,
       name: a.name,
       price: Number(a.price),
+    })),
+    showings: raw.showings.map((s) => ({
+      id: s.id,
+      name: s.name || "Unnamed Showing",
+      startTime: s.startTime.toISOString(),
+      endTime: s.endTime.toISOString(),
     })),
   };
 

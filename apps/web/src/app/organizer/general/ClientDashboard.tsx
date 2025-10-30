@@ -34,6 +34,8 @@ import {
   Tooltip,
   XAxis,
   YAxis,
+  BarChart,
+  Bar,
 } from "recharts";
 
 // Simulate currency formatting function, replace with your own if needed
@@ -306,7 +308,7 @@ export default function OrganizerDashboardModern({
 
             <CardContent className="h-[250px] sm:h-[350px] w-full p-0">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
+                <BarChart
                   data={filteredRevenue}
                   margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
                 >
@@ -340,18 +342,13 @@ export default function OrganizerDashboardModern({
                     tickFormatter={(value) => `${Number(value) / 1000000}M`}
                   />
                   <Tooltip content={<CustomTooltip />} />
-                  <Area
-                    type="monotone"
+                  <Bar
                     dataKey="total"
                     name="Revenue"
-                    stroke="#0ea5e9"
-                    strokeWidth={3}
-                    fillOpacity={1}
                     fill="url(#colorTotal)"
-                    activeDot={{ r: 6 }}
-                    isAnimationActive={true}
+                    radius={[10, 10, 0, 0]} // Bo tròn 2 góc trên
                   />
-                </AreaChart>
+                </BarChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>

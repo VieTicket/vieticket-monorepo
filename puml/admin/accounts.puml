@@ -1,0 +1,237 @@
+@startuml view-accounts
+autonumber
+!theme plain
+title View Accounts Flow
+
+actor Admin
+participant "Account Management Page\n(UI Components)" as Page
+participant "API Route" as API
+participant "Auth Service" as Auth
+participant "Database" as DB
+
+== Initial Load ==
+Admin -> Page: Navigate to /admin/account
+activate Page
+
+Page -> API: GET /api/admin/users
+activate API
+
+API -> Auth: authorise("admin")
+activate Auth
+
+alt User not admin
+    Auth --> API: Unauthorized error
+    API --> Page: { error: "Unauthorized", status: 403 }
+    Page -> Admin: Show error message
+    Page -> Admin: Redirect to home
+else User is admin
+    Auth --> API: Admin authorized
+    deactivate Auth
+    
+    API -> DB: Query all users with details
+    activate DB
+    DB --> API: Users list
+    deactivate DB
+    
+    API --> Page: { users: User[] }
+    deactivate API
+end
+
+Page -> Page: Initialize state (users, loading, filters)
+Page -> Admin: Display users table
+Page -> Admin: Show total count
+deactivate Page
+
+== Search Functionality ==
+Admin -> Page: Type in search box
+activate Page
+Page -> Page: Update searchQuery state
+Page -> Page: Filter users by name/email
+Page -> Admin: Update displayed results
+Page -> Admin: Show filtered count
+deactivate Page
+
+== Sort Functionality ==
+Admin -> Page: Click sort column (Role/Created)
+activate Page
+Page -> Page: Update sortField and sortDirection
+Page -> Page: Sort filtered users
+
+alt Sort by Role
+    Page -> Page: Sort alphabetically by role
+else Sort by Created Date
+    Page -> Page: Sort by timestamp
+end
+
+Page -> Page: Apply sort direction (asc/desc)
+Page -> Admin: Update table with sorted results
+deactivate Page
+
+Page -> Admin: Show email verification status
+Page -> Admin: Display account creation date
+deactivate Page
+
+@enduml
+
+@startuml lock-user-account-detailed
+autonumber
+!theme plain
+title Lock User Account - Detailed Flow
+
+actor Admin
+participant "Account Management Page" as Page
+participant "Lock Dialog" as Dialog
+participant "API Route" as API
+participant "Auth Service" as Auth
+participant "Database" as DB
+
+Admin -> Page: Click "Lock" button
+activate Page
+Page -> Dialog: Open dialog with user info
+activate Dialog
+
+Dialog -> Admin: Display user details
+Dialog -> Admin: Show ban reason input
+Dialog -> Admin: Show expiration date picker
+
+Admin -> Dialog: Enter ban reason
+Admin -> Dialog: Set expiration date (optional)
+Admin -> Dialog: Click "Lock Account"
+
+Dialog -> Dialog: Validate inputs
+
+alt Ban reason is empty
+    Dialog -> Admin: Show validation error
+    Admin -> Dialog: Enter valid reason
+end
+
+Dialog -> Page: Trigger lock action
+deactivate Dialog
+
+Page -> Page: Add user ID to updatingUsers set
+Page -> API: POST /api/admin/users/{userId}/lock
+activate API
+
+API -> API: Parse request body
+Note right of API
+  Request body:
+  {
+    banned: true,
+    banReason: string,
+    banExpires: ISO date string or null
+  }
+end note
+
+API -> Auth: authorise("admin")
+activate Auth
+
+alt User is not admin
+    Auth --> API: Throw unauthorized error
+    API --> Page: { error: "Unauthorized", status: 403 }
+    Page -> Page: Remove from updatingUsers
+    Page -> Admin: Show error toast
+else User is admin
+    Auth --> API: Authorization successful
+    deactivate Auth
+    
+    API -> DB: Update user in database
+    activate DB
+    
+    DB -> DB: Find user by ID
+    DB -> DB: Set banned = true
+    DB -> DB: Set banReason = provided reason
+    DB -> DB: Set banExpires = provided date
+    DB -> DB: Set updatedAt = now()
+    
+    DB --> API: Update complete
+    deactivate DB
+    
+    API --> Page: { success: true, message: "Account locked" }
+    deactivate API
+    
+    Page -> Page: Update users array state
+    Note right of Page
+      Update user object:
+      - banned: true
+      - banReason: provided reason
+      - banExpires: provided date
+    end note
+    
+    Page -> Page: Remove from updatingUsers set
+    Page -> Page: Close dialog
+    Page -> Page: Reset dialog form
+    Page -> Admin: Show success toast
+    Page -> Admin: Update table row
+end
+
+deactivate Page
+
+@enduml
+
+@startuml check-expired-bans
+autonumber
+!theme plain
+title Check Expired Bans Flow
+
+participant "Account Management Page" as Page
+participant "Browser Timer" as Timer
+participant "API Route" as API
+participant "Database" as DB
+
+Note over Page: Component mounted
+
+Page -> Timer: Set interval (5 minutes)
+activate Timer
+
+loop Every 5 minutes
+    Timer -> Page: Trigger refresh
+    activate Page
+    
+    Page -> API: GET /api/admin/users
+    activate API
+    
+    API -> DB: Query all users
+    activate DB
+    DB --> API: Users with current ban status
+    deactivate DB
+    
+    API --> Page: { users: User[] }
+    deactivate API
+    
+    Page -> Page: Update users state
+    
+    loop For each user
+        Page -> Page: Check if banned
+        
+        alt User is banned with expiration
+            Page -> Page: Compare banExpires with current time
+            
+            alt Ban has expired
+                Page -> Page: Set display status to "Expired"
+                Page -> Page: Use secondary badge variant
+                Note right of Page
+                  Note: Status is displayed as expired
+                  but database record still shows banned.
+                  Admin needs to unlock manually.
+                end note
+            else Ban is still active
+                Page -> Page: Set display status to "Locked"
+                Page -> Page: Show expiration countdown
+                Page -> Page: Use destructive badge variant
+            end
+        else User is permanently banned
+            Page -> Page: Set status to "Locked (Permanent)"
+        else User is not banned
+            Page -> Page: Set status to "Active"
+        end
+    end
+    
+    Page -> Page: Re-render table with updated status
+    deactivate Page
+end
+
+Note over Timer: Component unmounted
+Timer -> Timer: Clear interval
+deactivate Timer
+
+@enduml

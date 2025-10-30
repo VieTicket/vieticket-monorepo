@@ -1,0 +1,74 @@
+{
+  "home": {
+    "logIn": "Log In",
+    "signUp": "Sign Up",
+    "nav":[
+        { "label": "Home", "href": "/" },
+        { "label": "Events", "href": "/events" },
+        { "label": "About", "href": "/about" },
+        { "label": "Contact", "href": "/contact" }
+    ],
+    "carousel": {
+      "slide1": {
+        "title": "Welcome to VieTicket",
+        "subtitle": "Discover a world of vibrant events waiting for you."
+      },
+      "slide2": {
+        "title": "Simplified Seat Map Creation",
+        "subtitle": "Easily design seat maps for any event with ease."
+      },
+      "slide3": {
+        "title": "Versatile Music Venues",
+        "subtitle": "Enjoy diverse music genres across our amazing venues."
+      }
+    },
+    "description": "Find the best events around you.",
+    "categories": {
+        "title": "Explore Categories",
+        "types":{
+            "Entertainment": "Entertainment",
+            "Technology & Innovation": "Technology & Innovation",
+            "Business": "Business",
+            "Cultural & Arts": "Cultural & Arts",
+            "Sports & Fitness": "Sports & Fitness",
+            "Competition & Game shows": "Competition & Game shows"
+        }
+    },
+    "titlecategories": "Explore the Best Online Events",
+    "seeMore": "See More"
+  },
+  "footer": {
+    "companyInfo":{
+        "title": "Company Info",
+        "properties": [
+        "About Us",
+        "Contact Us",
+        "Careers",
+        "FAQs",
+        "Terms of Service",
+        "Privacy Policy"
+      ]
+    },
+    "help":{
+        "title": "Help",
+        "properties": [
+        "Account Support",
+        "Listing Events",
+        "Event Ticketing",
+        "Ticket Purchase Terms & Conditions"
+      ]  
+    },
+    "categories": {
+        "title": "Explore Categories",
+        "properties":[
+            "Entertainment",
+            "Technology & Innovation",
+            "Business",
+            "Cultural & Arts",
+            "Sports & Fitness",
+            "Competition & Game shows"
+        ]
+    },
+    "followUs": "Follow Us"
+}
+}

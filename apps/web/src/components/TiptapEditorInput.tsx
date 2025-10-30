@@ -17,9 +17,9 @@ type Props = {
   eventData?: {
     name: string;
     type: string;
+    location: string;
     startTime: string;
     endTime: string;
-    location: string;
     ticketSaleStart: string;
     ticketSaleEnd: string;
     ticketPrice?: string;

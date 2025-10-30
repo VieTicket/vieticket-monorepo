@@ -1,14 +1,14 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { SimpleTicketingMode } from "./simple-ticketing-mode";
-import { SeatMapTicketingMode } from "./seat-map-ticketing-mode";
+import { ShowingsTicketing } from "./showings-ticketing";
 import type {
   Area,
   SeatMapData,
   SeatMapPreviewData,
   TicketingMode,
 } from "../../../../../types/event-types";
+import type { ShowingFormData } from "@/types/showings";
 
 interface TicketingStepProps {
   ticketingMode: TicketingMode;
@@ -22,6 +22,7 @@ interface TicketingStepProps {
   seatMapPreviewData: SeatMapPreviewData | null;
   setSeatMapPreviewData: (data: SeatMapPreviewData | null) => void;
   setShowSeatMapModal: (show: boolean) => void;
+  showings: ShowingFormData[];
   hasSeatMapChanges?: boolean;
 }
 
@@ -37,6 +38,7 @@ export function TicketingStep({
   seatMapPreviewData,
   setSeatMapPreviewData,
   setShowSeatMapModal,
+  showings,
   hasSeatMapChanges = false,
 }: TicketingStepProps) {
   return (
@@ -93,19 +95,19 @@ export function TicketingStep({
       </div>
 
       {/* Content based on selected mode */}
-      {ticketingMode === "simple" ? (
-        <SimpleTicketingMode areas={areas} setAreas={setAreas} />
-      ) : (
-        <SeatMapTicketingMode
-          selectedSeatMap={selectedSeatMap}
-          setSelectedSeatMap={setSelectedSeatMap}
-          selectedSeatMapData={selectedSeatMapData}
-          setSelectedSeatMapData={setSelectedSeatMapData}
-          seatMapPreviewData={seatMapPreviewData}
-          setSeatMapPreviewData={setSeatMapPreviewData}
-          setShowSeatMapModal={setShowSeatMapModal}
-        />
-      )}
+      <ShowingsTicketing
+        ticketingMode={ticketingMode}
+        showings={showings}
+        areas={areas}
+        setAreas={setAreas}
+        selectedSeatMap={selectedSeatMap}
+        setSelectedSeatMap={setSelectedSeatMap}
+        selectedSeatMapData={selectedSeatMapData}
+        setSelectedSeatMapData={setSelectedSeatMapData}
+        seatMapPreviewData={seatMapPreviewData}
+        setSeatMapPreviewData={setSeatMapPreviewData}
+        setShowSeatMapModal={setShowSeatMapModal}
+      />
 
       {/* Hidden input for ticketing mode */}
       <input type="hidden" name="ticketingMode" value={ticketingMode} />
