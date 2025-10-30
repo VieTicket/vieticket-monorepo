@@ -1,44 +1,25 @@
 "use client";
 
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
+import { useTranslations } from "next-intl";
 
 export default function Footer() {
+  const t = useTranslations("footer");
   const sections = [
     {
-      title: "Company Info",
-      links: [
-        "About Us",
-        "Contact Us",
-        "Careers",
-        "FAQs",
-        "Terms of Service",
-        "Privacy Policy",
-      ],
+      title: t("companyInfo.title"),
+      links: t.raw("companyInfo.properties") as string[],
     },
     {
-      title: "Help",
-      links: [
-        "Account Support",
-        "Listing Events",
-        "Event Ticketing",
-        "Ticket Purchase Terms & Conditions",
-      ],
+      title: t("help.title"),
+      links: t.raw("help.properties") as string[],
     },
     {
-      title: "Categories",
-      links: [
-        "Concerts & Gigs",
-        "Festivals & Lifestyle",
-        "Business & Networking",
-        "Food & Drinks",
-        "Performing Arts",
-        "Sports & Outdoors",
-        "Exhibitions",
-        "Workshops, Conferences & Classes",
-      ],
+      title: t("categories.title"),
+      links: t.raw("categories.properties") as string[],
     },
     {
-      title: "Follow Us",
+      title: t("followUs"),
       links: ["Facebook", "Instagram", "Twitter", "Youtube"],
       icons: [
         <FaFacebook key="fb" />,

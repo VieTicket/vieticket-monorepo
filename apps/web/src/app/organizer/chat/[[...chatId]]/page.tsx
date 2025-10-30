@@ -50,7 +50,7 @@ export default async function ChatPage({
   }
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container mx-auto py-4 px-4">
       <div className="mb-6">
         <h1 className="text-2xl font-bold">Tin nhắn</h1>
         <p className="text-muted-foreground">Các cuộc trò chuyện của bạn</p>

@@ -1,8 +1,6 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { SimpleTicketingMode } from "./simple-ticketing-mode";
-import { SeatMapTicketingMode } from "./seat-map-ticketing-mode";
 import { ShowingsTicketing } from "./showings-ticketing";
 import type {
   Area,

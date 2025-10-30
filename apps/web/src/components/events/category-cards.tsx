@@ -1,4 +1,5 @@
 "use client";
+import { useTranslations } from "next-intl";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import React from "react";
@@ -31,44 +32,44 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ title, imageUrl }) => {
   );
 };
 
-const categories = [
+export default function CategoryList() {
+  const t = useTranslations("home")
+  const categories = [
   {
-    title: "Entertainment",
+    title: t("categories.types.Entertainment"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091047/e336de09-2f3a-4575-bdb1-4c1692e60ef0.png",
   },
   {
-    title: "Technology & Innovation",
+    title: t("categories.types.Technology & Innovation"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093218/11f6010a-49ff-4a7d-bda5-8c8b612ac54a.png",
   },
   {
-    title: "Business",
+    title: t("categories.types.Business"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091186/d2ce054c-a7f7-4b10-9636-628d50ed8fef.png",
   },
   {
-    title: "Cultural & Arts",
+    title: t("categories.types.Cultural & Arts"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753091193/d2b15a65-0dc6-48b4-80ab-cc791764bc52.png",
   },
   {
-    title: "Sports & Fitness",
+    title: t("categories.types.Sports & Fitness"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093166/066bc76b-201a-4757-94be-1130e5d21653.png",
   },
   {
-    title: "Competition & Game shows",
+    title: t("categories.types.Competition & Game shows"),
     imageUrl:
       "https://res.cloudinary.com/dhkvj3h7q/image/upload/v1753093221/326d759b-4b52-4abb-8b6b-72af066af729.png",
   },
 ];
-
-export default function CategoryList() {
   return (
     <section className="px-4 py-12">
       <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-        Explore Categories
+        <div>{t("categories.title")}</div>
       </h2>
       <div className="flex flex-wrap justify-evenly gap-x-6 gap-y-8">
         {categories.map((cat) => (

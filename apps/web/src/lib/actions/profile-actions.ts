@@ -60,9 +60,7 @@ export async function updateProfileAction(
   if (!session?.user?.id) {
     return { success: false, message: "Unauthorized: You must be logged in." };
   }
-
   const validationResult = UpdateProfileFormSchema.safeParse(formData);
-
   if (!validationResult.success) {
     return {
       success: false,

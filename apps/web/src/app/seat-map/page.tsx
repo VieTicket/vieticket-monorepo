@@ -1,175 +1,211 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { StageProvider } from "@/components/seat-map/providers/stage-provider";
-import {
-  useAreaMode,
-  useCanvasStore,
-} from "@/components/seat-map/store/main-store";
-import { Suspense, useEffect, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
-import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
-import { toast } from "sonner";
+import * as PIXI from "pixi.js";
 
-// FIX: Use dynamic imports with SSR disabled for components that use the store
-const CanvasEditorClient = dynamic(
-  () => import("@/components/seat-map/canvas-editor-client"),
-  { ssr: false }
-);
+import {
+  pixiApp,
+  setPixiApp,
+  setStage,
+  setShapeContainer,
+  setPreviewContainer,
+  resetVariables,
+  setSelectionContainer,
+  initializeAreaModeContainer,
+} from "@/components/seat-map/variables";
+import {
+  createSelectionTransform,
+  destroySelectionTransform,
+} from "@/components/seat-map/events/transform-events";
+import {
+  createEventManager,
+  destroyEventManager,
+} from "@/components/seat-map/events/event-manager";
+import { MainToolbar } from "@/components/seat-map/components/main-toolbar";
+import { CanvasInventory } from "@/components/seat-map/components/canvas-inventory";
+import { PropertiesSidebar } from "@/components/seat-map/components/properties-sidebar";
+import { updateStageHitArea } from "@/components/seat-map/utils/stageTransform";
+import ClientConnection from "@/components/seat-map/components/client-connection";
+import { useSeatMapStore } from "@/components/seat-map/store/seat-map-store";
 
-const MainToolbar = dynamic(
-  () => import("@/components/seat-map/main-toolbar"),
-  { ssr: false }
-);
+const SeatMapV2Page = () => {
+  const pixiContainerRef = useRef<HTMLDivElement>(null);
 
-const MainSidebar = dynamic(
-  () => import("@/components/seat-map/main-sidebar"),
-  { ssr: false }
-);
+  console.log("SeatMapV2Page rendered");
 
-const AreaSidebar = dynamic(
-  () => import("@/components/seat-map/area-sidebar"),
-  { ssr: false }
-);
+  // Handle window resize
+  const handleResize = useCallback(() => {
+    if (pixiApp && pixiContainerRef.current) {
+      const container = pixiContainerRef.current;
+      const newWidth = container.clientWidth;
+      const newHeight = container.clientHeight;
 
-const CanvasInventory = dynamic(
-  () => import("@/components/seat-map/main-sidebar/canvas-inventory"),
-  { ssr: false }
-);
+      // Resize the PIXI application
+      pixiApp.renderer.resize(newWidth, newHeight);
 
-// Create a component to handle state persistence
-function StatePersistence() {
-  const loadFromStorage = useCanvasStore((state) => state.loadFromStorage);
-  const clearStorage = useCanvasStore((state) => state.clearStorage);
-  const loadSeatMapData = useCanvasStore((state) => state.loadSeatMapData);
-  const setCurrentSeatMapId = useCanvasStore(
-    (state) => state.setCurrentSeatMapId
-  );
-  const currentSeatMapId = useCanvasStore((state) => state.currentSeatMapId);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const searchParams = useSearchParams();
-  const seatMapId = searchParams.get("id");
+      // Update stage hit area to match new dimensions
+      updateStageHitArea();
+    }
+  }, []);
 
+  // Window resize effect
   useEffect(() => {
-    if (!isLoaded) {
-      if (!seatMapId) {
-        clearStorage();
-        setCurrentSeatMapId(null);
-        console.log("Creating new seat map - cleared session storage");
-        setIsLoaded(true);
-      } else {
-        checkStoredStateAndLoad(seatMapId);
-      }
+    window.addEventListener("resize", handleResize);
+
+    // Also handle container resize with ResizeObserver
+    let resizeObserver: ResizeObserver | null = null;
+
+    if (pixiContainerRef.current) {
+      resizeObserver = new ResizeObserver(handleResize);
+      resizeObserver.observe(pixiContainerRef.current);
     }
-  }, [
-    loadFromStorage,
-    clearStorage,
-    loadSeatMapData,
-    setCurrentSeatMapId,
-    isLoaded,
-    seatMapId,
-    currentSeatMapId,
-  ]);
 
-  const checkStoredStateAndLoad = async (id: string) => {
-    try {
-      // FIX: Check stored state directly from sessionStorage first
-      const storedState = sessionStorage.getItem("canvas-editor-state");
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [handleResize]);
 
-      if (storedState) {
-        const parsedState = JSON.parse(storedState);
-        const storedSeatMapId = parsedState.currentSeatMapId;
+  // Prevent browser zoom on the canvas area
+  useEffect(() => {
+    const handleWheel = (event: WheelEvent) => {
+      // Check if the event is coming from our canvas area
+      if (pixiContainerRef.current?.contains(event.target as Node)) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
 
-        // If stored seatMapId matches the current one, load from storage
-        if (storedSeatMapId === id) {
-          console.log("Found matching seat map in session storage, loading...");
-          const success = loadFromStorage();
+    // Add event listeners with passive: false to ensure preventDefault works
+    document.addEventListener("wheel", handleWheel, { passive: false });
 
-          if (success) {
-            console.log(
-              "Successfully restored canvas state from previous session for same seat map"
-            );
-            setIsLoaded(true);
-            return;
-          }
+    return () => {
+      document.removeEventListener("wheel", handleWheel);
+    };
+  }, []);
+
+  // ✅ PIXI initialization effect
+  useEffect(() => {
+    let cancelled = false;
+
+    const init = async () => {
+      if (!pixiContainerRef.current || pixiApp) return;
+
+      const container = pixiContainerRef.current;
+      const initialWidth = container.clientWidth;
+      const initialHeight = container.clientHeight;
+
+      const app = new PIXI.Application();
+      await app.init({
+        width: initialWidth,
+        height: initialHeight,
+        backgroundColor: 0xf8f9fa,
+        antialias: true,
+        resolution: window.devicePixelRatio || 1,
+        autoDensity: true,
+        resizeTo: container,
+      });
+
+      if (cancelled) return;
+
+      container.appendChild(app.canvas as HTMLCanvasElement);
+      setPixiApp(app);
+
+      const stageContainer = new PIXI.Container();
+      app.stage.addChild(stageContainer);
+      setStage(stageContainer);
+
+      const shapesContainer = new PIXI.Container();
+      stageContainer.addChild(shapesContainer);
+      setShapeContainer(shapesContainer);
+
+      const previewShapeContainer = new PIXI.Container();
+      stageContainer.addChild(previewShapeContainer);
+      setPreviewContainer(previewShapeContainer);
+
+      const selectionRectContainer = new PIXI.Container();
+      stageContainer.addChild(selectionRectContainer);
+      setSelectionContainer(selectionRectContainer);
+
+      createSelectionTransform(selectionRectContainer);
+
+      app.stage.eventMode = "static";
+      app.stage.hitArea = app.screen;
+
+      createEventManager();
+
+      initializeAreaModeContainer();
+
+      // Additional wheel event prevention directly on canvas
+      const canvas = app.canvas;
+      const preventZoom = (e: WheelEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      };
+
+      canvas.addEventListener("wheel", preventZoom, { passive: false });
+
+      // Store the cleanup function
+      (canvas as any).__preventZoomCleanup = () => {
+        canvas.removeEventListener("wheel", preventZoom);
+      };
+
+      console.log("✅ PIXI application initialized successfully");
+    };
+
+    init();
+
+    return () => {
+      cancelled = true;
+      if (pixiApp) {
+        console.log("🧹 Cleaning up PIXI application");
+
+        // Clean up the wheel event listener
+        const canvas = pixiApp.canvas;
+        if ((canvas as any).__preventZoomCleanup) {
+          (canvas as any).__preventZoomCleanup();
         }
+
+        destroyEventManager();
+        destroySelectionTransform();
+        pixiApp.destroy(true, { children: true, texture: true });
+        resetVariables();
       }
+    };
+  }, []); // ✅ Empty dependency array - only run once
 
-      // If no stored state or different seat map, load from server
-      console.log(
-        "Loading seat map from server - different seat map or no session data"
-      );
-      await loadSeatMapFromServer(id);
-    } catch (error) {
-      console.error("Error checking stored state:", error);
-      // Fallback to loading from server
-      await loadSeatMapFromServer(id);
-    }
-  };
-
-  const loadSeatMapFromServer = async (id: string) => {
-    try {
-      toast.info("Loading seat map...");
-
-      const result = await loadSeatMapAction(id);
-
-      if (result.success && result.data) {
-        const success = loadSeatMapData(result.data);
-
-        if (success) {
-          toast.success(`Seat map "${result.data.name}" loaded successfully`);
-        } else {
-          toast.error("Failed to load seat map data into editor");
-        }
-      } else {
-        toast.error(result.error || "Failed to load seat map from server");
-      }
-    } catch (error) {
-      console.error("Error loading seat map from server:", error);
-      toast.error("An unexpected error occurred while loading the seat map");
-    } finally {
-      setIsLoaded(true);
-    }
-  };
-
-  // This component doesn't render anything
-  return null;
-}
-
-function PageContent() {
-  const { isInAreaMode } = useAreaMode();
-
+  // ✅ Show loading state while existing seat map is being fetched
   return (
-    <div className="overflow-hidden w-screen h-screen flex flex-col">
-      {/* Add the persistence component at the top level */}
-      <Suspense>
-        <StatePersistence />
-      </Suspense>
+    <div className="h-screen flex flex-col bg-gray-50">
+      {/* ✅ Only show ClientConnection for existing seat maps */}
+      <ClientConnection />
+      <MainToolbar />
 
-      <Suspense>
-        <MainToolbar />
-      </Suspense>
-      <div className="flex flex-1 overflow-hidden">
-        <div className="bg-gray-900 text-white p-3 shadow z-10 w-64 overflow-y-auto border border-gray-700">
-          <CanvasInventory />
+      <div className="flex-1 flex overflow-hidden">
+        <CanvasInventory />
+
+        <div className="flex-1 relative bg-gray-100">
+          <div
+            ref={pixiContainerRef}
+            className="w-full h-full absolute inset-0"
+            style={{
+              touchAction: "none",
+            }}
+            onWheel={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+          />
         </div>
 
-        <div className="flex-1 relative bg-gray-950">
-          <CanvasEditorClient />
-        </div>
-
-        <div className="bg-gray-900 text-white shadow z-10 w-72 overflow-y-auto border border-gray-700">
-          {isInAreaMode ? <AreaSidebar /> : <MainSidebar />}
-        </div>
+        <PropertiesSidebar />
       </div>
     </div>
   );
-}
+};
 
-export default function CanvasPage() {
-  return (
-    <StageProvider>
-      <PageContent />
-    </StageProvider>
-  );
-}
+export default SeatMapV2Page;
