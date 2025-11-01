@@ -57,6 +57,20 @@ export function PreviewEvent({ data }: Props) {
 
   const currentShowing = data.showings[selectedShowing] || data.showings[0];
 
+  // Calculate event start and end dates from all showings
+  const eventStartDate =
+    data.showings.length > 0
+      ? new Date(
+          Math.min(...data.showings.map((s) => new Date(s.startTime).getTime()))
+        )
+      : null;
+  const eventEndDate =
+    data.showings.length > 0
+      ? new Date(
+          Math.max(...data.showings.map((s) => new Date(s.endTime).getTime()))
+        )
+      : null;
+
   return (
     <>
       <header className="relative flex flex-col md:flex-row bg-white rounded-xl overflow-hidden ">
@@ -76,15 +90,11 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-2 text-sm text-gray-700">
               <div>
                 <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {currentShowing
-                  ? formatDateVi(new Date(currentShowing.startTime))
-                  : "No showing"}
+                {eventStartDate ? formatDateVi(eventStartDate) : "No showing"}
               </div>
               <div>
                 <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {currentShowing
-                  ? formatDateVi(new Date(currentShowing.endTime))
-                  : "No showing"}
+                {eventEndDate ? formatDateVi(eventEndDate) : "No showing"}
               </div>
             </div>
           </div>
@@ -135,9 +145,25 @@ export function PreviewEvent({ data }: Props) {
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Ticket className="w-5 h-5 text-[#2a273f]" />
           <span>Ticket Sale:</span>
-          <span>{formatDateVi(new Date(data.ticketSaleStart))}</span>
+          <span>
+            {new Date(data.ticketSaleStart).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
           <span className="text-[#2a273f]">~</span>
-          <span>{formatDateVi(new Date(data.ticketSaleEnd))}</span>
+          <span>
+            {new Date(data.ticketSaleEnd).toLocaleString("vi-VN", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
         </div>
 
         {/* Showings Dropdown */}
@@ -149,12 +175,19 @@ export function PreviewEvent({ data }: Props) {
             </div>
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowingDropdownOpen(!showingDropdownOpen)}
                 className="flex items-center justify-between w-full max-w-md px-3 py-2 bg-white border border-gray-300 rounded-md text-sm text-gray-700 hover:bg-gray-50"
               >
                 <span>
                   {currentShowing.name} -{" "}
-                  {formatDateVi(new Date(currentShowing.startTime))}
+                  {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
                 <ChevronDown
                   className={`w-4 h-4 transition-transform ${showingDropdownOpen ? "rotate-180" : ""}`}
@@ -165,6 +198,7 @@ export function PreviewEvent({ data }: Props) {
                 <div className="absolute z-10 w-full max-w-md mt-1 bg-white border border-gray-300 rounded-md shadow-lg">
                   {data.showings.map((showing, index) => (
                     <button
+                      type="button"
                       key={index}
                       onClick={() => {
                         setSelectedShowing(index);
@@ -178,8 +212,21 @@ export function PreviewEvent({ data }: Props) {
                     >
                       <div className="font-medium">{showing.name}</div>
                       <div className="text-xs text-gray-500">
-                        {formatDateVi(new Date(showing.startTime))} -{" "}
-                        {formatDateVi(new Date(showing.endTime))}
+                        {new Date(showing.startTime).toLocaleString("vi-VN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}{" "}
+                        -{" "}
+                        {new Date(showing.endTime).toLocaleString("vi-VN", {
+                          year: "numeric",
+                          month: "2-digit",
+                          day: "2-digit",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
                       </div>
                     </button>
                   ))}
@@ -196,8 +243,21 @@ export function PreviewEvent({ data }: Props) {
             <span>Showing:</span>
             <span className="font-medium">
               {currentShowing.name} -{" "}
-              {formatDateVi(new Date(currentShowing.startTime))} to{" "}
-              {formatDateVi(new Date(currentShowing.endTime))}
+              {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}{" "}
+              to{" "}
+              {new Date(currentShowing.endTime).toLocaleString("vi-VN", {
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
             </span>
           </div>
         )}

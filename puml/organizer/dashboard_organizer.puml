@@ -1,5 +1,6 @@
 @startuml
 title Organizer Dashboard Overview Flow
+!theme plain
 autonumber
 actor Organizer
 participant "OrganizerGeneralPage (Server)" as Page
