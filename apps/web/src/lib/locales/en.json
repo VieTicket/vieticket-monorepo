@@ -2,11 +2,23 @@
   "home": {
     "logIn": "Log In",
     "signUp": "Sign Up",
-    "nav":[
-        { "label": "Home", "href": "/" },
-        { "label": "Events", "href": "/events" },
-        { "label": "About", "href": "/about" },
-        { "label": "Contact", "href": "/contact" }
+    "nav": [
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Events",
+        "href": "/events"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
     ],
     "carousel": {
       "slide1": {
@@ -24,23 +36,23 @@
     },
     "description": "Find the best events around you.",
     "categories": {
-        "title": "Explore Categories",
-        "types":{
-            "Entertainment": "Entertainment",
-            "Technology & Innovation": "Technology & Innovation",
-            "Business": "Business",
-            "Cultural & Arts": "Cultural & Arts",
-            "Sports & Fitness": "Sports & Fitness",
-            "Competition & Game shows": "Competition & Game shows"
-        }
+      "title": "Explore Categories",
+      "types": {
+        "Entertainment": "Entertainment",
+        "Technology & Innovation": "Technology & Innovation",
+        "Business": "Business",
+        "Cultural & Arts": "Cultural & Arts",
+        "Sports & Fitness": "Sports & Fitness",
+        "Competition & Game shows": "Competition & Game shows"
+      }
     },
     "titlecategories": "Explore the Best Online Events",
     "seeMore": "See More"
   },
   "footer": {
-    "companyInfo":{
-        "title": "Company Info",
-        "properties": [
+    "companyInfo": {
+      "title": "Company Info",
+      "properties": [
         "About Us",
         "Contact Us",
         "Careers",
@@ -49,26 +61,163 @@
         "Privacy Policy"
       ]
     },
-    "help":{
-        "title": "Help",
-        "properties": [
+    "help": {
+      "title": "Help",
+      "properties": [
         "Account Support",
         "Listing Events",
         "Event Ticketing",
         "Ticket Purchase Terms & Conditions"
-      ]  
+      ]
     },
     "categories": {
-        "title": "Explore Categories",
-        "properties":[
-            "Entertainment",
-            "Technology & Innovation",
-            "Business",
-            "Cultural & Arts",
-            "Sports & Fitness",
-            "Competition & Game shows"
-        ]
+      "title": "Explore Categories",
+      "properties": [
+        "Entertainment",
+        "Technology & Innovation",
+        "Business",
+        "Cultural & Arts",
+        "Sports & Fitness",
+        "Competition & Game shows"
+      ]
     },
     "followUs": "Follow Us"
-}
+  },
+  "event-sidebar": {
+    "Searchevents": "Search events...",
+    "PriceRange": "Price Range",
+    "priceOptions": [
+      {
+        "label": "Under 500,000₫",
+        "value": "lt500k"
+      },
+      {
+        "label": "500,000₫ - 1,000,000₫",
+        "value": "500k-1m"
+      },
+      {
+        "label": "1,000,000₫ - 3,000,000₫",
+        "value": "1m-3m"
+      },
+      {
+        "label": "Over 5,000,000₫",
+        "value": "gt5m"
+      }
+    ],
+    "seeMore": "See More",
+    "StartDate": "Start Date",
+    "dateOptions": [
+      {
+        "label": "All",
+        "value": "all"
+      },
+      {
+        "label": "Today",
+        "value": "today"
+      },
+      {
+        "label": "This Week",
+        "value": "thisWeek"
+      }
+    ],
+    "Category": "Categories",
+    "categoryOptions": [
+      {
+        "label": "All Categories",
+        "value": "all"
+      },
+      {
+        "label": "Entertainment",
+        "value": "Entertainment"
+      },
+      {
+        "label": "Technology & Innovation",
+        "value": "Technology & Innovation"
+      },
+      {
+        "label": "Business",
+        "value": "Business"
+      },
+      {
+        "label": "Cultural & Arts",
+        "value": "Cultural & Arts"
+      },
+      {
+        "label": "Sports & Fitness",
+        "value": "Sports & Fitness"
+      },
+      {
+        "label": "Competition & Game shows",
+        "value": "Competition & Game shows"
+      }
+    ],
+    "Location": "Location",
+    "AllLocation": "All Locations"
+  },
+  "organizer-dashboard": {
+    "General": {
+      "general": "General",
+      "revenue": "Revenue",
+      "organizerOverview": "Organizer Overview",
+      "totalRevenue": "Total Revenue",
+      "actual(-20%)": "Actual (-20%)",
+      "totalEvents": "Total Events",
+      "ticketsSold": "Tickets Sold",
+      "featuredEvent": "Featured Event",
+      "revenue:": "Revenue:",
+      "revenueFluctuation": "Revenue Fluctuation",
+      "revenueOverTime": "Revenue Over Time",
+      "allTime": "All Time",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "custom": "Custom",
+      "revenueStructure": "Revenue Structure",
+      "revenueDistributionByEvent": "Revenue distribution by event.",
+      "topEventsByRevenue": "Top Events by Revenue",
+      "event": "Event",
+      "status": "Status"
+    },
+    "CreateEvent": {
+      "createEvent": "Create Event",
+      "eventDetails": "Event Details",
+      "seatMap": "Seat Map",
+      "editEvent": "Edit Event",
+      "seatMapUpdateRequired": "⚠️ Seat Map Update Required",
+      "text1": "You have changed the seat map configuration. This will:",
+      "text2": "Delete all existing areas and seats.",
+      "text3": "Recreate the entire seat map structure.",
+      "text4": "This action cannot be undone.",
+      "text5": "I understand and confirm that I have updated the seat map",
+      "goback": "Go Back",
+      "updating": "Updating...",
+      "creating": "Creating...",
+      "updateEvent": "Update Event",
+      "createEventt": "🎉 Create a New Event",
+      "saveandcontinue": "Save & Continue"
+    },
+    "SeatMap": {
+      "seatMap": "SeatMap"
+    },
+    "ListEvent": {
+      "listEvent": "List Event"
+    },
+    "Rating": {
+      "rating": "Rating"
+    },
+    "RequestPayout": {
+      "requestPayout": "Request Payout"
+    },
+    "InspectTicket": {
+      "inspectTicket": "Inspect Ticket"
+    },
+    "ChatWithAdmin": {
+      "chatWithAdmin": "Chat with Admin"
+    },
+    "Profile": {
+      "profile": "Profile"
+    },
+    "SignOut": {
+      "signOut": "Sign Out"
+    }
+  }
 }

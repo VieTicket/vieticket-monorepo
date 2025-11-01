@@ -9,6 +9,7 @@ export interface EventFormData {
   bannerUrl: string;
   seatCount: string;
   ticketPrice: string;
+  maxTicketsByOrder?: number;
   startTime: string;
   endTime: string;
 }
@@ -19,13 +20,28 @@ export interface Area {
   ticketPrice: string;
 }
 
-export interface SeatMapData {
+export interface SeatMapGridData {
   id: string;
   name: string;
-  updatedAt: string;
+  rows: SeatMapRowData[];
+  seatSettings: {
+    seatSpacing: number;
+    rowSpacing: number;
+    seatRadius: number;
+    seatColor: number;
+    seatStrokeColor: number;
+    seatStrokeWidth: number;
+    price: number;
+  };
   createdAt: string;
-  image?: string;
-  createdBy: string;
+}
+
+export interface SeatMapRowData {
+  id: string;
+  name: string;
+  seats: string[];
+  bend?: number;
+  seatSpacing?: number;
 }
 
 export interface SeatMapPreviewData {
@@ -34,16 +50,37 @@ export interface SeatMapPreviewData {
     name: string;
     rows: Array<{
       id: string;
-      rowName: string;
-      seats: Array<{
-        id: string;
-        seatNumber: number;
-        category: string;
-        price: number;
-      }>;
+      name: string;
+      seats: string[];
+      bend?: number;
     }>;
     price: number;
+    seatCount: number;
   }>;
+  totalSeats: number;
+  totalRevenue: number;
+}
+
+// ✅ Fixed SeatMapData interface
+export interface SeatMapData {
+  id: string;
+  name: string;
+  image: string;
+  createdBy: string;
+  publicity: "public" | "private";
+  createdAt: string;
+  updatedAt: string;
+  // ✅ Grid data for area mode container
+  grids?: SeatMapGridData[];
+  defaultSeatSettings?: {
+    seatSpacing: number;
+    rowSpacing: number;
+    seatRadius: number;
+    seatColor: number;
+    seatStrokeColor: number;
+    seatStrokeWidth: number;
+    price: number;
+  };
 }
 
 export interface UploadResponse {

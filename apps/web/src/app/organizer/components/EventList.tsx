@@ -9,9 +9,14 @@ import { Event } from "@vieticket/db/pg/schema";
 interface EventListProps {
   title: string;
   events: Event[];
+  onEventDeleted?: () => void;
 }
 
-export default function EventList({ title, events }: EventListProps) {
+export default function EventList({
+  title,
+  events,
+  onEventDeleted,
+}: EventListProps) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
@@ -109,6 +114,7 @@ export default function EventList({ title, events }: EventListProps) {
               approvalStatus: event.approvalStatus ?? "pending",
               bannerUrl: event.bannerUrl ?? undefined,
             }}
+            onEventDeleted={onEventDeleted}
           />
         ))}
       </div>

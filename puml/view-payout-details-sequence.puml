@@ -1,0 +1,135 @@
+@startuml view-payout-details-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Payout Request Details Sequence Diagram - VieTicket Application
+
+actor Organizer as O
+participant "Browser\n/organizer/payouts/[id]" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "PayoutRequestPage\nComponent" as PayoutPage
+participant "fetchPayoutRequestById\nAction" as FetchAction
+participant "getPayoutRequestService\nService" as PayoutService
+participant "findPayoutRequestById\nRepository" as PayoutRepo
+participant "Database\n(Drizzle ORM)" as DB
+participant "PayoutRequestDetails\nComponent" as DetailsComponent
+participant "cancelPayoutRequestAction\nAction" as CancelAction
+
+note over O, CancelAction: Organizer wants to view specific payout request details
+
+O -> Browser : Navigate to /organizer/payouts/[id]
+activate Browser
+Browser -> NextJS : GET /organizer/payouts/[id]
+activate NextJS
+
+NextJS -> PayoutPage : Render page with payout request ID
+activate PayoutPage
+
+PayoutPage -> FetchAction : fetchPayoutRequestById(id)
+activate FetchAction
+
+note over FetchAction: Validate organizer session and ownership
+
+FetchAction -> PayoutService : getPayoutRequestService(id, user)
+activate PayoutService
+
+PayoutService -> PayoutRepo : findPayoutRequestById(id)
+activate PayoutRepo
+
+PayoutRepo -> DB : SELECT payout_requests\nJOIN events\nWHERE payout_requests.id = ?\nAND events.organizer_id = ?
+activate DB
+DB --> PayoutRepo : PayoutRequestWithEvent object
+deactivate DB
+
+PayoutRepo --> PayoutService : Payout request with event info
+deactivate PayoutRepo
+
+PayoutService --> FetchAction : {success: true, data: {payoutRequest}}
+deactivate PayoutService
+
+FetchAction --> PayoutPage : Payout request details
+deactivate FetchAction
+
+PayoutPage -> DetailsComponent : Render PayoutRequestDetails(payoutRequest)
+activate DetailsComponent
+
+note over DetailsComponent: Display payout request information:\n- Event name\n- Requested amount (VND format)\n- Agreed amount (VND format)\n- Status\n- Request date (formatted)\n- Completion date (if available)\n- Proof document (if uploaded)
+
+alt Payout request status is "pending"
+    note over DetailsComponent: Show "Cancel Request" button
+end
+
+alt Proof document exists
+    note over DetailsComponent: Display proof image/document\nwith download link
+end
+
+DetailsComponent --> PayoutPage : Rendered payout details
+deactivate DetailsComponent
+
+PayoutPage --> NextJS : Complete page render
+deactivate PayoutPage
+
+NextJS --> Browser : HTML with payout request details
+deactivate NextJS
+
+Browser --> O : Display detailed payout request\nwith all information and actions
+deactivate Browser
+
+note over O: Organizer can see full payout request details
+
+alt Organizer clicks "Cancel Request" (if status is pending)
+    O -> Browser : Click "Cancel Request" button
+    activate Browser
+    
+    Browser -> DetailsComponent : Trigger cancel action
+    activate DetailsComponent
+    
+    note over DetailsComponent: Show confirmation dialog
+    
+    alt User confirms cancellation
+        DetailsComponent -> CancelAction : cancelPayoutRequestAction(requestId)
+        activate CancelAction
+        
+        note over CancelAction: Validate organizer ownership
+        
+        CancelAction -> PayoutService : updatePayoutRequestService(\nrequestId, {status: "cancelled"})
+        activate PayoutService
+        
+        PayoutService -> PayoutRepo : updatePayoutRequest(\nid, {status: "cancelled"})
+        activate PayoutRepo
+        
+        PayoutRepo -> DB : UPDATE payout_requests\nSET status = 'cancelled'\nWHERE id = ?
+        activate DB
+        DB --> PayoutRepo : Success
+        deactivate DB
+        
+        PayoutRepo --> PayoutService : Updated payout request
+        deactivate PayoutRepo
+        
+        PayoutService --> CancelAction : {success: true}
+        deactivate PayoutService
+        
+        CancelAction --> DetailsComponent : Success response
+        deactivate CancelAction
+        
+        note over DetailsComponent: Show success toast\nRefresh page data
+        
+        DetailsComponent --> Browser : Page refreshed with updated status
+        deactivate DetailsComponent
+    end
+    
+    Browser --> O : Display updated payout request
+    deactivate Browser
+end
+
+alt Organizer clicks "Back"
+    O -> Browser : Click "Back" button
+    Browser -> NextJS : Navigate to /organizer/payouts
+    note over NextJS: Return to payout requests list
+end
+
+note over O, CancelAction: Payout request details successfully displayed
+
+@enduml

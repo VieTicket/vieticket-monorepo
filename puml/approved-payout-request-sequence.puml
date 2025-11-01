@@ -1,0 +1,95 @@
+@startuml Approved Payout Request Sequence
+
+actor Admin as A
+participant "AdminPaymentPage" as AdminPage
+participant "PayoutActions" as Actions
+participant "PayoutService" as Service
+participant "Database" as DB
+participant "Cloudinary" as Cloud
+
+title Admin Approve Payout Request Flow
+
+== View Payout Requests ==
+A -> AdminPage : Access /admin/payment-requests
+activate AdminPage
+
+AdminPage -> Actions : getAdminPayoutRequestsAction()
+activate Actions
+
+Actions -> Service : getPayoutRequestsForAdmin()
+activate Service
+
+Service -> DB : SELECT payout_requests JOIN events
+activate DB
+DB --> Service : Payout requests with event details
+deactivate DB
+
+Service --> Actions : PayoutRequestWithEvent[]
+deactivate Service
+
+Actions --> AdminPage : Payout requests list
+deactivate Actions
+
+AdminPage --> A : Display requests table
+deactivate AdminPage
+
+== Approve Request ==
+A -> AdminPage : Set agreed amount and status to "approved"
+activate AdminPage
+
+AdminPage -> Actions : updatePayoutStatusAction(requestId, "approved", agreedAmount)
+activate Actions
+
+Actions -> Service : updatePayoutRequestService(requestId, user, data)
+activate Service
+
+Service -> Service : Validate admin role + set completion date
+Service -> DB : UPDATE payout_requests\nSET status='approved', agreed_amount=?, completion_date=NOW()
+activate DB
+DB --> Service : Updated payout request
+deactivate DB
+
+Service --> Actions : Success
+deactivate Service
+
+Actions -> Actions : revalidatePath("/admin/payouts")
+Actions --> AdminPage : Request approved
+deactivate Actions
+
+AdminPage --> A : Show success message + refresh list
+deactivate AdminPage
+
+== Upload Proof Document (Optional) ==
+alt Admin uploads proof
+    A -> AdminPage : Upload proof document
+    activate AdminPage
+    
+    AdminPage -> Cloud : Upload to Cloudinary
+    activate Cloud
+    Cloud --> AdminPage : Return secure_url
+    deactivate Cloud
+    
+    AdminPage -> Actions : uploadPayoutProofAction(requestId, proofUrl)
+    activate Actions
+    
+    Actions -> Service : updatePayoutRequestService(requestId, user, { proofDocumentUrl })
+    activate Service
+    
+    Service -> DB : UPDATE payout_requests SET proof_document_url=?
+    activate DB
+    DB --> Service : Updated with proof
+    deactivate DB
+    
+    Service --> Actions : Success
+    deactivate Service
+    
+    Actions --> AdminPage : Proof uploaded
+    deactivate Actions
+    
+    AdminPage --> A : Document attached to request
+    deactivate AdminPage
+end
+
+note over A, DB : Status Flow: pending → approved → completed\nAdmin sets agreed amount (can differ from requested)\nCompletion date auto-set on approval
+
+@enduml

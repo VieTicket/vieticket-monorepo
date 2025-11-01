@@ -11,11 +11,10 @@ import {
 } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
 import { Sidebar } from "./components/sidebar";
-import { WelcomeScreen } from "./components/welcome-screen";
 import { DraftsView } from "./components/drafts-view";
 import { TemplatesView } from "./components/templates-view";
 
-type SeatMapItem = {
+export type SeatMapItem = {
   id: string;
   name: string;
   updatedAt: string;
@@ -37,7 +36,7 @@ type PublicSeatMapItem = {
   draftCount?: number;
 };
 
-type ViewMode = "welcome" | "drafts" | "templates";
+type ViewMode = "drafts" | "templates";
 
 export default function SeatMapDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -50,7 +49,7 @@ export default function SeatMapDirectory() {
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedTab, setSelectedTab] = useState("all");
-  const [currentView, setCurrentView] = useState<ViewMode>("welcome");
+  const [currentView, setCurrentView] = useState<ViewMode>("drafts");
   const [templatesSearchQuery, setTemplatesSearchQuery] = useState("");
 
   useEffect(() => {
@@ -279,10 +278,6 @@ export default function SeatMapDirectory() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {currentView === "welcome" && (
-          <WelcomeScreen onShowTemplates={handleShowTemplates} />
-        )}
-
         {currentView === "drafts" && (
           <DraftsView
             filteredSeatMaps={filteredSeatMaps}
@@ -293,7 +288,6 @@ export default function SeatMapDirectory() {
             setViewMode={setViewMode}
             selectedTab={selectedTab}
             setSelectedTab={setSelectedTab}
-            onBack={() => setCurrentView("welcome")}
             formatDate={formatDate}
             onPublish={handlePublishSeatMap}
             onDelete={handleDeleteSeatMap}
@@ -308,7 +302,7 @@ export default function SeatMapDirectory() {
             isLoadingTemplates={isLoadingTemplates}
             templatesSearchQuery={templatesSearchQuery}
             setTemplatesSearchQuery={setTemplatesSearchQuery}
-            onBack={() => setCurrentView("welcome")}
+            onBack={() => setCurrentView("drafts")}
             onCreateDraft={handleCreateDraft}
             isCreatingDraft={isCreatingDraft}
             formatDate={formatDate}

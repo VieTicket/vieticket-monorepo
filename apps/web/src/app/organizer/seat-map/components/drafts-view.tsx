@@ -1,6 +1,14 @@
 "use client";
 
-import { ArrowLeft, Search, Grid, List, Plus, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  Search,
+  Grid,
+  List,
+  Plus,
+  Star,
+  Palette,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,7 +35,6 @@ interface DraftsViewProps {
   setViewMode: (mode: "grid" | "list") => void;
   selectedTab: string;
   setSelectedTab: (tab: string) => void;
-  onBack: () => void;
   formatDate: (date: string) => string;
   onPublish: (seatMapId: string) => void;
   onDelete: (seatMapId: string) => void;
@@ -44,7 +51,6 @@ export function DraftsView({
   setViewMode,
   selectedTab,
   setSelectedTab,
-  onBack,
   formatDate,
   onPublish,
   onDelete,
@@ -99,20 +105,27 @@ export function DraftsView({
 
     return (
       <div className="text-center py-10">
-        <p className="text-gray-500 dark:text-gray-400">
+        <Palette className="mx-auto h-12 w-12 text-gray-300 dark:text-gray-600 mb-4" />
+        <p className="text-gray-500 dark:text-gray-400 mb-4">
           {searchQuery
-            ? "No seat maps match your search"
+            ? "No canvas seat maps match your search"
             : tabValue === "recent"
-              ? "No recent seat maps found"
-              : "No seat maps found. Create your first seat map to get started."}
+              ? "No recent canvas seat maps found"
+              : "No canvas seat maps found. Create your first canvas seat map to get started."}
         </p>
         {!searchQuery && tabValue === "all" && (
-          <Link href="/seat-map">
-            <Button className="mt-4">
-              <Plus size={16} className="mr-2" />
-              Create New Seat Map
-            </Button>
-          </Link>
+          <div className="space-y-3">
+            <Link href="/seat-map">
+              <Button className="mb-2">
+                <Plus size={16} className="mr-2" />
+                Create New Canvas Seat Map
+              </Button>
+            </Link>
+            <p className="text-sm text-gray-400 dark:text-gray-500">
+              Use our new PIXI.js-powered canvas editor for better performance
+              and features
+            </p>
+          </div>
         )}
       </div>
     );
@@ -123,11 +136,15 @@ export function DraftsView({
       {/* Drafts View Header */}
       <div className="border-b dark:border-gray-800 p-4 flex justify-between items-center h-20">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft size={16} className="mr-2" />
-            Back
-          </Button>
-          <h1 className="text-xl font-semibold">My Drafts</h1>
+          <div>
+            <h1 className="text-xl font-semibold flex items-center gap-2">
+              <Palette className="w-5 h-5" />
+              My Canvas Seat Maps
+            </h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Manage your PIXI.js canvas seat map designs
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">
@@ -137,7 +154,7 @@ export function DraftsView({
               size={18}
             />
             <Input
-              placeholder="Search your seat maps..."
+              placeholder="Search your canvas seat maps..."
               className="w-64 pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -179,7 +196,7 @@ export function DraftsView({
           onValueChange={setSelectedTab}
         >
           <TabsList className="mb-6">
-            <TabsTrigger value="all">All Seat Maps</TabsTrigger>
+            <TabsTrigger value="all">All Canvas Seat Maps</TabsTrigger>
             <TabsTrigger value="recent">Recent</TabsTrigger>
             <TabsTrigger value="starred">Starred</TabsTrigger>
           </TabsList>

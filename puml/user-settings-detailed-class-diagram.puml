@@ -1,0 +1,204 @@
+@startuml user-settings-vieticket-class-diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title VieTicket User Settings System - Class Diagram (Based on Actual Code)
+
+class UpdateProfileFormData {
+    - name: string
+    - dateOfBirth: string?
+    - gender: string?
+    - phone: string?
+    - image: string?
+    - organizerDetails: OrganizerDetails?
+}
+
+class OrganizerDetails {
+    - organizerName: string
+    - website: string?
+    - address: string?
+    - foundedDate: string?
+    - organizerType: string?
+}
+
+class PasswordFormData {
+    - oldPassword: string
+    - newPassword: string
+    - confirmPassword: string
+}
+
+class LocaleData {
+    - locale: Locale
+    - messages: object
+}
+
+class UpdateProfileFormState {
+    - success: boolean
+    - message: string
+    - errors: Record<string, string[]>?
+}
+
+class ProfileActions {
+    + updateProfileAction(formData: unknown): Promise<UpdateProfileFormState>
+    + getProfileAction(): Promise<ProfileData>
+    + uploadAvatarAction(url: string): Promise<ActionResult>
+}
+
+class OrganizerActions {
+    + markRejectionAsSeenAction(): Promise<ActionResult>
+}
+
+class AccountForm {
+    - name: string
+    - dateOfBirth: string?
+    - gender: string?
+    - phone: string?
+    - imagePreview: string?
+    - organizerName: string?
+    - website: string?
+    - address: string?
+    - foundedDate: string?
+    - organizerType: string?
+    - isPending: boolean
+    - loading: boolean
+    - isOrganizerActive: boolean?
+    + handleSave(): void
+    + handleAvatarUpload(response: any): Promise<void>
+    + convertImageToBase64(file: File): Promise<string>
+    + handleRejectionModalClose(): Promise<void>
+}
+
+class PasswordForm {
+    - oldPassword: string
+    - newPassword: string
+    - confirmPassword: string
+    - showPassword: boolean
+    + onSubmit(data: PasswordFormData): Promise<void>
+    + handleSubmit(): void
+}
+
+class LanguageSwitcher {
+    - locale: Locale
+    - mounted: boolean
+    + setLocale(locale: Locale): void
+}
+
+class LocaleProvider {
+    - locale: Locale
+    - messages: object
+    + setLocale(locale: Locale): void
+    + getMessages(locale: Locale): object
+}
+
+class ProfileService {
+    + updateProfile(userId: string, userData: UserProfileData, organizerData?: OrganizerProfileData): Promise<ServiceResult>
+    + getFullUserProfile(userId: string): Promise<ServiceResult>
+    + updateAvatarUrl(userId: string, imageUrl: string): Promise<ServiceResult>
+}
+
+class UsersRepo {
+    + updateUserAndOrganizerProfile(userId: string, userData: UserProfileData, organizerData?: OrganizerProfileData): Promise<void>
+    + getUserWithOptionalOrganizerById(userId: string): Promise<UserWithOrganizer>
+    + getUserById(id: string): Promise<User>
+    + getOrganizerById(id: string): Promise<Organizer>
+    + doesUserExist(id: string): Promise<boolean>
+}
+
+class User {
+    - id: string
+    - name: string
+    - email: string
+    - dateOfBirth: Date?
+    - gender: string?
+    - phone: string?
+    - image: string?
+    - role: Role
+    - createdAt: Date
+    - updatedAt: Date
+}
+
+class Organizer {
+    - id: string
+    - name: string?
+    - website: string?
+    - address: string?
+    - foundedDate: Date?
+    - organizerType: string?
+    - isActive: boolean
+    - rejectionReason: string?
+    - rejectionSeen: boolean
+}
+
+class UserProfileData {
+    - name?: string
+    - dateOfBirth?: Date
+    - gender?: string
+    - phone?: string
+    - image?: string
+    - updatedAt?: Date
+}
+
+class OrganizerProfileData {
+    - name?: string
+    - website?: string?
+    - address?: string?
+    - foundedDate?: Date?
+    - organizerType?: string?
+}
+
+class AuthClient {
+    + changePassword(data: ChangePasswordData): Promise<void>
+    + useSession(): SessionData
+}
+
+class FileUploader {
+    - mode: string
+    - folder: string
+    + onUploadSuccess(response: any): void
+}
+
+class DrizzleDB {
+    + transaction(callback: Function): Promise<any>
+    + update(table: Table): UpdateBuilder
+    + query: QueryBuilders
+}
+
+' Component relationships
+AccountForm --> UpdateProfileFormData : uses
+AccountForm --> ProfileActions : calls
+AccountForm --> OrganizerActions : calls
+AccountForm --> FileUploader : uses
+
+PasswordForm --> PasswordFormData : uses
+PasswordForm --> AuthClient : calls
+
+LanguageSwitcher --> LocaleData : uses
+LanguageSwitcher --> LocaleProvider : uses
+
+' Action relationships
+ProfileActions --> UpdateProfileFormData : receives
+ProfileActions --> ProfileService : calls
+OrganizerActions --> UsersRepo : calls
+
+' Service relationships
+ProfileService --> UserProfileData : uses
+ProfileService --> OrganizerProfileData : uses
+ProfileService --> UsersRepo : calls
+
+' Repository relationships
+UsersRepo --> User : returns
+UsersRepo --> Organizer : returns
+UsersRepo --> DrizzleDB : uses
+
+' Data relationships
+UpdateProfileFormData --> OrganizerDetails : contains
+User ||--o| Organizer : has
+ProfileService ..> UserProfileData : creates
+ProfileService ..> OrganizerProfileData : creates
+
+' Provider relationships
+LocaleProvider --> LocaleData : manages
+
+@enduml
