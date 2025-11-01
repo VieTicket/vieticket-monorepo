@@ -16,6 +16,7 @@ import { Loader2, Wand2, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "../ui/textarea";
 import { uploadFileToCloudinary } from "../ui/file-uploader";
+import { useTranslations } from "next-intl";
 
 interface AIImageGeneratorProps {
   type: "poster" | "banner";
@@ -28,6 +29,7 @@ export function AIImageGenerator({
   onImageGenerated,
   eventType = "",
 }: AIImageGeneratorProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [prompt, setPrompt] = useState(
     "Modern abstract background with vibrant colorful lights, dynamic energy rays, professional event atmosphere, high-quality digital art, contemporary design elements, perfect for concert or entertainment events"
   );
@@ -38,7 +40,7 @@ export function AIImageGenerator({
 
   const generateImage = async () => {
     if (!prompt.trim()) {
-      toast.error("Please enter a background description");
+      toast.error(t("ai.image.toasts.enterBackground"));
       return;
     }
 
@@ -68,10 +70,10 @@ export function AIImageGenerator({
       const base64 = await cropAndResizeImage(blob);
       setGeneratedImage(base64);
 
-      toast.success(`AI ${type} generated successfully!`);
+      toast.success(t("ai.image.toasts.generated", { type }));
     } catch (error) {
       console.error("❌ Error:", error);
-      toast.error("Failed to generate image.");
+      toast.error(t("ai.image.toasts.failedGenerate"));
     } finally {
       setIsGenerating(false);
     }
@@ -135,9 +137,9 @@ export function AIImageGenerator({
     if (!generatedImage) return;
 
     // 1. Gán ảnh base64 vào form ngay lập tức
-    onImageGenerated(generatedImage);
-    setGeneratedImage(null);
-    toast.success("Image applied successfully!");
+  onImageGenerated(generatedImage);
+  setGeneratedImage(null);
+  toast.success(t("ai.image.toasts.successApply"));
 
     // 2. Upload lên Cloudinary trong background (silent)
     try {
@@ -179,14 +181,14 @@ export function AIImageGenerator({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-5 w-5" />
-          AI {type === "poster" ? "Poster" : "Banner"} Generator
+          {t("ai.image.cardTitle", { type: type === "poster" ? t("ai.image.types.poster") : t("ai.image.types.banner") })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label>Background Prompt</Label>
+          <Label>{t("ai.image.backgroundLabel")}</Label>
           <Textarea
-            placeholder={`Describe the background for your ${type}`}
+            placeholder={t("ai.image.backgroundPlaceholder", { type })}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             rows={3}
@@ -195,27 +197,27 @@ export function AIImageGenerator({
         </div>
 
         <div className="space-y-2">
-          <Label>Text on Image (Optional)</Label>
+          <Label>{t("ai.image.textOnImageLabel")}</Label>
           <Input
-            placeholder='Example: "LIVE MUSIC NIGHT 2025"'
+            placeholder={t("ai.image.textPlaceholder")}
             value={textPrompt}
             onChange={(e) => setTextPrompt(e.target.value)}
           />
         </div>
 
         <div className="space-y-2">
-          <Label>Style</Label>
+          <Label>{t("ai.image.styleLabel")}</Label>
           <Select value={style} onValueChange={setStyle}>
             <SelectTrigger>
-              <SelectValue placeholder="Select a style" />
+              <SelectValue placeholder={t("ai.image.selectPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="modern">Modern</SelectItem>
-              <SelectItem value="vibrant">Vibrant</SelectItem>
-              <SelectItem value="elegant">Elegant</SelectItem>
-              <SelectItem value="creative">Creative</SelectItem>
-              <SelectItem value="realistic">Realistic</SelectItem>
-              <SelectItem value="illustration">Illustration</SelectItem>
+              <SelectItem value="modern">{t("ai.image.styles.modern")}</SelectItem>
+              <SelectItem value="vibrant">{t("ai.image.styles.vibrant")}</SelectItem>
+              <SelectItem value="elegant">{t("ai.image.styles.elegant")}</SelectItem>
+              <SelectItem value="creative">{t("ai.image.styles.creative")}</SelectItem>
+              <SelectItem value="realistic">{t("ai.image.styles.realistic")}</SelectItem>
+              <SelectItem value="illustration">{t("ai.image.styles.illustration")}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -228,12 +230,12 @@ export function AIImageGenerator({
           {isGenerating ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Generating...
+              {t("ai.image.generating")}
             </>
           ) : (
             <>
               <Wand2 className="mr-2 h-4 w-4" />
-              Generate Image
+              {t("ai.image.generateBtn")}
             </>
           )}
         </Button>

@@ -201,15 +201,6 @@
       "pleaseFixErrors": "Please fix the errors before continuing",
       "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
 
-      "errors": {
-        "nameRequired": "Event name is required",
-        "locationRequired": "Location is required",
-        "descriptionRequired": "Description is required",
-        "showingRequired": "At least one showing with start time is required",
-        "maxTicketsMin": "Maximum tickets per order must be at least 1",
-        "maxTicketsMax": "Maximum tickets per order cannot exceed 20"
-      },
-
       "toasts": {
         "failedLoadEvent": "Failed to load event data",
         "posterUploaded": "Poster uploaded successfully!",
@@ -231,12 +222,7 @@
         "preview": "Preview",
         "ticketing": "Ticketing"
       },
-      "labels": {
-        "eventTitle": "Event Title",
-        "eventCategory": "Event Category",
-        "location": "Where will your event take place?",
-        "maxTicketsPerOrder": "Maximum Tickets per Order"
-      },
+      
       "categories": {
         "workshop": "Workshop",
         "concert": "Concert",
@@ -255,11 +241,127 @@
         "saleEnds": "Sale ends: 1 hour before the earliest showing",
         "note": "Individual showings can have their own ticket sale schedules in the next step."
       },
-      "placeholders": {
-        "example5": "e.g., 5"
-      },
+      
       "help": {
         "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
+      }
+      ,
+      "showings": {
+        "title": "Event Showings",
+        "description": "Add multiple showings for your event (different times/dates)",
+        "add": "Add Showing",
+        "defaultName": "Showing {n}",
+        "showing": "Showing {n}"
+      },
+      "ai": {
+        "text": {
+          "trigger": "✨ AI Description",
+          "title": "Create Event Description with AI",
+          "description": "💡 Enter specific instructions and creative hints to generate an attractive marketing description.",
+          "eventInfoTitle": "🎯 Current event information",
+          "labels": {
+            "name": "Name:",
+            "type": "Type:",
+            "location": "Location:",
+            "start": "Start:",
+            "end": "End:",
+            "price": "Price:"
+          },
+          "promptLabel": "🎨 Creative brief for description",
+          "placeholder": "💡 Creative example:\n• Emphasize unique networking opportunities\n• Highlight guest speakers/artists\n• Create FOMO with limited tickets\n• Emphasize exclusive experiences\n• Mention early bird discounts",
+          "tipTitle": "Tip:",
+          "tipText": "The more specific you are, the better the AI output will match your needs.",
+          "suggestionsTitle": "🚀 Creative suggestions:",
+          "templatesTitle": "📝 Example templates (click to copy):",
+          "templates": {
+            "workshop": "Create an energetic learning event description focused on networking, expert speakers and limited tickets.",
+            "workshopTitle": "Workshop/Training",
+            "workshopShort": "Networking + Experts + Limited tickets",
+            "concert": "High-energy concert description with star artist, spectacular lights, romantic moments for couples and early bird discounts.",
+            "concertTitle": "Concert/Music",
+            "concertShort": "Celebrity artist + Romantic + Early bird",
+            "tech": "Tech conference with top speakers, exclusive insights on AI/Trends, startup networking and product demos.",
+            "techTitle": "Tech Conference",
+            "techShort": "Expert insights + Startup networking",
+            "night": "Magical music night with top artists, stunning lights, romantic atmosphere and early bird offers.",
+            "nightTitle": "Magical Music Night",
+            "nightShort": "Emotional + Star Artist + Early bird"
+          },
+          "debug": "Debug:",
+          "debugDisabled": "disabled=",
+          "footer": {
+            "cancel": "❌ Cancel",
+            "generating": "🎨 Generating...",
+            "generate": "Generate Super Engaging Description"
+          },
+          "toasts": {
+            "emptyPrompt": "Please enter a prompt for description",
+            "success": "Event description generated successfully!",
+            "readError": "Unable to read response",
+            "apiError": "API Error: {error}",
+            "callError": "An error occurred while calling the AI. Please try again."
+          }
+        },
+        "image": {
+          "cardTitle": "AI {type} Generator",
+          "types": { "poster": "Poster", "banner": "Banner" },
+          "backgroundLabel": "Background Prompt",
+          "backgroundPlaceholder": "Describe the background for your {type}",
+          "textOnImageLabel": "Text on Image (Optional)",
+          "textPlaceholder": "Example: \"LIVE MUSIC NIGHT 2025\"",
+          "styleLabel": "Style",
+          "selectPlaceholder": "Select a style",
+          "styles": {
+            "modern": "Modern",
+            "vibrant": "Vibrant",
+            "elegant": "Elegant",
+            "creative": "Creative",
+            "realistic": "Realistic",
+            "illustration": "Illustration"
+          },
+          "generating": "Generating...",
+          "generateBtn": "Generate Image",
+          "toasts": {
+            "enterBackground": "Please enter a background description",
+            "generated": "AI {type} generated successfully!",
+            "successApply": "Image applied successfully!",
+            "failedGenerate": "Failed to generate image."
+          },
+          "useBtn": "Use This Image",
+          "downloadBtn": "Download"
+        }
+      },
+      "placeholders": {
+        "example5": "e.g., 5",
+        "showingExample": "e.g., Morning Show, Evening Show"
+      },
+      "labels": {
+        "eventTitle": "Event Title",
+        "eventCategory": "Event Category",
+        "location": "Where will your event take place?",
+        "maxTicketsPerOrder": "Maximum Tickets per Order",
+        "description": "Additional Information",
+        "showingName": "Showing Name",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "ticketSaleStart": "Ticket Sale Start",
+        "ticketSaleEnd": "Ticket Sale End"
+      },
+  "errors": {
+        "nameRequired": "Event name is required",
+        "locationRequired": "Location is required",
+        "descriptionRequired": "Description is required",
+        "showingRequired": "At least one showing with start time is required",
+        "maxTicketsMin": "Maximum tickets per order must be at least 1",
+        "maxTicketsMax": "Maximum tickets per order cannot exceed 20",
+        "startTimePast": "Start time cannot be in the past",
+        "endTimePast": "End time cannot be in the past",
+        "endTimeBeforeStart": "End time must be after start time",
+        "ticketSaleStartPast": "Ticket sale start cannot be in the past",
+        "ticketSaleStartBeforeShowing": "Ticket sale must start before the showing",
+        "ticketSaleEndPast": "Ticket sale end cannot be in the past",
+        "ticketSaleEndAfterStart": "Ticket sale end must be after start date",
+        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts"
       }
     },
     "SeatMap": {

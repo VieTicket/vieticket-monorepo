@@ -204,7 +204,15 @@
                 "descriptionRequired": "Mô tả là bắt buộc",
                 "showingRequired": "Ít nhất một buổi chiếu có thời gian bắt đầu là bắt buộc",
                 "maxTicketsMin": "Số vé tối đa mỗi đơn phải lớn hơn hoặc bằng 1",
-                "maxTicketsMax": "Số vé tối đa mỗi đơn không được vượt quá 20"
+                "maxTicketsMax": "Số vé tối đa mỗi đơn không được vượt quá 20",
+                "startTimePast": "Thời gian bắt đầu không thể ở quá khứ",
+                "endTimePast": "Thời gian kết thúc không thể ở quá khứ",
+                "endTimeBeforeStart": "Thời gian kết thúc phải sau thời gian bắt đầu",
+                "ticketSaleStartPast": "Thời gian bắt đầu bán vé không thể ở quá khứ",
+                "ticketSaleStartBeforeShowing": "Bán vé phải bắt đầu trước buổi chiếu",
+                "ticketSaleEndPast": "Thời gian kết thúc bán vé không thể ở quá khứ",
+                "ticketSaleEndAfterStart": "Thời gian kết thúc bán vé phải sau thời gian bắt đầu",
+                "ticketSaleEndBeforeShowing": "Bán vé phải kết thúc trước khi buổi chiếu bắt đầu"
             },
             "toasts": {
                 "failedLoadEvent": "Tải dữ liệu sự kiện thất bại",
@@ -230,7 +238,13 @@
                 "eventTitle": "Tiêu đề sự kiện",
                 "eventCategory": "Thể loại sự kiện",
                 "location": "Sự kiện sẽ diễn ra ở đâu?",
-                "maxTicketsPerOrder": "Số vé tối đa mỗi đơn"
+                "maxTicketsPerOrder": "Số vé tối đa mỗi đơn",
+                "description": "Thông tin bổ sung",
+                "showingName": "Tên buổi chiếu",
+                "startTime": "Thời gian bắt đầu",
+                "endTime": "Thời gian kết thúc",
+                "ticketSaleStart": "Bắt đầu bán vé",
+                "ticketSaleEnd": "Kết thúc bán vé"
             },
             "categories": {
                 "workshop": "Hội Thảo",
@@ -251,8 +265,95 @@
                 "note": "Các buổi chiếu riêng lẻ có thể có lịch bán vé riêng ở bước tiếp theo."
             },
             "placeholders": {
-                "example5": "vd., 5"
+                "example5": "vd., 5",
+                "showingExample": "vd., Buổi sáng, Buổi tối"
             },
+            "showings": {
+                "title": "Buổi chiếu sự kiện",
+                "description": "Thêm nhiều buổi chiếu cho sự kiện của bạn (các thời gian/ngày khác nhau)",
+                "add": "Thêm Buổi Chiếu",
+                "defaultName": "Buổi chiếu {n}",
+                "showing": "Buổi chiếu {n}"
+            },
+            "ai": {
+                "text": {
+                    "trigger": "✨ Mô tả AI",
+                    "title": "Tạo mô tả sự kiện bằng AI",
+                    "description": "💡 Nhập chỉ dẫn và gợi ý sáng tạo để AI tạo mô tả marketing hấp dẫn.",
+                    "eventInfoTitle": "🎯 Thông tin sự kiện hiện tại",
+                    "labels": {
+                        "name": "Tên:",
+                        "type": "Loại:",
+                        "location": "Địa điểm:",
+                        "start": "Bắt đầu:",
+                        "end": "Kết thúc:",
+                        "price": "Giá vé:"
+                    },
+                    "promptLabel": "🎨 Yêu cầu sáng tạo cho mô tả",
+                    "placeholder": "💡 Ví dụ sáng tạo:\n• Nhấn mạnh cơ hội networking độc đáo\n• Giới thiệu diễn giả/nghệ sĩ nổi tiếng\n• Tạo FOMO với số lượng vé giới hạn\n• Nhấn mạnh trải nghiệm độc quyền\n• Nhắc ưu đãi early bird",
+                    "tipTitle": "Mẹo:",
+                    "tipText": "Càng cụ thể thì AI sẽ tạo nội dung càng phù hợp.",
+                    "suggestionsTitle": "🚀 Gợi ý sáng tạo:",
+                    "templatesTitle": "📝 Template mẫu (click để copy):",
+                    "templates": {
+                        "workshop": "Tạo không khí sôi động cho sự kiện học tập: networking, diễn giả, vé giới hạn.",
+                        "workshopTitle": "Workshop/Hội thảo",
+                        "workshopShort": "Networking + Experts + Vé giới hạn",
+                        "concert": "Đêm nhạc sôi động với nghệ sĩ, ánh sáng hoành tráng, ưu đãi early bird.",
+                        "concertTitle": "Concert/Nhạc",
+                        "concertShort": "Nghệ sĩ nổi tiếng + Early bird",
+                        "tech": "Hội thảo công nghệ với diễn giả hàng đầu, insights độc quyền, kết nối startup.",
+                        "techTitle": "Hội thảo Công nghệ",
+                        "techShort": "Insights + Kết nối startup",
+                        "night": "Đêm nhạc huyền ảo với nghệ sĩ, không gian lãng mạn, ưu đãi early bird.",
+                        "nightTitle": "Đêm nhạc huyền ảo",
+                        "nightShort": "Cảm xúc + Nghệ sĩ + Early bird"
+                    },
+                    "debug": "Debug:",
+                    "debugDisabled": "disabled=",
+                    "footer": {
+                        "cancel": "❌ Hủy",
+                        "generating": "🎨 Đang tạo...",
+                        "generate": "Tạo mô tả siêu hấp dẫn"
+                    },
+                    "toasts": {
+                        "emptyPrompt": "Vui lòng nhập yêu cầu cho phần mô tả",
+                        "success": "Đã tạo mô tả sự kiện thành công!",
+                        "readError": "Không thể đọc response",
+                        "apiError": "Lỗi API: {error}",
+                        "callError": "Đã xảy ra lỗi khi gọi AI. Vui lòng thử lại."
+                    }
+                },
+                "image": {
+                    "cardTitle": "AI {type} Generator",
+                    "types": { "poster": "Poster", "banner": "Banner" },
+                    "backgroundLabel": "Mô tả nền",
+                    "backgroundPlaceholder": "Mô tả nền cho {type}",
+                    "textOnImageLabel": "Văn bản trên ảnh (Tùy chọn)",
+                    "textPlaceholder": "Ví dụ: \"LIVE MUSIC NIGHT 2025\"",
+                    "styleLabel": "Phong cách",
+                    "selectPlaceholder": "Chọn phong cách",
+                    "styles": {
+                        "modern": "Hiện đại",
+                        "vibrant": "Rực rỡ",
+                        "elegant": "Tinh tế",
+                        "creative": "Sáng tạo",
+                        "realistic": "Thực tế",
+                        "illustration": "Minh họa"
+                    },
+                    "generating": "Đang tạo...",
+                    "generateBtn": "Tạo ảnh",
+                    "toasts": {
+                        "enterBackground": "Vui lòng nhập mô tả nền",
+                        "generated": "Đã tạo {type} bằng AI!",
+                        "successApply": "Áp dụng ảnh thành công!",
+                        "failedGenerate": "Tạo ảnh thất bại."
+                    },
+                    "useBtn": "Sử dụng ảnh này",
+                    "downloadBtn": "Tải xuống"
+                }
+            },
+            
             "help": {
                 "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
             }
