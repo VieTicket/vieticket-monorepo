@@ -539,9 +539,7 @@ function CreateEventPageInner() {
                 <h4 className="font-medium text-orange-800 mb-2">
                   {t("seatMapUpdateRequired")}
                 </h4>
-                <p className="text-sm text-orange-700 mb-3">
-                  {t("text1")}
-                </p>
+                <p className="text-sm text-orange-700 mb-3">{t("text1")}</p>
                 <ul className="text-sm text-orange-700 mb-4 list-disc list-inside space-y-1">
                   <li>{t("text2")}</li>
                   <li>{t("text3")}</li>
@@ -566,10 +564,13 @@ function CreateEventPageInner() {
             )}
 
             <div className="flex justify-end mt-8 space-x-4">
-              <Button variant="outline" onClick={() => {
+              <Button
+                variant="outline"
+                onClick={() => {
                   setStep(step - 1);
                   scrollToTop();
-                }}>
+                }}
+              >
                 {t("goback")}
               </Button>
 
@@ -606,43 +607,9 @@ function CreateEventPageInner() {
             }}
             disabled={step === 1}
           >
-            {t("goback")}
+            Go back
           </Button>
-          <Button
-            onClick={() => {
-              if (step === 1) {
-                const dateTimeFields = [
-                  "startTime",
-                  "endTime",
-                  "ticketSaleStart",
-                  "ticketSaleEnd",
-                ];
-                const newErrors: Record<string, string> = {};
-
-                dateTimeFields.forEach((field) => {
-                  const value = formData[field as keyof typeof formData];
-                  if (value) {
-                    const error = validateDateTime(field, value);
-                    if (error) {
-                      newErrors[field] = error;
-                    }
-                  }
-                });
-
-                if (Object.keys(newErrors).length > 0) {
-                  setErrors((prev) => ({ ...prev, ...newErrors }));
-                  toast.error(
-                    "Please fix the date/time validation errors before continuing."
-                  );
-                  return;
-                }
-              }
-
-              setStep(step + 1);
-            }}
-          >
-            {t("saveandcontinue")}
-          </Button>
+          <Button onClick={handleNextStep}>Save & Continue</Button>
         </div>
       )}
 
