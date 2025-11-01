@@ -329,6 +329,21 @@
           },
           "useBtn": "Use This Image",
           "downloadBtn": "Download"
+        },
+        "media": {
+          "posterTitle": "Event Poster",
+          "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+          "posterAlt": "Event poster preview",
+          "uploadYourOwn": "Upload Your Own",
+          "uploadButtonPoster": "Upload Poster",
+          "removePoster": "Remove Poster",
+          "generateWithAI": "Generate with AI",
+          "bannerTitle": "Event Banner",
+          "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+          "bannerAlt": "Event banner preview",
+          "uploadButtonBanner": "Upload Banner",
+          "removeBanner": "Remove Banner",
+          "generateBannerWithAI": "Generate Banner with AI"
         }
       },
       "placeholders": {
@@ -347,7 +362,7 @@
         "ticketSaleStart": "Ticket Sale Start",
         "ticketSaleEnd": "Ticket Sale End"
       },
-  "errors": {
+      "errors": {
         "nameRequired": "Event name is required",
         "locationRequired": "Location is required",
         "descriptionRequired": "Description is required",
@@ -368,13 +383,79 @@
       "seatMap": "SeatMap"
     },
     "ListEvent": {
-      "listEvent": "List Event"
+      "listEvent": "List Event",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by event name...",
+      "allEvents": "All Events",
+      "approved": "✓ Approved",
+      "pending": "⏳ Pending",
+      "rejected": "✗ Rejected"
     },
     "Rating": {
       "rating": "Rating"
     },
     "RequestPayout": {
-      "requestPayout": "Request Payout"
+      "requestPayout": "Request Payout",
+      "title": "Admin Payout Management",
+      "loading": "Loading...",
+      "filterLabel": "Filter by status:",
+      "statusOptions": {
+        "all": "All",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "in_discussion": "In Discussion",
+        "completed": "Completed"
+      },
+      "noRequests": "No payout requests found.",
+      "table": {
+        "event": "Event",
+        "requestedAmount": "Requested Amount",
+        "amount": "Amount",
+        "agreedAmount": "Agreed Amount",
+        "status": "Status",
+        "requestDate": "Request Date",
+        "completionDate": "Completion Date",
+        "actions": "Actions",
+        "viewEvidence": "View Evidence",
+        "uploadEvidence": "Upload Evidence"
+      },
+      "viewDetails": "View Details",
+      "empty": {
+        "title": "No payout requests",
+        "description": "You haven't created any payout requests yet.",
+        "createBtn": "Create your first request"
+      },
+      "placeholders": {
+        "agreedAmount": "Agreed amount"
+      },
+      "buttons": {
+        "save": "Save",
+        "previous": "Previous",
+        "next": "Next",
+        "newPayout": "New Payout Request"
+      },
+      "page": {
+        "title": "Payout Requests"
+      },
+      "pagination": {
+        "pageOf": "Page {page} of {totalPages}"
+      },
+      "confirm": {
+        "updateAgreed": "Are you sure you want to update the agreed amount?",
+        "updateStatus": "Are you sure you want to update the status?"
+      },
+      "toasts": {
+        "fetchFailed": "Failed to fetch payout requests",
+        "unexpectedError": "An unexpected error occurred",
+        "agreedAmountUpdated": "Agreed amount updated successfully",
+        "agreedAmountUpdateFailed": "Failed to update agreed amount",
+        "statusUpdated": "Status updated successfully",
+        "statusUpdateFailed": "Failed to update status",
+        "proofUploaded": "Proof uploaded successfully",
+        "proofUploadFailed": "Failed to upload proof"
+      }
     },
     "InspectTicket": {
       "inspectTicket": "Inspect Ticket"
@@ -385,7 +466,91 @@
       "your_conversations": "Your conversations"
     },
     "Profile": {
-      "profile": "Profile"
+      "profile": "Profile",
+      "settings": "Account Settings",
+      "accountInfo": "Account Info",
+      "password": "Password",
+      "loadingProfile": "Loading profile...",
+      "rejection": {
+        "title": "Application Rejected",
+        "description": "Your organizer application has been reviewed and unfortunately was not approved.",
+        "reasonTitle": "Reason for rejection:",
+        "helpText": "You can update your application information below and resubmit, or contact our support team if you have questions about this decision.",
+        "button": "I Understand",
+        "markedSeen": "Rejection notification marked as seen"
+      },
+      "organizerStatus": {
+        "active": "Your organizer account is active and approved!",
+        "pending": "Your organizer account is pending approval. Please complete all required fields below and wait for admin approval to access organizer features."
+      },
+      "photo": {
+        "title": "Profile Photo",
+        "uploadButton": "Upload New Avatar"
+      },
+      "personalInfo": { "title": "Personal Information" },
+      "labels": {
+        "fullName": "Full Name:",
+        "email": "Email:",
+        "dateOfBirth": "Date of Birth:",
+        "gender": "Gender:",
+        "phone": "Phone Number:"
+      },
+      "placeholders": {
+        "fullName": "Enter full name",
+        "email": "Email",
+        "dateOfBirth": "YYYY-MM-DD",
+        "gender": "Select gender",
+        "phone": "Enter phone number",
+        "organizerName": "Enter organizer name",
+        "website": "https://example.com",
+        "address": "Enter address",
+        "foundedDate": "YYYY-MM-DD",
+        "organizerType": "e.g. Entertainment, Cultural"
+      },
+      "contact": {
+        "title": "Contact Details",
+        "description": "These details are private and only used to contact you for ticketing or prizes."
+      },
+      "organizerDetails": {
+        "title": "Organizer Details",
+        "description": "Complete all fields below to submit for admin approval.",
+        "organizerName": "Organizer Name:",
+        "website": "Website:",
+        "address": "Address:",
+        "foundedDate": "Founded Date:",
+        "organizerType": "Organizer Type:"
+      },
+      "buttons": {
+        "submitForApproval": "Submit for Approval",
+        "saveProfile": "Save My Profile"
+      },
+      "toasts": {
+        "loadFailed": "Failed to load profile data",
+        "avatarUpdated": "Avatar updated!",
+        "saveFailed": "Failed to save profile",
+        "saveSuccess": "Profile updated successfully"
+      },
+      "setPassword": {
+        "title": "Set Password",
+        "labels": {
+          "oldPassword": "Old Password",
+          "newPassword": "Password",
+          "confirmPassword": "Confirm Password"
+        },
+        "placeholders": {
+          "oldPassword": "Enter your old password",
+          "newPassword": "Enter your new password",
+          "confirmPassword": "Re-enter password"
+        },
+        "errors": {
+          "passwordMismatch": "Passwords do not match",
+          "oldPasswordRequired": "Old password is required",
+          "newPasswordRequired": "New password is required",
+          "confirmPasswordRequired": "Please confirm your password"
+        },
+        "toasts": { "success": "Password updated successfully" },
+        "buttons": { "update": "Update Password" }
+      }
     },
     "SignOut": {
       "signOut": "Sign Out"
