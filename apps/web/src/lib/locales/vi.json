@@ -214,6 +214,7 @@
                 "ticketSaleEndAfterStart": "Thời gian kết thúc bán vé phải sau thời gian bắt đầu",
                 "ticketSaleEndBeforeShowing": "Bán vé phải kết thúc trước khi buổi chiếu bắt đầu"
             },
+            
             "toasts": {
                 "failedLoadEvent": "Tải dữ liệu sự kiện thất bại",
                 "posterUploaded": "Tải poster lên thành công!",
@@ -351,6 +352,21 @@
                     },
                     "useBtn": "Sử dụng ảnh này",
                     "downloadBtn": "Tải xuống"
+                },
+                "media": {
+                    "posterTitle": "Event Poster",
+                    "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+                    "posterAlt": "Xem trước poster sự kiện",
+                    "uploadYourOwn": "Upload Your Own",
+                    "uploadButtonPoster": "Upload Poster",
+                    "removePoster": "Remove Poster",
+                    "generateWithAI": "Generate with AI",
+                    "bannerTitle": "Event Banner",
+                    "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+                    "bannerAlt": "Xem trước banner sự kiện",
+                    "uploadButtonBanner": "Upload Banner",
+                    "removeBanner": "Remove Banner",
+                    "generateBannerWithAI": "Generate Banner with AI"
                 }
             },
             
@@ -362,13 +378,79 @@
             "seatMap": "Sơ Đồ Chỗ Ngồi"
         },
         "ListEvent": {
-            "listEvent": "Danh Sách Sự Kiện"
+            "listEvent": "Danh Sách Sự Kiện",
+            "searchLabel": "Tìm kiếm",
+            "searchPlaceholder": "Tìm theo tên sự kiện...",
+            "allEvents": "Tất cả sự kiện",
+            "approved": "✓ Đã duyệt",
+            "pending": "⏳ Đang chờ",
+            "rejected": "✗ Bị từ chối"
         },
         "Rating": {
             "rating": "Đánh Giá"
         },
         "RequestPayout": {
-            "requestPayout": "Yêu Cầu Thanh Toán"
+            "requestPayout": "Yêu Cầu Thanh Toán",
+            "title": "Quản Lý Yêu Cầu Thanh Toán",
+            "loading": "Đang tải...",
+            "filterLabel": "Lọc theo trạng thái:",
+            "statusOptions": {
+                "all": "Tất cả",
+                "pending": "Đang chờ",
+                "approved": "Đã duyệt",
+                "rejected": "Bị từ chối",
+                "cancelled": "Đã hủy",
+                "in_discussion": "Đang thảo luận",
+                "completed": "Hoàn thành"
+            },
+            "noRequests": "Không tìm thấy yêu cầu thanh toán.",
+            "table": {
+                "event": "Sự kiện",
+                "requestedAmount": "Số tiền yêu cầu",
+                "amount": "Số tiền",
+                "agreedAmount": "Số tiền thỏa thuận",
+                "status": "Trạng thái",
+                "requestDate": "Ngày yêu cầu",
+                "completionDate": "Ngày hoàn tất",
+                "actions": "Hành động",
+                "viewEvidence": "Xem chứng từ",
+                "uploadEvidence": "Tải lên chứng từ"
+            },
+            "viewDetails": "Xem chi tiết",
+            "empty": {
+                "title": "Không có yêu cầu thanh toán",
+                "description": "Bạn chưa tạo yêu cầu thanh toán nào.",
+                "createBtn": "Tạo yêu cầu đầu tiên"
+            },
+            "placeholders": {
+                "agreedAmount": "Số tiền thỏa thuận"
+            },
+            "buttons": {
+                "save": "Lưu",
+                "previous": "Trước",
+                "next": "Tiếp",
+                "newPayout": "Yêu cầu thanh toán mới"
+            },
+            "page": {
+                "title": "Danh sách yêu cầu thanh toán"
+            },
+            "pagination": {
+                "pageOf": "Trang {page} trên {totalPages}"
+            },
+            "confirm": {
+                "updateAgreed": "Bạn có chắc muốn cập nhật số tiền thỏa thuận không?",
+                "updateStatus": "Bạn có chắc muốn cập nhật trạng thái không?"
+            },
+            "toasts": {
+                "fetchFailed": "Tải yêu cầu thanh toán thất bại",
+                "unexpectedError": "Đã xảy ra lỗi không mong muốn",
+                "agreedAmountUpdated": "Cập nhật số tiền thỏa thuận thành công",
+                "agreedAmountUpdateFailed": "Cập nhật số tiền thỏa thuận thất bại",
+                "statusUpdated": "Cập nhật trạng thái thành công",
+                "statusUpdateFailed": "Cập nhật trạng thái thất bại",
+                "proofUploaded": "Tải chứng từ thành công",
+                "proofUploadFailed": "Tải chứng từ thất bại"
+            }
         },
         "InspectTicket": {
             "inspectTicket": "Kiểm Tra Vé"
@@ -379,7 +461,91 @@
             "your_conversations": "Các cuộc trò chuyện của bạn"
         },
         "Profile": {
-            "profile": "Hồ Sơ"
+            "profile": "Hồ Sơ",
+            "settings": "Cài đặt tài khoản",
+            "accountInfo": "Thông tin tài khoản",
+            "password": "Mật khẩu",
+            "loadingProfile": "Đang tải hồ sơ...",
+            "rejection": {
+                "title": "Đơn đăng ký bị từ chối",
+                "description": "Đơn đăng ký nhà tổ chức của bạn đã được xem xét và không được chấp thuận.",
+                "reasonTitle": "Lý do bị từ chối:",
+                "helpText": "Bạn có thể cập nhật thông tin đăng ký và gửi lại, hoặc liên hệ đội hỗ trợ nếu cần giải thích.",
+                "button": "Tôi đã hiểu",
+                "markedSeen": "Thông báo từ chối đã được đánh dấu là đã xem"
+            },
+            "organizerStatus": {
+                "active": "Tài khoản nhà tổ chức của bạn đã được kích hoạt và chấp thuận!",
+                "pending": "Tài khoản nhà tổ chức của bạn đang chờ phê duyệt. Vui lòng hoàn tất các trường yêu cầu và chờ admin phê duyệt để truy cập tính năng tổ chức."
+            },
+            "photo": {
+                "title": "Ảnh Hồ Sơ",
+                "uploadButton": "Tải lên Avatar mới"
+            },
+            "personalInfo": { "title": "Thông Tin Cá Nhân" },
+            "labels": {
+                "fullName": "Họ và tên:",
+                "email": "Email:",
+                "dateOfBirth": "Ngày sinh:",
+                "gender": "Giới tính:",
+                "phone": "Số điện thoại:"
+            },
+            "placeholders": {
+                "fullName": "Nhập họ và tên",
+                "email": "Email",
+                "dateOfBirth": "YYYY-MM-DD",
+                "gender": "Chọn giới tính",
+                "phone": "Nhập số điện thoại",
+                "organizerName": "Nhập tên nhà tổ chức",
+                "website": "https://example.com",
+                "address": "Nhập địa chỉ",
+                "foundedDate": "YYYY-MM-DD",
+                "organizerType": "vd. Giải trí, Văn hóa"
+            },
+            "contact": {
+                "title": "Chi Tiết Liên Hệ",
+                "description": "Các thông tin này được giữ riêng tư và chỉ dùng để liên hệ về vé hoặc giải thưởng."
+            },
+            "organizerDetails": {
+                "title": "Thông Tin Nhà Tổ Chức",
+                "description": "Hoàn thành các trường dưới đây để gửi yêu cầu phê duyệt.",
+                "organizerName": "Tên Nhà Tổ Chức:",
+                "website": "Website:",
+                "address": "Địa chỉ:",
+                "foundedDate": "Ngày thành lập:",
+                "organizerType": "Loại nhà tổ chức:"
+            },
+            "buttons": {
+                "submitForApproval": "Gửi yêu cầu phê duyệt",
+                "saveProfile": "Lưu hồ sơ"
+            },
+            "toasts": {
+                "loadFailed": "Tải hồ sơ thất bại",
+                "avatarUpdated": "Cập nhật avatar thành công!",
+                "saveFailed": "Lưu hồ sơ thất bại",
+                "saveSuccess": "Cập nhật hồ sơ thành công"
+            },
+            "setPassword": {
+                "title": "Đặt Mật Khẩu",
+                "labels": {
+                    "oldPassword": "Mật khẩu cũ",
+                    "newPassword": "Mật khẩu mới",
+                    "confirmPassword": "Xác nhận Mật khẩu"
+                },
+                "placeholders": {
+                    "oldPassword": "Nhập mật khẩu cũ",
+                    "newPassword": "Nhập mật khẩu mới",
+                    "confirmPassword": "Nhập lại mật khẩu"
+                },
+                "errors": {
+                    "passwordMismatch": "Mật khẩu không khớp",
+                    "oldPasswordRequired": "Mật khẩu cũ là bắt buộc",
+                    "newPasswordRequired": "Mật khẩu mới là bắt buộc",
+                    "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu"
+                },
+                "toasts": { "success": "Đã cập nhật mật khẩu thành công" },
+                "buttons": { "update": "Cập nhật Mật khẩu" }
+            }
         },
         "SignOut": {
             "signOut": "Đăng Xuất"
