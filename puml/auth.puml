@@ -1,16 +1,16 @@
 @startuml login
 !theme plain
-title Email/Password Login Flow
+title Sign In Flow
 
-actor Guest
+actor "User\n(Customer/Organizer/Admin)" as User
 participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
 participant "Auth Service" as Auth
 participant "Database" as DB
 
-Guest -> UI: Enter email/password
-Guest -> UI: Click "Login"
+User -> UI: Enter email/password
+User -> UI: Click "Login"
 
 UI -> Client: authClient.signIn.email()
 activate Client
@@ -119,11 +119,11 @@ deactivate Client
 
 @enduml
 
-@startuml signup
+@startuml customer signup
 !theme plain
-title Email Signup Flow
+title Sign Up as Customer Flow
 
-actor Guest
+actor Customer
 participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
@@ -131,9 +131,9 @@ participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-Guest -> UI: Enter user details
-Guest -> UI: Upload profile image (optional)
-Guest -> UI: Click "Create account"
+Customer -> UI: Enter user details
+Customer -> UI: Upload profile image (optional)
+Customer -> UI: Click "Create account"
 
 UI -> Client: authClient.signUp.email()
 activate Client
@@ -195,9 +195,9 @@ end note
 
 @startuml organizer-signup
 !theme plain
-title Organizer Signup Flow (Custom Component)
+title Sign Up as Organizer Flow
 
-actor Guest
+actor Organizer
 participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
@@ -205,9 +205,9 @@ participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-Guest -> UI: Enter organizer details
-Guest -> UI: Upload profile image
-Guest -> UI: Click "Create account"
+Organizer -> UI: Enter organizer details
+Organizer -> UI: Upload profile image
+Organizer -> UI: Click "Create account"
 
 UI -> UI: convertImageToBase64()
 activate UI
@@ -251,11 +251,11 @@ deactivate Client
 
 @enduml
 
-@startuml forgot-password
+@startuml reset-password
 !theme plain
-title Forgot Password Flow
+title Reset Password Flow
 
-actor Guest
+actor "User\n(Customer/Organizer/Admin)" as User
 participant "UI Component" as UI
 participant "Auth Client" as Client
 participant "API Route" as API
@@ -263,8 +263,8 @@ participant "Auth Service" as Auth
 participant "Database" as DB
 participant "Email Service" as Email
 
-Guest -> UI: Enter email address
-Guest -> UI: Click "Send reset link"
+User -> UI: Enter email address
+User -> UI: Click "Send reset link"
 
 UI -> Client: authClient.forgetPassword({email})
 activate Client

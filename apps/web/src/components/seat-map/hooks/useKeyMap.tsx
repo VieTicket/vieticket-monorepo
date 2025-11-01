@@ -1,368 +1,290 @@
 import { useCallback, useEffect, useRef } from "react";
+import { Tool } from "../types";
+import { useSeatMapStore } from "../store/seat-map-store";
+import { performUndo, performRedo, canUndo, canRedo } from "../utils/undo-redo";
+import { duplicateSelectedShapes } from "../utils/duplication";
+import { deleteShapes } from "../shapes";
+import { clearCanvas } from "../shapes";
 import {
-  useCanvasStore,
-  useAreaMode,
-} from "@/components/seat-map/store/main-store";
-import { usePanZoom } from "./usePanZoom";
+  handleZoomIn,
+  handleZoomOut,
+  handleResetView,
+} from "../events/zoom-events";
+import {
+  currentTool,
+  setCurrentTool,
+  pan,
+  setPan,
+  selectedContainer,
+  isAreaMode,
+} from "../variables";
+import { mirrorHorizontally, mirrorVertically } from "../utils/mirroring";
 
-export const useKeyMap = () => {
-  // Get all the references to store functions and state
-  const {
-    zoom,
-    pan,
-    setZoom,
-    currentTool,
-    setCurrentTool,
-    selectedShapeIds,
-    deleteSelectedShapes,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    duplicateSelectedShapes,
-    selectAll,
-    clearSelection,
-    isEditing,
-    editingShapeId,
-    startEditing,
-    stopEditing,
-    saveToHistory,
-  } = useCanvasStore();
-
-  const { isInAreaMode, selectedRowIds, selectedSeatIds } = useAreaMode();
-  const { centerCanvas, fitToScreen, zoomIn, zoomOut, setBoundedPan } =
-    usePanZoom();
+export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
+  // Get store functions and state
+  const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
+  const selectAll = useSeatMapStore((state) => state.selectAll);
+  const clearSelection = useSeatMapStore((state) => state.clearSelection);
+  const shapes = useSeatMapStore((state) => state.shapes);
+  const areaModeContainer = shapes.find(
+    (shape) => shape.id === "area-mode-container"
+  );
 
   // Store all these references in a ref to access their latest values
   // without having to add them as dependencies to the useCallback
   const storeRef = useRef({
-    zoom,
-    pan,
-    setZoom,
-    currentTool,
-    setCurrentTool,
-    selectedShapeIds,
-    deleteSelectedShapes,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    clearSelection,
-    saveToHistory,
-    centerCanvas,
-    fitToScreen,
-    zoomIn,
-    zoomOut,
-    isEditing,
-    editingShapeId,
-    startEditing,
-    stopEditing,
-    setBoundedPan,
-    duplicateSelectedShapes,
+    selectedShapes,
     selectAll,
-    isInAreaMode,
-    selectedRowIds,
-    selectedSeatIds,
+    clearSelection,
+    shapes,
+    currentTool,
+    selectedContainer,
+    pan,
   });
 
   // Keep the ref updated with the latest values
   useEffect(() => {
     storeRef.current = {
-      zoom,
-      pan,
-      setZoom,
-      currentTool,
-      setCurrentTool,
-      selectedShapeIds,
-      deleteSelectedShapes,
-      undo,
-      redo,
-      canUndo,
-      canRedo,
-      clearSelection,
-      saveToHistory,
-      centerCanvas,
-      fitToScreen,
-      zoomIn,
-      zoomOut,
-      isEditing,
-      editingShapeId,
-      startEditing,
-      stopEditing,
-      setBoundedPan,
-      duplicateSelectedShapes,
+      selectedShapes,
       selectAll,
-      isInAreaMode,
-      selectedRowIds,
-      selectedSeatIds,
+      clearSelection,
+      shapes,
+      currentTool,
+      selectedContainer,
+      pan,
     };
-  }, [
-    zoom,
-    pan,
-    setZoom,
-    currentTool,
-    setCurrentTool,
-    selectedShapeIds,
-    deleteSelectedShapes,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    clearSelection,
-    saveToHistory,
-    centerCanvas,
-    fitToScreen,
-    zoomIn,
-    zoomOut,
-    isEditing,
-    editingShapeId,
-    startEditing,
-    stopEditing,
-    setBoundedPan,
-    duplicateSelectedShapes,
-    selectAll,
-    isInAreaMode,
-    selectedRowIds,
-    selectedSeatIds,
-  ]);
+  }, [selectedShapes, selectAll, clearSelection, shapes]);
 
-  const getToolMapping = useCallback((key: string) => {
-    if (storeRef.current.isInAreaMode) {
+  const getToolMapping = useCallback(
+    (key: string): Tool | null => {
       switch (key) {
         case "1":
           return "select";
         case "2":
-          return "seat-grid";
+          return "pan";
         case "3":
-          return "seat-row";
-        default:
-          return null;
-      }
-    } else {
-      switch (key) {
-        case "1":
-          return "select";
-        case "2":
-          return "rect";
-        case "3":
-          return "circle";
+          return isAreaMode ? "seat-grid" : "rectangle";
         case "4":
-          return "polygon";
+          return "ellipse";
         case "5":
+          return "polygon";
+        case "6":
           return "text";
         default:
           return null;
       }
-    }
-  }, []);
+    },
+    [areaModeContainer]
+  );
 
   // This handleKeyDown callback will now never change
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
-    const store = storeRef.current;
-    const isCtrl = e.ctrlKey || e.metaKey;
-    const isShift = e.shiftKey;
-    const isAlt = e.altKey;
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      const store = storeRef.current;
+      const isCtrl = e.ctrlKey || e.metaKey;
+      const isShift = e.shiftKey;
+      const isAlt = e.altKey;
 
-    // FIX: Check if user is typing in an input field
-    const activeElement = document.activeElement;
-    const isInInput =
-      activeElement &&
-      (activeElement.tagName === "INPUT" ||
-        activeElement.tagName === "TEXTAREA" ||
-        activeElement.getAttribute("role") === "textbox");
+      // Check if user is typing in an input field
+      const activeElement = document.activeElement;
+      const isInInput =
+        activeElement &&
+        (activeElement.tagName === "INPUT" ||
+          activeElement.tagName === "TEXTAREA" ||
+          activeElement.getAttribute("role") === "textbox" ||
+          activeElement.getAttribute("contenteditable") === "true");
 
-    const preventDefault = () => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
+      const preventDefault = () => {
+        e.preventDefault();
+        e.stopPropagation();
+      };
 
-    // FIX: If user is typing in input and not editing shapes, only handle essential keys
-    if (isInInput && !store.isEditing) {
-      switch (e.key) {
-        case "Escape":
-          // Allow escape to blur input fields
-          (activeElement as HTMLElement).blur();
-          preventDefault();
-          return;
-        default:
-          // Don't interfere with input typing
-          return;
-      }
-    }
-
-    if (store.isEditing) {
-      const isTextarea = activeElement && activeElement.tagName === "TEXTAREA";
-      const isInput = activeElement && activeElement.tagName === "INPUT";
-
-      switch (e.key) {
-        case "Escape":
-          store.stopEditing();
-          preventDefault();
-          return;
-        case "Enter":
-          if (isTextarea) {
-            if (!isShift) {
-              return;
-            }
-            return;
-          } else if (isInput) {
-            store.stopEditing();
+      // If user is typing in input, only handle essential keys
+      if (isInInput) {
+        switch (e.key) {
+          case "Escape":
+            // Allow escape to blur input fields
+            (activeElement as HTMLElement).blur();
             preventDefault();
             return;
-          }
-          break;
-
-        default:
-          return;
-      }
-    }
-
-    if (!isCtrl && !isShift && !isAlt && !store.isEditing) {
-      if (["1", "2", "3", "4", "5"].includes(e.key)) {
-        const toolToSelect = getToolMapping(e.key);
-        if (toolToSelect) {
-          store.setCurrentTool(toolToSelect as any);
-          preventDefault();
-          return;
+          default:
+            // Don't interfere with input typing
+            return;
         }
       }
 
-      switch (e.key) {
-        case "Escape":
-          store.clearSelection();
-          store.setCurrentTool("select");
-          preventDefault();
-          return;
-        case "Delete":
-        case "Backspace":
-          if (store.isInAreaMode) {
-            // Handle deletion in area mode
-            if (
-              store.selectedRowIds.length > 0 ||
-              store.selectedSeatIds.length > 0
-            ) {
-              const areaActions = useCanvasStore.getState();
-              areaActions.deleteSelectedAreaItems();
-              preventDefault();
-            }
-          } else {
-            // Handle deletion in regular mode (existing code)
-            if (store.selectedShapeIds.length > 0) {
-              store.deleteSelectedShapes();
-              preventDefault();
-            }
-          }
-          return;
-        case "Enter":
-          if (store.selectedShapeIds.length === 1) {
-            store.startEditing(store.selectedShapeIds[0]);
+      // Tool selection shortcuts (1-6)
+      if (!isCtrl && !isShift && !isAlt) {
+        if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
+          const toolToSelect = getToolMapping(e.key);
+          if (toolToSelect) {
+            setCurrentTool(toolToSelect);
+            setSelectedTool(toolToSelect);
             preventDefault();
+            return;
           }
-          return;
-      }
-    }
+        }
 
-    if (isCtrl && !isShift && !isAlt) {
-      switch (e.key) {
-        case "z":
-        case "Z":
-          if (store.canUndo() && !store.isEditing) {
-            store.undo();
+        switch (e.key) {
+          case "Escape":
+            // Clear selection and switch to select tool
+            store.clearSelection();
+            setCurrentTool("select");
+            setSelectedTool("select");
             preventDefault();
-          }
-          return;
-        case "y":
-        case "Y":
-          if (store.canRedo() && !store.isEditing) {
-            store.redo();
-            preventDefault();
-          }
-          return;
-        case "a":
-        case "A":
-          if (!store.isEditing) {
+            return;
+          case "Delete":
+          case "Backspace":
+            if (store.selectedShapes.length > 0) {
+              deleteShapes();
+              preventDefault();
+            }
+            return;
+        }
+      }
+
+      // Ctrl/Cmd shortcuts
+      if (isCtrl && !isShift && !isAlt) {
+        switch (e.key) {
+          case "z":
+          case "Z":
+            if (canUndo()) {
+              performUndo();
+              preventDefault();
+            }
+            return;
+          case "y":
+          case "Y":
+            if (canRedo()) {
+              performRedo();
+              preventDefault();
+            }
+            return;
+          case "a":
+          case "A":
             store.selectAll();
             preventDefault();
-          }
-          return;
-        case "d":
-        case "D":
-          if (store.selectedShapeIds.length > 0 && !store.isEditing) {
-            store.duplicateSelectedShapes();
+            return;
+          case "d":
+          case "D":
+            if (store.selectedShapes.length > 0) {
+              duplicateSelectedShapes();
+              preventDefault();
+            }
+            return;
+          case "0":
+            handleResetView();
             preventDefault();
-          }
-          return;
-        case "s":
-        case "S":
-          store.saveToHistory();
-          preventDefault();
-          return;
-        case "0":
-          store.centerCanvas();
-          preventDefault();
-          return;
+            return;
+          case "n":
+          case "N":
+            if (store.shapes.length > 0) {
+              if (
+                confirm(
+                  "Are you sure you want to create a new canvas? All unsaved changes will be lost."
+                )
+              ) {
+                clearCanvas();
+              }
+            }
+            preventDefault();
+            return;
+        }
       }
-    }
 
-    if (isCtrl && isShift && !isAlt) {
-      switch (e.key) {
-        case "Z":
-          if (store.canRedo() && !store.isEditing) {
-            store.redo();
-            preventDefault();
-          }
-          return;
-        case "D":
-          if (!store.isEditing) {
+      // Ctrl/Cmd + Shift shortcuts
+      if (isCtrl && isShift && !isAlt) {
+        switch (e.key) {
+          case "Z":
+            if (canRedo()) {
+              performRedo();
+              preventDefault();
+            }
+            return;
+          case "D":
             store.clearSelection();
             preventDefault();
-          }
-          return;
+            return;
+          case "H":
+            if (store.selectedShapes.length > 0) {
+              mirrorHorizontally();
+              preventDefault();
+            }
+            return;
+          case "V":
+            if (store.selectedShapes.length > 0) {
+              mirrorVertically();
+              preventDefault();
+            }
+            return;
+        }
       }
-    }
 
-    if (
-      store.currentTool === "select" &&
-      !isCtrl &&
-      !isShift &&
-      !isAlt &&
-      !store.isEditing
-    ) {
-      const panStep = 50;
+      // Pan canvas with arrow keys (only in select mode)
+      if (store.currentTool === "select" && !isCtrl && !isShift && !isAlt) {
+        const panStep = 50;
 
-      switch (e.key) {
-        case "ArrowUp":
-          store.setBoundedPan(store.pan.x, store.pan.y + panStep);
-          preventDefault();
-          return;
-        case "ArrowDown":
-          store.setBoundedPan(store.pan.x, store.pan.y - panStep);
-          preventDefault();
-          return;
-        case "ArrowLeft":
-          store.setBoundedPan(store.pan.x + panStep, store.pan.y);
-          preventDefault();
-          return;
-        case "ArrowRight":
-          store.setBoundedPan(store.pan.x - panStep, store.pan.y);
-          preventDefault();
-          return;
+        switch (e.key) {
+          case "ArrowUp":
+            setPan({ x: store.pan.x, y: store.pan.y + panStep });
+            preventDefault();
+            return;
+          case "ArrowDown":
+            setPan({ x: store.pan.x, y: store.pan.y - panStep });
+            preventDefault();
+            return;
+          case "ArrowLeft":
+            setPan({ x: store.pan.x + panStep, y: store.pan.y });
+            preventDefault();
+            return;
+          case "ArrowRight":
+            setPan({ x: store.pan.x - panStep, y: store.pan.y });
+            preventDefault();
+            return;
+        }
       }
-    }
 
-    if (isCtrl && !isShift && !isAlt) {
-      switch (e.key) {
-        case "ArrowUp":
-          store.zoomIn();
-          preventDefault();
-          return;
-        case "ArrowDown":
-          store.zoomOut();
-          preventDefault();
-          return;
+      // Zoom shortcuts
+      if (isCtrl && !isShift && !isAlt) {
+        switch (e.key) {
+          case "=":
+          case "+":
+            handleZoomIn();
+            preventDefault();
+            return;
+          case "-":
+          case "_":
+            handleZoomOut();
+            preventDefault();
+            return;
+        }
       }
-    }
-  }, []); // No dependencies - will never change
+
+      // Alternative zoom with Ctrl + Arrow keys
+      if (isCtrl && !isShift && !isAlt) {
+        switch (e.key) {
+          case "ArrowUp":
+            handleZoomIn();
+            preventDefault();
+            return;
+          case "ArrowDown":
+            handleZoomOut();
+            preventDefault();
+            return;
+        }
+      }
+
+      // Special case for polygon tool
+      if (e.key === "Escape" && store.currentTool === "polygon") {
+        // Cancel polygon drawing
+        const { cancelPolygonDrawing } = require("../events/polygon-events");
+        cancelPolygonDrawing();
+        preventDefault();
+        return;
+      }
+    },
+    [getToolMapping]
+  ); // Only getToolMapping as dependency
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);
@@ -373,26 +295,35 @@ export const useKeyMap = () => {
 
   const getShortcuts = useCallback(
     () => ({
+      tools: {
+        "1": "Select Tool",
+        "2": "Pan Tool",
+        "3": "Rectangle Tool",
+        "4": "Ellipse Tool",
+        "5": "Polygon Tool",
+        "6": "Text Tool",
+      },
       actions: {
         "Ctrl+Z": "Undo",
         "Ctrl+Y / Ctrl+Shift+Z": "Redo",
         "Ctrl+A": "Select All",
         "Ctrl+D": "Duplicate",
         "Delete/Backspace": "Delete Selected",
-        Enter: "Start Editing (if one shape selected)",
-        Escape: "Cancel Edit / Clear Selection & Select Tool",
+        Escape: "Clear Selection & Select Tool",
+        "Ctrl+N": "New Canvas",
       },
-      editing: {
-        Enter: "Save Edit",
-        Escape: "Cancel Edit",
+      transformations: {
+        "Ctrl+Shift+H": "Mirror Horizontally",
+        "Ctrl+Shift+V": "Mirror Vertically",
       },
       navigation: {
         "Ctrl+0": "Center Canvas",
         "Arrow Keys": "Pan Canvas (Select Mode)",
         "Ctrl+Arrow Up/Down": "Zoom In/Out",
+        "Ctrl + / Ctrl -": "Zoom In/Out",
       },
-      file: {
-        "Ctrl+S": "Save",
+      selection: {
+        "Ctrl+Shift+D": "Clear Selection",
       },
     }),
     []

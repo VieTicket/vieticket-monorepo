@@ -11,8 +11,7 @@ import {
 import { StepProgressBar } from "@/components/create-event/progress-bar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { previewSeatMapDataAction } from "@/lib/actions/organizer/process-seat-map-action";
-import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
+import { getSeatMapGridDataAction } from "@/lib/actions/organizer/seat-map-actions";
 import { SeatMapSelectionModal } from "./components/seat-map-selection-modal";
 import { EventDetailsStep } from "./components/event-details-step";
 import { MediaUploadStep } from "./components/media-upload-step";
@@ -26,7 +25,7 @@ import type {
   TicketingMode,
   UploadResponse,
 } from "../../../../types/event-types";
-import { ShowingFormData, ShowingWithAreas } from "@/types/showings";
+import { ShowingWithAreas } from "@/types/showings";
 
 export default function CreateEventPage() {
   return (
@@ -48,11 +47,11 @@ function CreateEventPageInner() {
     bannerUrl: "",
     seatCount: "",
     ticketPrice: "",
-    maxTicketsByOrder: undefined, // Let user input, don't hardcode
+    maxTicketsByOrder: undefined,
+    startTime: "",
+    endTime: "",
   });
   const [step, setStep] = useState(1);
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -79,142 +78,137 @@ function CreateEventPageInner() {
       areas: [],
     },
   ]);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   // Load event data for editing
   useEffect(() => {
     if (!eventId) return;
 
     const loadEvent = async () => {
-      const event = await fetchEventById(eventId);
-      if (!event) return;
+      try {
+        const event = await fetchEventById(eventId);
+        if (!event) return;
 
-      setFormData({
-        name: event.name ?? "",
-        type: event.type ?? "",
-        ticketSaleStart: event.ticketSaleStart
-          ? new Date(event.ticketSaleStart).toISOString().slice(0, 16)
-          : "",
-        ticketSaleEnd: event.ticketSaleEnd
-          ? new Date(event.ticketSaleEnd).toISOString().slice(0, 16)
-          : "",
-        location: event.location ?? "",
-        description: event.description ?? "",
-        posterUrl: event.posterUrl ?? "",
-        bannerUrl: event.bannerUrl ?? "",
-        maxTicketsByOrder: event.maxTicketsByOrder ?? undefined,
-        seatCount: "",
-        ticketPrice: "",
-      });
+        setFormData({
+          name: event.name ?? "",
+          type: event.type ?? "",
+          ticketSaleStart: event.ticketSaleStart
+            ? new Date(event.ticketSaleStart).toISOString().slice(0, 16)
+            : "",
+          ticketSaleEnd: event.ticketSaleEnd
+            ? new Date(event.ticketSaleEnd).toISOString().slice(0, 16)
+            : "",
+          location: event.location ?? "",
+          description: event.description ?? "",
+          posterUrl: event.posterUrl ?? "",
+          bannerUrl: event.bannerUrl ?? "",
+          maxTicketsByOrder: event.maxTicketsByOrder ?? undefined,
+          seatCount: "",
+          ticketPrice: "",
+          startTime: "",
+          endTime: "",
+        });
 
-      if (event.seatMapId) {
-        try {
-          const seatMapResult = await loadSeatMapAction(event.seatMapId);
-          if (seatMapResult.success && seatMapResult.data) {
+        if (event.seatMapId) {
+          console.log("📥 Loading existing seat map:", event.seatMapId);
+          const gridDataResult = await getSeatMapGridDataAction(
+            event.seatMapId
+          );
+
+          if (gridDataResult.success && gridDataResult.data) {
             setSelectedSeatMap(event.seatMapId);
             setOriginalSeatMapId(event.seatMapId);
-            setSelectedSeatMapData({
-              id: seatMapResult.data.id,
-              name: seatMapResult.data.name,
-              image: seatMapResult.data.image,
-              createdBy: seatMapResult.data.createdBy,
-              createdAt: seatMapResult.data.createdAt,
-              updatedAt: seatMapResult.data.updatedAt,
-            });
 
-            // Get seat map preview data
-            const previewResult = await previewSeatMapDataAction(
-              event.seatMapId
-            );
-            if (previewResult.success && previewResult.data) {
-              setSeatMapPreviewData(previewResult.data as SeatMapPreviewData);
-            }
+            const enrichedSeatMap: SeatMapData = {
+              id: gridDataResult.data.seatMap.id,
+              name: gridDataResult.data.seatMap.name,
+              image: gridDataResult.data.seatMap.image,
+              createdBy: gridDataResult.data.seatMap.createdBy,
+              publicity: gridDataResult.data.seatMap.publicity,
+              createdAt: gridDataResult.data.seatMap.createdAt,
+              updatedAt: gridDataResult.data.seatMap.updatedAt,
+              grids: gridDataResult.data.gridData?.grids || [],
+              defaultSeatSettings:
+                gridDataResult.data.gridData?.defaultSeatSettings || undefined,
+            };
 
+            setSelectedSeatMapData(enrichedSeatMap);
+            setSeatMapPreviewData(gridDataResult.data.preview);
             setTicketingMode("seatmap");
           }
-        } catch (error) {
-          console.error("Error loading seat map data:", error);
-          toast.error("Failed to load seat map data");
-        }
-      } else {
-        // Load simple ticketing areas from showings
-        if (event.showings?.length > 0) {
-          // For simple ticketing, use areas from the first showing as default
-          const firstShowing = event.showings[0];
-          if (firstShowing.areas?.length > 0) {
-            setAreas(
-              firstShowing.areas.map((area: any) => ({
-                name: area.name,
-                ticketPrice: area.price.toString(),
-                seatCount: area.seatCount?.toString() || "0",
-              }))
-            );
-          }
-        } else if (event.areas?.length > 0) {
-          // Fallback to legacy event.areas if no showings
-          setAreas(
-            event.areas.map((area: any) => ({
-              name: area.name,
-              ticketPrice: area.price.toString(),
-              seatCount: area.rows?.[0]?.seats?.length.toString() || "0",
-            }))
-          );
-        }
-        setTicketingMode("simple");
-      }
-
-      // Load showings data if available
-      if (event.showings?.length > 0) {
-        setShowings(
-          event.showings.map((showing: any) => {
-            // Ensure we have valid dates
-            const startTime = showing.startTime
-              ? new Date(showing.startTime)
-              : new Date();
-            const endTime = showing.endTime
-              ? new Date(showing.endTime)
-              : new Date();
-
-            // Check if dates are valid
-            const isValidStartTime =
-              startTime instanceof Date && !isNaN(startTime.getTime());
-            const isValidEndTime =
-              endTime instanceof Date && !isNaN(endTime.getTime());
-
-            return {
-              name: showing.name,
-              startTime: isValidStartTime
-                ? startTime.toISOString().slice(0, 16)
-                : "",
-              endTime: isValidEndTime ? endTime.toISOString().slice(0, 16) : "",
-              ticketSaleStart: showing.ticketSaleStart
-                ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
-                : "",
-              ticketSaleEnd: showing.ticketSaleEnd
-                ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
-                : "",
-              areas:
-                showing.areas?.map((area: any) => ({
+        } else {
+          // Load simple ticketing areas from showings
+          if (event.showings?.length > 0) {
+            const firstShowing = event.showings[0];
+            if (firstShowing.areas?.length > 0) {
+              setAreas(
+                firstShowing.areas.map((area: any) => ({
                   name: area.name,
                   ticketPrice: area.price.toString(),
                   seatCount: area.seatCount?.toString() || "0",
-                })) || [],
-            };
-          })
-        );
+                }))
+              );
+            }
+          } else if (event.areas?.length > 0) {
+            setAreas(
+              event.areas.map((area: any) => ({
+                name: area.name,
+                ticketPrice: area.price.toString(),
+                seatCount: area.rows?.[0]?.seats?.length.toString() || "0",
+              }))
+            );
+          }
+          setTicketingMode("simple");
+        }
 
-        console.log(
-          "Loaded showings with areas:",
-          event.showings.map((s: any) => ({
-            name: s.name,
-            areasCount: s.areas?.length || 0,
-            areas:
-              s.areas?.map((a: any) => `${a.name}: ${a.seatCount} seats`) || [],
-          }))
-        );
+        // Load showings data if available
+        if (event.showings?.length > 0) {
+          setShowings(
+            event.showings.map((showing: any) => {
+              const startTime = showing.startTime
+                ? new Date(showing.startTime)
+                : new Date();
+              const endTime = showing.endTime
+                ? new Date(showing.endTime)
+                : new Date();
+
+              const isValidStartTime =
+                startTime instanceof Date && !isNaN(startTime.getTime());
+              const isValidEndTime =
+                endTime instanceof Date && !isNaN(endTime.getTime());
+
+              return {
+                name: showing.name,
+                startTime: isValidStartTime
+                  ? startTime.toISOString().slice(0, 16)
+                  : "",
+                endTime: isValidEndTime
+                  ? endTime.toISOString().slice(0, 16)
+                  : "",
+                ticketSaleStart: showing.ticketSaleStart
+                  ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
+                  : "",
+                ticketSaleEnd: showing.ticketSaleEnd
+                  ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
+                  : "",
+                areas:
+                  showing.areas?.map((area: any) => ({
+                    name: area.name,
+                    ticketPrice: area.price.toString(),
+                    seatCount: area.seatCount?.toString() || "0",
+                  })) || [],
+              };
+            })
+          );
+        }
+
+        setPosterPreview(event.posterUrl ?? null);
+        setBannerPreview(event.bannerUrl ?? null);
+      } catch (error) {
+        console.error("❌ Error loading event:", error);
+        toast.error("Failed to load event data");
       }
-
-      setPosterPreview(event.posterUrl ?? null);
-      setBannerPreview(event.bannerUrl ?? null);
     };
 
     loadEvent();
@@ -225,51 +219,54 @@ function CreateEventPageInner() {
     if (!eventId) return;
 
     const hasChanges =
-      selectedSeatMap !== originalSeatMapId || // Different seat map selected
-      (originalSeatMapId && ticketingMode === "simple") || // Changed from seat map to simple
-      (!originalSeatMapId && ticketingMode === "seatmap"); // Changed from simple to seat map
+      selectedSeatMap !== originalSeatMapId ||
+      (originalSeatMapId && ticketingMode === "simple") ||
+      (!originalSeatMapId && ticketingMode === "seatmap");
 
     setHasSeatMapChanges(hasChanges);
   }, [selectedSeatMap, originalSeatMapId, ticketingMode, eventId]);
 
   // Media upload handlers
   const handlePosterUpload = (response: UploadResponse) => {
-    if (response.file) {
-      const tempUrl = URL.createObjectURL(response.file);
-      setPosterPreview(tempUrl);
-    }
     setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
     toast.success("Poster uploaded successfully!");
   };
 
   const handleBannerUpload = (response: UploadResponse) => {
-    if (response.file) {
-      const tempUrl = URL.createObjectURL(response.file);
-      setBannerPreview(tempUrl);
-    }
     setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
     toast.success("Banner uploaded successfully!");
   };
 
   // Seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
-    setSelectedSeatMap(seatMap.id);
-    setSelectedSeatMapData(seatMap);
-    setShowSeatMapModal(false);
+    console.log("📥 Processing seat map selection:", seatMap.name);
 
     try {
-      const result = await previewSeatMapDataAction(seatMap.id);
+      const result = await getSeatMapGridDataAction(seatMap.id);
+
       if (result.success && result.data) {
-        setSeatMapPreviewData(result.data as SeatMapPreviewData);
-        toast.success(`Seat map "${seatMap.name}" selected successfully!`);
+        const enrichedSeatMap: SeatMapData = {
+          ...seatMap,
+          grids: result.data.gridData?.grids || [],
+          defaultSeatSettings:
+            result.data.gridData?.defaultSeatSettings || undefined,
+        };
+
+        setSelectedSeatMap(enrichedSeatMap.id);
+        setSelectedSeatMapData(enrichedSeatMap);
+        setSeatMapPreviewData(result.data.preview);
+        setShowSeatMapModal(false);
+
+        toast.success(`Selected seat map: ${enrichedSeatMap.name}`, {
+          description: `${result.data.preview.totalSeats} seats in ${result.data.preview.areas.length} areas`,
+        });
       } else {
-        setSeatMapPreviewData(null);
-        toast.error(result.error || "Failed to preview seat map data");
+        console.error("❌ Failed to load seat map data:", result.error);
+        toast.error(result.error || "Failed to load seat map details");
       }
     } catch (error) {
-      console.error("Error previewing seat map:", error);
-      setSeatMapPreviewData(null);
-      toast.error("Failed to preview seat map data");
+      console.error("❌ Error processing seat map:", error);
+      toast.error("An error occurred while loading the seat map");
     }
   };
 
@@ -279,18 +276,14 @@ function CreateEventPageInner() {
     >
   ) => {
     const { name, value } = e.target;
-    console.log("DEBUG handleChange:", name, value);
 
-    // Handle numeric fields
     if (name === "maxTicketsByOrder") {
       const numValue = value === "" ? undefined : parseInt(value) || undefined;
-      console.log("DEBUG maxTicketsByOrder numValue:", numValue);
       setFormData((prev) => ({ ...prev, [name]: numValue }));
     } else {
       setFormData((prev) => ({ ...prev, [name]: value }));
     }
 
-    // Clear related errors when user types
     if (name === "maxTicketsByOrder" && errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -300,11 +293,9 @@ function CreateEventPageInner() {
     }
   };
 
-  // Validation function for step 1 (Event Details)
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields validation
     if (!formData.name.trim()) {
       newErrors.name = "Event name is required";
     }
@@ -318,7 +309,6 @@ function CreateEventPageInner() {
       newErrors.showings = "At least one showing with start time is required";
     }
 
-    // Max tickets validation
     if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
       newErrors.maxTicketsByOrder =
         "Maximum tickets per order must be at least 1";
@@ -332,12 +322,10 @@ function CreateEventPageInner() {
     return Object.keys(newErrors).length === 0;
   };
 
-  // Helper function to scroll to top smoothly
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // Handle step navigation with validation
   const handleNextStep = () => {
     if (step === 1) {
       if (!validateStep1()) {
@@ -346,38 +334,29 @@ function CreateEventPageInner() {
       }
     }
     setStep(step + 1);
-
-    // Scroll to top when moving to next step
     scrollToTop();
   };
 
-  // Handle showings change with error clearing
   const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
     setShowings(newShowings);
 
-    // Auto-calculate ticket sale dates based on showings
     if (newShowings.length > 0) {
       const validShowings = newShowings.filter((s) => s.startTime);
 
       if (validShowings.length > 0) {
-        // Find earliest and latest showing times
         const sortedShowings = validShowings.sort(
           (a, b) =>
             new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
         );
 
         const earliestShowing = sortedShowings[0];
-        const latestShowing = sortedShowings[sortedShowings.length - 1];
 
-        // Set ticket sale start to 7 days before earliest showing
         const ticketSaleStart = new Date(earliestShowing.startTime);
         ticketSaleStart.setDate(ticketSaleStart.getDate() - 7);
 
-        // Set ticket sale end to 1 hour before earliest showing
         const ticketSaleEnd = new Date(earliestShowing.startTime);
         ticketSaleEnd.setHours(ticketSaleEnd.getHours() - 1);
 
-        // Update form data with calculated dates
         setFormData((prev) => ({
           ...prev,
           ticketSaleStart: ticketSaleStart.toISOString().slice(0, 16),
@@ -386,7 +365,6 @@ function CreateEventPageInner() {
       }
     }
 
-    // Clear showings-related errors when showings change
     if (errors.showings || errors.ticketSaleStart || errors.ticketSaleEnd) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -398,28 +376,68 @@ function CreateEventPageInner() {
     }
   };
 
-  // Form submission
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Check if seat map update confirmation is needed
     if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
       toast.error("Please confirm seat map update to proceed.");
       return;
     }
 
-    const form = new FormData(e.currentTarget);
+    const form = new FormData();
 
-    // Add seat map data if using seat map mode
-    if (ticketingMode === "seatmap" && seatMapPreviewData) {
-      form.append("seatMapData", JSON.stringify(seatMapPreviewData));
+    if (eventId) {
+      form.append("eventId", eventId);
+    }
+
+    form.append("name", formData.name);
+    form.append("type", formData.type);
+    form.append("ticketSaleStart", formData.ticketSaleStart);
+    form.append("ticketSaleEnd", formData.ticketSaleEnd);
+    form.append("location", formData.location);
+    form.append("description", formData.description);
+    form.append("posterUrl", formData.posterUrl);
+    form.append("bannerUrl", formData.bannerUrl);
+    form.append("ticketingMode", ticketingMode);
+    form.append(
+      "maxTicketsByOrder",
+      formData.maxTicketsByOrder?.toString() || ""
+    );
+
+    showings.forEach((showing, index) => {
+      form.append(`showings[${index}].name`, showing.name);
+      form.append(`showings[${index}].startTime`, showing.startTime);
+      form.append(`showings[${index}].endTime`, showing.endTime);
+      form.append(
+        `showings[${index}].ticketSaleStart`,
+        showing.ticketSaleStart || ""
+      );
+      form.append(
+        `showings[${index}].ticketSaleEnd`,
+        showing.ticketSaleEnd || ""
+      );
+    });
+
+    if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
+      form.append("seatMapId", selectedSeatMap);
+      form.append(
+        "seatMapData",
+        JSON.stringify({
+          grids: selectedSeatMapData.grids || [],
+          defaultSeatSettings: selectedSeatMapData.defaultSeatSettings,
+        })
+      );
+    } else {
+      areas.forEach((area, index) => {
+        form.append(`areas[${index}][name]`, area.name);
+        form.append(`areas[${index}][seatCount]`, area.seatCount);
+        form.append(`areas[${index}][ticketPrice]`, area.ticketPrice);
+      });
     }
 
     startTransition(async () => {
       try {
-        const hasId = form.get("eventId");
-
-        if (hasId) {
+        if (eventId) {
           await handleUpdateEvent(form);
           toast.success("✅ Event updated successfully!");
         } else {
@@ -455,10 +473,6 @@ function CreateEventPageInner() {
             showings={showings}
             onInputChange={handleChange}
             onDescriptionChange={(value) => {
-              console.log(
-                "📄 TipTap onChange triggered, content length:",
-                value.length
-              );
               setFormData({ ...formData, description: value });
             }}
             onShowingsChange={handleShowingsChange}
@@ -504,6 +518,7 @@ function CreateEventPageInner() {
             setSeatMapPreviewData={setSeatMapPreviewData}
             setShowSeatMapModal={setShowSeatMapModal}
             showings={showings}
+            hasSeatMapChanges={hasSeatMapChanges}
           />
         );
       default:
@@ -525,7 +540,6 @@ function CreateEventPageInner() {
 
         {step === 4 && (
           <div className="space-y-6">
-            {/* Seat Map Update Confirmation */}
             {eventId && hasSeatMapChanges && (
               <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
                 <h4 className="font-medium text-orange-800 mb-2">
@@ -567,138 +581,13 @@ function CreateEventPageInner() {
               >
                 Go back
               </Button>
-              {eventId && (
-                <input type="hidden" name="eventId" value={eventId} />
-              )}
-
-              {/* Hidden form data inputs */}
-              {ticketingMode === "simple" &&
-                areas.map((area, index) => (
-                  <div key={index}>
-                    <input
-                      type="hidden"
-                      name={`areas[${index}][name]`}
-                      value={area.name}
-                    />
-                    <input
-                      type="hidden"
-                      name={`areas[${index}][seatCount]`}
-                      value={area.seatCount}
-                    />
-                    <input
-                      type="hidden"
-                      name={`areas[${index}][ticketPrice]`}
-                      value={area.ticketPrice}
-                    />
-                  </div>
-                ))}
-
-              <input type="hidden" name="name" value={formData.name} />
-              <input type="hidden" name="type" value={formData.type} />
-              {/* Add showings data */}
-              {showings.map((showing, index) => (
-                <div key={index}>
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].name`}
-                    value={showing.name}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].startTime`}
-                    value={showing.startTime || ""}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].endTime`}
-                    value={showing.endTime || ""}
-                  />
-                </div>
-              ))}
-              <input
-                type="hidden"
-                name="ticketSaleStart"
-                value={formData.ticketSaleStart || ""}
-              />
-              <input
-                type="hidden"
-                name="ticketSaleEnd"
-                value={formData.ticketSaleEnd || ""}
-              />
-              <input type="hidden" name="location" value={formData.location} />
-              <input
-                type="hidden"
-                name="description"
-                value={formData.description}
-              />
-              <input
-                type="hidden"
-                name="posterUrl"
-                value={formData.posterUrl}
-              />
-              <input
-                type="hidden"
-                name="bannerUrl"
-                value={formData.bannerUrl}
-              />
-              <input
-                type="hidden"
-                name="maxTicketsByOrder"
-                value={formData.maxTicketsByOrder || ""}
-              />
-              <input
-                type="hidden"
-                name="seatCount"
-                value={formData.seatCount}
-              />
-              <input
-                type="hidden"
-                name="ticketPrice"
-                value={formData.ticketPrice}
-              />
-              <input type="hidden" name="ticketingMode" value={ticketingMode} />
-
-              {/* Hidden inputs for showings data including ticket sale times */}
-              {showings.map((showing, index) => (
-                <Fragment key={index}>
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].name`}
-                    value={showing.name}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].startTime`}
-                    value={showing.startTime}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].endTime`}
-                    value={showing.endTime}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].ticketSaleStart`}
-                    value={showing.ticketSaleStart || ""}
-                  />
-                  <input
-                    type="hidden"
-                    name={`showings[${index}].ticketSaleEnd`}
-                    value={showing.ticketSaleEnd || ""}
-                  />
-                </Fragment>
-              ))}
-
-              {selectedSeatMap && (
-                <input type="hidden" name="seatMapId" value={selectedSeatMap} />
-              )}
 
               <Button
                 type="submit"
                 className="bg-blue-600 text-white"
                 disabled={
                   isPending ||
-                  (eventId === undefined &&
+                  (eventId !== null &&
                     hasSeatMapChanges &&
                     !confirmSeatMapUpdate)
                 }

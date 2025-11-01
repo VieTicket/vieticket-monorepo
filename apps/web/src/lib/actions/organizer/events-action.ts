@@ -1,13 +1,13 @@
 "use server";
 
 import {
-  createEventWithMultipleAreas,
-  createEventWithSeatMap,
   getEventById,
-  updateEventWithMultipleAreas,
-  updateEventWithSeatMap,
   createEventWithShowingsAndAreas,
   createEventWithShowingsAndAreasIndividual,
+  createEventWithShowingsAndSeatMap,
+  createEventWithShowingsAndSeatMapIndividual,
+  updateEventWithShowingsAndSeatMap,
+  updateEventWithShowingsAndSeatMapIndividual,
   updateEventWithShowingsAndAreas,
   updateEventWithShowingsAndAreasIndividual,
 } from "@/lib/services/eventService";
@@ -15,8 +15,8 @@ import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
 import DOMPurify from "isomorphic-dompurify";
+import { SeatMapGridData } from "@/types/event-types";
 
-// Configure DOMPurify to allow safe HTML tags
 const sanitizeHTML = (html: string): string => {
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: [
@@ -65,21 +65,6 @@ const sanitizeHTML = (html: string): string => {
 export async function handleCreateEvent(
   formData: FormData
 ): Promise<{ eventId?: string } | void> {
-  console.log(
-    "DEBUG: handleCreateEvent called with formData:",
-    Array.from(formData.entries())
-  );
-
-  console.log(
-    "DEBUG: Raw maxTicketsByOrder value:",
-    formData.get("maxTicketsByOrder")
-  );
-  console.log(
-    "DEBUG: Raw ticketSaleStart value:",
-    formData.get("ticketSaleStart")
-  );
-  console.log("DEBUG: Raw ticketSaleEnd value:", formData.get("ticketSaleEnd"));
-
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
@@ -89,7 +74,6 @@ export async function handleCreateEvent(
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
 
-  // Parse event-level ticket sale times first
   const eventTicketSaleStart = formData.get("ticketSaleStart")
     ? (() => {
         const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
@@ -110,7 +94,6 @@ export async function handleCreateEvent(
       })()
     : null;
 
-  // Parse showings data
   const showings: {
     name: string;
     startTime: Date;
@@ -134,16 +117,13 @@ export async function handleCreateEvent(
 
     if (!name || !startTime || !endTime) break;
 
-    // Safe date parsing with validation
     const startDate = new Date(startTime.toString());
     const endDate = new Date(endTime.toString());
 
-    // Validate dates
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new Error(`Invalid date format in showing: ${name}`);
     }
 
-    // Parse ticket sale dates for this specific showing
     const ticketSaleStartDate =
       ticketSaleStart && ticketSaleStart.toString().trim() !== ""
         ? (() => {
@@ -151,7 +131,6 @@ export async function handleCreateEvent(
             return isNaN(date.getTime()) ? null : date;
           })()
         : (() => {
-            // Default: 7 days before showing start
             const date = new Date(startDate);
             date.setDate(date.getDate() - 7);
             return date;
@@ -164,7 +143,6 @@ export async function handleCreateEvent(
             return isNaN(date.getTime()) ? null : date;
           })()
         : (() => {
-            // Default: 1 hour before showing start
             const date = new Date(startDate);
             date.setHours(date.getHours() - 1);
             return date;
@@ -182,11 +160,12 @@ export async function handleCreateEvent(
     showingIndex++;
   }
 
-  // For compatibility, use first showing's times as event start/end
-  const eventStartTime =
-    showings.length > 0 ? showings[0].startTime : new Date();
-  const eventEndTime =
-    showings.length > 0 ? showings[showings.length - 1].endTime : new Date();
+  if (showings.length === 0) {
+    throw new Error("At least one showing is required");
+  }
+
+  const eventStartTime = showings[0].startTime;
+  const eventEndTime = showings[showings.length - 1].endTime;
 
   const eventPayload = {
     name: eventName,
@@ -213,28 +192,53 @@ export async function handleCreateEvent(
     updatedAt: new Date(),
   };
 
-  console.log("DEBUG eventPayload:", eventPayload);
-  console.log(
-    "DEBUG showings with ticket sale times:",
-    showings.map((s) => ({
-      name: s.name,
-      ticketSaleStart: s.ticketSaleStart,
-      ticketSaleEnd: s.ticketSaleEnd,
-    }))
-  );
-
   let result;
 
   if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
-    // TODO: Implement seat map with showings - for now use old method
     const parsedSeatMapData = JSON.parse(seatMapData);
-    result = await createEventWithSeatMap(eventPayload, parsedSeatMapData);
-  } else {
-    // Use simple ticketing with showings - check if using copy mode or individual configs
+    const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
+    const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
+
+    if (grids.length === 0) {
+      throw new Error("Seat map has no seating areas configured");
+    }
+
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
     if (copyMode) {
-      // All showings use the same areas configuration
+      result = await createEventWithShowingsAndSeatMap(
+        eventPayload,
+        showings,
+        grids,
+        defaultSeatSettings
+      );
+    } else {
+      const showingSeatMapConfigs: SeatMapGridData[][] = [];
+
+      for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
+        const showingConfigData = formData.get(
+          `showingConfigs[${showingIdx}].seatMapData`
+        );
+
+        if (showingConfigData) {
+          const config = JSON.parse(showingConfigData as string);
+          showingSeatMapConfigs.push(config.grids || grids);
+        } else {
+          showingSeatMapConfigs.push(grids);
+        }
+      }
+
+      result = await createEventWithShowingsAndSeatMapIndividual(
+        eventPayload,
+        showings,
+        showingSeatMapConfigs,
+        defaultSeatSettings
+      );
+    }
+  } else {
+    const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
+
+    if (copyMode) {
       const areas: {
         name: string;
         seatCount: number;
@@ -258,13 +262,16 @@ export async function handleCreateEvent(
         areaIndex++;
       }
 
+      if (areas.length === 0) {
+        throw new Error("At least one area is required for simple ticketing");
+      }
+
       result = await createEventWithShowingsAndAreas(
         eventPayload,
         showings,
         areas
       );
     } else {
-      // Each showing has its own areas configuration
       const showingAreaConfigs: Array<
         {
           name: string;
@@ -273,7 +280,6 @@ export async function handleCreateEvent(
         }[]
       > = [];
 
-      // Parse areas for each showing
       for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
         const areas: {
           name: string;
@@ -304,6 +310,12 @@ export async function handleCreateEvent(
           areaIndex++;
         }
 
+        if (areas.length === 0) {
+          throw new Error(
+            `Showing ${showingIdx + 1} must have at least one area`
+          );
+        }
+
         showingAreaConfigs.push(areas);
       }
 
@@ -316,6 +328,7 @@ export async function handleCreateEvent(
   }
 
   revalidatePath("/organizer/events");
+  revalidatePath("/organizer");
   return result ? { eventId: result.eventId } : undefined;
 }
 
@@ -328,23 +341,11 @@ export async function handleUpdateEvent(formData: FormData) {
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
 
-  console.log("HandleUpdateEvent - FormData contents:", {
-    eventId,
-    ticketingMode,
-    ticketSaleStart: formData.get("ticketSaleStart"),
-    ticketSaleEnd: formData.get("ticketSaleEnd"),
-  });
-
   const existingEvent = await getEventById(eventId);
-  if (!existingEvent) throw new Error("Event not found");
+  if (!existingEvent) {
+    throw new Error("Event not found");
+  }
 
-  console.log("Existing event dates:", {
-    startTime: existingEvent.startTime,
-    endTime: existingEvent.endTime,
-    createdAt: existingEvent.createdAt,
-  });
-
-  // Parse showings data
   const showings: {
     name: string;
     startTime: Date;
@@ -368,26 +369,21 @@ export async function handleUpdateEvent(formData: FormData) {
 
     if (!name || !startTime || !endTime) break;
 
-    // Skip if startTime or endTime is empty string
     if (
       startTime.toString().trim() === "" ||
       endTime.toString().trim() === ""
     ) {
-      console.log(`Skipping showing ${name} due to empty time fields`);
       showingIndex++;
       continue;
     }
 
-    // Safe date parsing with validation
     const startDate = new Date(startTime.toString());
     const endDate = new Date(endTime.toString());
 
-    // Validate dates
     if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
       throw new Error(`Invalid date format in showing: ${name}`);
     }
 
-    // Parse ticket sale dates for showing
     const ticketSaleStartDate =
       ticketSaleStart && ticketSaleStart.toString().trim() !== ""
         ? (() => {
@@ -416,7 +412,6 @@ export async function handleUpdateEvent(formData: FormData) {
     showingIndex++;
   }
 
-  // For compatibility, use showings to calculate event start/end times
   const eventStartTime =
     showings.length > 0
       ? new Date(
@@ -430,6 +425,7 @@ export async function handleUpdateEvent(formData: FormData) {
       : existingEvent.startTime
         ? new Date(existingEvent.startTime)
         : new Date();
+
   const eventEndTime =
     showings.length > 0
       ? new Date(
@@ -493,26 +489,61 @@ export async function handleUpdateEvent(formData: FormData) {
   let result;
 
   if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
-    // TODO: Implement optimized seat map update with showings
     const parsedSeatMapData = JSON.parse(seatMapData);
-    result = await updateEventWithSeatMap(eventPayload, parsedSeatMapData);
-  } else {
-    // Use simple ticketing with showings - check if using copy mode or individual configs
+    const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
+    const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
+
+    if (grids.length === 0) {
+      throw new Error("Seat map has no seating areas configured");
+    }
+
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
     if (copyMode) {
-      // All showings use the same areas configuration
+      await updateEventWithShowingsAndSeatMap(
+        eventPayload,
+        showings,
+        grids,
+        defaultSeatSettings
+      );
+    } else {
+      const showingSeatMapConfigs: SeatMapGridData[][] = [];
+
+      for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
+        const showingConfigData = formData.get(
+          `showingConfigs[${showingIdx}].seatMapData`
+        );
+
+        if (showingConfigData) {
+          const config = JSON.parse(showingConfigData as string);
+          showingSeatMapConfigs.push(config.grids || grids);
+        } else {
+          showingSeatMapConfigs.push(grids);
+        }
+      }
+
+      await updateEventWithShowingsAndSeatMapIndividual(
+        eventPayload,
+        showings,
+        showingSeatMapConfigs,
+        defaultSeatSettings
+      );
+    }
+  } else {
+    const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
+
+    if (copyMode) {
       const areas: {
         name: string;
         seatCount: number;
         ticketPrice: number;
       }[] = [];
 
-      let areaIndex = 0;
+      let index = 0;
       while (true) {
-        const name = formData.get(`areas[${areaIndex}][name]`);
-        const seatCount = formData.get(`areas[${areaIndex}][seatCount]`);
-        const ticketPrice = formData.get(`areas[${areaIndex}][ticketPrice]`);
+        const name = formData.get(`areas[${index}][name]`);
+        const seatCount = formData.get(`areas[${index}][seatCount]`);
+        const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
 
         if (!name || !seatCount || !ticketPrice) break;
 
@@ -522,16 +553,15 @@ export async function handleUpdateEvent(formData: FormData) {
           ticketPrice: Number(ticketPrice),
         });
 
-        areaIndex++;
+        index++;
       }
 
-      result = await updateEventWithShowingsAndAreas(
-        eventPayload,
-        showings,
-        areas
-      );
+      if (areas.length === 0) {
+        throw new Error("At least one area is required for simple ticketing");
+      }
+
+      await updateEventWithShowingsAndAreas(eventPayload, showings, areas);
     } else {
-      // Each showing has its own areas configuration
       const showingAreaConfigs: Array<
         {
           name: string;
@@ -540,7 +570,6 @@ export async function handleUpdateEvent(formData: FormData) {
         }[]
       > = [];
 
-      // Parse areas for each showing
       for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
         const areas: {
           name: string;
@@ -571,10 +600,16 @@ export async function handleUpdateEvent(formData: FormData) {
           areaIndex++;
         }
 
+        if (areas.length === 0) {
+          throw new Error(
+            `Showing ${showingIdx + 1} must have at least one area`
+          );
+        }
+
         showingAreaConfigs.push(areas);
       }
 
-      result = await updateEventWithShowingsAndAreasIndividual(
+      await updateEventWithShowingsAndAreasIndividual(
         eventPayload,
         showings,
         showingAreaConfigs
@@ -583,6 +618,8 @@ export async function handleUpdateEvent(formData: FormData) {
   }
 
   revalidatePath("/organizer/events");
+  revalidatePath("/organizer");
+  revalidatePath(`/event/${existingEvent.slug}`);
   return result;
 }
 

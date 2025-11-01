@@ -263,9 +263,6 @@ export function AccountForm() {
           setImageFile(null);
         } else {
           toast.error(result.message);
-          if (result.errors) {
-            console.error("Validation errors:", result.errors);
-          }
         }
       } catch (error) {
         console.error("Error saving profile:", error);

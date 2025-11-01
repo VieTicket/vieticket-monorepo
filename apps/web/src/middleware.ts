@@ -18,7 +18,7 @@ const permissionMap: PermissionMap = [
   },
   {
     role: "organizer",
-    endpoints: ["/organizer/*", "/inspector/*"],
+    endpoints: ["/organizer/*", "/inspector/*", "/seat-map/*"],
   },
   {
     role: "customer",
@@ -38,7 +38,6 @@ const publicRoutes = [
   "/about",
   "/contact",
   "/search",
-  "/seat-map-v2/*",
 ];
 
 // Routes that require authentication but no specific role

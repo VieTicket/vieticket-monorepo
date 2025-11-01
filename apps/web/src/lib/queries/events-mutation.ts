@@ -1,6 +1,5 @@
 import { db } from "../db";
 import { eq, sql } from "drizzle-orm";
-
 import {
   events,
   NewEvent,
@@ -10,46 +9,28 @@ import {
   showings,
 } from "@vieticket/db/pg/schema";
 
+// ========================================
+// EVENT MUTATIONS
+// ========================================
+
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
 }
 
-export async function createShowing(showing: {
-  eventId: string;
-  name: string;
-  startTime: Date;
-  endTime: Date;
-  ticketSaleStart?: Date | null;
-  ticketSaleEnd?: Date | null;
-  seatMapId?: string | null;
-}) {
-  return db.insert(showings).values(showing).returning();
-}
-
-export async function createArea(area: {
-  eventId: string;
-  name: string;
-  price: number;
-  showingId?: string;
-}) {
-  return db.insert(areas).values(area).returning();
-}
-
-export async function createRow(row: { areaId: string; rowName: string }) {
-  return db.insert(rows).values(row).returning();
-}
-
-export async function createSeats(
-  seatsData: {
-    rowId: string;
-    seatNumber: string;
-  }[]
+export async function updateEventById(
+  eventId: string,
+  data: Partial<typeof events.$inferInsert>
 ) {
-  return db.insert(seats).values(seatsData);
+  return db.update(events).set(data).where(eq(events.id, eventId)).returning();
 }
 
-export async function getEventsByOrganizerId(organizerId: string) {
-  return db.select().from(events).where(eq(events.organizerId, organizerId));
+export async function incrementEventView(eventId: string) {
+  return db
+    .update(events)
+    .set({
+      views: sql`${events.views} + 1`,
+    })
+    .where(eq(events.id, eventId));
 }
 
 export async function getEventsById(eventId: string) {
@@ -70,99 +51,6 @@ export async function getEventsById(eventId: string) {
   });
 
   return event ? [event] : [];
-}
-
-export async function updateEventById(
-  eventId: string,
-  data: Partial<typeof events.$inferInsert>
-) {
-  return db.update(events).set(data).where(eq(events.id, eventId)).returning();
-}
-export async function updateAreaById(
-  areaId: string,
-  data: Partial<typeof areas.$inferInsert>
-) {
-  return db.update(areas).set(data).where(eq(areas.id, areaId)).returning();
-}
-export async function updateRowById(
-  rowId: string,
-  data: Partial<typeof rows.$inferInsert>
-) {
-  return db.update(rows).set(data).where(eq(rows.id, rowId)).returning();
-}
-export async function updateSeatById(
-  seatId: string,
-  data: Partial<typeof seats.$inferInsert>
-) {
-  return db.update(seats).set(data).where(eq(seats.id, seatId)).returning();
-}
-export async function getAreasByEventId(eventId: string) {
-  return db.select().from(areas).where(eq(areas.eventId, eventId));
-}
-export async function getRowsByAreaId(areaId: string) {
-  return db.select().from(rows).where(eq(rows.areaId, areaId));
-}
-export async function deleteAreasByEventId(eventId: string) {
-  return db.delete(areas).where(eq(areas.eventId, eventId));
-}
-
-export async function deleteShowingsByEventId(eventId: string) {
-  return db.delete(showings).where(eq(showings.eventId, eventId));
-}
-
-export async function deleteSeatsByRowId(rowId: string) {
-  return db.delete(seats).where(eq(seats.rowId, rowId));
-}
-
-export async function createAreaWithId(area: {
-  id: string;
-  eventId: string;
-  name: string;
-  price: number;
-}) {
-  return db
-    .insert(areas)
-    .values({
-      id: area.id,
-      eventId: area.eventId,
-      name: area.name,
-      price: area.price,
-    })
-    .returning();
-}
-
-export async function createRowWithId(row: {
-  id: string;
-  areaId: string;
-  rowName: string;
-}) {
-  return db
-    .insert(rows)
-    .values({
-      id: row.id,
-      areaId: row.areaId,
-      rowName: row.rowName,
-    })
-    .returning();
-}
-
-export async function createSeatsWithIds(
-  seatsData: {
-    id: string;
-    rowId: string;
-    seatNumber: string;
-  }[]
-) {
-  return db.insert(seats).values(seatsData);
-}
-
-export async function incrementEventView(eventId: string) {
-  return db
-    .update(events)
-    .set({
-      views: sql`${events.views} + 1`,
-    })
-    .where(eq(events.id, eventId));
 }
 
 export async function deleteEvent(eventId: string) {
@@ -207,12 +95,347 @@ export async function deleteEvent(eventId: string) {
   });
 }
 
+// ========================================
+// SHOWING MUTATIONS
+// ========================================
+
+export async function createShowing(showing: {
+  eventId: string;
+  name: string;
+  startTime: Date;
+  endTime: Date;
+  ticketSaleStart?: Date | null;
+  ticketSaleEnd?: Date | null;
+  seatMapId?: string | null;
+}) {
+  return db.insert(showings).values(showing).returning();
+}
+
+export async function getShowingsByEventId(eventId: string) {
+  return db.select().from(showings).where(eq(showings.eventId, eventId));
+}
+
+export async function deleteShowingsByEventId(eventId: string) {
+  return db.delete(showings).where(eq(showings.eventId, eventId));
+}
+
+export async function getShowingById(showingId: string) {
+  return db.query.showings.findFirst({
+    where: eq(showings.id, showingId),
+    with: {
+      event: true,
+      areas: {
+        with: {
+          rows: {
+            with: {
+              seats: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+// ========================================
+// AREA MUTATIONS
+// ========================================
+
+export async function createArea(area: {
+  eventId: string;
+  name: string;
+  price: number;
+  showingId?: string;
+}) {
+  return db.insert(areas).values(area).returning();
+}
+
+export async function createAreaWithId(area: {
+  id: string;
+  eventId: string;
+  name: string;
+  price: number;
+  showingId?: string;
+}) {
+  return db
+    .insert(areas)
+    .values({
+      id: area.id,
+      eventId: area.eventId,
+      showingId: area.showingId,
+      name: area.name,
+      price: area.price,
+    })
+    .returning();
+}
+
+export async function getAreasByEventId(eventId: string) {
+  return db.select().from(areas).where(eq(areas.eventId, eventId));
+}
+
+export async function getAreasByShowingId(showingId: string) {
+  return db.select().from(areas).where(eq(areas.showingId, showingId));
+}
+
+export async function updateAreaById(
+  areaId: string,
+  data: Partial<typeof areas.$inferInsert>
+) {
+  return db.update(areas).set(data).where(eq(areas.id, areaId)).returning();
+}
+
+export async function deleteAreasByEventId(eventId: string) {
+  return db.delete(areas).where(eq(areas.eventId, eventId));
+}
+
+export async function deleteAreasByShowingId(showingId: string) {
+  return db.delete(areas).where(eq(areas.showingId, showingId));
+}
+
+export async function deleteAreaById(areaId: string) {
+  return db.delete(areas).where(eq(areas.id, areaId));
+}
+
+// ========================================
+// ROW MUTATIONS
+// ========================================
+
+export async function createRow(row: { areaId: string; rowName: string }) {
+  return db.insert(rows).values(row).returning();
+}
+
+export async function createRowWithId(row: {
+  id: string;
+  areaId: string;
+  rowName: string;
+}) {
+  return db
+    .insert(rows)
+    .values({
+      id: row.id,
+      areaId: row.areaId,
+      rowName: row.rowName,
+    })
+    .returning();
+}
+
+export async function getRowsByAreaId(areaId: string) {
+  return db.select().from(rows).where(eq(rows.areaId, areaId));
+}
+
+export async function updateRowById(
+  rowId: string,
+  data: Partial<typeof rows.$inferInsert>
+) {
+  return db.update(rows).set(data).where(eq(rows.id, rowId)).returning();
+}
+
+export async function deleteRowsByAreaId(areaId: string) {
+  return db.delete(rows).where(eq(rows.areaId, areaId));
+}
+
+export async function deleteRowById(rowId: string) {
+  return db.delete(rows).where(eq(rows.id, rowId));
+}
+
+// ========================================
+// SEAT MUTATIONS
+// ========================================
+
+export async function createSeats(
+  seatsData: {
+    rowId: string;
+    seatNumber: string;
+  }[]
+) {
+  if (seatsData.length === 0) return;
+  return db.insert(seats).values(seatsData);
+}
+
+export async function createSeatsWithIds(
+  seatsData: {
+    id: string;
+    rowId: string;
+    seatNumber: string;
+  }[]
+) {
+  if (seatsData.length === 0) return;
+  return db.insert(seats).values(seatsData);
+}
+
+export async function getSeatsByRowId(rowId: string) {
+  return db.select().from(seats).where(eq(seats.rowId, rowId));
+}
+
+export async function updateSeatById(
+  seatId: string,
+  data: Partial<typeof seats.$inferInsert>
+) {
+  return db.update(seats).set(data).where(eq(seats.id, seatId)).returning();
+}
+
+export async function deleteSeatsByRowId(rowId: string) {
+  return db.delete(seats).where(eq(seats.rowId, rowId));
+}
+
+export async function deleteSeatById(seatId: string) {
+  return db.delete(seats).where(eq(seats.id, seatId));
+}
+
+// ========================================
+// BULK OPERATIONS
+// ========================================
+
+export async function deleteAllEventStructure(eventId: string) {
+  await db.transaction(async (tx) => {
+    await tx.delete(areas).where(eq(areas.eventId, eventId));
+    await tx.delete(showings).where(eq(showings.eventId, eventId));
+  });
+}
+
+export async function deleteAllShowingStructure(showingId: string) {
+  await db.transaction(async (tx) => {
+    await tx.delete(areas).where(eq(areas.showingId, showingId));
+  });
+}
+
+// ========================================
+// QUERY HELPERS
+// ========================================
+
+export async function getCompleteEventById(eventId: string) {
+  return db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    with: {
+      showings: {
+        with: {
+          areas: {
+            with: {
+              rows: {
+                with: {
+                  seats: true,
+                },
+              },
+            },
+          },
+        },
+      },
+      areas: {
+        with: {
+          rows: {
+            with: {
+              seats: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getCompleteShowingById(showingId: string) {
+  return db.query.showings.findFirst({
+    where: eq(showings.id, showingId),
+    with: {
+      event: true,
+      areas: {
+        with: {
+          rows: {
+            with: {
+              seats: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function getEventStatistics(eventId: string) {
+  const event = await getCompleteEventById(eventId);
+
+  if (!event) return null;
+
+  const statistics = {
+    totalShowings: event.showings?.length || 0,
+    totalAreas: 0,
+    totalRows: 0,
+    totalSeats: 0,
+    totalRevenue: 0,
+  };
+
+  if (event.showings && event.showings.length > 0) {
+    for (const showing of event.showings) {
+      if (showing.areas) {
+        statistics.totalAreas += showing.areas.length;
+        for (const area of showing.areas) {
+          if (area.rows) {
+            statistics.totalRows += area.rows.length;
+            for (const row of area.rows) {
+              if (row.seats) {
+                const seatCount = row.seats.length;
+                statistics.totalSeats += seatCount;
+                statistics.totalRevenue += seatCount * (area.price || 0);
+              }
+            }
+          }
+        }
+      }
+    }
+  } else if (event.areas) {
+    statistics.totalAreas = event.areas.length;
+    for (const area of event.areas) {
+      if (area.rows) {
+        statistics.totalRows += area.rows.length;
+        for (const row of area.rows) {
+          if (row.seats) {
+            const seatCount = row.seats.length;
+            statistics.totalSeats += seatCount;
+            statistics.totalRevenue += seatCount * (area.price || 0);
+          }
+        }
+      }
+    }
+  }
+
+  return statistics;
+}
+
+export async function getShowingStatistics(showingId: string) {
+  const showing = await getCompleteShowingById(showingId);
+
+  if (!showing) return null;
+
+  const statistics = {
+    totalAreas: 0,
+    totalRows: 0,
+    totalSeats: 0,
+    totalRevenue: 0,
+  };
+
+  if (showing.areas) {
+    statistics.totalAreas = showing.areas.length;
+    for (const area of showing.areas) {
+      if (area.rows) {
+        statistics.totalRows += area.rows.length;
+        for (const row of area.rows) {
+          if (row.seats) {
+            const seatCount = row.seats.length;
+            statistics.totalSeats += seatCount;
+            statistics.totalRevenue += seatCount * (area.price || 0);
+          }
+        }
+      }
+    }
+  }
+
+  return statistics;
+}
+
 // ========== OPTIMIZED BULK OPERATIONS ==========
 
 export async function deleteAllShowingDataForEvent(eventId: string) {
-  // Xóa tất cả dữ liệu liên quan đến showings của event trong 1 transaction
   return db.transaction(async (tx) => {
-    // 1. Delete seats first (foreign key constraint)
     await tx.execute(sql`
       DELETE FROM seats 
       WHERE row_id IN (
@@ -223,7 +446,6 @@ export async function deleteAllShowingDataForEvent(eventId: string) {
       )
     `);
 
-    // 2. Delete rows
     await tx.execute(sql`
       DELETE FROM rows 
       WHERE area_id IN (
@@ -233,7 +455,6 @@ export async function deleteAllShowingDataForEvent(eventId: string) {
       )
     `);
 
-    // 3. Delete areas
     await tx.execute(sql`
       DELETE FROM areas 
       WHERE showing_id IN (
@@ -241,196 +462,9 @@ export async function deleteAllShowingDataForEvent(eventId: string) {
       )
     `);
 
-    // 4. Delete showings
     await tx.execute(sql`
       DELETE FROM showings WHERE event_id = ${eventId}
     `);
-  });
-}
-
-export async function bulkCreateShowingsWithAreas(
-  eventId: string,
-  showingsData: Array<{
-    showing: {
-      name: string;
-      startTime: Date;
-      endTime: Date;
-      seatMapId?: string;
-    };
-    areas: Array<{
-      name: string;
-      seatCount: number;
-      ticketPrice: number;
-    }>;
-  }>
-) {
-  return db.transaction(async (tx) => {
-    const results = [];
-
-    for (const { showing, areas } of showingsData) {
-      const showingId = crypto.randomUUID();
-
-      // Insert showing
-      await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
-      `);
-
-      // Bulk insert areas for this showing
-      if (areas.length > 0) {
-        const areaValues = areas.map((area) => {
-          const areaId = crypto.randomUUID();
-          const rowId = crypto.randomUUID();
-
-          return {
-            areaId,
-            rowId,
-            areaName: area.name,
-            price: area.ticketPrice,
-            seatCount: area.seatCount,
-          };
-        });
-
-        // Insert all areas at once
-        const areaInsertSql = sql`
-          INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
-          VALUES ${sql.join(
-            areaValues.map(
-              (v) =>
-                sql`(${v.areaId}, ${eventId}, ${showingId}, ${v.areaName}, ${v.price}, NOW(), NOW())`
-            ),
-            sql`, `
-          )}
-        `;
-        await tx.execute(areaInsertSql);
-
-        // Insert all rows at once
-        const rowInsertSql = sql`
-          INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
-          VALUES ${sql.join(
-            areaValues.map(
-              (v) => sql`(${v.rowId}, ${v.areaId}, 'Row 1', NOW(), NOW())`
-            ),
-            sql`, `
-          )}
-        `;
-        await tx.execute(rowInsertSql);
-
-        // Bulk insert seats for each area
-        for (const { rowId, seatCount } of areaValues) {
-          if (seatCount > 0) {
-            const seatValues = Array.from(
-              { length: seatCount },
-              (_, index) =>
-                sql`(${crypto.randomUUID()}, ${rowId}, ${(index + 1).toString()}, NOW(), NOW())`
-            );
-
-            const seatInsertSql = sql`
-              INSERT INTO seats (id, row_id, seat_number, created_at, updated_at)
-              VALUES ${sql.join(seatValues, sql`, `)}
-            `;
-            await tx.execute(seatInsertSql);
-          }
-        }
-      }
-
-      results.push({ showingId, areasCount: areas.length });
-    }
-
-    return results;
-  });
-}
-
-export async function bulkCreateShowingsWithIndividualAreas(
-  eventId: string,
-  showingsData: Array<{
-    showing: {
-      name: string;
-      startTime: Date;
-      endTime: Date;
-      seatMapId?: string;
-    };
-    areas: Array<{
-      name: string;
-      seatCount: number;
-      ticketPrice: number;
-    }>;
-  }>
-) {
-  return db.transaction(async (tx) => {
-    const results = [];
-
-    for (const { showing, areas } of showingsData) {
-      const showingId = crypto.randomUUID();
-
-      // Insert showing
-      await tx.execute(sql`
-        INSERT INTO showings (id, event_id, name, start_time, end_time, seat_map_id, created_at, updated_at)
-        VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.seatMapId || null}, NOW(), NOW())
-      `);
-
-      // Bulk insert areas for this specific showing
-      if (areas.length > 0) {
-        const areaValues = areas.map((area) => {
-          const areaId = crypto.randomUUID();
-          const rowId = crypto.randomUUID();
-
-          return {
-            areaId,
-            rowId,
-            areaName: area.name,
-            price: area.ticketPrice,
-            seatCount: area.seatCount,
-          };
-        });
-
-        // Insert all areas at once
-        const areaInsertSql = sql`
-          INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
-          VALUES ${sql.join(
-            areaValues.map(
-              (v) =>
-                sql`(${v.areaId}, ${eventId}, ${showingId}, ${v.areaName}, ${v.price}, NOW(), NOW())`
-            ),
-            sql`, `
-          )}
-        `;
-        await tx.execute(areaInsertSql);
-
-        // Insert all rows at once
-        const rowInsertSql = sql`
-          INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
-          VALUES ${sql.join(
-            areaValues.map(
-              (v) => sql`(${v.rowId}, ${v.areaId}, 'Row 1', NOW(), NOW())`
-            ),
-            sql`, `
-          )}
-        `;
-        await tx.execute(rowInsertSql);
-
-        // Bulk insert seats for each area
-        for (const { rowId, seatCount } of areaValues) {
-          if (seatCount > 0) {
-            const seatValues = Array.from(
-              { length: seatCount },
-              (_, index) =>
-                sql`(${crypto.randomUUID()}, ${rowId}, ${(index + 1).toString()}, NOW(), NOW())`
-            );
-
-            const seatInsertSql = sql`
-              INSERT INTO seats (id, row_id, seat_number, created_at, updated_at)
-              VALUES ${sql.join(seatValues, sql`, `)}
-            `;
-            await tx.execute(seatInsertSql);
-          }
-        }
-      }
-
-      results.push({ showingId, areasCount: areas.length });
-    }
-
-    return results;
   });
 }
 
@@ -455,7 +489,6 @@ export async function createEventWithShowingsOptimized(
   }>
 ) {
   return db.transaction(async (tx) => {
-    // 1. Create event
     const [createdEvent] = await tx
       .insert(events)
       .values(eventPayload)
@@ -463,17 +496,14 @@ export async function createEventWithShowingsOptimized(
 
     const eventId = createdEvent.id;
 
-    // 2. Create all showings + areas + rows + seats in same transaction
     for (const { showing, areas } of showingsData) {
       const showingId = crypto.randomUUID();
 
-      // Insert showing
       await tx.execute(sql`
         INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
         VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
-      // Bulk insert areas + rows + seats for this showing
       if (areas.length > 0) {
         const areaValues = areas.map((area) => {
           const areaId = crypto.randomUUID();
@@ -488,7 +518,6 @@ export async function createEventWithShowingsOptimized(
           };
         });
 
-        // Insert all areas at once
         const areaInsertSql = sql`
           INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
           VALUES ${sql.join(
@@ -501,7 +530,6 @@ export async function createEventWithShowingsOptimized(
         `;
         await tx.execute(areaInsertSql);
 
-        // Insert all rows at once
         const rowInsertSql = sql`
           INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
           VALUES ${sql.join(
@@ -513,7 +541,6 @@ export async function createEventWithShowingsOptimized(
         `;
         await tx.execute(rowInsertSql);
 
-        // Bulk insert seats for each area
         for (const { rowId, seatCount } of areaValues) {
           if (seatCount > 0) {
             const seatValues = Array.from(
@@ -555,7 +582,6 @@ export async function createEventWithShowingsIndividualOptimized(
   }>
 ) {
   return db.transaction(async (tx) => {
-    // 1. Create event
     const [createdEvent] = await tx
       .insert(events)
       .values(eventPayload)
@@ -563,17 +589,14 @@ export async function createEventWithShowingsIndividualOptimized(
 
     const eventId = createdEvent.id;
 
-    // 2. Create showings with individual area configurations
     for (const { showing, areas } of showingsData) {
       const showingId = crypto.randomUUID();
 
-      // Insert showing
       await tx.execute(sql`
         INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
         VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
-      // Bulk insert areas for this specific showing
       if (areas.length > 0) {
         const areaValues = areas.map((area) => {
           const areaId = crypto.randomUUID();
@@ -588,7 +611,6 @@ export async function createEventWithShowingsIndividualOptimized(
           };
         });
 
-        // Insert all areas at once
         const areaInsertSql = sql`
           INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
           VALUES ${sql.join(
@@ -601,7 +623,6 @@ export async function createEventWithShowingsIndividualOptimized(
         `;
         await tx.execute(areaInsertSql);
 
-        // Insert all rows at once
         const rowInsertSql = sql`
           INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
           VALUES ${sql.join(
@@ -613,7 +634,6 @@ export async function createEventWithShowingsIndividualOptimized(
         `;
         await tx.execute(rowInsertSql);
 
-        // Bulk insert seats for each area
         for (const { rowId, seatCount } of areaValues) {
           if (seatCount > 0) {
             const seatValues = Array.from(
@@ -633,84 +653,6 @@ export async function createEventWithShowingsIndividualOptimized(
     }
 
     return { eventId };
-  });
-}
-
-// Legacy single area support (for backward compatibility)
-export async function createEventWithAreasOptimized(
-  eventPayload: NewEvent,
-  areas: Array<{
-    name: string;
-    seatCount: number;
-    ticketPrice: number;
-  }>
-) {
-  return db.transaction(async (tx) => {
-    // 1. Create event
-    const [createdEvent] = await tx
-      .insert(events)
-      .values(eventPayload)
-      .returning();
-
-    // 2. Create areas directly for event (no showings)
-    if (areas.length > 0) {
-      const areaValues = areas.map((area) => {
-        const areaId = crypto.randomUUID();
-        const rowId = crypto.randomUUID();
-
-        return {
-          areaId,
-          rowId,
-          areaName: area.name,
-          price: area.ticketPrice,
-          seatCount: area.seatCount,
-        };
-      });
-
-      // Insert all areas at once
-      const areaInsertSql = sql`
-        INSERT INTO areas (id, event_id, name, price, created_at, updated_at)
-        VALUES ${sql.join(
-          areaValues.map(
-            (v) =>
-              sql`(${v.areaId}, ${createdEvent.id}, ${v.areaName}, ${v.price}, NOW(), NOW())`
-          ),
-          sql`, `
-        )}
-      `;
-      await tx.execute(areaInsertSql);
-
-      // Insert all rows at once
-      const rowInsertSql = sql`
-        INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
-        VALUES ${sql.join(
-          areaValues.map(
-            (v) => sql`(${v.rowId}, ${v.areaId}, 'Row 1', NOW(), NOW())`
-          ),
-          sql`, `
-        )}
-      `;
-      await tx.execute(rowInsertSql);
-
-      // Bulk insert seats for each area
-      for (const { rowId, seatCount } of areaValues) {
-        if (seatCount > 0) {
-          const seatValues = Array.from(
-            { length: seatCount },
-            (_, index) =>
-              sql`(${crypto.randomUUID()}, ${rowId}, ${(index + 1).toString()}, NOW(), NOW())`
-          );
-
-          const seatInsertSql = sql`
-            INSERT INTO seats (id, row_id, seat_number, created_at, updated_at)
-            VALUES ${sql.join(seatValues, sql`, `)}
-          `;
-          await tx.execute(seatInsertSql);
-        }
-      }
-    }
-
-    return { eventId: createdEvent.id };
   });
 }
 
@@ -735,7 +677,6 @@ export async function updateEventWithShowingsOptimized(
   }>
 ) {
   return db.transaction(async (tx) => {
-    // 1. Update event
     const [updatedEvent] = await tx
       .update(events)
       .set(eventPayload)
@@ -744,7 +685,6 @@ export async function updateEventWithShowingsOptimized(
 
     const eventId = updatedEvent.id;
 
-    // 2. Clean up all old showing data in same transaction
     await tx.execute(sql`
       DELETE FROM seats 
       WHERE row_id IN (
@@ -775,17 +715,14 @@ export async function updateEventWithShowingsOptimized(
       DELETE FROM showings WHERE event_id = ${eventId}
     `);
 
-    // 3. Create new showings + areas + rows + seats in same transaction
     for (const { showing, areas } of showingsData) {
       const showingId = crypto.randomUUID();
 
-      // Insert showing
       await tx.execute(sql`
         INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
         VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
-      // Bulk insert areas + rows + seats for this showing
       if (areas.length > 0) {
         const areaValues = areas.map((area) => {
           const areaId = crypto.randomUUID();
@@ -800,7 +737,6 @@ export async function updateEventWithShowingsOptimized(
           };
         });
 
-        // Insert all areas at once
         const areaInsertSql = sql`
           INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
           VALUES ${sql.join(
@@ -813,7 +749,6 @@ export async function updateEventWithShowingsOptimized(
         `;
         await tx.execute(areaInsertSql);
 
-        // Insert all rows at once
         const rowInsertSql = sql`
           INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
           VALUES ${sql.join(
@@ -825,7 +760,6 @@ export async function updateEventWithShowingsOptimized(
         `;
         await tx.execute(rowInsertSql);
 
-        // Bulk insert seats for each area
         for (const { rowId, seatCount } of areaValues) {
           if (seatCount > 0) {
             const seatValues = Array.from(
@@ -867,7 +801,6 @@ export async function updateEventWithShowingsIndividualOptimized(
   }>
 ) {
   return db.transaction(async (tx) => {
-    // 1. Update event
     const [updatedEvent] = await tx
       .update(events)
       .set(eventPayload)
@@ -876,7 +809,6 @@ export async function updateEventWithShowingsIndividualOptimized(
 
     const eventId = updatedEvent.id;
 
-    // 2. Clean up all old showing data in same transaction
     await tx.execute(sql`
       DELETE FROM seats 
       WHERE row_id IN (
@@ -907,17 +839,14 @@ export async function updateEventWithShowingsIndividualOptimized(
       DELETE FROM showings WHERE event_id = ${eventId}
     `);
 
-    // 3. Create showings with individual area configurations
     for (const { showing, areas } of showingsData) {
       const showingId = crypto.randomUUID();
 
-      // Insert showing
       await tx.execute(sql`
         INSERT INTO showings (id, event_id, name, start_time, end_time, ticket_sale_start, ticket_sale_end, seat_map_id, created_at, updated_at)
         VALUES (${showingId}, ${eventId}, ${showing.name}, ${showing.startTime}, ${showing.endTime}, ${showing.ticketSaleStart || null}, ${showing.ticketSaleEnd || null}, ${showing.seatMapId || null}, NOW(), NOW())
       `);
 
-      // Bulk insert areas for this specific showing
       if (areas.length > 0) {
         const areaValues = areas.map((area) => {
           const areaId = crypto.randomUUID();
@@ -932,7 +861,6 @@ export async function updateEventWithShowingsIndividualOptimized(
           };
         });
 
-        // Insert all areas at once
         const areaInsertSql = sql`
           INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
           VALUES ${sql.join(
@@ -945,7 +873,6 @@ export async function updateEventWithShowingsIndividualOptimized(
         `;
         await tx.execute(areaInsertSql);
 
-        // Insert all rows at once
         const rowInsertSql = sql`
           INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
           VALUES ${sql.join(
@@ -957,7 +884,6 @@ export async function updateEventWithShowingsIndividualOptimized(
         `;
         await tx.execute(rowInsertSql);
 
-        // Bulk insert seats for each area
         for (const { rowId, seatCount } of areaValues) {
           if (seatCount > 0) {
             const seatValues = Array.from(
@@ -982,7 +908,6 @@ export async function updateEventWithShowingsIndividualOptimized(
 
 // ========== OPTIMIZED READ OPERATIONS ==========
 
-// Simple function to check if event has seats data
 export async function checkEventSeatsData(eventId: string) {
   const result = await db.execute(sql`
     SELECT 
@@ -1005,23 +930,6 @@ export async function checkEventSeatsData(eventId: string) {
 }
 
 export async function getEventWithShowingsOptimized(eventId: string) {
-  // Debug query to check current data state
-  const debugResult = await db.execute(sql`
-    SELECT 
-      s.id as showing_id,
-      s.name as showing_name,
-      COUNT(a.id) as areas_count,
-      STRING_AGG(a.name, ', ') as area_names
-    FROM showings s
-    LEFT JOIN areas a ON s.id = a.showing_id
-    WHERE s.event_id = ${eventId}
-    GROUP BY s.id, s.name
-    ORDER BY s.start_time
-  `);
-
-  console.log("Showings and their areas:", debugResult.rows);
-
-  // Main query - only get areas that belong to specific showings
   const result = await db.execute(sql`
     SELECT 
       e.id as event_id,
@@ -1067,18 +975,14 @@ export async function getEventWithShowingsOptimized(eventId: string) {
     ORDER BY s.start_time, a.name
   `);
 
-  console.log("Query result sample:", result.rows.slice(0, 3));
-  console.log("Total rows returned:", result.rows.length);
-
-  // Transform flat result to nested structure
   return transformEventResult(result.rows);
-} // Optimized function specifically for getting events with all details including seats
+}
+
 export async function getEventByIdOptimized(eventId: string) {
   const result = await getEventWithShowingsOptimized(eventId);
   return result ? [result] : [];
 }
 
-// Optimized function for getting multiple events by organizer
 export async function getEventsByOrganizerOptimized(organizerId: string) {
   const result = await db.execute(sql`
     SELECT 
@@ -1125,7 +1029,6 @@ export async function getEventsByOrganizerOptimized(organizerId: string) {
     ORDER BY e.created_at DESC, s.start_time, a.name
   `);
 
-  // Group by event_id to create multiple events
   const eventMap = new Map();
 
   result.rows.forEach((row) => {
@@ -1135,7 +1038,6 @@ export async function getEventsByOrganizerOptimized(organizerId: string) {
     eventMap.get(row.event_id).push(row);
   });
 
-  // Transform each event group
   const events = [];
   for (const [eventId, rows] of eventMap) {
     const transformedEvent = transformEventResult(rows);
@@ -1171,14 +1073,13 @@ function transformEventResult(flatResult: any[]) {
     createdAt: flatResult[0].created_at,
     updatedAt: flatResult[0].updated_at,
     showings: [] as any[],
-    areas: [] as any[], // For backward compatibility
+    areas: [] as any[],
   };
 
   const showingsMap = new Map();
   const allAreas: any[] = [];
 
   flatResult.forEach((row) => {
-    // Create showing if not exists
     if (row.showing_id && !showingsMap.has(row.showing_id)) {
       showingsMap.set(row.showing_id, {
         id: row.showing_id,
@@ -1192,7 +1093,6 @@ function transformEventResult(flatResult: any[]) {
       });
     }
 
-    // Add area to its specific showing
     if (row.area_id && row.area_showing_id) {
       const area = {
         id: row.area_id,
@@ -1203,7 +1103,6 @@ function transformEventResult(flatResult: any[]) {
         showingId: row.area_showing_id,
       };
 
-      // Add to showing
       if (showingsMap.has(row.area_showing_id)) {
         const showing = showingsMap.get(row.area_showing_id);
         const existingInShowing = showing.areas.find(
@@ -1215,7 +1114,6 @@ function transformEventResult(flatResult: any[]) {
         }
       }
 
-      // Add to flat areas array (avoid duplicates)
       const existingInAllAreas = allAreas.find(
         (a: any) => a.id === row.area_id
       );
@@ -1227,19 +1125,6 @@ function transformEventResult(flatResult: any[]) {
 
   event.showings = Array.from(showingsMap.values());
   event.areas = allAreas;
-
-  console.log("Transform result:", {
-    eventName: event.name,
-    showingsCount: event.showings.length,
-    totalAreasCount: event.areas.length,
-    showingBreakdown: event.showings.map((s) => ({
-      showingName: s.name,
-      areasCount: s.areas.length,
-      areaNames: s.areas
-        .map((a: any) => `${a.name}(${a.seatCount} seats)`)
-        .join(", "),
-    })),
-  });
 
   return event;
 }
