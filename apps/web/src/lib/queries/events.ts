@@ -88,12 +88,10 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
 
   return {
     ...event,
-    organizer: event.organizer
-      ? {
-          ...event.organizer,
-          avatar,
-        }
-      : null,
+    organizer: {
+      ...event.organizer,
+      avatar,
+    },
   };
 }
 export async function getFilteredEvents({
