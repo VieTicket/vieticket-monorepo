@@ -211,7 +211,9 @@
       "inspectTicket": "Inspect Ticket"
     },
     "ChatWithAdmin": {
-      "chatWithAdmin": "Chat with Admin"
+      "chatWithAdmin": "Chat with Admin",
+      "chat": "Chat",
+      "your_conversations": "Your conversations"
     },
     "Profile": {
       "profile": "Profile"

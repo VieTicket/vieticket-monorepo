@@ -209,7 +209,9 @@
             "inspectTicket": "Kiểm Tra Vé"
         },
         "ChatWithAdmin": {
-            "chatWithAdmin": "Liên Lạc Với Admin"
+            "chatWithAdmin": "Liên Lạc Với Admin",
+            "chat": "Trò Chuyện",
+            "your_conversations": "Các cuộc trò chuyện của bạn"
         },
         "Profile": {
             "profile": "Hồ Sơ"
