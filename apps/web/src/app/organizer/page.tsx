@@ -4,10 +4,12 @@ import { useEffect, useState } from "react";
 import EventList from "./components/EventList";
 import { fetchCurrentOrganizerEvents } from "@/lib/actions/organizer/fetch-organizer-events";
 import { Event } from "@vieticket/db/pg/schema";
+import { useTranslations } from "next-intl";
 
 export default function OrganizerDashboardPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const t = useTranslations("organizer-dashboard.ListEvent");
 
   const loadEvents = async () => {
     try {
@@ -43,7 +45,7 @@ export default function OrganizerDashboardPage() {
     <main className="p-6 space-y-10">
       <section className="space-y-10">
         <EventList
-          title="All Events"
+          title={t("allEvents")}
           events={events}
           onEventDeleted={handleEventDeleted}
         />
