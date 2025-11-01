@@ -607,9 +607,9 @@ function CreateEventPageInner() {
             }}
             disabled={step === 1}
           >
-            Go back
+             {t("goback")}
           </Button>
-          <Button onClick={handleNextStep}>Save & Continue</Button>
+          <Button onClick={handleNextStep}>{t("saveContinue")}</Button>
         </div>
       )}
 
