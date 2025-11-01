@@ -1,0 +1,179 @@
+@startuml user-settings-class-diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title User Settings System - Class Diagram (VieTicket Application)
+
+class UpdateUserDto {
+    - name: string
+    - dateOfBirth: string?
+    - gender: string?
+    - phone: string?
+    - image: string?
+    - organizerName: string?
+    - website: string?
+    - address: string?
+    - foundedDate: string?
+    - organizerType: string?
+}
+
+class ChangePasswordDto {
+    - oldPassword: string
+    - newPassword: string
+    - confirmPassword: string
+}
+
+class LanguageDto {
+    - locale: string
+    - messages: object
+}
+
+class UpdateUserCommand {
+    - req: UpdateUserDto
+    - userId: Guid
+}
+
+class ChangePasswordCommand {
+    - req: ChangePasswordDto  
+    - userId: Guid
+}
+
+class SetLanguageCommand {
+    - req: LanguageDto
+    - userId: Guid
+}
+
+class UserSettingsController {
+    + GetProfile(id): Task<ActionResult>
+    + UpdateProfile(UpdateUserDto dto): Task<ActionResult>
+    + ChangePassword(ChangePasswordDto dto): Task<ActionResult>
+    + SetLanguage(LanguageDto dto): Task<ActionResult>
+}
+
+class UpdateUserHandler {
+    + Handle(UpdateUserCommand request, CancellationToken cancellationToken): Task<Result>
+    + ApplyChanges(UpdateUserDto dto, User entity): Task
+}
+
+class ChangePasswordHandler {
+    + Handle(ChangePasswordCommand request, CancellationToken cancellationToken): Task<Result>
+    + ValidateOldPassword(string oldPassword, User entity): bool
+    + HashNewPassword(string newPassword): string
+}
+
+class SetLanguageHandler {
+    + Handle(SetLanguageCommand request, CancellationToken cancellationToken): Task<Result>
+    + UpdateUserPreferences(LanguageDto dto, User entity): Task
+}
+
+class GetUserByIdHandler {
+    + Handle(GetUserByIdCommand request, CancellationToken cancellationToken): Task<Result>
+    + ApplyChanges(UpdateUserDto dto, User entity): Task
+}
+
+class User {
+    - id: Guid
+    - name: string
+    - email: string
+    - dateOfBirth: DateTime?
+    - gender: string?
+    - phone: string?
+    - password: string
+    - image: string?
+    - role: Role
+    - createdAt: DateTime
+    - updatedAt: DateTime
+    - organizerId: Guid?
+    + SetName(string name): void
+    + SetDateOfBirth(DateTime? dateOfBirth): void
+    + SetGender(string? gender): void
+    + SetPhone(string? phone): void
+    + SetImage(string? image): void
+    + SetPassword(string password): void
+    + ValidatePassword(string password): bool
+}
+
+class Organizer {
+    - id: Guid
+    - userId: Guid
+    - name: string
+    - website: string?
+    - address: string?
+    - foundedDate: DateTime?
+    - organizerType: string?
+    - isActive: bool
+    - rejectionReason: string?
+    - rejectionSeen: bool
+    + SetName(string name): void
+    + SetWebsite(string? website): void
+    + SetAddress(string? address): void
+    + SetFoundedDate(DateTime? foundedDate): void
+    + SetOrganizerType(string? organizerType): void
+    + MarkRejectionAsSeen(): void
+}
+
+class UserPreference {
+    - userId: Guid
+    - language: string
+    - theme: string?
+    - notifications: bool
+    + SetLanguage(string language): void
+    + SetTheme(string? theme): void
+    + SetNotifications(bool notifications): void
+}
+
+class UserOverviewModel {
+    - id: Guid
+    - email: string
+    - name: string
+    - dateOfBirth: DateTime?
+    - image: string?
+    - role: Role
+    - organizer: OrganizerModel?
+    - preferences: UserPreference?
+}
+
+class OrganizerModel {
+    - id: Guid
+    - name: string
+    - website: string?
+    - address: string?
+    - foundedDate: DateTime?
+    - organizerType: string?
+    - isActive: bool
+    - rejectionReason: string?
+    - rejectionSeen: bool
+}
+
+' Controllers to Commands
+UserSettingsController --> UpdateUserCommand : creates
+UserSettingsController --> ChangePasswordCommand : creates
+UserSettingsController --> SetLanguageCommand : creates
+
+' Commands to DTOs
+UpdateUserCommand --> UpdateUserDto : contains
+ChangePasswordCommand --> ChangePasswordDto : contains
+SetLanguageCommand --> LanguageDto : contains
+
+' Controllers to Handlers
+UserSettingsController --> UpdateUserHandler : uses
+UserSettingsController --> ChangePasswordHandler : uses
+UserSettingsController --> SetLanguageHandler : uses
+UserSettingsController --> GetUserByIdHandler : uses
+
+' Handlers to Entities
+UpdateUserHandler --> User : modifies
+UpdateUserHandler --> Organizer : modifies
+ChangePasswordHandler --> User : modifies
+SetLanguageHandler --> UserPreference : modifies
+GetUserByIdHandler --> UserOverviewModel : returns
+
+' Entity Relationships
+User --> Organizer : has one
+User --> UserPreference : has one
+UserOverviewModel --> OrganizerModel : contains
+UserOverviewModel --> UserPreference : contains
+
+@enduml

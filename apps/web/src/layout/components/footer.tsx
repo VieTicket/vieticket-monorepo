@@ -2,6 +2,7 @@
 
 import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 import { useTranslations } from "next-intl";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 export default function Footer() {
   const t = useTranslations("footer");
@@ -40,12 +41,17 @@ export default function Footer() {
               {section.links.map((link, i) => (
                 <li key={i} className="flex items-center gap-2">
                   {section.icons && section.icons[i]}
-                  <div className=" cursor-pointer">{link}</div>
+                  <div className=" cursor-pointer">{link}
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
+          
         ))}
+        <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
+          <LanguageSwitcher />
+        </div>
       </div>
       <div className="border-t border-gray-600 mt-12 pt-4 text-center text-sm text-gray-400">
         © 2025 VieTicket. All rights reserved.

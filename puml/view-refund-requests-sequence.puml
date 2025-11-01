@@ -1,0 +1,89 @@
+@startuml view-refund-requests-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Refund Requests Sequence Diagram - VieTicket Application
+
+actor Admin as A
+participant "Browser\n/admin/refunds" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "RefundsPage\nComponent" as RefundsPage
+participant "RefundService\n(Future Implementation)" as RefundService
+participant "RefundRepository\n(Future Implementation)" as RefundRepo
+participant "Database\n(Refunds Table)" as DB
+
+note over A, DB: Admin wants to view refund requests\n(Currently showing placeholder UI)
+
+A -> Browser : Navigate to /admin/refunds
+activate Browser
+Browser -> NextJS : GET /admin/refunds
+activate NextJS
+
+NextJS -> RefundsPage : Render refunds page
+activate RefundsPage
+
+note over RefundsPage: Current Implementation:\n- Static page with placeholder\n- Shows refund management interface\nwill be implemented here
+
+RefundsPage --> NextJS : Rendered placeholder page
+deactivate RefundsPage
+
+NextJS --> Browser : HTML with refund management placeholder
+deactivate NextJS
+
+Browser --> A : Display refunds page\nwith implementation notice
+deactivate Browser
+
+note over A, DB: FUTURE IMPLEMENTATION
+
+A -> Browser : Navigate to /admin/refunds (enhanced)
+activate Browser
+Browser -> NextJS : GET /admin/refunds
+activate NextJS
+
+NextJS -> RefundsPage : Render enhanced refunds page
+activate RefundsPage
+
+RefundsPage -> RefundService : getRefundRequests(page, limit, status)
+activate RefundService
+
+RefundService -> RefundRepo : findRefundRequests({offset, limit, status})
+activate RefundRepo
+
+RefundRepo -> DB : SELECT refunds JOIN orders JOIN events\nWHERE status IN requested or pending\nORDER BY requested_at DESC
+activate DB
+DB --> RefundRepo : Array of refund requests
+deactivate DB
+
+RefundRepo --> RefundService : Refund requests with order/event info
+deactivate RefundRepo
+
+RefundService --> RefundsPage : {data: RefundRequest[], totalPages}
+deactivate RefundService
+
+note over RefundsPage: Display refund requests table with\nOrder ID, Customer name, Event name,\nRefund amount, Request date, Status\nand Approve/Reject actions
+
+RefundsPage --> NextJS : Rendered refunds management interface
+deactivate RefundsPage
+
+NextJS --> Browser : HTML with refund requests table
+deactivate NextJS
+
+Browser --> A : Display comprehensive refund\nmanagement interface
+deactivate Browser
+
+alt Admin approves refund
+    A -> Browser : Click "Approve" button
+    note over Browser: Process refund approval
+else Admin rejects refund
+    A -> Browser : Click "Reject" button
+    note over Browser: Process refund rejection
+else Admin filters by status
+    A -> Browser : Select status filter
+    note over Browser: Reload with filtered data
+end
+
+note over A, DB: Refund requests interface ready for implementation
+
+@enduml

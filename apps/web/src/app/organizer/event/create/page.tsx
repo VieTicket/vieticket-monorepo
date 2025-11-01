@@ -29,6 +29,7 @@ import type {
   UploadResponse,
 } from "../../../../types/event-types";
 import { ShowingFormData } from "@/types/showings";
+import { useTranslations } from "next-intl";
 
 export default function CreateEventPage() {
   return (
@@ -79,6 +80,7 @@ function CreateEventPageInner() {
       endTime: "",
     },
   ]);
+  const t = useTranslations("organizer-dashboard.CreateEvent");
 
   // Load event data for editing
   useEffect(() => {
@@ -492,7 +494,7 @@ function CreateEventPageInner() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">
-        {eventId ? "Edit Event" : "Create a New Event"}
+        {eventId ? t("editEvent") : t("createEvent")}
       </h1>
 
       <StepProgressBar step={step} />
@@ -507,15 +509,15 @@ function CreateEventPageInner() {
             {eventId && hasSeatMapChanges && (
               <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
                 <h4 className="font-medium text-orange-800 mb-2">
-                  ⚠️ Seat Map Update Required
+                  {t("seatMapUpdateRequired")}
                 </h4>
                 <p className="text-sm text-orange-700 mb-3">
-                  You have made changes to the seating configuration. This will:
+                  {t("text1")}
                 </p>
                 <ul className="text-sm text-orange-700 mb-4 list-disc list-inside space-y-1">
-                  <li>Delete all existing seat assignments and bookings</li>
-                  <li>Recreate the entire seating structure</li>
-                  <li>This operation cannot be undone</li>
+                  <li>{t("text2")}</li>
+                  <li>{t("text3")}</li>
+                  <li>{t("text4")}</li>
                 </ul>
                 <div className="flex items-center space-x-2">
                   <input
@@ -529,7 +531,7 @@ function CreateEventPageInner() {
                     htmlFor="confirmSeatMapUpdate"
                     className="text-sm text-orange-800"
                   >
-                    I understand and confirm the seat map update
+                    {t("text5")}
                   </label>
                 </div>
               </div>
@@ -537,7 +539,7 @@ function CreateEventPageInner() {
 
             <div className="flex justify-end mt-8 space-x-4">
               <Button variant="outline" onClick={() => setStep(step - 1)}>
-                Go back
+                {t("goback")}
               </Button>
 
               <Button
@@ -552,11 +554,11 @@ function CreateEventPageInner() {
               >
                 {isPending
                   ? eventId
-                    ? "Updating..."
-                    : "Creating..."
+                    ? t("updating")
+                    : t("creating")
                   : eventId
-                    ? "Update Event"
-                    : "🎉 Create Event"}
+                    ? t("updateEvent")
+                    : t("createEventt")}
               </Button>
             </div>
           </div>
@@ -570,7 +572,7 @@ function CreateEventPageInner() {
             onClick={() => setStep(step - 1)}
             disabled={step === 1}
           >
-            Go back
+            {t("goback")}
           </Button>
           <Button
             onClick={() => {
@@ -605,7 +607,7 @@ function CreateEventPageInner() {
               setStep(step + 1);
             }}
           >
-            Save & Continue
+            {t("saveandcontinue")}
           </Button>
         </div>
       )}

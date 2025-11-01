@@ -1,0 +1,184 @@
+@startuml Event System Class Diagram
+
+!define LIGHTYELLOW #FFFDD0
+!define LIGHTBLUE #E6F3FF
+!define LIGHTGREEN #E8F5E8
+!define LIGHTPINK #FFE6F0
+!define LIGHTGRAY #F5F5F5
+
+' UI Layer - Pages and Components
+package "UI Layer" LIGHTYELLOW {
+  class EventsPage {
+    + SearchBar: Component
+    + FilteredClientGrid: Component
+    + render(): JSX.Element
+  }
+
+  class FilteredClientGrid {
+    - searchParams: URLSearchParams
+    - price: string
+    - date: string
+    - location: string
+    - category: string
+    - q: string
+    + useInfiniteQuery(): EventPage[]
+    + handleFilterChange(key, value): void
+    + fetchNextPage(): void
+    + EventFiltersSidebar: Component
+    + StaticFilteredEventGrid: Component
+  }
+
+  class EventFiltersSidebar {
+    - selectedPriceRange: string
+    - selectedDate: string
+    - selectedLocation: string
+    - selectedCategory: string
+    + onChange(key, value): void
+    + fetchProvinces(): string[]
+  }
+
+  class StaticFilteredEventGrid {
+    - events: EventSummary[]
+    + EventCard: Component[]
+    + render(): JSX.Element
+  }
+
+  class EventCard {
+    - event: EventSummary
+    + onClick(): void
+    + render(): JSX.Element
+  }
+
+  class PreviewEvent {
+    - eventData: EventPreviewData
+    + render(): JSX.Element
+  }
+
+  class SearchBar {
+    - query: string
+    + onSearch(query): void
+  }
+}
+
+' API Layer
+package "API Layer" LIGHTBLUE {
+  class EventsAPI {
+    + GET(req: Request): Response
+    - parseSearchParams(): EventFilters
+    - normalize(str): string
+    + getFilteredEvents(filters): EventPage
+  }
+}
+
+
+
+' Repository Layer
+package "Repository Layer" LIGHTPINK {
+  class EventQueries {
+    + getEventBySlug(slug): EventFull | null
+    + getFilteredEvents(filters): EventSummary[]
+    + getEventSummaries(options): EventSummaryResponse
+    + incrementEventView(eventId): void
+  }
+
+  class EventMutations {
+    + createEvent(event): Event[]
+    + updateEventById(id, data): Event[]
+    + createArea(area): Area[]
+    + createShowing(showing): Showing[]
+  }
+}
+
+' Database Layer
+package "Database Layer" LIGHTGRAY {
+  class EventsTable {
+    + id: string
+    + name: string
+    + slug: string
+    + description: string
+    + location: string
+    + type: string
+    + startTime: Date
+    + endTime: Date
+    + bannerUrl: string
+    + views: number
+    + approvalStatus: string
+    + organizerId: string
+  }
+
+  class AreasTable {
+    + id: string
+    + eventId: string
+    + name: string
+    + price: number
+    + seatCount: number
+  }
+}
+
+' Types
+package "Types" LIGHTGRAY {
+  class EventSummary {
+    + id: string
+    + name: string
+    + slug: string
+    + location: string
+    + startTime: Date
+    + endTime: Date
+    + typicalTicketPrice: number
+    + bannerUrl: string
+    + views: number
+  }
+
+  class EventFull {
+    + id: string
+    + name: string
+    + slug: string
+    + description: string
+    + location: string
+    + areas: Area[]
+    + showings: Showing[]
+    + organizer: Organizer
+  }
+
+  class EventFilters {
+    + page: number
+    + limit: number
+    + price: string
+    + date: string
+    + location: string
+    + category: string
+    + q: string
+  }
+}
+
+' Main Flow Relationships
+EventsPage --> FilteredClientGrid : contains
+EventsPage --> SearchBar : contains
+
+FilteredClientGrid --> EventFiltersSidebar : contains
+FilteredClientGrid --> StaticFilteredEventGrid : contains
+FilteredClientGrid --> EventsAPI : fetches from
+StaticFilteredEventGrid --> EventCard : renders
+
+EventsAPI --> EventQueries : uses
+EventService --> EventQueries : uses
+EventService --> EventMutations : uses
+
+EventQueries --> EventsTable : queries
+EventQueries --> AreasTable : queries
+EventMutations --> EventsTable : modifies
+
+' Data Flow
+EventQueries ..> EventSummary : returns
+EventQueries ..> EventFull : returns
+EventService ..> EventFull : returns
+EventsAPI ..> EventSummary : returns
+FilteredClientGrid ..> EventFilters : uses
+PreviewEvent ..> EventFull : uses
+
+note top of EventsPage : "Main events listing page\n/events - with search & filters"
+note top of FilteredClientGrid : "Client-side filtering with\ninfinite scroll pagination"
+note top of EventsAPI : "REST API endpoint\n/api/events - handles all filters"
+note top of EventQueries : "Data access layer\nfor read operations"
+
+@enduml

@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import EventFiltersSidebar from "@/components/events/eventfilters-sidebar";
 import StaticFilteredEventGrid from "@/components/events/static-filtered-event-grid";
 import { EventSummary } from "@/lib/queries/events";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 interface EventPage {
   events: EventSummary[];
@@ -21,6 +23,7 @@ export default function FilteredClientGrid() {
   const location = searchParams.get("location") || "all";
   const category = searchParams.get("category") || "all";
   const q = searchParams.get("q") || "";
+  const t = useTranslations("event-sidebar");
 
   const {
     data,
@@ -89,13 +92,14 @@ export default function FilteredClientGrid() {
             
             {hasNextPage && (
               <div className="text-center">
-                <button
-                  onClick={() => fetchNextPage()}
+                <Button
+            onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  variant="outline"
+                  size="lg"
                 >
-                  {isFetchingNextPage ? "Loading..." : "See more"}
-                </button>
+                  {isFetchingNextPage ? "Loading..." : t("seeMore")}
+                </Button>
               </div>
             )}
           </>
