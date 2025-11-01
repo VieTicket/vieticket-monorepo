@@ -21,6 +21,7 @@ import { GENDER_VALUES } from "@vieticket/db/pg/schema";
 import { Camera, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { ChangeEvent, useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { FileUploader } from "../ui/file-uploader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
@@ -108,6 +109,7 @@ function SelectField({
 }
 
 export function AccountForm() {
+  const t = useTranslations("organizer-dashboard.Profile");
   const { data: session } = authClient.useSession();
   const [loading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
@@ -193,7 +195,7 @@ export function AccountForm() {
           }
         } catch (error) {
           console.error("Error fetching profile:", error);
-          toast.error("Failed to load profile data");
+          toast.error(t("toasts.loadFailed"));
 
           // Fallback to session data
           setName(session.user.name || "");
@@ -214,7 +216,7 @@ export function AccountForm() {
     const result = await uploadAvatarAction(url);
     if (result.success) {
       setImagePreview(url);
-      toast.success("Avatar updated!");
+  toast.success(t("toasts.avatarUpdated"));
     } else {
       toast.error(result.message);
     }
@@ -258,15 +260,16 @@ export function AccountForm() {
         const result = await updateProfileAction(formData);
 
         if (result.success) {
-          toast.success(result.message);
+    // Prefer server message if available, otherwise use generic localized message
+    toast.success(result.message || t("toasts.saveSuccess"));
           // Reset the image file after successful save
           setImageFile(null);
         } else {
-          toast.error(result.message);
+    toast.error(result.message || t("toasts.saveFailed"));
         }
       } catch (error) {
         console.error("Error saving profile:", error);
-        toast.error("Failed to save profile");
+  toast.error(t("toasts.saveFailed"));
       }
     });
   };
@@ -277,7 +280,7 @@ export function AccountForm() {
 
       if (result.success) {
         setShowRejectionModal(false);
-        toast.success("Rejection notification marked as seen");
+  toast.success(t("rejection.markedSeen"));
       } else {
         console.error("Failed to mark rejection as seen:", result.error);
         // Still close the modal even if the API call fails
@@ -302,7 +305,7 @@ export function AccountForm() {
     return (
       <div className="flex justify-center items-center h-40">
         <Loader2 className="w-8 h-8 animate-spin text-slate-500" />
-        <span className="ml-2 text-slate-500">Loading profile...</span>
+        <span className="ml-2 text-slate-500">{t("loadingProfile")}</span>
       </div>
     );
   }
@@ -320,31 +323,20 @@ export function AccountForm() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-600">
-              Application Rejected
-            </DialogTitle>
-            <DialogDescription>
-              Your organizer application has been reviewed and unfortunately was
-              not approved.
-            </DialogDescription>
+            <DialogTitle className="text-red-600">{t("rejection.title")}</DialogTitle>
+            <DialogDescription>{t("rejection.description")}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h4 className="font-medium text-red-800 mb-2">
-                Reason for rejection:
-              </h4>
+              <h4 className="font-medium text-red-800 mb-2">{t("rejection.reasonTitle")}</h4>
               <p className="text-red-700">{rejectionReason}</p>
             </div>
             <div className="mt-4 text-sm text-gray-600">
-              <p>
-                You can update your application information below and resubmit,
-                or contact our support team if you have questions about this
-                decision.
-              </p>
+              <p>{t("rejection.helpText")}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleRejectionModalClose}>I Understand</Button>
+            <Button onClick={handleRejectionModalClose}>{t("rejection.button")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -370,16 +362,14 @@ export function AccountForm() {
                 isOrganizerActive ? "text-green-800" : "text-orange-800"
               }
             >
-              {isOrganizerActive
-                ? "Your organizer account is active and approved!"
-                : "Your organizer account is pending approval. Please complete all required fields below and wait for admin approval to access organizer features."}
+              {isOrganizerActive ? t("organizerStatus.active") : t("organizerStatus.pending")}
             </AlertDescription>
           </Alert>
         )}
 
       {/* Profile Photo Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">Profile Photo</h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-4">{t("photo.title")}</h3>
         <div className="flex items-center gap-4">
           <Avatar className="w-28 h-28">
             <AvatarImage src={imagePreview ?? undefined} alt={name} />
@@ -393,7 +383,7 @@ export function AccountForm() {
           </Avatar>
           <FileUploader
             mode="button"
-            buttonLabel="Upload New Avatar"
+            buttonLabel={t("photo.uploadButton")}
             folder="avatars"
             onUploadSuccess={handleAvatarUpload}
           />
@@ -402,36 +392,34 @@ export function AccountForm() {
 
       {/* Personal Information Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">
-          Personal Information
-        </h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-4">{t("personalInfo.title")}</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             id="name"
-            label="Full Name:"
-            placeholder="Enter full name"
+            label={t("labels.fullName")}
+            placeholder={t("placeholders.fullName")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
           <FormField
             id="email"
-            label="Email:"
-            placeholder="Email"
+            label={t("labels.email")}
+            placeholder={t("placeholders.email")}
             value={session.user.email}
             disabled
           />
           <FormField
             id="dateOfBirth"
-            label="Date of Birth:"
-            placeholder="YYYY-MM-DD"
+            label={t("labels.dateOfBirth")}
+            placeholder={t("placeholders.dateOfBirth")}
             type="date"
             value={dateOfBirth}
             onChange={(e) => setDateOfBirth(e.target.value)}
           />
           <SelectField
             id="gender"
-            label="Gender:"
-            placeholder="Select gender"
+            label={t("labels.gender")}
+            placeholder={t("placeholders.gender")}
             options={GENDER_VALUES}
             value={gender}
             onValueChange={setGender}
@@ -441,18 +429,13 @@ export function AccountForm() {
 
       {/* Contact Details Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">
-          Contact Details
-        </h3>
-        <p className="text-sm text-slate-500 mb-4">
-          These details are private and only used to contact you for ticketing
-          or prizes.
-        </p>
+        <h3 className="text-xl font-bold text-slate-800 mb-2">{t("contact.title")}</h3>
+        <p className="text-sm text-slate-500 mb-4">{t("contact.description")}</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             id="phone"
-            label="Phone Number:"
-            placeholder="Enter phone number"
+            label={t("labels.phone")}
+            placeholder={t("placeholders.phone")}
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
           />
@@ -463,46 +446,44 @@ export function AccountForm() {
       {session.user.role === "organizer" && (
         <section>
           <h3 className="text-xl font-bold text-slate-800 mb-2">
-            Organizer Details
+            {t("organizerDetails.title")}
             <span className="text-red-500 ml-1">*</span>
           </h3>
-          <p className="text-sm text-slate-500 mb-4">
-            Complete all fields below to submit for admin approval.
-          </p>
+          <p className="text-sm text-slate-500 mb-4">{t("organizerDetails.description")}</p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               id="organizerName"
-              label="Organizer Name:"
-              placeholder="Enter organizer name"
+              label={t("organizerDetails.organizerName")}
+              placeholder={t("placeholders.organizerName")}
               value={organizerName}
               onChange={(e) => setOrganizerName(e.target.value)}
             />
             <FormField
               id="website"
-              label="Website:"
-              placeholder="https://example.com"
+              label={t("organizerDetails.website")}
+              placeholder={t("placeholders.website")}
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
             />
             <FormField
               id="address"
-              label="Address:"
-              placeholder="Enter address"
+              label={t("organizerDetails.address")}
+              placeholder={t("placeholders.address")}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
             />
             <FormField
               id="foundedDate"
-              label="Founded Date:"
-              placeholder="YYYY-MM-DD"
+              label={t("organizerDetails.foundedDate")}
+              placeholder={t("placeholders.foundedDate")}
               type="date"
               value={foundedDate}
               onChange={(e) => setFoundedDate(e.target.value)}
             />
             <FormField
               id="organizerType"
-              label="Organizer Type:"
-              placeholder="e.g. Entertainment, Cultural"
+              label={t("organizerDetails.organizerType")}
+              placeholder={t("placeholders.organizerType")}
               value={organizerType}
               onChange={(e) => setOrganizerType(e.target.value)}
             />
@@ -520,8 +501,8 @@ export function AccountForm() {
         >
           {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           {session?.user.role === "organizer" && !isOrganizerActive
-            ? "Submit for Approval"
-            : "Save My Profile"}
+            ? t("buttons.submitForApproval")
+            : t("buttons.saveProfile")}
         </Button>
       </div>
     </div>
