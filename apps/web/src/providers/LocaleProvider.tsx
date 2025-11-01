@@ -22,6 +22,8 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     localStorage.setItem("locale", locale);
+    // Set cookie for server-side components
+    document.cookie = `locale=${locale}; path=/; max-age=31536000`; // 1 year
     setMessages(getMessages(locale));
   }, [locale]);
 
