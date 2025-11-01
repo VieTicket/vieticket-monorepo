@@ -59,8 +59,9 @@ function CreateEventPageInner() {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("id");
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [areas, setAreas] = useState<Area[]>([
-    { name: "Area A", seatCount: "", ticketPrice: "" },
+    { name: t("areaA"), seatCount: "", ticketPrice: "" },
   ]);
   const [ticketingMode, setTicketingMode] = useState<TicketingMode>("simple");
   const [selectedSeatMap, setSelectedSeatMap] = useState<string>("");
@@ -74,13 +75,12 @@ function CreateEventPageInner() {
   const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
   const [showings, setShowings] = useState<ShowingWithAreas[]>([
     {
-      name: "Main Showing",
+      name: t("mainShowing"),
       startTime: "",
       endTime: "",
       areas: [],
     },
   ]);
-  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
@@ -210,7 +210,7 @@ function CreateEventPageInner() {
         setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
         console.error("❌ Error loading event:", error);
-        toast.error("Failed to load event data");
+        toast.error(t("toasts.failedLoadEvent"));
       }
     };
 
@@ -232,12 +232,12 @@ function CreateEventPageInner() {
   // Media upload handlers
   const handlePosterUpload = (response: UploadResponse) => {
     setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
-    toast.success("Poster uploaded successfully!");
+    toast.success(t("toasts.posterUploaded"));
   };
 
   const handleBannerUpload = (response: UploadResponse) => {
     setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
-    toast.success("Banner uploaded successfully!");
+    toast.success(t("toasts.bannerUploaded"));
   };
 
   // Seat map selection handler
@@ -247,7 +247,7 @@ function CreateEventPageInner() {
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 
-      if (result.success && result.data) {
+  if (result.success && result.data) {
         const enrichedSeatMap: SeatMapData = {
           ...seatMap,
           grids: result.data.gridData?.grids || [],
@@ -260,16 +260,21 @@ function CreateEventPageInner() {
         setSeatMapPreviewData(result.data.preview);
         setShowSeatMapModal(false);
 
-        toast.success(`Selected seat map: ${enrichedSeatMap.name}`, {
-          description: `${result.data.preview.totalSeats} seats in ${result.data.preview.areas.length} areas`,
+        toast.success(
+          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name })
+        , {
+          description: t("toasts.selectedSeatMapDesc", {
+            totalSeats: result.data.preview.totalSeats,
+            areasCount: result.data.preview.areas.length,
+          }),
         });
       } else {
         console.error("❌ Failed to load seat map data:", result.error);
-        toast.error(result.error || "Failed to load seat map details");
+        toast.error(result.error || t("toasts.failedLoadSeatMap"));
       }
     } catch (error) {
       console.error("❌ Error processing seat map:", error);
-      toast.error("An error occurred while loading the seat map");
+      toast.error(t("toasts.seatMapLoadError"));
     }
   };
 
@@ -300,25 +305,23 @@ function CreateEventPageInner() {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
-      newErrors.name = "Event name is required";
+      newErrors.name = t("errors.nameRequired");
     }
     if (!formData.location.trim()) {
-      newErrors.location = "Location is required";
+      newErrors.location = t("errors.locationRequired");
     }
     if (!formData.description.trim()) {
-      newErrors.description = "Description is required";
+      newErrors.description = t("errors.descriptionRequired");
     }
     if (showings.length === 0 || !showings[0].startTime) {
-      newErrors.showings = "At least one showing with start time is required";
+      newErrors.showings = t("errors.showingRequired");
     }
 
     if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
-      newErrors.maxTicketsByOrder =
-        "Maximum tickets per order must be at least 1";
+      newErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
     }
     if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
-      newErrors.maxTicketsByOrder =
-        "Maximum tickets per order cannot exceed 20";
+      newErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
     }
 
     setErrors(newErrors);
@@ -332,7 +335,7 @@ function CreateEventPageInner() {
   const handleNextStep = () => {
     if (step === 1) {
       if (!validateStep1()) {
-        toast.error("Please fix the errors before continuing");
+        toast.error(t("pleaseFixErrors"));
         return;
       }
     }
@@ -383,7 +386,7 @@ function CreateEventPageInner() {
     e.preventDefault();
 
     if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
-      toast.error("Please confirm seat map update to proceed.");
+      toast.error(t("confirmSeatMapUpdate"));
       return;
     }
 
@@ -433,7 +436,7 @@ function CreateEventPageInner() {
       try {
         if (eventId) {
           await handleUpdateEvent(form);
-          toast.success("✅ Event updated successfully!");
+          toast.success(t("toasts.eventUpdated"));
         } else {
           const eventResult = await handleCreateEvent(form);
 
@@ -442,15 +445,15 @@ function CreateEventPageInner() {
             selectedSeatMap &&
             eventResult?.eventId
           ) {
-            toast.success("🎉 Event and seat map created successfully!");
+            toast.success(t("toasts.eventAndSeatMapCreated"));
           } else {
-            toast.success("🎉 Event created successfully!");
+            toast.success(t("toasts.eventCreated"));
           }
         }
 
         router.push("/organizer");
       } catch (err) {
-        toast.error("Something went wrong while creating the event.");
+        toast.error(t("toasts.createEventFailed"));
         console.error(err);
       }
     });
@@ -479,7 +482,7 @@ function CreateEventPageInner() {
             onPosterUpload={handlePosterUpload}
             onBannerUpload={handleBannerUpload}
             onUploadError={(error: Error) =>
-              toast.error(`Upload failed: ${error.message}`)
+              toast.error(t("toasts.uploadFailed", { message: error.message }))
             }
             onPosterRemove={() =>
               setFormData((prev) => ({ ...prev, posterUrl: "" }))
@@ -609,7 +612,7 @@ function CreateEventPageInner() {
           >
              {t("goback")}
           </Button>
-          <Button onClick={handleNextStep}>{t("saveContinue")}</Button>
+          <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
         </div>
       )}
 

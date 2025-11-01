@@ -193,7 +193,74 @@
       "creating": "Creating...",
       "updateEvent": "Update Event",
       "createEventt": "🎉 Create a New Event",
-      "saveandcontinue": "Save & Continue"
+      "saveandcontinue": "Save & Continue",
+
+      "areaA": "Area A",
+      "mainShowing": "Main Showing",
+
+      "pleaseFixErrors": "Please fix the errors before continuing",
+      "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
+
+      "errors": {
+        "nameRequired": "Event name is required",
+        "locationRequired": "Location is required",
+        "descriptionRequired": "Description is required",
+        "showingRequired": "At least one showing with start time is required",
+        "maxTicketsMin": "Maximum tickets per order must be at least 1",
+        "maxTicketsMax": "Maximum tickets per order cannot exceed 20"
+      },
+
+      "toasts": {
+        "failedLoadEvent": "Failed to load event data",
+        "posterUploaded": "Poster uploaded successfully!",
+        "bannerUploaded": "Banner uploaded successfully!",
+        "selectedSeatMap": "Selected seat map: {name}",
+        "selectedSeatMapDesc": "{totalSeats} seats in {areasCount} areas",
+        "failedLoadSeatMap": "Failed to load seat map details",
+        "seatMapLoadError": "An error occurred while loading the seat map",
+        "uploadFailed": "Upload failed: {message}",
+        "eventUpdated": "✅ Event updated successfully!",
+        "eventAndSeatMapCreated": "🎉 Event and seat map created successfully!",
+        "eventCreated": "🎉 Event created successfully!",
+        "createEventFailed": "Something went wrong while creating the event."
+      }
+      ,
+      "steps": {
+        "edit": "Edit",
+        "banner": "Banner",
+        "preview": "Preview",
+        "ticketing": "Ticketing"
+      },
+      "labels": {
+        "eventTitle": "Event Title",
+        "eventCategory": "Event Category",
+        "location": "Where will your event take place?",
+        "maxTicketsPerOrder": "Maximum Tickets per Order"
+      },
+      "categories": {
+        "workshop": "Workshop",
+        "concert": "Concert",
+        "webinar": "Webinar",
+        "music": "Music",
+        "sports": "Sports",
+        "art": "Art",
+        "comedy": "Comedy",
+        "food": "Food",
+        "conference": "Conference"
+      },
+      "ticketSale": {
+        "title": "Ticket Sale Schedule",
+        "description": "Ticket sale dates are automatically calculated based on your showings:",
+        "saleStarts": "Sale starts: 7 days before the earliest showing",
+        "saleEnds": "Sale ends: 1 hour before the earliest showing",
+        "note": "Individual showings can have their own ticket sale schedules in the next step."
+      },
+      "placeholders": {
+        "example5": "e.g., 5"
+      },
+      "help": {
+        "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
+      }
     },
     "SeatMap": {
       "seatMap": "SeatMap"

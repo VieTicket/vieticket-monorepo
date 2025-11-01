@@ -160,7 +160,7 @@
             "revenue": "Doanh Thu",
             "organizerOverview": "Tổng Quan Nhà Tổ Chức",
             "totalRevenue": "Tổng Doanh Thu",
-            "actual(-20%)": "Thực Tế (-20%)",        
+            "actual(-20%)": "Thực Tế (-20%)",
             "totalEvents": "Tổng Số Sự Kiện",
             "ticketsSold": "Vé Đã Bán",
             "featuredEvent": "Sự Kiện Nổi Bật",
@@ -178,6 +178,8 @@
             "status": "Trạng Thái"
         },
         "CreateEvent": {
+            "eventDetails": "Chi Tiết Sự Kiện",
+            "seatMap": "Sơ Đồ Chỗ Ngồi",
             "createEvent": "Tạo Sự Kiện",
             "editEvent": "Chỉnh Sửa Sự Kiện",
             "seatMapUpdateRequired": "⚠️ Cần Cập Nhật Sơ Đồ Chỗ Ngồi",
@@ -191,7 +193,69 @@
             "creating": "Đang Tạo...",
             "updateEvent": "Cập Nhật Sự Kiện",
             "createEventt": "🎉 Tạo Sự Kiện Mới",
-            "saveandcontinue": "Lưu & Tiếp Tục"
+            "saveandcontinue": "Lưu & Tiếp Tục",
+            "areaA": "Khu vực A",
+            "mainShowing": "Buổi chiếu chính",
+            "pleaseFixErrors": "Vui lòng sửa các lỗi trước khi tiếp tục",
+            "confirmSeatMapUpdate": "Vui lòng xác nhận cập nhật sơ đồ chỗ ngồi để tiếp tục.",
+            "errors": {
+                "nameRequired": "Tên sự kiện là bắt buộc",
+                "locationRequired": "Địa điểm là bắt buộc",
+                "descriptionRequired": "Mô tả là bắt buộc",
+                "showingRequired": "Ít nhất một buổi chiếu có thời gian bắt đầu là bắt buộc",
+                "maxTicketsMin": "Số vé tối đa mỗi đơn phải lớn hơn hoặc bằng 1",
+                "maxTicketsMax": "Số vé tối đa mỗi đơn không được vượt quá 20"
+            },
+            "toasts": {
+                "failedLoadEvent": "Tải dữ liệu sự kiện thất bại",
+                "posterUploaded": "Tải poster lên thành công!",
+                "bannerUploaded": "Tải banner lên thành công!",
+                "selectedSeatMap": "Đã chọn sơ đồ chỗ ngồi: {name}",
+                "selectedSeatMapDesc": "{totalSeats} chỗ trong {areasCount} khu vực",
+                "failedLoadSeatMap": "Tải chi tiết sơ đồ chỗ ngồi thất bại",
+                "seatMapLoadError": "Đã xảy ra lỗi khi tải sơ đồ chỗ ngồi",
+                "uploadFailed": "Tải lên thất bại: {message}",
+                "eventUpdated": "✅ Cập nhật sự kiện thành công!",
+                "eventAndSeatMapCreated": "🎉 Tạo sự kiện và sơ đồ chỗ ngồi thành công!",
+                "eventCreated": "🎉 Tạo sự kiện thành công!",
+                "createEventFailed": "Đã xảy ra sự cố khi tạo sự kiện."
+            },
+            "steps": {
+                "edit": "Chỉnh Sửa",
+                "banner": "Banner",
+                "preview": "Xem Trước",
+                "ticketing": "Bán Vé"
+            },
+            "labels": {
+                "eventTitle": "Tiêu đề sự kiện",
+                "eventCategory": "Thể loại sự kiện",
+                "location": "Sự kiện sẽ diễn ra ở đâu?",
+                "maxTicketsPerOrder": "Số vé tối đa mỗi đơn"
+            },
+            "categories": {
+                "workshop": "Hội Thảo",
+                "concert": "Buổi Hòa Nhạc",
+                "webinar": "Hội Thảo Trực Tuyến",
+                "music": "Âm Nhạc",
+                "sports": "Thể Thao",
+                "art": "Nghệ Thuật",
+                "comedy": "Hài Kịch",
+                "food": "Ẩm Thực",
+                "conference": "Hội Nghị"
+            },
+            "ticketSale": {
+                "title": "Lịch Bán Vé",
+                "description": "Ngày bán vé được tính tự động dựa trên các buổi chiếu của bạn:",
+                "saleStarts": "Bắt đầu bán: 7 ngày trước buổi chiếu sớm nhất",
+                "saleEnds": "Kết thúc bán: 1 giờ trước buổi chiếu sớm nhất",
+                "note": "Các buổi chiếu riêng lẻ có thể có lịch bán vé riêng ở bước tiếp theo."
+            },
+            "placeholders": {
+                "example5": "vd., 5"
+            },
+            "help": {
+                "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
+            }
         },
         "SeatMap": {
             "seatMap": "Sơ Đồ Chỗ Ngồi"
@@ -204,7 +268,7 @@
         },
         "RequestPayout": {
             "requestPayout": "Yêu Cầu Thanh Toán"
-        },  
+        },
         "InspectTicket": {
             "inspectTicket": "Kiểm Tra Vé"
         },
