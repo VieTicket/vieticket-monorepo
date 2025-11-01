@@ -1,0 +1,131 @@
+@startuml delete-event-sequence
+autonumber
+!theme plain
+title Delete Event Flow - Organizer Dashboard
+
+actor Organizer
+participant "EventCard" as Card
+participant "AlertDialog" as Dialog
+participant "DeleteAction" as Action
+participant "Database" as DB
+participant "EventList" as List
+
+== Display Events ==
+Organizer -> List: View dashboard
+List -> Card: Render events
+Note right of Card: Delete button only shown\nfor pending/rejected events
+
+== Delete Confirmation ==
+Organizer -> Card: Click delete button
+Card -> Dialog: Show confirmation
+Dialog -> Organizer: "Are you sure you want to delete this event?"
+
+alt User cancels
+    Organizer -> Dialog: Click "Cancel"
+    Dialog -> Card: Close dialog
+else User confirms
+    Organizer -> Dialog: Click "Delete"
+    Dialog -> Card: handleDeleteEvent()
+end
+
+== Delete Process ==
+Card -> Card: setIsDeleting(true)
+Card -> Action: deleteEventAction(eventId)
+
+activate Action
+Action -> Action: Validate auth & ownership
+Action -> Action: Check event.approvalStatus !== "approved"
+
+alt Validation fails
+    Action --> Card: { success: false, error: "Forbidden" }
+    Card -> Card: Show error toast
+else Validation passes
+    Action -> DB: Begin transaction
+    activate DB
+    DB -> DB: Delete seats, rows, areas, showings, event
+    DB --> Action: Transaction complete
+    deactivate DB
+    Action --> Card: { success: true }
+end
+deactivate Action
+
+== Success Response ==
+Card -> Card: Show success toast
+Card -> List: onEventDeleted() callback
+List -> List: Refresh event list
+Card -> Card: setIsDeleting(false)
+
+@enduml
+
+@startuml delete-event-authorization
+!theme plain
+title Delete Event Authorization Rules
+
+participant "Organizer" as Org
+participant "Delete Action" as Action
+participant "Database" as DB
+
+== Authorization Matrix ==
+
+group Own Event - Pending/Rejected
+    Org -> Action: Delete own non-approved event
+    Action -> DB: Check ownership & status
+    DB --> Action: ✅ Allowed
+    Action --> Org: ✅ Event deleted
+end
+
+group Own Event - Approved  
+    Org -> Action: Delete own approved event
+    Action -> DB: Check status
+    DB --> Action: ❌ Forbidden (approved)
+    Action --> Org: ❌ "Cannot delete approved events"
+end
+
+group Other's Event
+    Org -> Action: Delete another organizer's event
+    Action -> DB: Check ownership
+    DB --> Action: ❌ Forbidden (not owner)
+    Action --> Org: ❌ "You can only delete your own events"
+end
+
+group Unauthorized User
+    Org -> Action: Delete without proper auth
+    Action -> Action: Check authentication
+    Action --> Org: ❌ "Unauthorized: Please log in"
+end
+
+@enduml
+
+@startuml delete-event-error-handling
+!theme plain
+title Delete Event Error Handling
+
+participant "EventCard" as Card
+participant "Delete Action" as Action
+participant "Database" as DB
+
+== Error Scenarios ==
+
+group Database Error
+    Card -> Action: deleteEventAction(eventId)
+    Action -> DB: Transaction fails
+    DB --> Action: Database error
+    Action --> Card: { success: false, error: "Database error" }
+    Card -> Card: Show error toast + reset loading
+end
+
+group Network Error
+    Card -> Action: deleteEventAction(eventId)
+    Action --> Card: Network timeout
+    Card -> Card: Show "Failed to delete event" + reset loading
+    Note right of Card: User can retry operation
+end
+
+group Authorization Error
+    Card -> Action: deleteEventAction(eventId)
+    Action -> Action: Check permissions
+    Action --> Card: { success: false, error: "Forbidden" }
+    Card -> Card: Show error toast + reset loading
+end
+
+@enduml

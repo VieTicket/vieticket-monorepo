@@ -23,6 +23,8 @@ export default function ShowingsManagement({
       name: `Showing ${showings.length + 1}`,
       startTime: "",
       endTime: "",
+      ticketSaleStart: "",
+      ticketSaleEnd: "",
     };
     onShowingsChange([...showings, newShowing]);
   };
@@ -63,6 +65,29 @@ export default function ShowingsManagement({
         inputDate <= new Date(showing.startTime)
       ) {
         error = "End time must be after start time";
+      }
+    } else if (field === "ticketSaleStart") {
+      if (inputDate < now) {
+        error = "Ticket sale start cannot be in the past";
+      } else if (
+        showing.startTime &&
+        inputDate >= new Date(showing.startTime)
+      ) {
+        error = "Ticket sale must start before the showing";
+      }
+    } else if (field === "ticketSaleEnd") {
+      if (inputDate < now) {
+        error = "Ticket sale end cannot be in the past";
+      } else if (
+        showing.ticketSaleStart &&
+        inputDate <= new Date(showing.ticketSaleStart)
+      ) {
+        error = "Ticket sale end must be after start date";
+      } else if (
+        showing.startTime &&
+        inputDate >= new Date(showing.startTime)
+      ) {
+        error = "Ticket sale must end before the showing starts";
       }
     }
 
@@ -162,6 +187,59 @@ export default function ShowingsManagement({
                 {errors[`showing-${index}-endTime`] && (
                   <p className="text-sm text-red-600 mt-1">
                     {errors[`showing-${index}-endTime`]}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* Ticket Sale Times Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* Ticket Sale Start */}
+              <div>
+                <Label htmlFor={`showing-ticket-start-${index}`}>
+                  Ticket Sale Start
+                </Label>
+                <Input
+                  id={`showing-ticket-start-${index}`}
+                  type="datetime-local"
+                  value={showing.ticketSaleStart || ""}
+                  onChange={(e) =>
+                    updateShowing(index, "ticketSaleStart", e.target.value)
+                  }
+                  className={
+                    errors[`showing-${index}-ticketSaleStart`]
+                      ? "border-red-500"
+                      : ""
+                  }
+                />
+                {errors[`showing-${index}-ticketSaleStart`] && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors[`showing-${index}-ticketSaleStart`]}
+                  </p>
+                )}
+              </div>
+
+              {/* Ticket Sale End */}
+              <div>
+                <Label htmlFor={`showing-ticket-end-${index}`}>
+                  Ticket Sale End
+                </Label>
+                <Input
+                  id={`showing-ticket-end-${index}`}
+                  type="datetime-local"
+                  value={showing.ticketSaleEnd || ""}
+                  onChange={(e) =>
+                    updateShowing(index, "ticketSaleEnd", e.target.value)
+                  }
+                  className={
+                    errors[`showing-${index}-ticketSaleEnd`]
+                      ? "border-red-500"
+                      : ""
+                  }
+                />
+                {errors[`showing-${index}-ticketSaleEnd`] && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {errors[`showing-${index}-ticketSaleEnd`]}
                   </p>
                 )}
               </div>

@@ -3,6 +3,8 @@ export interface ShowingFormData {
   name: string;
   startTime: string;
   endTime: string;
+  ticketSaleStart?: string;
+  ticketSaleEnd?: string;
 }
 
 export interface ShowingWithAreas extends ShowingFormData {
