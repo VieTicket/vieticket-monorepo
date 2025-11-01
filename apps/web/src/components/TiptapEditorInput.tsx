@@ -20,8 +20,6 @@ type Props = {
     startTime: string;
     endTime: string;
     location: string;
-    startTime: string;
-    endTime: string;
     ticketSaleStart: string;
     ticketSaleEnd: string;
     ticketPrice?: string;
