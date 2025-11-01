@@ -53,16 +53,6 @@ export function ShowingsTicketing({
   setSeatMapPreviewData,
   setShowSeatMapModal,
 }: ShowingsTicketingProps) {
-  console.log(
-    "ShowingsTicketing received showings:",
-    showings.map((s) => ({
-      name: s.name,
-      hasAreas: !!s.areas,
-      areasCount: s.areas?.length || 0,
-      areasData: s.areas,
-    }))
-  );
-
   const [selectedShowingIndex, setSelectedShowingIndex] = useState(0);
   const [copyToAllShowings, setCopyToAllShowings] = useState(true);
   const [showingConfigs, setShowingConfigs] = useState<ShowingConfig[]>([]);

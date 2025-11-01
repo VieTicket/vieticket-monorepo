@@ -384,56 +384,47 @@ function CreateEventPageInner() {
       return;
     }
 
-    const form = new FormData();
+    // Get form data from the actual form element to include hidden inputs
+    const form = new FormData(e.currentTarget);
 
+    // Add additional data that might not be in the form
     if (eventId) {
-      form.append("eventId", eventId);
+      form.set("eventId", eventId);
     }
 
-    form.append("name", formData.name);
-    form.append("type", formData.type);
-    form.append("ticketSaleStart", formData.ticketSaleStart);
-    form.append("ticketSaleEnd", formData.ticketSaleEnd);
-    form.append("location", formData.location);
-    form.append("description", formData.description);
-    form.append("posterUrl", formData.posterUrl);
-    form.append("bannerUrl", formData.bannerUrl);
-    form.append("ticketingMode", ticketingMode);
-    form.append(
-      "maxTicketsByOrder",
-      formData.maxTicketsByOrder?.toString() || ""
-    );
+    form.set("name", formData.name);
+    form.set("type", formData.type);
+    form.set("ticketSaleStart", formData.ticketSaleStart);
+    form.set("ticketSaleEnd", formData.ticketSaleEnd);
+    form.set("location", formData.location);
+    form.set("description", formData.description);
+    form.set("posterUrl", formData.posterUrl);
+    form.set("bannerUrl", formData.bannerUrl);
+    form.set("ticketingMode", ticketingMode);
+    form.set("maxTicketsByOrder", formData.maxTicketsByOrder?.toString() || "");
 
     showings.forEach((showing, index) => {
-      form.append(`showings[${index}].name`, showing.name);
-      form.append(`showings[${index}].startTime`, showing.startTime);
-      form.append(`showings[${index}].endTime`, showing.endTime);
-      form.append(
+      form.set(`showings[${index}].name`, showing.name);
+      form.set(`showings[${index}].startTime`, showing.startTime);
+      form.set(`showings[${index}].endTime`, showing.endTime);
+      form.set(
         `showings[${index}].ticketSaleStart`,
         showing.ticketSaleStart || ""
       );
-      form.append(
-        `showings[${index}].ticketSaleEnd`,
-        showing.ticketSaleEnd || ""
-      );
+      form.set(`showings[${index}].ticketSaleEnd`, showing.ticketSaleEnd || "");
     });
 
     if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
-      form.append("seatMapId", selectedSeatMap);
-      form.append(
+      form.set("seatMapId", selectedSeatMap);
+      form.set(
         "seatMapData",
         JSON.stringify({
           grids: selectedSeatMapData.grids || [],
           defaultSeatSettings: selectedSeatMapData.defaultSeatSettings,
         })
       );
-    } else {
-      areas.forEach((area, index) => {
-        form.append(`areas[${index}][name]`, area.name);
-        form.append(`areas[${index}][seatCount]`, area.seatCount);
-        form.append(`areas[${index}][ticketPrice]`, area.ticketPrice);
-      });
     }
+    // Note: Areas data is now handled by hidden inputs in ShowingsTicketing component
 
     startTransition(async () => {
       try {

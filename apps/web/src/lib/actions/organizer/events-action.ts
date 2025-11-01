@@ -14,53 +14,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
-import DOMPurify from "isomorphic-dompurify";
 import { SeatMapGridData } from "@/types/event-types";
-
-const sanitizeHTML = (html: string): string => {
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      "p",
-      "br",
-      "strong",
-      "em",
-      "u",
-      "ol",
-      "ul",
-      "li",
-      "h1",
-      "h2",
-      "h3",
-      "h4",
-      "h5",
-      "h6",
-      "blockquote",
-      "a",
-    ],
-    ALLOWED_ATTR: ["href", "title", "target"],
-    ALLOW_DATA_ATTR: false,
-    FORBID_TAGS: [
-      "script",
-      "style",
-      "iframe",
-      "object",
-      "embed",
-      "form",
-      "input",
-      "button",
-    ],
-    FORBID_ATTR: [
-      "onclick",
-      "onload",
-      "onerror",
-      "onmouseover",
-      "onfocus",
-      "onblur",
-      "onchange",
-      "onsubmit",
-    ],
-  });
-};
 
 export async function handleCreateEvent(
   formData: FormData
@@ -170,9 +124,7 @@ export async function handleCreateEvent(
   const eventPayload = {
     name: eventName,
     slug,
-    description: formData.get("description")
-      ? sanitizeHTML(formData.get("description") as string)
-      : null,
+    description: (formData.get("description") as string) || null,
     startTime: eventStartTime,
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
@@ -239,6 +191,8 @@ export async function handleCreateEvent(
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
     if (copyMode) {
+      // In copy mode, all showings use the same areas configuration
+      // Get areas from the first showing config since they're all the same
       const areas: {
         name: string;
         seatCount: number;
@@ -247,11 +201,24 @@ export async function handleCreateEvent(
 
       let areaIndex = 0;
       while (true) {
-        const name = formData.get(`areas[${areaIndex}][name]`);
-        const seatCount = formData.get(`areas[${areaIndex}][seatCount]`);
-        const ticketPrice = formData.get(`areas[${areaIndex}][ticketPrice]`);
+        const name = formData.get(`showingConfigs[0].areas[${areaIndex}].name`);
+        const seatCount = formData.get(
+          `showingConfigs[0].areas[${areaIndex}].seatCount`
+        );
+        const ticketPrice = formData.get(
+          `showingConfigs[0].areas[${areaIndex}].ticketPrice`
+        );
 
-        if (!name || !seatCount || !ticketPrice) break;
+        console.log(`🔍 Copy mode area ${areaIndex}:`, {
+          name,
+          seatCount,
+          ticketPrice,
+        });
+
+        if (!name || !seatCount || !ticketPrice) {
+          console.log(`🔍 Breaking at area ${areaIndex} due to missing data`);
+          break;
+        }
 
         areas.push({
           name: name.toString(),
@@ -261,6 +228,8 @@ export async function handleCreateEvent(
 
         areaIndex++;
       }
+
+      console.log("Copy mode areas:", areas);
 
       if (areas.length === 0) {
         throw new Error("At least one area is required for simple ticketing");
@@ -309,6 +278,8 @@ export async function handleCreateEvent(
 
           areaIndex++;
         }
+
+        console.log(`Showing ${showingIdx} areas:`, areas);
 
         if (areas.length === 0) {
           throw new Error(
@@ -444,9 +415,7 @@ export async function handleUpdateEvent(formData: FormData) {
     id: eventId,
     name: formData.get("name") as string,
     slug: existingEvent.slug,
-    description: formData.get("description")
-      ? sanitizeHTML(formData.get("description") as string)
-      : null,
+    description: (formData.get("description") as string) || null,
     startTime: eventStartTime,
     endTime: eventEndTime,
     location: (formData.get("location") as string) || null,
@@ -533,6 +502,8 @@ export async function handleUpdateEvent(formData: FormData) {
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
     if (copyMode) {
+      // In copy mode, all showings use the same areas configuration
+      // Get areas from the first showing config since they're all the same
       const areas: {
         name: string;
         seatCount: number;
@@ -541,9 +512,13 @@ export async function handleUpdateEvent(formData: FormData) {
 
       let index = 0;
       while (true) {
-        const name = formData.get(`areas[${index}][name]`);
-        const seatCount = formData.get(`areas[${index}][seatCount]`);
-        const ticketPrice = formData.get(`areas[${index}][ticketPrice]`);
+        const name = formData.get(`showingConfigs[0].areas[${index}].name`);
+        const seatCount = formData.get(
+          `showingConfigs[0].areas[${index}].seatCount`
+        );
+        const ticketPrice = formData.get(
+          `showingConfigs[0].areas[${index}].ticketPrice`
+        );
 
         if (!name || !seatCount || !ticketPrice) break;
 
@@ -555,6 +530,8 @@ export async function handleUpdateEvent(formData: FormData) {
 
         index++;
       }
+
+      console.log("Update copy mode areas:", areas);
 
       if (areas.length === 0) {
         throw new Error("At least one area is required for simple ticketing");
