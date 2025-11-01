@@ -1,17 +1,10 @@
 "use client";
 
-type SeatMapItem = {
-  id: string;
-  name: string;
-  updatedAt: string;
-  createdAt: string;
-  image?: string;
-  createdBy: string;
-};
+import { SeatMapItem } from "../page";
 
 interface RecentSeatMapsListProps {
   seatMaps: SeatMapItem[];
-  formatDate: (date: string) => string;
+  formatDate: (date: Date) => string;
 }
 
 export function RecentSeatMapsList({

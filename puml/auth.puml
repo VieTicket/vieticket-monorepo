@@ -473,3 +473,82 @@ note right of Actions
 end note
 
 @enduml
+
+@startuml logout
+autonumber
+!theme plain
+title Log Out Flow
+
+actor "User\n(Customer/Organizer/Admin)" as User
+participant "UI Component" as UI
+participant "Auth Client" as Client
+participant "API Route" as API
+participant "Auth Service" as Auth
+participant "Database" as DB
+
+== Log Out Initiation ==
+User -> UI: Click "Log Out" button
+activate UI
+
+UI -> Client: authClient.signOut()
+activate Client
+
+Client -> Client: Prepare Log out request
+Client -> API: POST /api/auth/sign-out
+activate API
+
+API -> Auth: Better Auth Log out handler
+activate Auth
+
+Auth -> Auth: Extract session token from cookies
+Auth -> Auth: Validate session token
+
+alt Session token valid
+    Auth -> DB: Query session by token
+    activate DB
+    DB --> Auth: Session data
+    deactivate DB
+    
+    Auth -> DB: Delete session from database
+    activate DB
+    DB --> Auth: Session deleted
+    deactivate DB
+    
+    Auth -> Auth: Clear session cookie
+    
+    Auth --> API: Success response with cleared cookie
+    deactivate Auth
+    
+    API --> Client: 200 OK with Set-Cookie header
+    deactivate API
+    
+    Client -> Client: Clear client-side session cache
+    Client -> Client: Clear auth state
+    Client --> UI: Log out successful
+    deactivate Client
+    
+    UI -> UI: Clear user data from state
+    UI -> UI: toast.success("Signed out successfully")
+    UI -> UI: router.push("/")
+    
+    UI -> User: Redirect to home page (logged out)
+    deactivate UI
+    
+else Session token invalid/expired
+    Auth --> API: Error: Invalid session
+    deactivate Auth
+    API --> Client: 401 Unauthorized
+    deactivate API
+    
+    Client -> Client: Clear stale client-side data
+    Client --> UI: Log out completed (with warning)
+    deactivate Client
+    
+    UI -> UI: Clear user state anyway
+    UI -> UI: toast.warning("Session expired")
+    UI -> UI: router.push("/")
+    UI -> User: Redirect to home page
+    deactivate UI
+end
+
+@enduml

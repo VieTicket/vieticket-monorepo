@@ -107,8 +107,11 @@ export async function updateSeatMapById(
   updates: UpdateSeatMapInput
 ): Promise<SeatMap | null> {
   await ensureMongoConnection();
-  // The `timestamps: true` option in the schema will automatically handle `updatedAt`.
-  const doc = await SeatMapModel.findByIdAndUpdate(id, updates).exec();
+  // ✅ Add { new: true } to return updated document
+  const doc = await SeatMapModel.findByIdAndUpdate(id, updates, {
+    new: true, // Return the updated document
+    runValidators: true, // Run schema validators
+  }).exec();
   return doc ? doc.toObject() : null;
 }
 

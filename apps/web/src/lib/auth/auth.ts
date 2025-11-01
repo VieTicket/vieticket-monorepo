@@ -10,6 +10,7 @@ import {
 } from "@vieticket/db/pg/schema";
 import { sendMail } from "../mail-sender";
 import { Session } from "better-auth/types";
+import { openAPI } from "better-auth/plugins";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -21,6 +22,7 @@ export const auth = betterAuth({
       verification,
     },
   }),
+  plugins: [openAPI()],
   user: {
     additionalFields: {
       role: {

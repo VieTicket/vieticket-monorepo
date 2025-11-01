@@ -13,17 +13,18 @@ import { toast } from "sonner";
 import { Sidebar } from "./components/sidebar";
 import { DraftsView } from "./components/drafts-view";
 import { TemplatesView } from "./components/templates-view";
+import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
 
 export type SeatMapItem = {
   id: string;
   name: string;
-  updatedAt: string;
-  createdAt: string;
+  shapes: CanvasItem[];
+  updatedAt: Date;
+  createdAt: Date;
   image?: string;
   createdBy: string;
   publicity?: "public" | "private";
 };
-
 type PublicSeatMapItem = {
   id: string;
   name: string;
@@ -61,8 +62,8 @@ export default function SeatMapDirectory() {
       setIsLoading(true);
       const result = await getUserSeatMapsAction();
 
-      if (result.success) {
-        setSeatMaps(result.data);
+      if (result.success && result.data) {
+        setSeatMaps(result.data as SeatMapItem[]);
       } else {
         toast.error(result.error || "Failed to load seat maps");
       }
@@ -121,7 +122,7 @@ export default function SeatMapDirectory() {
       setIsLoading(true);
       const result = await searchSeatMapsAction(query);
 
-      if (result.success) {
+      if (result.success && result.data) {
         setSeatMaps(result.data);
       } else {
         toast.error(result.error || "Failed to search seat maps");
@@ -255,13 +256,27 @@ export default function SeatMapDirectory() {
   const filteredSeatMaps = getFilteredSeatMaps();
   const recentSeatMaps = getRecentSeatMaps();
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+  const formatDate = (dateString: string | Date | undefined) => {
+    if (!dateString) {
+      return "N/A";
+    }
+
+    try {
+      const date =
+        dateString instanceof Date ? dateString : new Date(dateString);
+
+      if (isNaN(date.getTime())) {
+        return "Invalid date";
+      }
+
+      return date.toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      });
+    } catch {
+      return "Invalid date";
+    }
   };
 
   return (

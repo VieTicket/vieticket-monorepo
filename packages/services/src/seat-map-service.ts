@@ -229,7 +229,7 @@ export async function updateSeatMap(
     throw new Error("Shapes must be an array");
   }
 
-  // 3. Validate shapes array structure (same validation as saveSeatMap)
+  // 3. Validate shapes array structure
   const invalidShapes = shapes.filter((shape) => {
     if (
       !shape ||
@@ -277,9 +277,12 @@ export async function updateSeatMap(
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
-      throw new Error(
-        "Seat map not found or you don't have permission to update it"
-      );
+      throw new Error("Seat map not found");
+    }
+
+    // ✅ Add ownership check
+    if (existingSeatMap.createdBy !== user.id) {
+      throw new Error("You don't have permission to update this seat map");
     }
 
     // 5. Prepare update data
@@ -317,13 +320,11 @@ export async function updateSeatMap(
   } catch (error) {
     // Handle database errors
     if (error instanceof Error) {
-      throw new Error(`Failed to update seat map: ${error.message}`);
+      throw error; // ✅ Re-throw the error to preserve the message
     }
     throw new Error("An unknown error occurred while updating the seat map");
   }
 }
-
-// ✅ Keep all other existing functions unchanged
 export async function getUserSeatMaps(user: User) {
   if (user.role !== "organizer") {
     throw new Error("Unauthorized: Only organizers can access seat maps");
@@ -338,6 +339,7 @@ export async function getUserSeatMaps(user: User) {
       shapes: seatMap.shapes,
       image: seatMap.image,
       createdBy: seatMap.createdBy,
+      publicity: seatMap.publicity, // ✅ Add this field
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     }));
@@ -362,8 +364,10 @@ export async function searchUserSeatMaps(searchQuery: string, user: User) {
     const plainSeatMaps = seatMaps.map((seatMap) => ({
       id: seatMap.id,
       name: seatMap.name,
+      shapes: seatMap.shapes, // ✅ Add shapes field
       image: seatMap.image,
       createdBy: seatMap.createdBy,
+      publicity: seatMap.publicity, // ✅ Add publicity field
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     }));
@@ -397,6 +401,7 @@ export async function getSeatMapById(seatMapId: string) {
       shapes: seatMap.shapes,
       image: seatMap.image,
       createdBy: seatMap.createdBy,
+      publicity: seatMap.publicity, // ✅ Add publicity field
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     };
@@ -555,11 +560,10 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
-      throw new Error(
-        "Seat map not found or you don't have permission to delete it"
-      );
+      throw new Error("Seat map not found");
     }
 
+    // ✅ Add strict ownership check
     if (existingSeatMap.createdBy !== user.id) {
       throw new Error("You can only delete your own seat maps");
     }
@@ -573,7 +577,7 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
     return deletedSeatMap;
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to delete seat map: ${error.message}`);
+      throw error; // ✅ Re-throw to preserve error message
     }
     throw new Error("An unknown error occurred while deleting the seat map");
   }
