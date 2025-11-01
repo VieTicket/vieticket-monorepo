@@ -1,0 +1,71 @@
+sequenceDiagram
+    participant Browser
+    participant VNPayReturnRoute as "api/checkout/vnpay/return/route.ts"
+    participant CheckoutService as "checkout-service.ts"
+    participant CheckoutRepo as "checkout-repo.ts"
+    participant VNPayUtil as "vnpay/index.ts"
+    participant OrderService as "order-service.ts"
+    participant Database
+
+    Browser->>VNPayReturnRoute: GET /api/checkout/vnpay/return?{vnpay_params}
+    VNPayReturnRoute->>CheckoutService: processPaymentResult(vnpayResponseData, user)
+
+    CheckoutService->>VNPayUtil: verifyVNPayResponse(vnpayResponseData)
+    VNPayUtil-->>CheckoutService: { isVerified, isSuccess, ... }
+
+    alt VNPay signature is invalid
+        CheckoutService-->>VNPayReturnRoute: Return error result
+        VNPayReturnRoute-->>Browser: JSON Error Response
+    end
+
+    CheckoutService->>CheckoutRepo: getOrderByVNPayTxnRef(vnp_TxnRef)
+    CheckoutRepo->>Database: SELECT * FROM orders WHERE paymentMetadata->>'vnp_TxnRef' = ?
+    Database-->>CheckoutRepo: Return order
+    CheckoutRepo-->>CheckoutService: order
+
+    alt Order not found or user mismatch
+        CheckoutService-->>VNPayReturnRoute: Return error result
+        VNPayReturnRoute->>Browser: Redirect to /orders/{orderId} (shows error)
+    end
+
+    alt Payment failed (vnp_ResponseCode !== '00')
+        CheckoutService->>CheckoutRepo: updateOrderStatus(orderId, 'failed')
+        CheckoutRepo->>Database: UPDATE orders SET status = 'failed'
+        Database-->>CheckoutRepo: 
+        CheckoutRepo-->>CheckoutService: 
+        CheckoutService-->>VNPayReturnRoute: Return payment failed result
+        VNPayReturnRoute->>Browser: Redirect to /orders/{orderId} (shows failure)
+    end
+
+    alt Order already paid
+        CheckoutService-->>VNPayReturnRoute: Return success result (idempotent)
+        VNPayReturnRoute->>Browser: Redirect to /orders/{orderId}
+    end
+
+    CheckoutService->>CheckoutRepo: getUserUnconfirmedSeatHolds(userId, orderId)
+    CheckoutRepo->>Database: SELECT seatId FROM seat_holds WHERE ...
+    Database-->>CheckoutRepo: Return seatHolds
+    CheckoutRepo-->>CheckoutService: seatHolds
+
+    CheckoutService->>CheckoutRepo: executePaymentTransaction(orderId, userId, ticketData)
+    CheckoutRepo->>Database: Start Transaction
+    Database->>Database: UPDATE orders SET status = 'paid'
+    Database->>Database: UPDATE seat_holds SET isConfirmed = true, isPaid = true
+    Database->>Database: INSERT INTO tickets (...)
+    Database->>CheckoutRepo: End Transaction, return { order, tickets, seatCount }
+    CheckoutRepo-->>CheckoutService: transactionResult
+
+    CheckoutService->>CheckoutRepo: getTicketDetails(orderId)
+    CheckoutRepo->>Database: SELECT ticket details with joins
+    Database-->>CheckoutRepo: Return ticketDetails
+    CheckoutRepo-->>CheckoutService: ticketDetails
+
+    par Send Confirmation Email
+        CheckoutService->>OrderService: sendOrderConfirmationEmail(user, order, tickets)
+        OrderService->>OrderService: Generate QR codes, format email
+        OrderService->>Database: Get event info
+        OrderService->>Mailer: sendMail(...)
+    and Return Success Response
+        CheckoutService-->>VNPayReturnRoute: Return success result with ticket info
+        VNPayReturnRoute->>Browser: Redirect to /orders/{orderId}
+    end
