@@ -1,5 +1,4 @@
-import { getEventsByOrganizer } from "@/lib/services/eventService";
-
+import { getEventsByOrganizerId } from "@/lib/queries/events-mutation";
 import { organizerDashBoardService } from "@/lib/services/organizerDashBoardService";
 
 export async function fetchRevenueOverTime(organizerId: string) {
@@ -22,7 +21,7 @@ export async function fetchTopRevenueEvents(organizerId: string, limit = 5) {
 //   return await getEventsByStatus(organizerId);
 // }
 export async function fetchEventsByOrganizer(organizerId: string) {
-  return await getEventsByOrganizer(organizerId);
+  return await getEventsByOrganizerId(organizerId);
 }
 // Fetch doanh thu theo thời gian cho một sự kiện
 export async function fetchRevenueOverTimeByEventId(eventId: string) {

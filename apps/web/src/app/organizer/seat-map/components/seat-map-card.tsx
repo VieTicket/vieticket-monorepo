@@ -7,6 +7,8 @@ import {
   Eye,
   Globe,
   Trash2,
+  Palette,
+  Layers,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +18,7 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
+import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 
 type SeatMapItem = {
@@ -50,7 +53,7 @@ export function SeatMapCard({
   isDeleting = false,
 }: SeatMapCardProps) {
   const placeholderImage =
-    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Cpath d='M30,30 L70,70 M30,70 L70,30' stroke='%23cccccc' stroke-width='2'/%3E%3C/svg%3E";
+    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%23f0f0f0'/%3E%3Cg transform='translate(50,50)'%3E%3Ccircle cx='-20' cy='-20' r='8' fill='%23007bff'/%3E%3Ccircle cx='0' cy='-20' r='8' fill='%23007bff'/%3E%3Ccircle cx='20' cy='-20' r='8' fill='%23007bff'/%3E%3Ccircle cx='-20' cy='0' r='8' fill='%23007bff'/%3E%3Ccircle cx='0' cy='0' r='8' fill='%2328a745'/%3E%3Ccircle cx='20' cy='0' r='8' fill='%23007bff'/%3E%3Ccircle cx='-20' cy='20' r='8' fill='%23007bff'/%3E%3Ccircle cx='0' cy='20' r='8' fill='%23007bff'/%3E%3Ccircle cx='20' cy='20' r='8' fill='%23007bff'/%3E%3C/g%3E%3C/svg%3E";
 
   const isCurrentlyProcessing = isPublishing || isDeleting;
 
@@ -65,14 +68,26 @@ export function SeatMapCard({
           />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
             <Button variant="secondary" size="sm" asChild>
-              <Link href={`/seat-map?id=${item.id}`}>
-                <PenSquare size={16} className="mr-2" />
-                Edit
+              <Link href={`/seat-map?seatMapId=${item.id}`}>
+                <Palette size={16} className="mr-2" />
+                Edit Canvas
               </Link>
             </Button>
           </div>
+
+          {/* Canvas Badge */}
+          <div className="absolute top-2 left-2">
+            <Badge
+              variant="secondary"
+              className="bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+            >
+              <Layers size={12} className="mr-1" />
+              Canvas
+            </Badge>
+          </div>
+
           {item.publicity === "public" && (
-            <div className="absolute top-2 left-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
+            <div className="absolute top-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs font-medium">
               Public
             </div>
           )}
@@ -81,10 +96,12 @@ export function SeatMapCard({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <h3 className="font-medium truncate">{item.name}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 flex items-center mt-1">
-                <Clock size={14} className="mr-1" />
-                {formatDate(item.updatedAt)}
-              </p>
+              <div className="flex items-center mt-1 gap-2">
+                <Clock size={14} className="text-gray-400" />
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {formatDate(item.updatedAt)}
+                </span>
+              </div>
             </div>
             {showActions && (
               <DropdownMenu>
@@ -100,9 +117,18 @@ export function SeatMapCard({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem asChild>
-                    <Link href={`/seat-map?id=${item.id}`}>
+                    <Link href={`/seat-map?seatMapId=${item.id}`}>
+                      <Palette size={16} className="mr-2" />
+                      Open in Canvas Editor
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link
+                      href={`/seat-map?seatMapId=${item.id}&preview=true`}
+                      target="_blank"
+                    >
                       <Eye size={16} className="mr-2" />
-                      Open
+                      Preview
                     </Link>
                   </DropdownMenuItem>
                   {item.publicity !== "public" && (
@@ -140,8 +166,16 @@ export function SeatMapCard({
           alt={item.name}
           className="w-full h-full object-cover"
         />
+        <div className="absolute top-1 left-1">
+          <Badge
+            variant="secondary"
+            className="text-xs bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300"
+          >
+            <Layers size={8} className="mr-1" />
+          </Badge>
+        </div>
         {item.publicity === "public" && (
-          <div className="absolute top-1 left-1 bg-green-500 rounded-full w-3 h-3"></div>
+          <div className="absolute bottom-1 right-1 bg-green-500 rounded-full w-3 h-3"></div>
         )}
       </div>
       <div className="flex-1 min-w-0">
@@ -153,13 +187,18 @@ export function SeatMapCard({
             </span>
           )}
         </div>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Updated {formatDate(item.updatedAt)}
-        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            Canvas • Updated {formatDate(item.updatedAt)}
+          </span>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <Button variant="outline" size="sm" asChild>
-          <Link href={`/seat-map?id=${item.id}`}>Edit</Link>
+          <Link href={`/seat-map?seatMapId=${item.id}`}>
+            <Palette size={14} className="mr-1" />
+            Edit
+          </Link>
         </Button>
         {showActions && (
           <DropdownMenu>
@@ -175,9 +214,18 @@ export function SeatMapCard({
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuItem asChild>
-                <Link href={`/seat-map?id=${item.id}`}>
+                <Link href={`/seat-map?seatMapId=${item.id}`}>
+                  <Palette size={16} className="mr-2" />
+                  Open in Canvas Editor
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link
+                  href={`/seat-map?seatMapId=${item.id}&preview=true`}
+                  target="_blank"
+                >
                   <Eye size={16} className="mr-2" />
-                  Open
+                  Preview
                 </Link>
               </DropdownMenuItem>
               {item.publicity !== "public" && (

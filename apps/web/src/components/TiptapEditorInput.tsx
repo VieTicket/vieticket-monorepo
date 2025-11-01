@@ -18,6 +18,8 @@ type Props = {
     name: string;
     type: string;
     location: string;
+    startTime: string;
+    endTime: string;
     ticketSaleStart: string;
     ticketSaleEnd: string;
     ticketPrice?: string;

@@ -29,8 +29,10 @@ export const events = pgTable(
     endTime: timestamp("end_time").notNull(),
     location: varchar("location", { length: 255 }),
     type: varchar("type", { length: 64 }),
+    // TODO: remove after code migration - ticket sale times should be per showing
     ticketSaleStart: timestamp("ticket_sale_start"),
     ticketSaleEnd: timestamp("ticket_sale_end"),
+    maxTicketsByOrder: integer("max_tickets_by_order"),
     posterUrl: varchar("poster_url", { length: 255 }),
     bannerUrl: varchar("banner_url", { length: 255 }),
     views: integer().notNull().default(0),
@@ -58,6 +60,8 @@ export const showings = pgTable(
     name: varchar("name", { length: 255 }),
     startTime: timestamp("start_time").notNull(),
     endTime: timestamp("end_time").notNull(),
+    ticketSaleStart: timestamp("ticket_sale_start"),
+    ticketSaleEnd: timestamp("ticket_sale_end"),
     isActive: boolean("is_active").default(true),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
@@ -69,11 +73,11 @@ export const areas = pgTable(
   "areas",
   {
     id: uuid("id").defaultRandom().primaryKey(),
-    // will be removed after code migration
+    // TODO: will be removed after code migration
     eventId: uuid("event_id")
       .references(() => events.id, { onDelete: "cascade" })
       .notNull(),
-    // will be notNull after code migration complete
+    // TODO: will be notNull after code migration complete
     showingId: uuid("showing_id").references(() => showings.id, {
       onDelete: "cascade",
     }),

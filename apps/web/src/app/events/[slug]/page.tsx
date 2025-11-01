@@ -23,6 +23,7 @@ export default async function EventPage({
     location: raw.location ?? "",
     type: raw.type ?? "",
     // Use first showing times for legacy fields
+    // @ts-ignore
     startTime: raw.showings[0]?.startTime.toISOString() ?? "",
     endTime: raw.showings[0]?.endTime.toISOString() ?? "",
     ticketSaleStart: raw.ticketSaleStart?.toISOString() ?? "",
