@@ -781,7 +781,9 @@ export async function updateEventWithShowingsOptimized(
     return { eventId };
   });
 }
-
+export async function getEventsByOrganizerId(organizerId: string) {
+  return db.select().from(events).where(eq(events.organizerId, organizerId));
+}
 export async function updateEventWithShowingsIndividualOptimized(
   eventPayload: any,
   showingsData: Array<{
