@@ -1,0 +1,96 @@
+@startuml View and Edit Profile Sequence
+!theme plain
+actor User as U
+participant "AccountForm" as AccountForm
+participant "ProfileActions" as Actions
+participant "ProfileService" as Service
+participant "Database" as DB
+participant "Cloudinary" as Cloud
+
+title View and Edit Profile Flow
+
+== Load Profile ==
+U -> AccountForm : Navigate to /profile/edit
+activate AccountForm
+
+AccountForm -> Actions : getProfileAction()
+activate Actions
+
+Actions -> DB : Query user and organizer tables
+activate DB
+DB --> Actions : User data + organizer data (if applicable)
+deactivate DB
+
+Actions --> AccountForm : Profile data
+deactivate Actions
+
+AccountForm -> AccountForm : Populate form fields
+AccountForm --> U : Display profile form
+deactivate AccountForm
+
+== Edit Profile ==
+U -> AccountForm : Edit form fields
+activate AccountForm
+
+AccountForm -> AccountForm : Update form state
+AccountForm --> U : Show form changes
+deactivate AccountForm
+
+== Upload Avatar ==
+U -> AccountForm : Upload new avatar
+activate AccountForm
+
+AccountForm -> Cloud : Upload to Cloudinary
+activate Cloud
+Cloud --> AccountForm : Return secure_url
+deactivate Cloud
+
+AccountForm -> Actions : uploadAvatarAction(url)
+activate Actions
+
+Actions -> Service : updateAvatarUrl(userId, url)
+activate Service
+
+Service -> DB : UPDATE user SET image = url
+activate DB
+DB --> Service : Success
+deactivate DB
+
+Service --> Actions : Updated
+deactivate Service
+
+Actions --> AccountForm : Avatar updated
+deactivate Actions
+
+AccountForm --> U : Show new avatar
+deactivate AccountForm
+
+== Save Changes ==
+U -> AccountForm : Click "Save Profile"
+activate AccountForm
+
+AccountForm -> Actions : updateProfileAction(formData)
+activate Actions
+
+Actions -> Actions : Validate with Zod schemas
+note right : Validate user data and\norganizer data (if applicable)
+
+Actions -> Service : updateProfile(userId, userData, organizerData)
+activate Service
+
+Service -> DB : BEGIN TRANSACTION\nUPDATE user + organizer tables
+activate DB
+DB --> Service : COMMIT SUCCESS
+deactivate DB
+
+Service --> Actions : Profile updated
+deactivate Service
+
+Actions -> Actions : revalidatePath("/profile/account")
+Actions --> AccountForm : Success message
+deactivate Actions
+
+AccountForm --> U : Display success + updated data
+deactivate AccountForm
+
+@enduml

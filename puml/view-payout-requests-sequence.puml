@@ -1,0 +1,98 @@
+@startuml view-payout-requests-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Payout Requests List Sequence Diagram - VieTicket Application
+
+actor Organizer as O
+participant "Browser\n/organizer/payouts" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "PayoutsPage\nComponent" as PayoutsPage
+participant "PayoutRequestList\nComponent" as PayoutList
+participant "getPayoutRequests\nAction" as PayoutAction
+participant "getPayoutRequestsForOrganizer\nService" as PayoutService
+participant "findPayoutRequestsByOrganizerId\nRepository" as PayoutRepo
+participant "Database\n(Drizzle ORM)" as DB
+participant "DataTable\nComponent" as DataTable
+
+note over O, DataTable: Organizer wants to view payout requests
+
+O -> Browser : Navigate to /organizer/payouts
+activate Browser
+Browser -> NextJS : GET /organizer/payouts
+activate NextJS
+
+NextJS -> PayoutsPage : Render payouts page
+activate PayoutsPage
+
+PayoutsPage -> PayoutList : Render PayoutRequestList component
+activate PayoutList
+
+note over PayoutList: Initialize state:\n- page = 1\n- loading = true
+
+PayoutList -> PayoutAction : getPayoutRequests(page, limit)
+activate PayoutAction
+
+note over PayoutAction: Validate organizer session
+
+PayoutAction -> PayoutService : getPayoutRequestsForOrganizer(\norganizerId, pagination)
+activate PayoutService
+
+PayoutService -> PayoutRepo : findPayoutRequestsByOrganizerId(\norganizerId, {offset, limit})
+activate PayoutRepo
+
+PayoutRepo -> DB : SELECT payout_requests\nJOIN events\nWHERE organizer_id = ?\nORDER BY request_date DESC\nLIMIT ? OFFSET ?
+activate DB
+DB --> PayoutRepo : Array of payout requests with event info
+deactivate DB
+
+PayoutRepo --> PayoutService : {data: PayoutRequest[], totalPages}
+deactivate PayoutRepo
+
+PayoutService --> PayoutAction : Payout requests result
+deactivate PayoutService
+
+PayoutAction --> PayoutList : {data: PayoutRequest[], totalPages}
+deactivate PayoutAction
+
+note over PayoutList: Update state:\n- data = payoutRequests\n- loading = false\n- totalPages = result.totalPages
+
+PayoutList -> DataTable : Render with columns & data
+activate DataTable
+
+note over DataTable: Display table with columns:\n- Event name\n- Requested amount (formatted VND)\n- Status (with colored badge)\n- Request date\n- View Details action button
+
+DataTable --> PayoutList : Rendered table
+deactivate DataTable
+
+PayoutList --> PayoutsPage : Rendered payout requests list
+deactivate PayoutList
+
+PayoutsPage --> NextJS : Complete page render
+deactivate PayoutsPage
+
+NextJS --> Browser : HTML with payout requests table
+deactivate NextJS
+
+Browser --> O : Display payout requests list\nwith pagination and status
+deactivate Browser
+
+note over O: Organizer can see all payout requests
+
+alt Organizer clicks "View Details"
+    O -> Browser : Click "View Details" button
+    Browser -> NextJS : Navigate to /organizer/payouts/[id]
+    note over NextJS: Redirect to payout details page
+end
+
+alt Organizer changes page
+    O -> Browser : Click pagination (next/previous)
+    Browser -> PayoutList : Update page state
+    note over PayoutList: Fetch new page data
+end
+
+note over O, DataTable: Payout requests list successfully displayed
+
+@enduml

@@ -1,0 +1,63 @@
+classDiagram
+    direction LR
+
+    class PayoutRequestActions {
+        <<File>>
+        /apps/web/src/lib/actions/organizer/payout-request-actions.ts
+        +createPayoutRequestAction(data): Promise<APIResponse<&#123; id: string &#125;>>
+        +uploadPayoutProofAction(requestId, proofUrl): Promise<PayoutRequest>
+        +getPayoutRequests(page, limit): Promise<&#123; data, totalCount, totalPages &#125;>
+        +getEventRevenueAction(eventId): Promise<APIResponse<&#123; revenue: number &#125;>>
+        +fetchPayoutRequestById(id): Promise<&#123; success, data: &#123; payoutRequest &#125; &#125;>
+        +cancelPayoutRequestAction(requestId): Promise<APIResponse<null>>
+        +getAdminPayoutRequestsAction(page, limit, status): Promise<APIResponse<&#123;...&#125;>>
+        +updatePayoutStatusAction(requestId, status, agreedAmount): Promise<PayoutRequest>
+    }
+
+    class PayoutRequestService {
+        <<File>>
+        /packages/services/src/payout-request-service.ts
+        +createPayoutRequestService(eventId, user, amount): Promise<PayoutRequest>
+        +updatePayoutRequestService(requestId, user, data): Promise<PayoutRequest>
+        +getPayoutRequestsService(organizerId, pagination): Promise<&#123; data, totalCount, totalPages &#125;>
+        +getPayoutRequestById(user, id): Promise<PayoutRequestWithEvent>
+        +cancelPayoutRequestService(requestId, user): Promise<PayoutRequestWithEvent>
+        +getPayoutRequestsForAdmin(user, pagination): Promise<&#123; data, totalCount, totalPages &#125;>
+    }
+
+    class PayoutRequestRepo {
+        <<File>>
+        /packages/repos/src/payout-request-repo.ts
+        +createPayoutRequest(data): Promise<PayoutRequest>
+        +findPayoutRequestById(id): Promise<PayoutRequestWithEvent | undefined>
+        +findPayoutRequestsByOrganizerId(organizerId, pagination): Promise<PayoutRequestWithEvent[]>
+        +updatePayoutRequest(id, data): Promise<PayoutRequest>
+        +countPayoutRequestsByOrganizerId(organizerId): Promise<number>
+        +hasActivePayoutRequestForEvent(eventId): Promise<boolean>
+        +getPayoutRequestsForAdmin(pagination): Promise<&#123; data, totalCount, totalPages &#125;>
+    }
+
+    class PayoutRequestSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/payout-requests-schemas.ts
+        +payoutRequests
+    }
+
+    class EventSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/events-schemas.ts
+        +events
+    }
+    
+    class UserSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/users-schemas.ts
+        +user
+        +organizers
+    }
+
+    PayoutRequestActions --> PayoutRequestService : calls
+    PayoutRequestService --> PayoutRequestRepo : calls
+    PayoutRequestRepo --> PayoutRequestSchemas : uses
+    PayoutRequestRepo --> EventSchemas : uses
+    PayoutRequestRepo --> UserSchemas : uses

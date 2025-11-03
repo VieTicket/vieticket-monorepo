@@ -1,0 +1,303 @@
+erDiagram
+    %% ==================== CORE USER & AUTH ENTITIES ====================
+    
+    user {
+        text id PK
+        text name
+        text email UK "UNIQUE"
+        boolean emailVerified
+        date dateOfBirth
+        gender_enum gender
+        varchar phone "varchar(20)"
+        text image
+        role_enum role "default: customer"
+        boolean banned
+        text banReason
+        timestamp banExpires
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    session {
+        text id PK
+        text userId FK
+        text activeOrganizationId FK "NEW - optional"
+        text token UK "UNIQUE"
+        timestamp expiresAt
+        timestamp createdAt
+        timestamp updatedAt
+        text ipAddress
+        text userAgent
+        text impersonatedBy
+    }
+
+    account {
+        text id PK
+        text userId FK
+        text accountId
+        text providerId
+        text accessToken
+        text refreshToken
+        text idToken
+        timestamp accessTokenExpiresAt
+        timestamp refreshTokenExpiresAt
+        text scope
+        text password
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    verification {
+        text id PK
+        text identifier
+        text value
+        timestamp expiresAt
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    %% ==================== ORGANIZATION ENTITIES [NEW] ====================
+
+    organizations {
+        text id PK
+        uuid eventId FK "optional"
+        text name
+        text slug UK "UNIQUE"
+        text logo
+        jsonb metadata
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    members {
+        text id PK
+        text userId FK
+        text organizationId FK
+        text role
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    invitations {
+        text id PK
+        text inviterId FK "references members"
+        text organizationId FK
+        text email
+        text role
+        text status
+        timestamp expiresAt
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    organization_roles {
+        text id PK
+        text organizationId FK
+        text role UK "UNIQUE"
+        jsonb permissions
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    %% ==================== ORGANIZER (LEGACY) ====================
+
+    organizers {
+        text id PK
+        varchar name "varchar(100)"
+        timestamp foundedDate
+        varchar website "varchar(255)"
+        boolean isActive
+        varchar address "varchar(255)"
+        varchar organizerType "varchar(64)"
+        text rejectionReason
+        boolean rejectionSeen
+        timestamp rejectedAt
+    }
+
+    %% ==================== EVENT ENTITIES ====================
+
+    events {
+        uuid id PK
+        text organizerId FK
+        varchar name "varchar(100)"
+        varchar slug UK "varchar(100) UNIQUE"
+        text description
+        timestamp startTime
+        timestamp endTime
+        varchar location "varchar(255)"
+        varchar type "varchar(64)"
+        timestamp ticketSaleStart "DEPRECATED"
+        timestamp ticketSaleEnd "DEPRECATED"
+        integer maxTicketsByOrder
+        varchar posterUrl "varchar(255)"
+        varchar bannerUrl "varchar(255)"
+        integer views "default: 0"
+        event_approval_status_enum approvalStatus
+        text seatMapId "DEPRECATED"
+        jsonb metadata "NEW - min_price, max_price"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    showings {
+        uuid id PK
+        uuid eventId FK
+        text seatMapId
+        varchar name "varchar(255)"
+        timestamp startTime
+        timestamp endTime
+        timestamp ticketSaleStart
+        timestamp ticketSaleEnd
+        boolean isActive
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    areas {
+        uuid id PK
+        uuid eventId FK "DEPRECATED"
+        uuid showingId FK
+        varchar name "varchar(64)"
+        numeric price "numeric(10,2)"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    rows {
+        uuid id PK
+        uuid areaId FK
+        varchar rowName "varchar(16)"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    seats {
+        uuid id PK
+        uuid rowId FK
+        varchar seatNumber "varchar(16)"
+        timestamp createdAt
+        timestamp updatedAt
+    }
+
+    %% ==================== ORDER & TICKET ENTITIES ====================
+
+    orders {
+        uuid id PK
+        text userId FK
+        timestamp orderDate
+        numeric totalAmount "numeric(10,2)"
+        order_status_enum status
+        jsonb paymentMetadata
+        timestamp updatedAt
+    }
+
+    tickets {
+        uuid id PK
+        uuid orderId FK
+        uuid seatId FK
+        uuid eventId FK "NEW - denormalized"
+        ticket_status_enum status
+        numeric amount "NEW - denormalized price"
+        timestamp purchasedAt
+    }
+
+    seat_holds {
+        uuid id PK
+        uuid eventId FK
+        text userId FK
+        uuid orderId FK
+        uuid seatId FK
+        boolean isConfirmed
+        boolean isPaid
+        timestamp expiresAt
+        timestamp createdAt
+    }
+
+    refunds {
+        uuid id PK
+        uuid orderId FK
+        timestamp requestedAt
+        timestamp approvedAt
+        timestamp refundedAt
+        numeric amount "numeric(10,2)"
+        refund_status_enum status
+    }
+
+    %% ==================== LOG ENTITIES ====================
+
+    ticket_inspection_history {
+        uuid id PK
+        uuid ticketId FK
+        text inspectorId FK
+        ticket_inspection_status_enum status
+        timestamp inspectedAt
+        timestamp loggedAt
+    }
+
+    ticket_email_logs {
+        uuid id PK
+        uuid ticketId FK
+        text sender_user_id FK
+        varchar recipient_email "varchar(255)"
+        timestamp sentAt
+    }
+
+    %% ==================== PAYOUT ENTITIES ====================
+
+    payout_requests {
+        uuid id PK
+        uuid eventId FK
+        text organizerId FK
+        payout_status_enum status
+        numeric requestedAmount "numeric(10,2)"
+        numeric agreedAmount "numeric(10,2)"
+        timestamp requestDate
+        timestamp completionDate
+        text proofDocumentUrl
+    }
+
+    %% ==================== RELATIONSHIPS ====================
+
+    %% User relationships
+    user ||--o{ session : "has many"
+    user ||--o{ account : "has many"
+    user ||--o| organizers : "is (legacy)"
+    user ||--o{ members : "has many"
+    user ||--o{ orders : "places"
+    user ||--o{ seat_holds : "holds"
+    user ||--o{ ticket_inspection_history : "inspects"
+    user ||--o{ ticket_email_logs : "sends"
+
+    %% Organization relationships (NEW)
+    organizations ||--o{ members : "has many"
+    organizations ||--o{ invitations : "has many"
+    organizations ||--o{ organization_roles : "defines"
+    members ||--o{ invitations : "invites"
+    session }o--o| organizations : "active in"
+
+    %% Event relationships
+    organizers ||--o{ events : "organizes"
+    organizers ||--o{ payout_requests : "requests"
+    events ||--o{ showings : "has many"
+    events ||--o{ areas : "has (deprecated)"
+    events ||--o{ seat_holds : "has holds"
+    events ||--o{ payout_requests : "has"
+    events ||--o{ tickets : "has [NEW]"
+
+    %% Showing relationships
+    showings ||--o{ areas : "has many"
+
+    %% Seat hierarchy
+    areas ||--o{ rows : "contains"
+    rows ||--o{ seats : "contains"
+
+    %% Order & Ticket relationships
+    orders ||--o{ tickets : "contains"
+    orders ||--o{ refunds : "has"
+    orders ||--o{ seat_holds : "has"
+    seats ||--o{ tickets : "assigns"
+    seats ||--o{ seat_holds : "held by"
+
+    %% Ticket relationships
+    tickets ||--o{ ticket_inspection_history : "has history"
+    tickets ||--o{ ticket_email_logs : "has logs"

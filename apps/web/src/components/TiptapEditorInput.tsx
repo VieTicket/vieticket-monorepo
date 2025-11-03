@@ -9,6 +9,7 @@ import { ImageResize } from "tiptap-extension-resize-image";
 
 import { Toolbar } from "./TiptapToolbar";
 import { useEffect } from "react";
+import { useTranslations } from "next-intl";
 
 type Props = {
   value: string;
@@ -32,6 +33,7 @@ export default function TiptapEditorInput({
   error,
   eventData,
 }: Props) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -81,7 +83,7 @@ export default function TiptapEditorInput({
 
   return (
     <div className="space-y-2">
-      <label htmlFor="description">Additional Information</label>
+      <label htmlFor="description">{t("labels.description")}</label>
       <div
         className={`border rounded ${error ? "border-red-500" : "border-gray-300"}`}
       >

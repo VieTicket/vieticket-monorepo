@@ -4,6 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { AIImageGenerator } from "@/components/ai/AIImageGenerator";
+import { useTranslations } from "next-intl";
 import type {
   EventFormData,
   UploadResponse,
@@ -30,14 +31,15 @@ export function MediaUploadStep({
   onPosterGenerated,
   onBannerGenerated,
 }: MediaUploadStepProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   return (
     <div className="space-y-8">
       {/* Poster Upload Section */}
       <div className="space-y-4">
         <Label className="text-base font-medium">
-          Event Poster
+          {t("ai.media.posterTitle")}
           <span className="text-sm font-normal text-gray-500 ml-2">
-            (Recommended: 600x800px or 3:4 ratio)
+            {t("ai.media.posterRecommended")}
           </span>
         </Label>
 
@@ -45,14 +47,14 @@ export function MediaUploadStep({
           {/* Manual Upload */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Upload Your Own
+              {t("ai.media.uploadYourOwn")}
             </h3>
             <div className="relative w-full aspect-[3/4] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
               {formData.posterUrl ? (
                 <>
                   <img
                     src={formData.posterUrl}
-                    alt="Event poster preview"
+                    alt={t("ai.media.posterAlt")}
                     className="w-full h-full object-cover"
                   />
                 </>
@@ -63,7 +65,7 @@ export function MediaUploadStep({
                     onUploadError={onUploadError}
                     folder="event-posters"
                     mode="dropzone"
-                    buttonLabel="Upload Poster"
+                    buttonLabel={t("ai.media.uploadButtonPoster")}
                     className="h-[100%]"
                   />
                 </div>
@@ -78,7 +80,7 @@ export function MediaUploadStep({
                   size="sm"
                   onClick={onPosterRemove}
                 >
-                  Remove Poster
+                  {t("ai.media.removePoster")}
                 </Button>
               </div>
             )}
@@ -87,7 +89,7 @@ export function MediaUploadStep({
           {/* AI Generation */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Generate with AI
+              {t("ai.media.generateWithAI")}
             </h3>
             <AIImageGenerator
               type="poster"
@@ -101,9 +103,9 @@ export function MediaUploadStep({
       {/* Banner Upload Section */}
       <div className="space-y-4">
         <Label className="text-base font-medium">
-          Event Banner
+          {t("ai.media.bannerTitle")}
           <span className="text-sm font-normal text-gray-500 ml-2">
-            (Recommended: 1280x720px or 16:9 ratio)
+            {t("ai.media.bannerRecommended")}
           </span>
         </Label>
 
@@ -111,14 +113,14 @@ export function MediaUploadStep({
           {/* Manual Upload */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Upload Your Own
+              {t("ai.media.uploadYourOwn")}
             </h3>
             <div className="relative w-full aspect-[16/9] border rounded-lg overflow-hidden bg-gray-100 flex items-center justify-center">
               {formData.bannerUrl ? (
                 <>
                   <img
                     src={formData.bannerUrl}
-                    alt="Event banner preview"
+                    alt={t("ai.media.bannerAlt")}
                     className="w-full h-full object-cover"
                   />
                 </>
@@ -129,7 +131,7 @@ export function MediaUploadStep({
                     onUploadError={onUploadError}
                     folder="event-banners"
                     mode="dropzone"
-                    buttonLabel="Upload Banner"
+                    buttonLabel={t("ai.media.uploadButtonBanner")}
                     className="h-[100%]"
                   />
                 </div>
@@ -144,7 +146,7 @@ export function MediaUploadStep({
                   size="sm"
                   onClick={onBannerRemove}
                 >
-                  Remove Banner
+                  {t("ai.media.removeBanner")}
                 </Button>
               </div>
             )}
@@ -153,7 +155,7 @@ export function MediaUploadStep({
           {/* AI Generation for Banner */}
           <div className="space-y-3">
             <h3 className="text-sm font-medium text-gray-700">
-              Generate Banner with AI
+              {t("ai.media.generateBannerWithAI")}
             </h3>
             <div className="w-full">
               <AIImageGenerator

@@ -1,74 +1,565 @@
 {
-  "home": {
-    "logIn": "Đăng Nhập",
-    "signUp": "Đăng Ký",
-    "nav":[
-        { "label": "Trang Chủ", "href": "/" },
-        { "label": "Sự Kiện", "href": "/events" },
-        { "label": "Giới Thiệu", "href": "/about" },
-        { "label": "Liên Hệ", "href": "/contact" }
-    ],
-    "carousel": {
-        "slide1": {
-            "title": "Chào mừng đến với VieTicket",
-            "subtitle": "Khám phá một thế giới sự kiện sôi động đang chờ bạn."
+    "home": {
+        "logIn": "Đăng Nhập",
+        "signUp": "Đăng Ký",
+        "nav": [
+            {
+                "label": "Trang Chủ",
+                "href": "/"
+            },
+            {
+                "label": "Sự Kiện",
+                "href": "/events"
+            },
+            {
+                "label": "Giới Thiệu",
+                "href": "/about"
+            },
+            {
+                "label": "Liên Hệ",
+                "href": "/contact"
+            }
+        ],
+        "carousel": {
+            "slide1": {
+                "title": "Chào mừng đến với VieTicket",
+                "subtitle": "Khám phá một thế giới sự kiện sôi động đang chờ bạn."
+            },
+            "slide2": {
+                "title": "Tạo Sơ Đồ Chỗ Ngồi Đơn Giản",
+                "subtitle": "Dễ dàng thiết kế sơ đồ chỗ ngồi cho bất kỳ sự kiện nào một cách dễ dàng."
+            },
+            "slide3": {
+                "title": "Đa Dạng Địa Điểm Âm Nhạc",
+                "subtitle": "Thưởng thức các thể loại âm nhạc đa dạng tại các địa điểm tuyệt vời của chúng tôi."
+            }
         },
-        "slide2": {
-            "title": "Tạo Sơ Đồ Chỗ Ngồi Đơn Giản",
-            "subtitle": "Dễ dàng thiết kế sơ đồ chỗ ngồi cho bất kỳ sự kiện nào một cách dễ dàng."
+        "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
+        "categories": {
+            "title": "Khám Phá Danh Mục",
+            "types": {
+                "Entertainment": "Giải Trí",
+                "Technology & Innovation": "Công Nghệ & Đổi Mới",
+                "Business": "Kinh Doanh",
+                "Cultural & Arts": "Văn Hóa & Nghệ Thuật",
+                "Sports & Fitness": "Thể Thao & Sức Khỏe",
+                "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
+            }
         },
-        "slide3": {
-            "title": "Đa Dạng Địa Điểm Âm Nhạc",
-            "subtitle": "Thưởng thức các thể loại âm nhạc đa dạng tại các địa điểm tuyệt vời của chúng tôi."
-        }
-    },
-    "description": "Khám phá những sự kiện tuyệt vời quanh bạn.",
-    "categories": {
-        "title": "Khám Phá Danh Mục",
-        "types":{
-            "Entertainment": "Giải Trí",
-            "Technology & Innovation": "Công Nghệ & Đổi Mới",
-            "Business": "Kinh Doanh",
-            "Cultural & Arts": "Văn Hóa & Nghệ Thuật",
-            "Sports & Fitness": "Thể Thao & Sức Khỏe",
-            "Competition & Game shows": "Cuộc Thi & Chương Trình Trò Chơi"
-        }
-    }, 
-    "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
-    "seeMore": "Xem Thêm"
+        "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
+        "seeMore": "Xem Thêm"
     },
     "footer": {
-    "companyInfo":{
-        "title": "Thông Tin Công Ty",
-        "properties": [
-        "Về Chúng Tôi",
-        "Liên Hệ",
-        "Tuyển Dụng",
-        "Câu Hỏi Thường Giao",
-        "Điều Khoản Dịch Vụ",
-        "Chính Sách Bảo Mật"
-        ]
-    },
-    "help":{
-        "title": "Trợ Giúp",
-        "properties": [
-        "Hỗ Trợ Tài Khoản",
-        "Đăng Sự Kiện",
-        "Vé Sự Kiện",
-        "Điều Khoản & Điều Kiện Mua Vé"
-        ]
+        "companyInfo": {
+            "title": "Thông Tin Công Ty",
+            "properties": [
+                "Về Chúng Tôi",
+                "Liên Hệ",
+                "Tuyển Dụng",
+                "Câu Hỏi Thường Giao",
+                "Điều Khoản Dịch Vụ",
+                "Chính Sách Bảo Mật"
+            ]
         },
-    "categories": {
-        "title": "Khám Phá Danh Mục",
-        "properties":[
-            "Giải Trí",
-            "Công Nghệ & Đổi Mới",
-            "Kinh Doanh",
-            "Văn Hóa & Nghệ Thuật",
-            "Thể Thao & Sức Khỏe",
-            "Cuộc Thi & Chương Trình Trò Chơi"
-        ]
+        "help": {
+            "title": "Trợ Giúp",
+            "properties": [
+                "Hỗ Trợ Tài Khoản",
+                "Đăng Sự Kiện",
+                "Vé Sự Kiện",
+                "Điều Khoản & Điều Kiện Mua Vé"
+            ]
+        },
+        "categories": {
+            "title": "Khám Phá Danh Mục",
+            "properties": [
+                "Giải Trí",
+                "Công Nghệ & Đổi Mới",
+                "Kinh Doanh",
+                "Văn Hóa & Nghệ Thuật",
+                "Thể Thao & Sức Khỏe",
+                "Cuộc Thi & Chương Trình Trò Chơi"
+            ]
+        },
+        "followUs": "Theo Dõi Chúng Tôi"
     },
-    "followUs": "Theo Dõi Chúng Tôi"
-}
+    "event-sidebar": {
+        "Searchevents": "Tìm kiếm sự kiện...",
+        "PriceRange": "Khoảng Giá",
+        "priceOptions": [
+            {
+                "label": "Dưới 500.000₫",
+                "value": "lt500k"
+            },
+            {
+                "label": "500.000₫ - 1.000.000₫",
+                "value": "500k-1m"
+            },
+            {
+                "label": "1.000.000₫ - 3.000.000₫",
+                "value": "1m-3m"
+            },
+            {
+                "label": "3.000.000₫ - 5.000.000₫",
+                "value": "3m-5m"
+            },
+            {
+                "label": "Hơn 5.000.000₫",
+                "value": "gt5m"
+            }
+        ],
+        "seeMore": "Xem Thêm",
+        "StartDate": "Ngày Bắt Đầu",
+        "dateOptions": [
+            {
+                "label": "Tất cả",
+                "value": "all"
+            },
+            {
+                "label": "Hôm nay",
+                "value": "today"
+            },
+            {
+                "label": "Tuần này",
+                "value": "thisWeek"
+            }
+        ],
+        "Category": "Danh Mục",
+        "categoryOptions": [
+            {
+                "label": "Tất cả danh mục",
+                "value": "all"
+            },
+            {
+                "label": "Giải trí",
+                "value": "Entertainment"
+            },
+            {
+                "label": "Công Nghệ & Đổi Mới",
+                "value": "Technology & Innovation"
+            },
+            {
+                "label": "Kinh Doanh",
+                "value": "Business"
+            },
+            {
+                "label": "Văn Hóa & Nghệ Thuật",
+                "value": "Cultural & Arts"
+            },
+            {
+                "label": "Thể Thao & Sức Khỏe",
+                "value": "Sports & Fitness"
+            },
+            {
+                "label": "Cuộc Thi & Chương Trình Trò Chơi",
+                "value": "Competition & Game shows"
+            }
+        ],
+        "Location": "Địa Điểm",
+        "AllLocation": "Tất cả địa điểm"
+    },
+    "organizer-dashboard": {
+        "General": {
+            "general": "Tổng Quan",
+            "revenue": "Doanh Thu",
+            "organizerOverview": "Tổng Quan Nhà Tổ Chức",
+            "totalRevenue": "Tổng Doanh Thu",
+            "actual(-20%)": "Thực Tế (-20%)",
+            "totalEvents": "Tổng Số Sự Kiện",
+            "ticketsSold": "Vé Đã Bán",
+            "featuredEvent": "Sự Kiện Nổi Bật",
+            "revenue:": "Doanh Thu:",
+            "revenueFluctuation": "Biến Động Doanh Thu",
+            "revenueOverTime": "Doanh Thu Theo Thời Gian",
+            "allTime": "Tất cả thời gian",
+            "last7Days": "7 ngày qua",
+            "last30Days": "30 ngày qua",
+            "custom": "Tùy Chỉnh",
+            "revenueStructure": "Cơ Cấu Doanh Thu",
+            "revenueDistributionByEvent": "Phân Bổ Doanh Thu Theo Sự Kiện",
+            "topEventsByRevenue": "Sự Kiện Hàng Đầu Theo Doanh Thu",
+            "event": "Sự Kiện",
+            "status": "Trạng Thái"
+        },
+        "CreateEvent": {
+            "eventDetails": "Chi Tiết Sự Kiện",
+            "seatMap": "Sơ Đồ Chỗ Ngồi",
+            "createEvent": "Tạo Sự Kiện",
+            "editEvent": "Chỉnh Sửa Sự Kiện",
+            "seatMapUpdateRequired": "⚠️ Cần Cập Nhật Sơ Đồ Chỗ Ngồi",
+            "text1": "Bạn đã thay đổi cấu hình chỗ ngồi. Điều này sẽ:",
+            "text2": "Xóa tất cả các khu vực và chỗ ngồi hiện có.",
+            "text3": "Tạo lại toàn bộ cấu trúc chỗ ngồi.",
+            "text4": "Hành động này không thể hoàn tác.",
+            "text5": "Tôi hiểu và xác nhận việc cập nhật sơ đồ chỗ ngồi",
+            "goback": "Quay Lại",
+            "updating": "Đang Cập Nhật...",
+            "creating": "Đang Tạo...",
+            "updateEvent": "Cập Nhật Sự Kiện",
+            "createEventt": "🎉 Tạo Sự Kiện Mới",
+            "saveandcontinue": "Lưu & Tiếp Tục",
+            "areaA": "Khu vực A",
+            "mainShowing": "Buổi chiếu chính",
+            "pleaseFixErrors": "Vui lòng sửa các lỗi trước khi tiếp tục",
+            "confirmSeatMapUpdate": "Vui lòng xác nhận cập nhật sơ đồ chỗ ngồi để tiếp tục.",
+            "errors": {
+                "nameRequired": "Tên sự kiện là bắt buộc",
+                "locationRequired": "Địa điểm là bắt buộc",
+                "descriptionRequired": "Mô tả là bắt buộc",
+                "showingRequired": "Ít nhất một buổi chiếu có thời gian bắt đầu là bắt buộc",
+                "maxTicketsMin": "Số vé tối đa mỗi đơn phải lớn hơn hoặc bằng 1",
+                "maxTicketsMax": "Số vé tối đa mỗi đơn không được vượt quá 20",
+                "startTimePast": "Thời gian bắt đầu không thể ở quá khứ",
+                "endTimePast": "Thời gian kết thúc không thể ở quá khứ",
+                "endTimeBeforeStart": "Thời gian kết thúc phải sau thời gian bắt đầu",
+                "ticketSaleStartPast": "Thời gian bắt đầu bán vé không thể ở quá khứ",
+                "ticketSaleStartBeforeShowing": "Bán vé phải bắt đầu trước buổi chiếu",
+                "ticketSaleEndPast": "Thời gian kết thúc bán vé không thể ở quá khứ",
+                "ticketSaleEndAfterStart": "Thời gian kết thúc bán vé phải sau thời gian bắt đầu",
+                "ticketSaleEndBeforeShowing": "Bán vé phải kết thúc trước khi buổi chiếu bắt đầu"
+            },
+            "toasts": {
+                "failedLoadEvent": "Tải dữ liệu sự kiện thất bại",
+                "posterUploaded": "Tải poster lên thành công!",
+                "bannerUploaded": "Tải banner lên thành công!",
+                "selectedSeatMap": "Đã chọn sơ đồ chỗ ngồi: {name}",
+                "selectedSeatMapDesc": "{totalSeats} chỗ trong {areasCount} khu vực",
+                "failedLoadSeatMap": "Tải chi tiết sơ đồ chỗ ngồi thất bại",
+                "seatMapLoadError": "Đã xảy ra lỗi khi tải sơ đồ chỗ ngồi",
+                "uploadFailed": "Tải lên thất bại: {message}",
+                "eventUpdated": "✅ Cập nhật sự kiện thành công!",
+                "eventAndSeatMapCreated": "🎉 Tạo sự kiện và sơ đồ chỗ ngồi thành công!",
+                "eventCreated": "🎉 Tạo sự kiện thành công!",
+                "createEventFailed": "Đã xảy ra sự cố khi tạo sự kiện."
+            },
+            "steps": {
+                "edit": "Chỉnh Sửa",
+                "banner": "Banner",
+                "preview": "Xem Trước",
+                "ticketing": "Bán Vé"
+            },
+            "labels": {
+                "eventTitle": "Tiêu đề sự kiện",
+                "eventCategory": "Thể loại sự kiện",
+                "location": "Sự kiện sẽ diễn ra ở đâu?",
+                "maxTicketsPerOrder": "Số vé tối đa mỗi đơn",
+                "description": "Thông tin bổ sung",
+                "showingName": "Tên buổi chiếu",
+                "startTime": "Thời gian bắt đầu",
+                "endTime": "Thời gian kết thúc",
+                "ticketSaleStart": "Bắt đầu bán vé",
+                "ticketSaleEnd": "Kết thúc bán vé"
+            },
+            "categories": {
+                "workshop": "Hội Thảo",
+                "concert": "Buổi Hòa Nhạc",
+                "webinar": "Hội Thảo Trực Tuyến",
+                "music": "Âm Nhạc",
+                "sports": "Thể Thao",
+                "art": "Nghệ Thuật",
+                "comedy": "Hài Kịch",
+                "food": "Ẩm Thực",
+                "conference": "Hội Nghị"
+            },
+            "ticketSale": {
+                "title": "Lịch Bán Vé",
+                "description": "Ngày bán vé được tính tự động dựa trên các buổi chiếu của bạn:",
+                "saleStarts": "Bắt đầu bán: 7 ngày trước buổi chiếu sớm nhất",
+                "saleEnds": "Kết thúc bán: 1 giờ trước buổi chiếu sớm nhất",
+                "note": "Các buổi chiếu riêng lẻ có thể có lịch bán vé riêng ở bước tiếp theo."
+            },
+            "placeholders": {
+                "example5": "vd., 5",
+                "showingExample": "vd., Buổi sáng, Buổi tối"
+            },
+            "showings": {
+                "title": "Buổi chiếu sự kiện",
+                "description": "Thêm nhiều buổi chiếu cho sự kiện của bạn (các thời gian/ngày khác nhau)",
+                "add": "Thêm Buổi Chiếu",
+                "defaultName": "Buổi chiếu {n}",
+                "showing": "Buổi chiếu {n}"
+            },
+            "ai": {
+                "text": {
+                    "trigger": "✨ Mô tả AI",
+                    "title": "Tạo mô tả sự kiện bằng AI",
+                    "description": "💡 Nhập chỉ dẫn và gợi ý sáng tạo để AI tạo mô tả marketing hấp dẫn.",
+                    "eventInfoTitle": "🎯 Thông tin sự kiện hiện tại",
+                    "labels": {
+                        "name": "Tên:",
+                        "type": "Loại:",
+                        "location": "Địa điểm:",
+                        "start": "Bắt đầu:",
+                        "end": "Kết thúc:",
+                        "price": "Giá vé:"
+                    },
+                    "promptLabel": "🎨 Yêu cầu sáng tạo cho mô tả",
+                    "placeholder": "💡 Ví dụ sáng tạo:\n• Nhấn mạnh cơ hội networking độc đáo\n• Giới thiệu diễn giả/nghệ sĩ nổi tiếng\n• Tạo FOMO với số lượng vé giới hạn\n• Nhấn mạnh trải nghiệm độc quyền\n• Nhắc ưu đãi early bird",
+                    "tipTitle": "Mẹo:",
+                    "tipText": "Càng cụ thể thì AI sẽ tạo nội dung càng phù hợp.",
+                    "suggestionsTitle": "🚀 Gợi ý sáng tạo:",
+                    "templatesTitle": "📝 Template mẫu (click để copy):",
+                    "templates": {
+                        "workshop": "Tạo không khí sôi động cho sự kiện học tập: networking, diễn giả, vé giới hạn.",
+                        "workshopTitle": "Workshop/Hội thảo",
+                        "workshopShort": "Networking + Experts + Vé giới hạn",
+                        "concert": "Đêm nhạc sôi động với nghệ sĩ, ánh sáng hoành tráng, ưu đãi early bird.",
+                        "concertTitle": "Concert/Nhạc",
+                        "concertShort": "Nghệ sĩ nổi tiếng + Early bird",
+                        "tech": "Hội thảo công nghệ với diễn giả hàng đầu, insights độc quyền, kết nối startup.",
+                        "techTitle": "Hội thảo Công nghệ",
+                        "techShort": "Insights + Kết nối startup",
+                        "night": "Đêm nhạc huyền ảo với nghệ sĩ, không gian lãng mạn, ưu đãi early bird.",
+                        "nightTitle": "Đêm nhạc huyền ảo",
+                        "nightShort": "Cảm xúc + Nghệ sĩ + Early bird"
+                    },
+                    "debug": "Debug:",
+                    "debugDisabled": "disabled=",
+                    "footer": {
+                        "cancel": "❌ Hủy",
+                        "generating": "🎨 Đang tạo...",
+                        "generate": "Tạo mô tả siêu hấp dẫn"
+                    },
+                    "toasts": {
+                        "emptyPrompt": "Vui lòng nhập yêu cầu cho phần mô tả",
+                        "success": "Đã tạo mô tả sự kiện thành công!",
+                        "readError": "Không thể đọc response",
+                        "apiError": "Lỗi API: {error}",
+                        "callError": "Đã xảy ra lỗi khi gọi AI. Vui lòng thử lại."
+                    }
+                },
+                "image": {
+                    "cardTitle": "AI {type} Generator",
+                    "types": {
+                        "poster": "Poster",
+                        "banner": "Banner"
+                    },
+                    "backgroundLabel": "Mô tả nền",
+                    "backgroundPlaceholder": "Mô tả nền cho {type}",
+                    "textOnImageLabel": "Văn bản trên ảnh (Tùy chọn)",
+                    "textPlaceholder": "Ví dụ: \"LIVE MUSIC NIGHT 2025\"",
+                    "styleLabel": "Phong cách",
+                    "selectPlaceholder": "Chọn phong cách",
+                    "styles": {
+                        "modern": "Hiện đại",
+                        "vibrant": "Rực rỡ",
+                        "elegant": "Tinh tế",
+                        "creative": "Sáng tạo",
+                        "realistic": "Thực tế",
+                        "illustration": "Minh họa"
+                    },
+                    "generating": "Đang tạo...",
+                    "generateBtn": "Tạo ảnh",
+                    "toasts": {
+                        "enterBackground": "Vui lòng nhập mô tả nền",
+                        "generated": "Đã tạo {type} bằng AI!",
+                        "successApply": "Áp dụng ảnh thành công!",
+                        "failedGenerate": "Tạo ảnh thất bại."
+                    },
+                    "useBtn": "Sử dụng ảnh này",
+                    "downloadBtn": "Tải xuống"
+                },
+                "media": {
+                    "posterTitle": "Event Poster",
+                    "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+                    "posterAlt": "Xem trước poster sự kiện",
+                    "uploadYourOwn": "Upload Your Own",
+                    "uploadButtonPoster": "Upload Poster",
+                    "removePoster": "Remove Poster",
+                    "generateWithAI": "Generate with AI",
+                    "bannerTitle": "Event Banner",
+                    "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+                    "bannerAlt": "Xem trước banner sự kiện",
+                    "uploadButtonBanner": "Upload Banner",
+                    "removeBanner": "Remove Banner",
+                    "generateBannerWithAI": "Generate Banner with AI"
+                }
+            },
+            "help": {
+                "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
+            }
+        },
+        "SeatMap": {
+            "seatMap": "Sơ Đồ Chỗ Ngồi"
+        },
+        "ListEvent": {
+            "listEvent": "Danh Sách Sự Kiện",
+            "searchLabel": "Tìm kiếm",
+            "searchPlaceholder": "Tìm theo tên sự kiện...",
+            "allEvents": "Tất cả sự kiện",
+            "approved": "✓ Đã duyệt",
+            "pending": "⏳ Đang chờ",
+            "rejected": "✗ Bị từ chối"
+        },
+        "Rating": {
+            "rating": "Đánh Giá"
+        },
+        "RequestPayout": {
+            "requestPayout": "Yêu Cầu Thanh Toán",
+            "title": "Quản Lý Yêu Cầu Thanh Toán",
+            "loading": "Đang tải...",
+            "filterLabel": "Lọc theo trạng thái:",
+            "statusOptions": {
+                "all": "Tất cả",
+                "pending": "Đang chờ",
+                "approved": "Đã duyệt",
+                "rejected": "Bị từ chối",
+                "cancelled": "Đã hủy",
+                "in_discussion": "Đang thảo luận",
+                "completed": "Hoàn thành"
+            },
+            "noRequests": "Không tìm thấy yêu cầu thanh toán.",
+            "table": {
+                "event": "Sự kiện",
+                "requestedAmount": "Số tiền yêu cầu",
+                "amount": "Số tiền",
+                "agreedAmount": "Số tiền thỏa thuận",
+                "status": "Trạng thái",
+                "requestDate": "Ngày yêu cầu",
+                "completionDate": "Ngày hoàn tất",
+                "actions": "Hành động",
+                "viewEvidence": "Xem chứng từ",
+                "uploadEvidence": "Tải lên chứng từ"
+            },
+            "viewDetails": "Xem chi tiết",
+            "empty": {
+                "title": "Không có yêu cầu thanh toán",
+                "description": "Bạn chưa tạo yêu cầu thanh toán nào.",
+                "createBtn": "Tạo yêu cầu đầu tiên"
+            },
+            "placeholders": {
+                "agreedAmount": "Số tiền thỏa thuận"
+            },
+            "buttons": {
+                "save": "Lưu",
+                "previous": "Trước",
+                "next": "Tiếp",
+                "newPayout": "Yêu cầu thanh toán mới"
+            },
+            "page": {
+                "title": "Danh sách yêu cầu thanh toán"
+            },
+            "pagination": {
+                "pageOf": "Trang {page} trên {totalPages}"
+            },
+            "confirm": {
+                "updateAgreed": "Bạn có chắc muốn cập nhật số tiền thỏa thuận không?",
+                "updateStatus": "Bạn có chắc muốn cập nhật trạng thái không?"
+            },
+            "toasts": {
+                "fetchFailed": "Tải yêu cầu thanh toán thất bại",
+                "unexpectedError": "Đã xảy ra lỗi không mong muốn",
+                "agreedAmountUpdated": "Cập nhật số tiền thỏa thuận thành công",
+                "agreedAmountUpdateFailed": "Cập nhật số tiền thỏa thuận thất bại",
+                "statusUpdated": "Cập nhật trạng thái thành công",
+                "statusUpdateFailed": "Cập nhật trạng thái thất bại",
+                "proofUploaded": "Tải chứng từ thành công",
+                "proofUploadFailed": "Tải chứng từ thất bại"
+            }
+        },
+        "InspectTicket": {
+            "inspectTicket": "Kiểm Tra Vé"
+        },
+        "ChatWithAdmin": {
+            "chatWithAdmin": "Liên Lạc Với Admin",
+            "chat": "Trò Chuyện",
+            "your_conversations": "Các cuộc trò chuyện của bạn"
+        },
+        "Profile": {
+            "profile": "Hồ Sơ",
+            "settings": "Cài đặt tài khoản",
+            "accountInfo": "Thông tin tài khoản",
+            "password": "Mật khẩu",
+            "loadingProfile": "Đang tải hồ sơ...",
+            "rejection": {
+                "title": "Đơn đăng ký bị từ chối",
+                "description": "Đơn đăng ký nhà tổ chức của bạn đã được xem xét và không được chấp thuận.",
+                "reasonTitle": "Lý do bị từ chối:",
+                "helpText": "Bạn có thể cập nhật thông tin đăng ký và gửi lại, hoặc liên hệ đội hỗ trợ nếu cần giải thích.",
+                "button": "Tôi đã hiểu",
+                "markedSeen": "Thông báo từ chối đã được đánh dấu là đã xem"
+            },
+            "organizerStatus": {
+                "active": "Tài khoản nhà tổ chức của bạn đã được kích hoạt và chấp thuận!",
+                "pending": "Tài khoản nhà tổ chức của bạn đang chờ phê duyệt. Vui lòng hoàn tất các trường yêu cầu và chờ admin phê duyệt để truy cập tính năng tổ chức."
+            },
+            "photo": {
+                "title": "Ảnh Hồ Sơ",
+                "uploadButton": "Tải lên Avatar mới"
+            },
+            "personalInfo": {
+                "title": "Thông Tin Cá Nhân"
+            },
+            "labels": {
+                "fullName": "Họ và tên:",
+                "email": "Email:",
+                "dateOfBirth": "Ngày sinh:",
+                "gender": "Giới tính:",
+                "phone": "Số điện thoại:"
+            },
+            "placeholders": {
+                "fullName": "Nhập họ và tên",
+                "email": "Email",
+                "dateOfBirth": "YYYY-MM-DD",
+                "gender": "Chọn giới tính",
+                "phone": "Nhập số điện thoại",
+                "organizerName": "Nhập tên nhà tổ chức",
+                "website": "https://example.com",
+                "address": "Nhập địa chỉ",
+                "foundedDate": "YYYY-MM-DD",
+                "organizerType": "vd. Giải trí, Văn hóa"
+            },
+            "contact": {
+                "title": "Chi Tiết Liên Hệ",
+                "description": "Các thông tin này được giữ riêng tư và chỉ dùng để liên hệ về vé hoặc giải thưởng."
+            },
+            "organizerDetails": {
+                "title": "Thông Tin Nhà Tổ Chức",
+                "description": "Hoàn thành các trường dưới đây để gửi yêu cầu phê duyệt.",
+                "organizerName": "Tên Nhà Tổ Chức:",
+                "website": "Website:",
+                "address": "Địa chỉ:",
+                "foundedDate": "Ngày thành lập:",
+                "organizerType": "Loại nhà tổ chức:"
+            },
+            "buttons": {
+                "submitForApproval": "Gửi yêu cầu phê duyệt",
+                "saveProfile": "Lưu hồ sơ"
+            },
+            "toasts": {
+                "loadFailed": "Tải hồ sơ thất bại",
+                "avatarUpdated": "Cập nhật avatar thành công!",
+                "saveFailed": "Lưu hồ sơ thất bại",
+                "saveSuccess": "Cập nhật hồ sơ thành công"
+            },
+            "setPassword": {
+                "title": "Đặt Mật Khẩu",
+                "labels": {
+                    "oldPassword": "Mật khẩu cũ",
+                    "newPassword": "Mật khẩu mới",
+                    "confirmPassword": "Xác nhận Mật khẩu"
+                },
+                "placeholders": {
+                    "oldPassword": "Nhập mật khẩu cũ",
+                    "newPassword": "Nhập mật khẩu mới",
+                    "confirmPassword": "Nhập lại mật khẩu"
+                },
+                "errors": {
+                    "passwordMismatch": "Mật khẩu không khớp",
+                    "oldPasswordRequired": "Mật khẩu cũ là bắt buộc",
+                    "newPasswordRequired": "Mật khẩu mới là bắt buộc",
+                    "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu"
+                },
+                "toasts": {
+                    "success": "Đã cập nhật mật khẩu thành công"
+                },
+                "buttons": {
+                    "update": "Cập nhật Mật khẩu"
+                }
+            }
+        },
+        "SignOut": {
+            "signOut": "Đăng Xuất"
+        }
+    }
 }

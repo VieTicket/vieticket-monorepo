@@ -2,19 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 export function SettingsSidebar() {
   const pathname = usePathname();
+  const t = useTranslations("organizer-dashboard.Profile");
 
   const navItems = [
-    { name: "Account Info", href: "/profile/edit" },
-    { name: "Password", href: "/profile/password" },
+    { name: t("accountInfo"), href: "/profile/edit" },
+    { name: t("password"), href: "/profile/password" },
   ];
 
   return (
     <aside className="h-full bg-slate-50 rounded-lg">
       <h2 className="text-2xl font-bold text-slate-800 mb-6 p-6">
-        Account Settings
+        {t("settings")}
       </h2>
       <nav>
         <ul>
@@ -22,17 +24,13 @@ export function SettingsSidebar() {
             const isActive = pathname === item.href;
 
             return (
-              <li key={item.name}>
+              <li key={item.href}>
                 <Link
                   href={item.href}
                   className={`
                     block w-full text-left px-6 py-2 text-slate-600
                     hover:bg-slate-200 hover:text-slate-800 transition-colors
-                    ${
-                      isActive
-                        ? "bg-slate-200 font-semibold text-slate-900"
-                        : ""
-                    }
+                    ${isActive ? "bg-slate-200 font-semibold text-slate-900" : ""}
                   `}
                 >
                   {item.name}

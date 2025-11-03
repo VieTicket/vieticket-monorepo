@@ -1,0 +1,192 @@
+@startuml Search and Filter Events Sequence
+!theme plain
+actor User as U
+participant "SearchBar" as SearchBar
+participant "EventFiltersSidebar" as FilterSidebar
+participant "FilteredClientGrid" as ClientGrid
+participant "useInfiniteQuery" as InfiniteQuery
+participant "EventsAPI\n(/api/events)" as API
+participant "EventQueries" as Queries
+participant "Database" as DB
+
+title Search and Filter Events Flow
+
+== Initial Page Load ==
+U -> ClientGrid : Visit /events page
+activate ClientGrid
+
+ClientGrid -> InfiniteQuery : Initialize with default filters
+activate InfiniteQuery
+note right : Default: price="all", date="all",\nlocation="all", category="all", q=""
+
+InfiniteQuery -> API : GET /api/events?page=1&limit=6&price=all&date=all&location=all&category=all&q=
+activate API
+
+API -> API : Parse search parameters
+API -> Queries : getFilteredEvents(filters)
+activate Queries
+
+Queries -> DB : SELECT events with filters
+activate DB
+DB --> Queries : Return EventSummary[]
+deactivate DB
+
+Queries --> API : EventSummary[] with pagination
+deactivate Queries
+
+API --> InfiniteQuery : { events, page: 1, hasMore: true }
+deactivate API
+
+InfiniteQuery --> ClientGrid : Initial event data
+deactivate InfiniteQuery
+
+ClientGrid -> FilterSidebar : Render with current filters
+ClientGrid -> SearchBar : Render search input
+ClientGrid --> U : Display events list with filters
+deactivate ClientGrid
+
+== Search by Query ==
+U -> SearchBar : Enter search query "concert"
+activate SearchBar
+
+SearchBar -> ClientGrid : onSearch("concert")
+activate ClientGrid
+
+ClientGrid -> ClientGrid : Update URL params: q="concert"
+ClientGrid -> InfiniteQuery : Refetch with new filters
+activate InfiniteQuery
+
+InfiniteQuery -> API : GET /api/events?q=concert&page=1&limit=6
+activate API
+
+API -> API : normalize("concert") -> "concert"
+note right : Remove diacritics for Vietnamese search
+
+API -> Queries : getFilteredEvents({ q: "concert", ... })
+activate Queries
+
+Queries -> DB : SELECT events WHERE name ILIKE '%concert%'\nOR description ILIKE '%concert%'
+activate DB
+DB --> Queries : Filtered EventSummary[]
+deactivate DB
+
+Queries --> API : Filtered results
+deactivate Queries
+
+API --> InfiniteQuery : { events: filtered, page: 1, hasMore: true }
+deactivate API
+
+InfiniteQuery --> ClientGrid : Updated event list
+deactivate InfiniteQuery
+
+ClientGrid --> SearchBar : Search completed
+deactivate SearchBar
+
+ClientGrid --> U : Display filtered events by search
+deactivate ClientGrid
+
+== Filter by Category ==
+U -> FilterSidebar : Select category "Music"
+activate FilterSidebar
+
+FilterSidebar -> ClientGrid : onChange("category", "Music")
+activate ClientGrid
+
+ClientGrid -> ClientGrid : Update URL params: category="Music"
+ClientGrid -> InfiniteQuery : Refetch with category filter
+activate InfiniteQuery
+
+InfiniteQuery -> API : GET /api/events?q=concert&category=Music&page=1&limit=6
+activate API
+
+API -> Queries : getFilteredEvents({ q: "concert", category: "Music", ... })
+activate Queries
+
+Queries -> DB : SELECT events WHERE type = 'Music'\nAND (name ILIKE '%concert%' OR description ILIKE '%concert%')
+activate DB
+DB --> Queries : Double-filtered results
+deactivate DB
+
+Queries --> API : Combined filtered results
+deactivate Queries
+
+API --> InfiniteQuery : { events: double-filtered, page: 1, hasMore: true }
+deactivate API
+
+InfiniteQuery --> ClientGrid : Updated event list
+deactivate InfiniteQuery
+
+ClientGrid --> FilterSidebar : Filter applied
+deactivate FilterSidebar
+
+ClientGrid --> U : Display events matching search + category
+deactivate ClientGrid
+
+== Filter by Price Range ==
+U -> FilterSidebar : Select price "under-500k"
+activate FilterSidebar
+
+FilterSidebar -> ClientGrid : onChange("price", "under-500k")
+activate ClientGrid
+
+ClientGrid -> ClientGrid : Update URL params: price="under-500k"
+ClientGrid -> InfiniteQuery : Refetch with price filter
+activate InfiniteQuery
+
+InfiniteQuery -> API : GET /api/events?q=concert&category=Music&price=under-500k&page=1&limit=6
+activate API
+
+API -> Queries : getFilteredEvents({ price: "under-500k", ... })
+activate Queries
+
+Queries -> DB : SELECT events WHERE typicalTicketPrice < 500000\nAND type = 'Music'\nAND (name ILIKE '%concert%' OR description ILIKE '%concert%')
+activate DB
+DB --> Queries : Triple-filtered results
+deactivate DB
+
+Queries --> API : Price + category + search filtered results
+deactivate Queries
+
+API --> InfiniteQuery : { events: triple-filtered, page: 1, hasMore: false }
+deactivate API
+
+InfiniteQuery --> ClientGrid : Final filtered list
+deactivate InfiniteQuery
+
+ClientGrid --> FilterSidebar : All filters applied
+deactivate FilterSidebar
+
+ClientGrid --> U : Display events matching all criteria
+deactivate ClientGrid
+
+== Load More Results (Infinite Scroll) ==
+U -> ClientGrid : Scroll to bottom / Click "See More"
+activate ClientGrid
+
+ClientGrid -> InfiniteQuery : fetchNextPage()
+activate InfiniteQuery
+
+InfiniteQuery -> API : GET /api/events?q=concert&category=Music&price=under-500k&page=2&limit=6
+activate API
+
+API -> Queries : getFilteredEvents({ page: 2, ... })
+activate Queries
+
+Queries -> DB : SELECT events with OFFSET 6 LIMIT 6
+activate DB
+DB --> Queries : Next page results
+deactivate DB
+
+Queries --> API : Page 2 results
+deactivate Queries
+
+API --> InfiniteQuery : { events: page2, page: 2, hasMore: false }
+deactivate API
+
+InfiniteQuery --> ClientGrid : Append new events to existing list
+deactivate InfiniteQuery
+
+ClientGrid --> U : Display extended list with pagination
+deactivate ClientGrid
+
+@enduml

@@ -1,0 +1,85 @@
+@startuml view-event-details-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Event Details Sequence Diagram - VieTicket Application
+
+actor User as U
+participant "Browser\n/events/[slug]" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "EventPage\nComponent" as EventPage
+participant "fetchEventDetail\nService" as EventService
+participant "getEventBySlug\nQuery" as EventQuery
+participant "Database\n(Drizzle ORM)" as DB
+participant "PreviewEvent\nComponent" as PreviewComponent
+participant "ViewCounter\nComponent" as ViewCounter
+participant "incrementEventView\nService" as ViewService
+
+note over U, ViewService: User wants to view event details
+
+U -> Browser : Navigate to /events/[slug]
+activate Browser
+Browser -> NextJS : GET /events/[slug]
+activate NextJS
+
+NextJS -> EventPage : Render page with slug param
+activate EventPage
+
+EventPage -> EventService : fetchEventDetail(slug)
+activate EventService
+
+EventService -> EventQuery : getEventBySlug(slug)
+activate EventQuery
+
+EventQuery -> DB : SELECT events with relations\n(organizer, areas, showings)
+activate DB
+DB --> EventQuery : Event data with relations
+deactivate DB
+
+EventQuery --> EventService : EventFull object
+deactivate EventQuery
+
+note over EventService: Transform data to EventPreviewData format
+
+EventService --> EventPage : EventPreviewData
+deactivate EventService
+
+note over EventPage: Transform event data for UI components
+
+EventPage -> ViewCounter : Render with eventId
+activate ViewCounter
+
+ViewCounter -> ViewService : incrementEventViewCount(eventId)
+activate ViewService
+
+ViewService -> DB : UPDATE events SET views = views + 1
+activate DB
+DB --> ViewService : Success
+deactivate DB
+
+ViewService --> ViewCounter : View count updated
+deactivate ViewService
+deactivate ViewCounter
+
+EventPage -> PreviewComponent : Render with event data
+activate PreviewComponent
+
+note over PreviewComponent: Display event information:\n- Event name, description\n- Date, time, location\n- Organizer details\n- Poster/banner image\n- Areas and pricing\n- Showings list
+
+PreviewComponent --> EventPage : Rendered event details
+deactivate PreviewComponent
+
+EventPage --> NextJS : Complete page render
+deactivate EventPage
+
+NextJS --> Browser : HTML with event details
+deactivate NextJS
+
+Browser --> U : Display event details page\nwith all event information
+deactivate Browser
+
+note over U, ViewService: Event details successfully displayed
+
+@enduml

@@ -18,36 +18,38 @@ import {
   User,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-
-const navItems = [
-  { label: "General", href: "/organizer/general", icon: Home },
-  { label: "Create Event", href: "/organizer/event/create", icon: NotebookPen },
-  { label: "SeatMap", href: "/organizer/seat-map", icon: Map },
-  { label: "List Event", href: "/organizer", icon: Calendar },
-  { label: "Rating", href: "/organizer/rating", icon: Star },
-  {
-    label: "Request Payout",
-    href: "/organizer/payouts",
-    icon: Wallet,
-  },
-  {
-    label: "Inspect Ticket",
-    href: "/inspector",
-    icon: TicketCheck,
-  },
-  {
-    label: "Chat with Admin",
-    href: "/organizer/chat?recipientId=admin",
-    icon: MessageCircle, // import from lucide-react or similar
-  },
-  { label: "Profile", href: "/profile/edit", icon: User },
-  { label: "Sign out", href: "/auth/sign-out", icon: LogOut },
-];
+import { useTranslations } from "next-intl";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const t = useTranslations("organizer-dashboard");
+
+  const navItems = [
+  { label: t("General.general"), href: "/organizer/general", icon: Home },
+  { label: t("CreateEvent.createEvent"), href: "/organizer/event/create", icon: NotebookPen },
+  { label: t("SeatMap.seatMap"), href: "/organizer/seat-map", icon: Map },
+  { label: t("ListEvent.listEvent"), href: "/organizer", icon: Calendar },
+  { label: t("Rating.rating"), href: "/organizer/rating", icon: Star },
+  {
+    label: t("RequestPayout.requestPayout"),
+    href: "/organizer/payouts",
+    icon: Wallet,
+  },
+  {
+    label: t("InspectTicket.inspectTicket"),
+    href: "/inspector",
+    icon: TicketCheck,
+  },
+  {
+    label: t("ChatWithAdmin.chatWithAdmin"),
+    href: "/organizer/chat?recipientId=admin",
+    icon: MessageCircle,
+  },
+  { label: t("Profile.profile"), href: "/profile/edit", icon: User },
+  { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
+];
 
   useEffect(() => {
     setHasMounted(true);

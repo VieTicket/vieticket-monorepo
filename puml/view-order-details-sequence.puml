@@ -1,0 +1,122 @@
+@startuml view-order-details-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Order Details Sequence Diagram - VieTicket Application
+
+actor Customer as C
+participant "Browser\n/orders/[orderId]" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "OrderPage\nComponent" as OrderPage
+participant "getOrderDetailsAction\nServer Action" as OrderAction
+participant "getOrderDetails\nService" as OrderService
+participant "findOrderByIdForUser\nRepository" as OrderRepo
+participant "getTicketDetails\nRepository" as TicketRepo
+participant "Database\n(Drizzle ORM)" as DB
+participant "generateTicketQRData\nUtil" as QRUtil
+participant "OrderDetailsView\nComponent" as OrderView
+participant "TicketCard\nComponent" as TicketCard
+participant "generateQRCodeImage\nClient Util" as QRClient
+
+note over C, QRClient: Customer wants to view order details
+
+C -> Browser : Navigate to /orders/[orderId]
+activate Browser
+Browser -> NextJS : GET /orders/[orderId]
+activate NextJS
+
+NextJS -> OrderPage : Render page with orderId param
+activate OrderPage
+
+OrderPage -> OrderAction : getOrderDetailsAction(orderId)
+activate OrderAction
+
+note over OrderAction: Validate user session
+
+OrderAction -> OrderService : getOrderDetails(user, orderId)
+activate OrderService
+
+note over OrderService: Check user role = "customer"
+
+OrderService -> OrderRepo : findOrderByIdForUser(orderId, userId)
+activate OrderRepo
+
+OrderRepo -> DB : SELECT order\nWHERE order.id = orderId\nAND order.userId = userId
+activate DB
+DB --> OrderRepo : Order details
+deactivate DB
+
+OrderRepo --> OrderService : Order object
+deactivate OrderRepo
+
+OrderService -> TicketRepo : getTicketDetails(orderId)
+activate TicketRepo
+
+TicketRepo -> DB : SELECT tickets with seat info\nJOIN seats, rows, areas\nWHERE tickets.orderId = orderId
+activate DB
+DB --> TicketRepo : Tickets with seat details
+deactivate DB
+
+TicketRepo --> OrderService : Array of ticket details
+deactivate TicketRepo
+
+note over OrderService: Get event info from first ticket
+
+loop For each ticket
+    alt Ticket status is "active"
+        OrderService -> QRUtil : generateTicketQRData(\nticketId, userName, eventId,\nseatNumber, rowName, areaName)
+        activate QRUtil
+        QRUtil --> OrderService : QR data string
+        deactivate QRUtil
+    else Ticket status is not "active"
+        note over OrderService: Set qrData = null for ticket
+    end
+end
+
+OrderService --> OrderAction : OrderDetails with tickets & QR data
+deactivate OrderService
+
+OrderAction --> OrderPage : { success: true, data: orderDetails }
+deactivate OrderAction
+
+OrderPage -> OrderView : Render OrderDetailsView(order)
+activate OrderView
+
+note over OrderView: Display order information:\n- Order ID, date, status\n- Total amount\n- Event details
+
+loop For each ticket in order
+    OrderView -> TicketCard : Render TicketCard(ticket, eventName)
+    activate TicketCard
+    
+    alt Ticket has QR data
+        TicketCard -> QRClient : generateQRCodeImage(qrData)
+        activate QRClient
+        QRClient --> TicketCard : QR code image
+        deactivate QRClient
+    end
+    
+    note over TicketCard: Display ticket info:\n- Ticket ID, seat details\n- QR code for entry\n- Ticket status
+    
+    TicketCard --> OrderView : Rendered ticket card
+    deactivate TicketCard
+end
+
+note over OrderView: Display order summary:\n- Number of tickets\n- Total amount\n- Important notes about QR usage
+
+OrderView --> OrderPage : Rendered order details
+deactivate OrderView
+
+OrderPage --> NextJS : Complete page render
+deactivate OrderPage
+
+NextJS --> Browser : HTML with order details
+deactivate NextJS
+
+Browser --> C : Display order details page\nwith all tickets and QR codes
+deactivate Browser
+
+note over C, QRClient: Order details successfully displayed
+
+@enduml

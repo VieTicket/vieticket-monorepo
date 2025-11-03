@@ -5,26 +5,30 @@ import {
   createSeats,
   getEventsById,
   updateEventById,
-  getEventsByOrganizerId,
   getAreasByEventId,
   updateAreaById,
   getRowsByAreaId,
   deleteSeatsByRowId,
   deleteAreasByEventId,
+  deleteShowingsByEventId,
   createAreaWithId,
   createRowWithId,
   createSeatsWithIds,
   incrementEventView,
   createShowing,
-  getShowingsByEventId,
-  deleteShowingsByEventId,
+  updateEventWithShowingsOptimized,
+  updateEventWithShowingsIndividualOptimized,
+  createEventWithShowingsOptimized,
+  createEventWithShowingsIndividualOptimized,
+  getEventByIdOptimized,
+  getEventsByOrganizerOptimized,
 } from "../queries/events-mutation";
 import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
 import { Event, NewEvent } from "@vieticket/db/pg/schema";
 import { getEventBySlug } from "../queries/events";
 import { SeatMapGridData } from "@/types/event-types";
-import { v4 as uuidv4 } from "uuid"; // ✅ Add this import
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * ✅ Create event with showings using simple ticketing (copy mode)
@@ -36,6 +40,8 @@ export async function createEventWithShowingsAndAreas(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   areas: {
@@ -46,6 +52,7 @@ export async function createEventWithShowingsAndAreas(
 ): Promise<{ eventId: string } | null> {
   const result = createEventInputSchema.safeParse(event);
   if (!result.success) {
+    console.error("Validation failed:", result.error.issues);
     throw new Error(
       result.error.issues
         .map((i) => `${i.path.join(".")} — ${i.message}`)
@@ -54,56 +61,22 @@ export async function createEventWithShowingsAndAreas(
   }
 
   const validEvent = result.data;
-  let createdEventId: string | null = null;
 
-  await db.transaction(async () => {
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
-    console.log("✅ Event created:", createdEventId);
+  try {
+    const showingsData = showings.map((showing) => ({
+      showing,
+      areas,
+    }));
 
-    const createdShowings = [];
-    for (const showing of showings) {
-      const [createdShowing] = await createShowing({
-        eventId: createdEvent.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-      createdShowings.push(createdShowing);
-      console.log(`✅ Showing created: ${createdShowing.name}`);
-    }
-
-    for (const showing of createdShowings) {
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: createdEvent.id,
-          showingId: showing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-      console.log(
-        `  ✅ Created ${areas.length} areas for showing: ${showing.name}`
-      );
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
+    const { eventId } = await createEventWithShowingsOptimized(
+      validEvent,
+      showingsData
+    );
+    return { eventId };
+  } catch (error) {
+    console.error("Error creating event with showings:", error);
+    return null;
+  }
 }
 
 /**
@@ -116,6 +89,8 @@ export async function createEventWithShowingsAndAreasIndividual(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   showingAreaConfigs: Array<
@@ -136,53 +111,25 @@ export async function createEventWithShowingsAndAreasIndividual(
   }
 
   const validEvent = result.data;
-  let createdEventId: string | null = null;
 
-  await db.transaction(async () => {
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
-    console.log("✅ Event created:", createdEventId);
+  try {
+    const showingsData = showings.map((showing, index) => ({
+      showing,
+      areas: showingAreaConfigs[index] || [],
+    }));
 
-    for (let i = 0; i < showings.length; i++) {
-      const showing = showings[i];
-      const areas = showingAreaConfigs[i] || [];
-
-      const [createdShowing] = await createShowing({
-        eventId: createdEvent.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-      console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
-
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: createdEvent.id,
-          showingId: createdShowing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-      console.log(`  ✅ Created ${areas.length} areas for showing ${i + 1}`);
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
+    const { eventId } = await createEventWithShowingsIndividualOptimized(
+      validEvent,
+      showingsData
+    );
+    return { eventId };
+  } catch (error) {
+    console.error(
+      "Error creating event with individual showing configs:",
+      error
+    );
+    return null;
+  }
 }
 
 /**
@@ -195,6 +142,8 @@ export async function createEventWithShowingsAndSeatMap(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   grids: SeatMapGridData[],
@@ -224,6 +173,8 @@ export async function createEventWithShowingsAndSeatMap(
         name: showing.name,
         startTime: showing.startTime,
         endTime: showing.endTime,
+        ticketSaleStart: showing.ticketSaleStart || null,
+        ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
       createdShowings.push(createdShowing);
@@ -280,6 +231,8 @@ export async function createEventWithShowingsAndSeatMapIndividual(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   showingSeatMapConfigs: SeatMapGridData[][],
@@ -311,6 +264,8 @@ export async function createEventWithShowingsAndSeatMapIndividual(
         name: showing.name,
         startTime: showing.startTime,
         endTime: showing.endTime,
+        ticketSaleStart: showing.ticketSaleStart || null,
+        ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
       console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
@@ -320,7 +275,6 @@ export async function createEventWithShowingsAndSeatMapIndividual(
         const gridPrice =
           grid.seatSettings?.price || defaultSeatSettings?.price || 0;
 
-        // ✅ Generate new UUID for each showing's grid
         const uniqueGridId = uuidv4();
 
         await createAreaWithId({
@@ -333,9 +287,7 @@ export async function createEventWithShowingsAndSeatMapIndividual(
 
         console.log(`    ✅ Area created: ${grid.name} (${uniqueGridId})`);
 
-        // Create rows and seats
         for (const row of grid.rows) {
-          // ✅ Generate new UUID for each row
           const uniqueRowId = uuidv4();
 
           await createRowWithId({
@@ -344,11 +296,10 @@ export async function createEventWithShowingsAndSeatMapIndividual(
             rowName: row.name,
           });
 
-          // ✅ Generate new UUIDs for each seat
-          const seatValues = row.seats.map(() => ({
+          const seatValues = row.seats.map((_, idx) => ({
             id: uuidv4(),
             rowId: uniqueRowId,
-            seatNumber: row.name + "-" + (Math.random() * 1000).toFixed(0), // You might want a better seat number logic
+            seatNumber: `${row.name}-${idx + 1}`,
           }));
 
           if (seatValues.length > 0) {
@@ -369,155 +320,72 @@ export async function createEventWithShowingsAndSeatMapIndividual(
  * ✅ Update event with showings using simple ticketing (copy mode)
  */
 export async function updateEventWithShowingsAndAreas(
-  event: Event,
-  showings: {
+  eventPayload: Event,
+  showings: Array<{
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
-  }[],
-  areas: {
+  }>,
+  areas: Array<{
     name: string;
     seatCount: number;
     ticketPrice: number;
-  }[]
+  }>
 ) {
-  const result = createEventInputSchema.safeParse(event);
-  if (!result.success) {
-    throw new Error(
-      result.error.issues
-        .map((i) => `${i.path.join(".")} — ${i.message}`)
-        .join("\n")
-    );
+  try {
+    const showingsData = showings.map((showing) => ({
+      showing,
+      areas,
+    }));
+
+    return updateEventWithShowingsOptimized(eventPayload, showingsData);
+  } catch (error) {
+    console.error("Error updating event with showings:", error);
+    return null;
   }
-
-  const validEvent = result.data;
-
-  await db.transaction(async () => {
-    await updateEventById(event.id, validEvent);
-    console.log("✅ Event updated:", event.id);
-
-    await deleteAreasByEventId(event.id);
-    await deleteShowingsByEventId(event.id);
-    console.log("🗑️ Old showings and areas deleted");
-
-    const createdShowings = [];
-    for (const showing of showings) {
-      const [createdShowing] = await createShowing({
-        eventId: event.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-      createdShowings.push(createdShowing);
-      console.log(`✅ Showing created: ${createdShowing.name}`);
-    }
-
-    for (const showing of createdShowings) {
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: event.id,
-          showingId: showing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-      console.log(`  ✅ Created ${areas.length} areas for: ${showing.name}`);
-    }
-  });
 }
 
 /**
  * ✅ Update event with showings using simple ticketing (individual mode)
  */
 export async function updateEventWithShowingsAndAreasIndividual(
-  event: Event,
-  showings: {
+  eventPayload: Event,
+  showings: Array<{
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
-  }[],
+  }>,
   showingAreaConfigs: Array<
-    {
+    Array<{
       name: string;
       seatCount: number;
       ticketPrice: number;
-    }[]
+    }>
   >
 ) {
-  const result = createEventInputSchema.safeParse(event);
-  if (!result.success) {
-    throw new Error(
-      result.error.issues
-        .map((i) => `${i.path.join(".")} — ${i.message}`)
-        .join("\n")
+  try {
+    const showingsData = showings.map((showing, index) => ({
+      showing,
+      areas: showingAreaConfigs[index] || [],
+    }));
+
+    return updateEventWithShowingsIndividualOptimized(
+      eventPayload,
+      showingsData
     );
+  } catch (error) {
+    console.error(
+      "Error updating event with individual showing configs:",
+      error
+    );
+    return null;
   }
-
-  const validEvent = result.data;
-
-  await db.transaction(async () => {
-    await updateEventById(event.id, validEvent);
-    console.log("✅ Event updated:", event.id);
-
-    await deleteAreasByEventId(event.id);
-    await deleteShowingsByEventId(event.id);
-    console.log("🗑️ Old showings and areas deleted");
-
-    for (let i = 0; i < showings.length; i++) {
-      const showing = showings[i];
-      const areas = showingAreaConfigs[i] || [];
-
-      const [createdShowing] = await createShowing({
-        eventId: event.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        seatMapId: showing.seatMapId || null,
-      });
-      console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
-
-      for (const area of areas) {
-        const [createdArea] = await createArea({
-          eventId: event.id,
-          showingId: createdShowing.id,
-          name: area.name,
-          price: area.ticketPrice,
-        });
-
-        const [createdRow] = await createRow({
-          areaId: createdArea.id,
-          rowName: "A",
-        });
-
-        const seatValues = Array.from({ length: area.seatCount }, (_, i) => ({
-          rowId: createdRow.id,
-          seatNumber: (i + 1).toString(),
-        }));
-
-        if (seatValues.length > 0) {
-          await createSeats(seatValues);
-        }
-      }
-      console.log(`  ✅ Created ${areas.length} areas for showing ${i + 1}`);
-    }
-  });
 }
 
 /**
@@ -529,6 +397,8 @@ export async function updateEventWithShowingsAndSeatMap(
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   grids: SeatMapGridData[],
@@ -560,6 +430,8 @@ export async function updateEventWithShowingsAndSeatMap(
         name: showing.name,
         startTime: showing.startTime,
         endTime: showing.endTime,
+        ticketSaleStart: showing.ticketSaleStart || null,
+        ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
       createdShowings.push(createdShowing);
@@ -604,12 +476,17 @@ export async function updateEventWithShowingsAndSeatMap(
   });
 }
 
+/**
+ * ✅ Update event with showings using seat map (individual mode)
+ */
 export async function updateEventWithShowingsAndSeatMapIndividual(
   event: Event,
   showings: {
     name: string;
     startTime: Date;
     endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
   showingSeatMapConfigs: SeatMapGridData[][],
@@ -643,6 +520,8 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
         name: showing.name,
         startTime: showing.startTime,
         endTime: showing.endTime,
+        ticketSaleStart: showing.ticketSaleStart || null,
+        ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
       console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
@@ -652,7 +531,6 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
         const gridPrice =
           grid.seatSettings?.price || defaultSeatSettings?.price || 0;
 
-        // ✅ Generate new UUID for each showing's grid
         const uniqueGridId = uuidv4();
 
         await createAreaWithId({
@@ -663,9 +541,7 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
           price: gridPrice,
         });
 
-        // Create rows and seats
         for (const row of grid.rows) {
-          // ✅ Generate new UUID for each row
           const uniqueRowId = uuidv4();
 
           await createRowWithId({
@@ -674,7 +550,6 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
             rowName: row.name,
           });
 
-          // ✅ Generate new UUIDs for each seat
           const seatValues = row.seats.map((_, idx) => ({
             id: uuidv4(),
             rowId: uniqueRowId,
@@ -690,6 +565,9 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
     }
   });
 }
+
+// ========== UTILITY FUNCTIONS ==========
+
 export async function fetchEventDetail(slug: string) {
   const event = await getEventBySlug(slug);
   if (!event) throw new Error("Event not found");
@@ -702,6 +580,10 @@ export async function incrementEventViewCount(eventId: string) {
   } catch (error) {
     console.error("Failed to increment view count:", error);
   }
+}
+
+export async function getEventsByOrganizer(organizerId: string) {
+  return await getEventsByOrganizerOptimized(organizerId);
 }
 
 export async function getEventById(eventId: string) {

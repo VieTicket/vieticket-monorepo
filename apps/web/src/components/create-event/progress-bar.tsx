@@ -1,18 +1,20 @@
 import React from "react";
-
-// Define the steps for the progress bar
-const steps = [
-  { label: "Edit", id: 1 },
-  { label: "Banner", id: 2 },
-  { label: "Preview", id: 3 },
-  { label: "Ticketing", id: 4 },
-];
+import { useTranslations } from "next-intl";
 
 export function StepProgressBar({ step }: { step: number }) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
+
+  // Define the steps for the progress bar (labels pulled from i18n)
+  const steps = [
+    { label: t("steps.edit"), id: 1 },
+    { label: t("steps.banner"), id: 2 },
+    { label: t("steps.preview"), id: 3 },
+    { label: t("steps.ticketing"), id: 4 },
+  ];
+
   const progressPercentage = Math.min(
     100, // Cap at 100%
-    Math.max(
-      0, // Minimum at 0%
+    Math.max(0, // Minimum at 0%
       ((step - 1) / (steps.length - 1)) * 100
     )
   );

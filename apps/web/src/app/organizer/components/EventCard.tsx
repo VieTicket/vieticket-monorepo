@@ -2,6 +2,21 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Trash2, Loader2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { deleteEventAction } from "@/lib/actions/organizer/delete-event-action";
 
 import { EventApprovalStatus } from "@vieticket/db/pg/schema";
 
@@ -14,6 +29,7 @@ interface EventCardProps {
     approvalStatus: EventApprovalStatus;
     bannerUrl?: string;
   };
+  onEventDeleted?: () => void;
 }
 
 const statusConfig = {
@@ -31,8 +47,10 @@ const statusConfig = {
   },
 };
 
-export default function EventCard({ event }: EventCardProps) {
+export default function EventCard({ event, onEventDeleted }: EventCardProps) {
   const router = useRouter();
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const statusKey = (() => {
     switch (event.approvalStatus) {
       case "approved":
@@ -60,6 +78,32 @@ export default function EventCard({ event }: EventCardProps) {
   };
 
   const isSameDay = startDate.toDateString() === endDate.toDateString();
+
+  const handleDeleteEvent = async () => {
+    setIsDeleting(true);
+    try {
+      const result = await deleteEventAction(event.id);
+
+      if (result.success) {
+        toast.success("Event deleted successfully!");
+        // Call the callback to refresh the event list
+        if (onEventDeleted) {
+          onEventDeleted();
+        }
+        router.refresh(); // Fallback refresh
+      } else {
+        toast.error(result.error || "Failed to delete event");
+      }
+    } catch (error) {
+      toast.error("Failed to delete event");
+      console.error("Delete error:", error);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  // Show delete button only for non-approved events
+  const canDelete = event.approvalStatus !== "approved";
 
   return (
     <div className="border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-all duration-200">
@@ -119,6 +163,43 @@ export default function EventCard({ event }: EventCardProps) {
             >
               Edit
             </Button>
+          )}
+          {canDelete && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="text-xs py-2 h-8 px-2"
+                  disabled={isDeleting}
+                >
+                  {isDeleting ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-3 w-3" />
+                  )}
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Confirm Delete Event</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete the event "{event.name}"?
+                    This action cannot be undone and will delete all related
+                    data.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteEvent}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Delete Event
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           )}
         </div>
       </div>

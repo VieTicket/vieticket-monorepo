@@ -1,0 +1,70 @@
+classDiagram
+    direction LR
+
+    class OrderActions {
+        <<File>>
+        /apps/web/src/lib/actions/customer/order-actions.ts
+        +getUserOrdersAction(page, limit): Promise<ActionResult>
+        +getOrderDetailsAction(orderId): Promise<ActionResult>
+        +getAllUserTicketsAction(page, limit): Promise<ActionResult>
+        +getTicketDetailsAction(ticketId): Promise<ActionResult>
+        +sendTicketEmailAction(ticketId, recipientEmail): Promise<ActionResult>
+        +getTicketEmailStatusAction(ticketId): Promise<ActionResult>
+    }
+
+    class OrderService {
+        <<File>>
+        /packages/services/src/order-service.ts
+        +getUserOrders(user, page, limit): Promise<PaginatedOrders>
+        +getOrderDetails(user, orderId): Promise<OrderDetails>
+        +getAllUserTickets(user, page, limit): Promise<PaginatedTickets>
+        +getTicketDetailsForUser(user, ticketId): Promise<TicketDetails>
+        +sendTicketEmail(user, ticketId, recipientEmail): Promise<&#123;success, error?&#125;>
+        +getTicketEmailStatus(user, ticketId): Promise<EmailStatus>
+    }
+
+    class OrderRepo {
+        <<File>>
+        /packages/repos/src/orders-repo.ts
+        +findOrdersByUserIdWithPagination(userId, page, limit): Promise<PaginatedOrders>
+        +findOrderByIdForUser(orderId, userId): Promise<Order | null>
+        +findUserTicketsWithPagination(userId, page, limit): Promise<PaginatedTickets>
+        +findTicketByIdForUser(ticketId, userId): Promise<TicketDetails | null>
+        +getTicketDetails(orderId): Promise<TicketDetail[]>
+        +getEventByTicketId(ticketId): Promise<EventInfo | null>
+        +checkTicketEmailLimits(ticketId, max, cooldown): Promise<LimitStatus>
+        +logTicketEmail(ticketId, userId, email): Promise<void>
+        +getTicketEmailLogs(ticketId): Promise<EmailLog[]>
+    }
+
+    class OrderSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/orders-schemas.ts
+        +orders
+        +tickets
+        +refunds
+        +seatHolds
+        +ticketEmailLogs
+    }
+
+    class EventSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/events-schemas.ts
+        +events
+        +showings
+        +areas
+        +rows
+        +seats
+    }
+    
+    class UserSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/users-schemas.ts
+        +user
+    }
+
+    OrderActions --> OrderService : calls
+    OrderService --> OrderRepo : calls
+    OrderRepo --> OrderSchemas : uses
+    OrderRepo --> EventSchemas : uses
+    OrderRepo --> UserSchemas : uses

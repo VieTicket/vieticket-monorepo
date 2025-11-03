@@ -1,6 +1,7 @@
 @startuml
 title Edit Event Flow (With Activation Bars)
 autonumber
+!theme plain
 actor Organizer
 participant UI
 participant "EventsActions" as Actions

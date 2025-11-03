@@ -364,10 +364,8 @@ export async function searchUserSeatMaps(searchQuery: string, user: User) {
     const plainSeatMaps = seatMaps.map((seatMap) => ({
       id: seatMap.id,
       name: seatMap.name,
-      shapes: seatMap.shapes, // ✅ Add shapes field
       image: seatMap.image,
       createdBy: seatMap.createdBy,
-      publicity: seatMap.publicity, // ✅ Add publicity field
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     }));

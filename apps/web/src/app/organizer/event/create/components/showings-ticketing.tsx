@@ -15,12 +15,12 @@ import type {
   SeatMapPreviewData,
   TicketingMode,
 } from "../../../../../types/event-types";
-import type { ShowingFormData } from "@/types/showings";
+import type { ShowingFormData, ShowingWithAreas } from "@/types/showings";
 import { formatDateVi } from "@/lib/utils";
 
 interface ShowingsTicketingProps {
   ticketingMode: TicketingMode;
-  showings: ShowingFormData[];
+  showings: ShowingWithAreas[];
   areas: Area[];
   setAreas: React.Dispatch<React.SetStateAction<Area[]>>;
   selectedSeatMap: string;
@@ -88,10 +88,23 @@ export function ShowingsTicketing({
     if (copyToAllShowings) {
       return areas;
     }
+
+    // First check individual configs
     const config = showingConfigs.find(
       (c) => c.showingIndex === selectedShowingIndex
     );
-    return config?.areas || areas;
+    if (config?.areas) {
+      return config.areas;
+    }
+
+    // Then check if current showing has areas from database
+    const currentShowing = showings[selectedShowingIndex];
+    if (currentShowing?.areas && currentShowing.areas.length > 0) {
+      return currentShowing.areas;
+    }
+
+    // Fallback to global areas
+    return areas;
   };
 
   const getCurrentShowingSeatMap = () => {

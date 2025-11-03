@@ -1,0 +1,95 @@
+@startuml view-ticket-details-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title View Ticket Details Sequence Diagram - VieTicket Application
+
+actor Customer as C
+participant "Browser\n/tickets/[ticketId]" as Browser
+participant "Next.js\nApp Router" as NextJS
+participant "TicketPage\nComponent" as TicketPage
+participant "getTicketDetailsAction\nServer Action" as TicketAction
+participant "getTicketDetailsForUser\nService" as TicketService
+participant "findTicketByIdForUser\nRepository" as TicketRepo
+participant "Database\n(Drizzle ORM)" as DB
+participant "generateTicketQRData\nUtil" as QRUtil
+participant "TicketDetailsView\nComponent" as TicketView
+participant "generateQRCodeImage\nClient Util" as QRClient
+
+note over C, QRClient: Customer wants to view ticket details
+
+C -> Browser : Navigate to /tickets/[ticketId]
+activate Browser
+Browser -> NextJS : GET /tickets/[ticketId]
+activate NextJS
+
+NextJS -> TicketPage : Render page with ticketId param
+activate TicketPage
+
+TicketPage -> TicketAction : getTicketDetailsAction(ticketId)
+activate TicketAction
+
+note over TicketAction: Validate user session
+
+TicketAction -> TicketService : getTicketDetailsForUser(user, ticketId)
+activate TicketService
+
+note over TicketService: Check user role = "customer"
+
+TicketService -> TicketRepo : findTicketByIdForUser(ticketId, userId)
+activate TicketRepo
+
+TicketRepo -> DB : SELECT ticket with event info\nWHERE ticket.id = ticketId\nAND order.userId = userId
+activate DB
+DB --> TicketRepo : Ticket details with event
+deactivate DB
+
+TicketRepo --> TicketService : TicketDetails object
+deactivate TicketRepo
+
+alt Ticket status is "active"
+    TicketService -> QRUtil : generateTicketQRData(\nticketId, userName, eventId,\nseatNumber, rowName, areaName)
+    activate QRUtil
+    QRUtil --> TicketService : QR data string
+    deactivate QRUtil
+else Ticket status is not "active"
+    note over TicketService: Set qrData = null
+end
+
+TicketService --> TicketAction : TicketDetails with qrData
+deactivate TicketService
+
+TicketAction --> TicketPage : { success: true, data: ticketDetails }
+deactivate TicketAction
+
+TicketPage -> TicketView : Render TicketDetailsView(ticket)
+activate TicketView
+
+note over TicketView: Display ticket information:\n- Ticket ID, status\n- Event name and date/time\n- Seat location (area, row, seat)\n- Purchase date
+
+alt QR data exists
+    TicketView -> QRClient : generateQRCodeImage(qrData)
+    activate QRClient
+    QRClient --> TicketView : QR code image
+    deactivate QRClient
+    
+    note over TicketView: Display QR code for entry
+end
+
+TicketView --> TicketPage : Rendered ticket details
+deactivate TicketView
+
+TicketPage --> NextJS : Complete page render
+deactivate TicketPage
+
+NextJS --> Browser : HTML with ticket details
+deactivate NextJS
+
+Browser --> C : Display ticket details page\nwith QR code and ticket info
+deactivate Browser
+
+note over C, QRClient: Ticket details successfully displayed
+
+@enduml

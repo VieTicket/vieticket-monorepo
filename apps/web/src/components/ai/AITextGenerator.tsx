@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface AITextGeneratorProps {
   eventData: {
@@ -34,46 +35,17 @@ export function AITextGenerator({
   eventData,
   onTextGenerated,
 }: AITextGeneratorProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const generateEventDescription = async () => {
-    if (!prompt.trim()) {
-      toast.error("Vui lòng nhập yêu cầu cho phần mô tả");
-      return;
-    }
-
-    setIsGenerating(true);
-
-    try {
-      // Tạo prompt với thông tin event
-      const eventInfo = createEventPrompt(eventData, prompt);
-
-      // Gọi Pollinations AI để tạo text
-      const response = await fetch(
-        `https://text.pollinations.ai/${encodeURIComponent(eventInfo)}?json=false`
-      );
-
-      if (!response.ok) {
-        throw new Error("Failed to generate text");
-      }
-
-      const generatedText = await response.text();
-
-      // Convert text thành HTML format cho TipTap
-      const htmlContent = convertToTipTapHTML(generatedText);
-
-      // Gửi về parent component
-      onTextGenerated(htmlContent);
-
-      toast.success("Đã tạo mô tả sự kiện thành công!");
-      setIsOpen(false);
+  // Handle dialog open/close properly
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      // Reset states when closing
       setPrompt("");
-    } catch (error) {
-      console.error("Error generating text:", error);
-      toast.error("Không thể tạo mô tả sự kiện. Vui lòng thử lại.");
-    } finally {
       setIsGenerating(false);
     }
   };
@@ -113,45 +85,110 @@ export function AITextGenerator({
 
 🎨 YÊU CẦU ĐẶC BIỆT: ${userPrompt}
 
-🔥 NHIỆM VỤ: Tạo mô tả sự kiện SIÊU HẤP DẪN với format HTML đẹp mắt:
+🔥 NHIỆM VỤ: Tạo mô tả sự kiện SIÊU HẤP DẪN theo mẫu bên dưới:
 
-📝 CẤU TRÚC BẮT BUỘC:
-1. 🎯 TIÊU ĐỀ CHÍNH siêu hấp dẫn (<h2 style="color: #2563eb; font-size: 28px; margin-bottom: 16px; text-align: center;">)
+� CẤU TRÚC THEO MẪU MỚI (dựa trên ví dụ "ĐÊM NHẠC HUYỀN ẢO"):
 
-2. 🌟 ĐOẠN MỞ ĐẦU tạo cảm xúc mạnh (<p style="font-size: 18px; color: #374151; text-align: center; margin-bottom: 20px; font-weight: 500;">)
+1. 🎯 TIÊU ĐỀ CHÍNH hấp dẫn với emoji + tên sự kiện + slogan cảm xúc
+   Ví dụ: "🔥 [TÊN SỰ KIỆN]: [Slogan hấp dẫn] – [Cảm xúc mạnh] Tại [Địa điểm]! 🔥"
 
-3. ✨ ĐIỂM NỔI BẬT với icon và styling đẹp:
-   <h3 style="color: #dc2626; font-size: 20px; margin: 20px 0 12px 0;">🎪 Điểm Nổi Bật</h3>
-   <ul style="list-style: none; padding: 0; margin: 0 0 20px 0;">
-   <li style="background: linear-gradient(90deg, #fef3c7, #fbbf24); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #f59e0b;">🔥 Điểm nổi bật 1</li>
-   <li style="background: linear-gradient(90deg, #ddd6fe, #8b5cf6); padding: 10px 15px; margin: 8px 0; border-radius: 8px; border-left: 4px solid #7c3aed;">⭐ Điểm nổi bật 2</li>
-   </ul>
+2. 🌟 ĐOẠN MỞ ĐẦU tạo cảm xúc và FOMO (2-3 câu)
+   - Tạo câu hỏi kích thích 
+   - Mô tả trải nghiệm độc đáo
+   - Kết thúc bằng lời kêu gọi hành động
 
-4. 🎁 LỢI ÍCH với highlight:
-   <h3 style="color: #059669; font-size: 20px; margin: 20px 0 12px 0;">🎁 Bạn Sẽ Nhận Được</h3>
-   <p style="background: linear-gradient(90deg, #d1fae5, #34d399); padding: 15px; border-radius: 10px; margin: 15px 0; font-weight: 500;">Lợi ích cụ thể...</p>
+3. 🎪 ĐIỂM NỔI BẬT (3-4 điểm quan trọng nhất)
+   - Mỗi điểm bắt đầu bằng emoji + tiêu đề ngắn gọn
+   - Mô tả chi tiết lợi ích/trải nghiệm
+   - Sử dụng từ ngữ cảm xúc mạnh
 
-5. 🚀 CALL TO ACTION mạnh mẽ:
-   <div style="text-align: center; margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-   <p style="color: white; font-size: 20px; font-weight: bold; margin: 0;">🎯 ĐĂNG KÝ NGAY - SỐ LƯỢNG CÓ HẠN!</p>
-   </div>
+4. � BẠN SẼ NHẬN ĐƯỢC (2-3 lợi ích cụ thể)
+   - Ưu đãi cụ thể (giảm giá, quà tặng...)
+   - Trải nghiệm độc quyền
+   - Kỷ niệm/giá trị mang về
+
+5. 🎯 CALL TO ACTION mạnh mẽ cuối bài
+   - Tạo urgency với thời hạn cụ thể
+   - Nhấn mạnh số lượng có hạn
+   - Kêu gọi hành động ngay lập tức
 
 💡 QUY TẮC VÀNG:
-- Sử dụng EMOJIS để tạo điểm nhấn
-- Áp dụng CSS inline để tạo màu sắc đẹp mắt
-- Dùng gradient và border-radius cho hiệu ứng hiện đại
-- Tạo contrast mạnh để highlight thông tin quan trọng
-- Ngôn ngữ cảm xúc, tạo FOMO (Fear of Missing Out)
-- Dài 250-350 từ, cân bằng thông tin và marketing
+- Sử dụng NHIỀU EMOJIS để tạo điểm nhấn thị giác
+- Tạo FOMO mạnh mẽ (Fear of Missing Out)
+- Ngôn ngữ cảm xúc, năng động, trẻ trung
+- Highlight các từ khóa quan trọng: GIẢM GIÁ, ĐỘC QUYỀN, SỐ LƯỢNG CÓ HẠN, NGAY, NHANH TAY
+- Dài 200-300 từ, súc tích nhưng đầy đủ thông tin
+- Kết thúc bằng lời kêu gọi hành động CỰC MẠNH
 
-🎨 STYLE GUIDE:
-- Primary: #2563eb (blue)
-- Success: #059669 (green)  
-- Warning: #f59e0b (amber)
-- Danger: #dc2626 (red)
-- Purple: #7c3aed
+⚠️ QUAN TRỌNG: 
+- Đây là nội dung TEXT THUẦN, KHÔNG PHẢI HTML hay Markdown
+- Hệ thống sẽ tự động làm IN ĐẬM (bold) các từ khóa quan trọng như: ĐĂNG KÝ NGAY, GIẢM GIÁ, SỐ LƯỢNG CÓ HẠN, NGHỆ SĨ NỔI TIẾNG, TRẢI NGHIỆM, v.v.
+- Tập trung vào nội dung hấp dẫn và cảm xúc mạnh
+- Sử dụng nhiều từ khóa mạnh để hệ thống tự động highlight
 
-CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
+CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
+  };
+
+  // Sử dụng fetch trực tiếp thay vì useCompletion
+  console.log("� Component rendered, prompt state:", prompt);
+
+  // Clean up component
+  const handleGenerateClick = async (
+    e: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (!prompt.trim()) {
+      toast.error(t("ai.text.toasts.emptyPrompt"));
+      return;
+    }
+
+    setIsGenerating(true);
+
+    try {
+      const requestBody = {
+        prompt: prompt,
+        eventInfo: createEventPrompt(eventData, prompt),
+      };
+
+      const response = await fetch("/api/ai/generate-description", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        toast.error(t("ai.text.toasts.apiError", { error: errorText }));
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        toast.error(t("ai.text.toasts.readError"));
+        return;
+      }
+
+      let fullResponse = "";
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        fullResponse += chunk;
+      }
+
+      const htmlContent = convertToTipTapHTML(fullResponse);
+      onTextGenerated(htmlContent);
+  toast.success(t("ai.text.toasts.success"));
+      handleOpenChange(false);
+    } catch (error) {
+      console.error("Error in API call:", error);
+      toast.error(t("ai.text.toasts.callError"));
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const convertToTipTapHTML = (text: string): string => {
@@ -161,6 +198,13 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
     // Remove markdown-style formatting if present
     htmlContent = htmlContent.replace(/```html\n?|```\n?/g, "");
     htmlContent = htmlContent.replace(/```\n?/g, "");
+
+    // Convert markdown formatting to HTML
+    // Handle bold text: **text** -> <strong>text</strong>
+    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+    // Handle italic text: *text* -> <em>text</em>
+    htmlContent = htmlContent.replace(/\*(.*?)\*/g, "<em>$1</em>");
 
     // If the response doesn't contain proper HTML structure, enhance it
     if (!htmlContent.includes("<h2") && !htmlContent.includes("style=")) {
@@ -215,14 +259,14 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger asChild>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
+        <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
           className="gap-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100 text-purple-700 font-medium"
         >
-          <Sparkles className="h-4 w-4" />✨ AI Description
+          <Sparkles className="h-4 w-4" />{t("ai.text.trigger")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -232,12 +276,11 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-bold">
-              Tạo Mô Tả Sự Kiện Bằng AI
+              {t("ai.text.title")}
             </span>
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
-            💡 Nhập yêu cầu cụ thể để AI tạo nội dung marketing hấp dẫn với màu
-            sắc và styling đẹp mắt
+            {t("ai.text.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -245,28 +288,28 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
           {/* Preview event info */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-5 rounded-xl shadow-sm">
             <h4 className="font-bold text-base mb-4 text-blue-800 flex items-center gap-2">
-              🎯 Thông tin sự kiện hiện tại
+              {t("ai.text.eventInfoTitle")}
             </h4>
             <div className="text-sm text-gray-700 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span className="font-medium">Tên:</span>
+                    <span className="font-medium">{t("ai.text.labels.name")}</span>
                     <span className="text-blue-600 font-semibold">
                       {eventData.name || "Chưa có tên"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="font-medium">Loại:</span>
+                    <span className="font-medium">{t("ai.text.labels.type")}</span>
                     <span className="text-green-600 font-semibold">
                       {eventData.type || "Chưa xác định"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span className="font-medium">Địa điểm:</span>
+                    <span className="font-medium">{t("ai.text.labels.location")}</span>
                     <span className="text-orange-600 font-semibold">
                       {eventData.location || "Chưa xác định"}
                     </span>
@@ -275,7 +318,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                    <span className="font-medium">Bắt đầu:</span>
+                    <span className="font-medium">{t("ai.text.labels.start")}</span>
                     <span className="text-purple-600 font-semibold">
                       {eventData.startTime
                         ? new Date(eventData.startTime).toLocaleString("vi-VN")
@@ -284,7 +327,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span className="font-medium">Kết thúc:</span>
+                    <span className="font-medium">{t("ai.text.labels.end")}</span>
                     <span className="text-red-600 font-semibold">
                       {eventData.endTime
                         ? new Date(eventData.endTime).toLocaleString("vi-VN")
@@ -294,7 +337,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                   {eventData.ticketPrice && (
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                      <span className="font-medium">Giá vé:</span>
+                      <span className="font-medium">{t("ai.text.labels.price")}</span>
                       <span className="text-yellow-600 font-bold">
                         {parseInt(eventData.ticketPrice).toLocaleString(
                           "vi-VN"
@@ -318,7 +361,7 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                 htmlFor="prompt"
                 className="text-lg font-semibold text-gray-800"
               >
-                🎨 Yêu cầu sáng tạo cho mô tả
+                {t("ai.text.promptLabel")}
               </Label>
             </div>
 
@@ -326,15 +369,12 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
               <Textarea
                 id="prompt"
                 value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="💡 Ví dụ sáng tạo:
-• Nhấn mạnh cơ hội networking độc đáo
-• Giới thiệu diễn giả/nghệ sĩ nổi tiếng  
-• Tạo FOMO với số lượng vé giới hạn
-• Highlight trải nghiệm độc quyền
-• Nhắc đến ưu đãi early bird
-• Tạo không khí sôi động, trẻ trung
-• Nhấn mạnh giá trị học hỏi/giải trí..."
+                onChange={(e) => {
+                  const newValue = e.target.value;
+                  console.log("🔄 Prompt changing:", newValue);
+                  setPrompt(newValue);
+                }}
+                placeholder={t("ai.text.placeholder")}
                 rows={6}
                 className="resize-none border-0 bg-white/70 backdrop-blur-sm text-base leading-relaxed shadow-sm"
               />
@@ -343,10 +383,8 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
                 <div className="p-1 bg-blue-100 rounded-full">
                   <span className="text-blue-600 text-xs">💡</span>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  <strong>Mẹo:</strong> Càng cụ thể thì AI sẽ tạo nội dung càng
-                  hấp dẫn và phù hợp! Hãy mô tả chi tiết về điểm độc đáo, đối
-                  tượng mục tiêu, và cảm xúc bạn muốn tạo ra.
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <strong>{t("ai.text.tipTitle")}</strong> {t("ai.text.tipText")}
                 </p>
               </div>
             </div>
@@ -379,44 +417,36 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
             {/* Example Templates */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
               <h5 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
-                📝 Template mẫu (click để copy):
+                {t("ai.text.templatesTitle")}
               </h5>
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Tạo không khí sôi động cho giới trẻ, nhấn mạnh cơ hội networking độc đáo, có diễn giả nổi tiếng trong ngành, trải nghiệm học hỏi thực tế, giá vé ưu đãi sớm, số lượng có hạn chỉ 200 vé"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.workshop"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎯 <strong>Sự kiện học tập/workshop:</strong> Networking +
-                  Expert + Limited tickets
+                  🎯 <strong>{t("ai.text.templates.workshopTitle")}</strong> {t("ai.text.templates.workshopShort")}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Đêm nhạc đỉnh cao với nghệ sĩ nổi tiếng, âm thanh ánh sáng hoành tráng, không gian lãng mạn cho couples, early bird giảm 30%, trải nghiệm âm nhạc không thể quên"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.concert"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎵 <strong>Concert/Nhạc:</strong> Celebrity artist + Romantic
-                  + Early bird discount
+                  🎵 <strong>{t("ai.text.templates.concertTitle")}</strong> {t("ai.text.templates.concertShort")}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Hội thảo công nghệ với chuyên gia hàng đầu, insights độc quyền về AI/Tech trends, cơ hội kết nối startup, demo sản phẩm mới, gift bag giá trị cho tất cả participants"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.tech"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  💻 <strong>Tech Conference:</strong> Expert insights + Startup
-                  networking + Exclusive demos
+                  💻 <strong>{t("ai.text.templates.techTitle")}</strong> {t("ai.text.templates.techShort")}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPrompt(t("ai.text.templates.night"))}
+                  className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
+                >
+                  🔥 <strong>{t("ai.text.templates.nightTitle")}</strong> {t("ai.text.templates.nightShort")}
                 </button>
               </div>
             </div>
@@ -424,27 +454,70 @@ CHỈ TRẢ VỀ HTML THUẦN, KHÔNG MARKDOWN HAY GIẢI THÍCH!`;
         </div>
 
         <DialogFooter className="border-t pt-4 flex gap-3">
+          {/* Debug info - chỉ hiện khi development */}
+          {process.env.NODE_ENV === "development" && (
+            <div className="text-xs text-gray-500 flex-1 space-y-1">
+              <div>{t("ai.text.debug")} prompt="{prompt}"</div>
+              <div>
+                length={prompt.length} | trimmed="{prompt.trim()}" |
+                trim().length={prompt.trim().length}
+              </div>
+              <div>
+                isGenerating={isGenerating.toString()} | !prompt.trim()=
+                {(!prompt.trim()).toString()}
+              </div>
+              <div>{t("ai.text.debugDisabled")} {(isGenerating || !prompt.trim()).toString()}</div>
+            </div>
+          )}
+
           <Button
             variant="outline"
-            onClick={() => setIsOpen(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isGenerating}
             className="flex-1"
           >
-            ❌ Hủy
+            {t("ai.text.footer.cancel")}
           </Button>
+
+          {/* Test button để debug */}
+          {process.env.NODE_ENV === "development" && (
+            <Button
+              type="button"
+              onClick={() => {
+                console.log("🧪 Test button clicked!");
+                alert("Test button works!");
+              }}
+              className="bg-red-500 text-white px-2 py-1 text-xs"
+            >
+              Test
+            </Button>
+          )}
+
           <Button
-            onClick={generateEventDescription}
+            type="button"
+            onClick={(e) => {
+              console.log("🎯 Button onClick triggered");
+              handleGenerateClick(e);
+            }}
+            onMouseDown={() => console.log("🖱️ Button mouseDown")}
+            onMouseUp={() => console.log("🖱️ Button mouseUp")}
             disabled={isGenerating || !prompt.trim()}
-            className="flex-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold"
+            className="flex-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+            style={{
+              pointerEvents: isGenerating || !prompt.trim() ? "none" : "auto",
+              position: "relative",
+              zIndex: 10,
+            }}
           >
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                🎨 Đang tạo magic...
+                {t("ai.text.footer.generating")}
               </>
             ) : (
               <>
-                <Sparkles className="mr-2 h-4 w-4" />✨ Tạo Mô Tả Siêu Hấp Dẫn
+                <Sparkles className="mr-2 h-4 w-4" />
+                {t("ai.text.footer.generate")}
               </>
             )}
           </Button>

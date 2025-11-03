@@ -1,0 +1,106 @@
+@startuml Organizer-Admin Chat Sequence
+!theme plain
+actor Organizer as O
+actor Admin as A
+participant "ChatPage" as ChatPage
+participant "ChatActions" as Actions
+participant "ChatClient" as Client
+participant "StreamChat" as Stream
+
+title Organizer-Admin Chat Flow
+
+== Initiate Chat ==
+O -> ChatPage : Click "Chat with Admin"
+activate ChatPage
+
+ChatPage -> Actions : createChatRoom("admin")
+activate Actions
+
+Actions -> Actions : Create channel ID: [organizerId, "admin"].sort().join('-')
+Actions -> Stream : channel.create(channelId, members: [organizerId, "admin"])
+activate Stream
+Stream --> Actions : Channel created
+deactivate Stream
+
+Actions --> ChatPage : Return channelId
+deactivate Actions
+
+ChatPage -> Actions : getStreamToken()
+activate Actions
+Actions -> Stream : Generate token for organizer
+activate Stream
+Stream --> Actions : Stream token
+deactivate Stream
+Actions --> ChatPage : Token
+deactivate Actions
+
+ChatPage -> Client : Initialize chat (apiKey, organizerId, token, channelId)
+activate Client
+
+Client -> Stream : Connect to chat
+activate Stream
+Stream --> Client : Connected
+deactivate Stream
+
+Client --> ChatPage : Chat interface ready
+deactivate Client
+
+ChatPage --> O : Display chat with admin
+deactivate ChatPage
+
+== Send Message ==
+O -> Client : Type and send message
+activate Client
+
+Client -> Stream : Send message to channel
+activate Stream
+Stream -> Stream : Store message + notify admin
+Stream --> Client : Message sent
+deactivate Stream
+
+Client --> O : Message appears in chat
+deactivate Client
+
+== Admin Response ==
+A -> ChatPage : Access /admin/chat
+activate ChatPage
+
+ChatPage -> Actions : getStreamToken()
+activate Actions
+Actions -> Stream : Generate admin token
+activate Stream
+Stream --> Actions : Admin token
+deactivate Stream
+Actions --> ChatPage : Token
+deactivate Actions
+
+ChatPage -> Client : Initialize admin chat ("admin", token)
+activate Client
+
+Client -> Stream : Connect admin + load conversations
+activate Stream
+Stream --> Client : Channel list with organizer chats
+deactivate Stream
+
+Client --> ChatPage : Admin chat interface
+deactivate Client
+
+ChatPage --> A : Show all organizer conversations
+deactivate ChatPage
+
+A -> Client : Select channel and send response
+activate Client
+
+Client -> Stream : Send admin message
+activate Stream
+Stream -> Stream : Store + notify organizer real-time
+Stream --> Client : Message sent
+deactivate Stream
+
+Client --> A : Admin response appears
+Client --> O : Organizer receives response real-time
+deactivate Client
+
+note over O, Stream : Features: Real-time messaging, Message history,\nFile uploads, Unique channels per organizer,\nAdmin manages multiple conversations
+
+@enduml

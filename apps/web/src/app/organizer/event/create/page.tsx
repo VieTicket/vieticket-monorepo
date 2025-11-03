@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition, Suspense } from "react";
+import { useState, useEffect, useTransition, Suspense, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -11,10 +11,7 @@ import {
 import { StepProgressBar } from "@/components/create-event/progress-bar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import {
-  loadSeatMapAction,
-  getSeatMapGridDataAction,
-} from "@/lib/actions/organizer/seat-map-actions";
+import { getSeatMapGridDataAction } from "@/lib/actions/organizer/seat-map-actions";
 import { SeatMapSelectionModal } from "./components/seat-map-selection-modal";
 import { EventDetailsStep } from "./components/event-details-step";
 import { MediaUploadStep } from "./components/media-upload-step";
@@ -29,6 +26,8 @@ import type {
   UploadResponse,
 } from "../../../../types/event-types";
 import { ShowingFormData } from "@/types/showings";
+import { useTranslations } from "next-intl";
+import { ShowingWithAreas } from "@/types/showings";
 
 export default function CreateEventPage() {
   return (
@@ -50,6 +49,7 @@ function CreateEventPageInner() {
     bannerUrl: "",
     seatCount: "",
     ticketPrice: "",
+    maxTicketsByOrder: undefined,
     startTime: "",
     endTime: "",
   });
@@ -59,8 +59,9 @@ function CreateEventPageInner() {
   const [isPending, startTransition] = useTransition();
   const searchParams = useSearchParams();
   const eventId = searchParams.get("id");
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [areas, setAreas] = useState<Area[]>([
-    { name: "Area A", seatCount: "", ticketPrice: "" },
+    { name: t("areaA"), seatCount: "", ticketPrice: "" },
   ]);
   const [ticketingMode, setTicketingMode] = useState<TicketingMode>("simple");
   const [selectedSeatMap, setSelectedSeatMap] = useState<string>("");
@@ -72,13 +73,16 @@ function CreateEventPageInner() {
   const [hasSeatMapChanges, setHasSeatMapChanges] = useState(false);
   const [confirmSeatMapUpdate, setConfirmSeatMapUpdate] = useState(false);
   const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
-  const [showings, setShowings] = useState<ShowingFormData[]>([
+  const [showings, setShowings] = useState<ShowingWithAreas[]>([
     {
-      name: "Main Showing",
+      name: t("mainShowing"),
       startTime: "",
       endTime: "",
+      areas: [],
     },
   ]);
+  const [posterPreview, setPosterPreview] = useState<string | null>(null);
+  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
   // Load event data for editing
   useEffect(() => {
@@ -98,18 +102,15 @@ function CreateEventPageInner() {
           ticketSaleEnd: event.ticketSaleEnd
             ? new Date(event.ticketSaleEnd).toISOString().slice(0, 16)
             : "",
-          startTime: event.startTime
-            ? new Date(event.startTime).toISOString().slice(0, 16)
-            : "",
-          endTime: event.endTime
-            ? new Date(event.endTime).toISOString().slice(0, 16)
-            : "",
           location: event.location ?? "",
           description: event.description ?? "",
           posterUrl: event.posterUrl ?? "",
           bannerUrl: event.bannerUrl ?? "",
+          maxTicketsByOrder: event.maxTicketsByOrder ?? undefined,
           seatCount: "",
           ticketPrice: "",
+          startTime: "",
+          endTime: "",
         });
 
         if (event.seatMapId) {
@@ -138,16 +139,21 @@ function CreateEventPageInner() {
             setSelectedSeatMapData(enrichedSeatMap);
             setSeatMapPreviewData(gridDataResult.data.preview);
             setTicketingMode("seatmap");
-
-            console.log("✅ Seat map loaded successfully:", {
-              name: enrichedSeatMap.name,
-              grids: enrichedSeatMap.grids?.length,
-              totalSeats: gridDataResult.data.preview.totalSeats,
-            });
           }
         } else {
-          // Load simple ticketing areas
-          if (event.areas?.length > 0) {
+          // Load simple ticketing areas from showings
+          if (event.showings?.length > 0) {
+            const firstShowing = event.showings[0];
+            if (firstShowing.areas?.length > 0) {
+              setAreas(
+                firstShowing.areas.map((area: any) => ({
+                  name: area.name,
+                  ticketPrice: area.price.toString(),
+                  seatCount: area.seatCount?.toString() || "0",
+                }))
+              );
+            }
+          } else if (event.areas?.length > 0) {
             setAreas(
               event.areas.map((area: any) => ({
                 name: area.name,
@@ -158,9 +164,53 @@ function CreateEventPageInner() {
           }
           setTicketingMode("simple");
         }
+
+        // Load showings data if available
+        if (event.showings?.length > 0) {
+          setShowings(
+            event.showings.map((showing: any) => {
+              const startTime = showing.startTime
+                ? new Date(showing.startTime)
+                : new Date();
+              const endTime = showing.endTime
+                ? new Date(showing.endTime)
+                : new Date();
+
+              const isValidStartTime =
+                startTime instanceof Date && !isNaN(startTime.getTime());
+              const isValidEndTime =
+                endTime instanceof Date && !isNaN(endTime.getTime());
+
+              return {
+                name: showing.name,
+                startTime: isValidStartTime
+                  ? startTime.toISOString().slice(0, 16)
+                  : "",
+                endTime: isValidEndTime
+                  ? endTime.toISOString().slice(0, 16)
+                  : "",
+                ticketSaleStart: showing.ticketSaleStart
+                  ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
+                  : "",
+                ticketSaleEnd: showing.ticketSaleEnd
+                  ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
+                  : "",
+                areas:
+                  showing.areas?.map((area: any) => ({
+                    name: area.name,
+                    ticketPrice: area.price.toString(),
+                    seatCount: area.seatCount?.toString() || "0",
+                  })) || [],
+              };
+            })
+          );
+        }
+
+        setPosterPreview(event.posterUrl ?? null);
+        setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
         console.error("❌ Error loading event:", error);
-        toast.error("Failed to load event data");
+        toast.error(t("toasts.failedLoadEvent"));
       }
     };
 
@@ -182,12 +232,12 @@ function CreateEventPageInner() {
   // Media upload handlers
   const handlePosterUpload = (response: UploadResponse) => {
     setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
-    toast.success("Poster uploaded successfully!");
+    toast.success(t("toasts.posterUploaded"));
   };
 
   const handleBannerUpload = (response: UploadResponse) => {
     setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
-    toast.success("Banner uploaded successfully!");
+    toast.success(t("toasts.bannerUploaded"));
   };
 
   // ✅ Corrected seat map selection handler
@@ -195,7 +245,6 @@ function CreateEventPageInner() {
     console.log("📥 Processing seat map selection:", seatMap.name);
 
     try {
-      // ✅ Extract grid data from the seat map
       const result = await getSeatMapGridDataAction(seatMap.id);
 
       if (result.success && result.data) {
@@ -206,70 +255,28 @@ function CreateEventPageInner() {
             result.data.gridData?.defaultSeatSettings || undefined,
         };
 
-        console.log("✅ Seat map data enriched:", {
-          grids: enrichedSeatMap.grids?.length || 0,
-          hasDefaultSettings: !!enrichedSeatMap.defaultSeatSettings,
-          totalSeats: result.data.preview.totalSeats,
-        });
-
         setSelectedSeatMap(enrichedSeatMap.id);
         setSelectedSeatMapData(enrichedSeatMap);
         setSeatMapPreviewData(result.data.preview);
         setShowSeatMapModal(false);
 
-        toast.success(`Selected seat map: ${enrichedSeatMap.name}`, {
-          description: `${result.data.preview.totalSeats} seats in ${result.data.preview.areas.length} areas`,
-        });
+        toast.success(
+          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name }),
+          {
+            description: t("toasts.selectedSeatMapDesc", {
+              totalSeats: result.data.preview.totalSeats,
+              areasCount: result.data.preview.areas.length,
+            }),
+          }
+        );
       } else {
         console.error("❌ Failed to load seat map data:", result.error);
-        toast.error(result.error || "Failed to load seat map details");
+        toast.error(result.error || t("toasts.failedLoadSeatMap"));
       }
     } catch (error) {
       console.error("❌ Error processing seat map:", error);
-      toast.error("An error occurred while loading the seat map");
+      toast.error(t("toasts.seatMapLoadError"));
     }
-  };
-
-  // Validation functions
-  const validateDateTime = (name: string, value: string) => {
-    const now = new Date();
-    const inputDate = new Date(value);
-    const startTime = new Date(formData.startTime);
-    const endTime = new Date(formData.endTime);
-    const ticketSaleStart = new Date(formData.ticketSaleStart);
-
-    let error = "";
-
-    switch (name) {
-      case "startTime":
-        if (inputDate < now) {
-          error = "Start time cannot be in the past";
-        }
-        break;
-      case "endTime":
-        if (inputDate < now) {
-          error = "End time cannot be in the past";
-        } else if (formData.startTime && inputDate <= startTime) {
-          error = "End time must be after start time";
-        }
-        break;
-      case "ticketSaleStart":
-        if (inputDate < now) {
-          error = "Ticket sale start cannot be in the past";
-        } else if (formData.endTime && inputDate > endTime) {
-          error = "Ticket sale start must be before event end time";
-        }
-        break;
-      case "ticketSaleEnd":
-        if (formData.ticketSaleStart && inputDate < ticketSaleStart) {
-          error = "Ticket sale end must be after ticket sale start";
-        } else if (formData.endTime && inputDate > endTime) {
-          error = "Ticket sale end must be before event end time";
-        }
-        break;
-    }
-
-    return error;
   };
 
   const handleChange = (
@@ -279,131 +286,158 @@ function CreateEventPageInner() {
   ) => {
     const { name, value } = e.target;
 
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "maxTicketsByOrder") {
+      const numValue = value === "" ? undefined : parseInt(value) || undefined;
+      setFormData((prev) => ({ ...prev, [name]: numValue }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
 
-    if (
-      ["startTime", "endTime", "ticketSaleStart", "ticketSaleEnd"].includes(
-        name
-      )
-    ) {
-      const error = validateDateTime(name, value);
-      setErrors((prev) => ({ ...prev, [name]: error }));
-
-      if (!error) {
-        const relatedErrors: Record<string, string[]> = {
-          startTime: ["endTime"],
-          endTime: ["ticketSaleStart", "ticketSaleEnd"],
-          ticketSaleStart: ["ticketSaleEnd"],
-          ticketSaleEnd: [],
-        };
-
-        const fieldsToRevalidate = relatedErrors[name] || [];
-        fieldsToRevalidate.forEach((field) => {
-          const fieldValue =
-            name === field ? value : formData[field as keyof typeof formData];
-          if (fieldValue) {
-            const fieldError = validateDateTime(field, fieldValue);
-            setErrors((prev) => ({ ...prev, [field]: fieldError }));
-          }
-        });
-      }
+    if (name === "maxTicketsByOrder" && errors[name]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
     }
   };
 
-  // ✅ Form submission - Build FormData from state
+  const validateStep1 = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      newErrors.name = t("errors.nameRequired");
+    }
+    if (!formData.location.trim()) {
+      newErrors.location = t("errors.locationRequired");
+    }
+    if (!formData.description.trim()) {
+      newErrors.description = t("errors.descriptionRequired");
+    }
+    if (showings.length === 0 || !showings[0].startTime) {
+      newErrors.showings = t("errors.showingRequired");
+    }
+
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
+      newErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
+    }
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
+      newErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleNextStep = () => {
+    if (step === 1) {
+      if (!validateStep1()) {
+        toast.error(t("pleaseFixErrors"));
+        return;
+      }
+    }
+    setStep(step + 1);
+    scrollToTop();
+  };
+
+  const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
+    setShowings(newShowings);
+
+    if (newShowings.length > 0) {
+      const validShowings = newShowings.filter((s) => s.startTime);
+
+      if (validShowings.length > 0) {
+        const sortedShowings = validShowings.sort(
+          (a, b) =>
+            new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+        );
+
+        const earliestShowing = sortedShowings[0];
+
+        const ticketSaleStart = new Date(earliestShowing.startTime);
+        ticketSaleStart.setDate(ticketSaleStart.getDate() - 7);
+
+        const ticketSaleEnd = new Date(earliestShowing.startTime);
+        ticketSaleEnd.setHours(ticketSaleEnd.getHours() - 1);
+
+        setFormData((prev) => ({
+          ...prev,
+          ticketSaleStart: ticketSaleStart.toISOString().slice(0, 16),
+          ticketSaleEnd: ticketSaleEnd.toISOString().slice(0, 16),
+        }));
+      }
+    }
+
+    if (errors.showings || errors.ticketSaleStart || errors.ticketSaleEnd) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.showings;
+        delete newErrors.ticketSaleStart;
+        delete newErrors.ticketSaleEnd;
+        return newErrors;
+      });
+    }
+  };
+
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    // Check if seat map update confirmation is needed
     if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
-      toast.error("Please confirm seat map update to proceed.");
+      toast.error(t("confirmSeatMapUpdate"));
       return;
     }
 
-    const dateTimeFields = [
-      "startTime",
-      "endTime",
-      "ticketSaleStart",
-      "ticketSaleEnd",
-    ];
-    const newErrors: Record<string, string> = {};
+    // Get form data from the actual form element to include hidden inputs
+    const form = new FormData(e.currentTarget);
 
-    dateTimeFields.forEach((field) => {
-      const value = formData[field as keyof typeof formData];
-      if (value) {
-        const error = validateDateTime(field, value);
-        if (error) {
-          newErrors[field] = error;
-        }
-      }
-    });
-
-    if (Object.keys(newErrors).length > 0) {
-      setErrors((prev) => ({ ...prev, ...newErrors }));
-      toast.error("Please fix the validation errors before submitting.");
-      return;
-    }
-
-    // ✅ Build FormData from state instead of e.currentTarget
-    const form = new FormData();
-
-    // Add event ID if updating
+    // Add additional data that might not be in the form
     if (eventId) {
-      form.append("eventId", eventId);
+      form.set("eventId", eventId);
     }
 
-    // Add basic event data
-    form.append("name", formData.name);
-    form.append("type", formData.type);
-    form.append("ticketSaleStart", formData.ticketSaleStart);
-    form.append("ticketSaleEnd", formData.ticketSaleEnd);
-    form.append("location", formData.location);
-    form.append("description", formData.description);
-    form.append("posterUrl", formData.posterUrl);
-    form.append("bannerUrl", formData.bannerUrl);
-    form.append("ticketingMode", ticketingMode);
+    form.set("name", formData.name);
+    form.set("type", formData.type);
+    form.set("ticketSaleStart", formData.ticketSaleStart);
+    form.set("ticketSaleEnd", formData.ticketSaleEnd);
+    form.set("location", formData.location);
+    form.set("description", formData.description);
+    form.set("posterUrl", formData.posterUrl);
+    form.set("bannerUrl", formData.bannerUrl);
+    form.set("ticketingMode", ticketingMode);
+    form.set("maxTicketsByOrder", formData.maxTicketsByOrder?.toString() || "");
 
-    // ✅ Add showings data
     showings.forEach((showing, index) => {
-      form.append(`showings[${index}].name`, showing.name);
-      form.append(`showings[${index}].startTime`, showing.startTime);
-      form.append(`showings[${index}].endTime`, showing.endTime);
+      form.set(`showings[${index}].name`, showing.name);
+      form.set(`showings[${index}].startTime`, showing.startTime);
+      form.set(`showings[${index}].endTime`, showing.endTime);
+      form.set(
+        `showings[${index}].ticketSaleStart`,
+        showing.ticketSaleStart || ""
+      );
+      form.set(`showings[${index}].ticketSaleEnd`, showing.ticketSaleEnd || "");
     });
 
-    // ✅ Add ticketing configuration based on mode
     if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
-      form.append("seatMapId", selectedSeatMap);
-      form.append(
+      form.set("seatMapId", selectedSeatMap);
+      form.set(
         "seatMapData",
         JSON.stringify({
           grids: selectedSeatMapData.grids || [],
           defaultSeatSettings: selectedSeatMapData.defaultSeatSettings,
         })
       );
-    } else {
-      // Simple ticketing mode - add areas
-      areas.forEach((area, index) => {
-        form.append(`areas[${index}][name]`, area.name);
-        form.append(`areas[${index}][seatCount]`, area.seatCount);
-        form.append(`areas[${index}][ticketPrice]`, area.ticketPrice);
-      });
     }
-
-    console.log("📤 Submitting form data:", {
-      eventId: eventId || "new",
-      ticketingMode,
-      showingsCount: showings.length,
-      areasCount: ticketingMode === "simple" ? areas.length : 0,
-      seatMapId: ticketingMode === "seatmap" ? selectedSeatMap : null,
-      gridsCount:
-        ticketingMode === "seatmap" ? selectedSeatMapData?.grids?.length : 0,
-    });
+    // Note: Areas data is now handled by hidden inputs in ShowingsTicketing component
 
     startTransition(async () => {
       try {
         if (eventId) {
           await handleUpdateEvent(form);
-          toast.success("✅ Event updated successfully!");
+          toast.success(t("toasts.eventUpdated"));
         } else {
           const eventResult = await handleCreateEvent(form);
 
@@ -412,15 +446,15 @@ function CreateEventPageInner() {
             selectedSeatMap &&
             eventResult?.eventId
           ) {
-            toast.success("🎉 Event and seat map created successfully!");
+            toast.success(t("toasts.eventAndSeatMapCreated"));
           } else {
-            toast.success("🎉 Event created successfully!");
+            toast.success(t("toasts.eventCreated"));
           }
         }
 
         router.push("/organizer");
       } catch (err) {
-        toast.error("Something went wrong while creating the event.");
+        toast.error(t("toasts.createEventFailed"));
         console.error(err);
       }
     });
@@ -439,7 +473,7 @@ function CreateEventPageInner() {
             onDescriptionChange={(value) => {
               setFormData({ ...formData, description: value });
             }}
-            onShowingsChange={setShowings}
+            onShowingsChange={handleShowingsChange}
           />
         );
       case 2:
@@ -449,7 +483,7 @@ function CreateEventPageInner() {
             onPosterUpload={handlePosterUpload}
             onBannerUpload={handleBannerUpload}
             onUploadError={(error: Error) =>
-              toast.error(`Upload failed: ${error.message}`)
+              toast.error(t("toasts.uploadFailed", { message: error.message }))
             }
             onPosterRemove={() =>
               setFormData((prev) => ({ ...prev, posterUrl: "" }))
@@ -493,7 +527,7 @@ function CreateEventPageInner() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <h1 className="text-3xl font-semibold mb-4">
-        {eventId ? "Edit Event" : "Create a New Event"}
+        {eventId ? t("editEvent") : t("createEvent")}
       </h1>
 
       <StepProgressBar step={step} />
@@ -504,19 +538,16 @@ function CreateEventPageInner() {
 
         {step === 4 && (
           <div className="space-y-6">
-            {/* Seat Map Update Confirmation */}
             {eventId && hasSeatMapChanges && (
               <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
                 <h4 className="font-medium text-orange-800 mb-2">
-                  ⚠️ Seat Map Update Required
+                  {t("seatMapUpdateRequired")}
                 </h4>
-                <p className="text-sm text-orange-700 mb-3">
-                  You have made changes to the seating configuration. This will:
-                </p>
+                <p className="text-sm text-orange-700 mb-3">{t("text1")}</p>
                 <ul className="text-sm text-orange-700 mb-4 list-disc list-inside space-y-1">
-                  <li>Delete all existing seat assignments and bookings</li>
-                  <li>Recreate the entire seating structure</li>
-                  <li>This operation cannot be undone</li>
+                  <li>{t("text2")}</li>
+                  <li>{t("text3")}</li>
+                  <li>{t("text4")}</li>
                 </ul>
                 <div className="flex items-center space-x-2">
                   <input
@@ -530,50 +561,22 @@ function CreateEventPageInner() {
                     htmlFor="confirmSeatMapUpdate"
                     className="text-sm text-orange-800"
                   >
-                    I understand and confirm the seat map update
+                    {t("text5")}
                   </label>
                 </div>
               </div>
             )}
 
             <div className="flex justify-end mt-8 space-x-4">
-              <Button variant="outline" onClick={() => setStep(step - 1)}>
-                Go back
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setStep(step - 1);
+                  scrollToTop();
+                }}
+              >
+                {t("goback")}
               </Button>
-              {eventId && (
-                <input type="hidden" name="eventId" value={eventId} />
-              )}
-
-              {/* ✅ Hidden form data inputs - Basic event info only */}
-              <input type="hidden" name="name" value={formData.name} />
-              <input type="hidden" name="type" value={formData.type} />
-              <input
-                type="hidden"
-                name="ticketSaleStart"
-                value={formData.ticketSaleStart}
-              />
-              <input
-                type="hidden"
-                name="ticketSaleEnd"
-                value={formData.ticketSaleEnd}
-              />
-              <input type="hidden" name="location" value={formData.location} />
-              <input
-                type="hidden"
-                name="description"
-                value={formData.description}
-              />
-              <input
-                type="hidden"
-                name="posterUrl"
-                value={formData.posterUrl}
-              />
-              <input
-                type="hidden"
-                name="bannerUrl"
-                value={formData.bannerUrl}
-              />
-              <input type="hidden" name="ticketingMode" value={ticketingMode} />
 
               <Button
                 type="submit"
@@ -587,11 +590,11 @@ function CreateEventPageInner() {
               >
                 {isPending
                   ? eventId
-                    ? "Updating..."
-                    : "Creating..."
+                    ? t("updating")
+                    : t("creating")
                   : eventId
-                    ? "Update Event"
-                    : "🎉 Create Event"}
+                    ? t("updateEvent")
+                    : t("createEventt")}
               </Button>
             </div>
           </div>
@@ -602,46 +605,15 @@ function CreateEventPageInner() {
         <div className="flex justify-end mt-8 space-x-4">
           <Button
             variant="outline"
-            onClick={() => setStep(step - 1)}
+            onClick={() => {
+              setStep(step - 1);
+              scrollToTop();
+            }}
             disabled={step === 1}
           >
-            Go back
+            {t("goback")}
           </Button>
-          <Button
-            onClick={() => {
-              if (step === 1) {
-                const dateTimeFields = [
-                  "startTime",
-                  "endTime",
-                  "ticketSaleStart",
-                  "ticketSaleEnd",
-                ];
-                const newErrors: Record<string, string> = {};
-
-                dateTimeFields.forEach((field) => {
-                  const value = formData[field as keyof typeof formData];
-                  if (value) {
-                    const error = validateDateTime(field, value);
-                    if (error) {
-                      newErrors[field] = error;
-                    }
-                  }
-                });
-
-                if (Object.keys(newErrors).length > 0) {
-                  setErrors((prev) => ({ ...prev, ...newErrors }));
-                  toast.error(
-                    "Please fix the date/time validation errors before continuing."
-                  );
-                  return;
-                }
-              }
-
-              setStep(step + 1);
-            }}
-          >
-            Save & Continue
-          </Button>
+          <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
         </div>
       )}
 

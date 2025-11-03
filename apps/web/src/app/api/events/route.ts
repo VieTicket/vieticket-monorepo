@@ -118,6 +118,10 @@
 import { NextResponse } from "next/server";
 import { getFilteredEvents } from "@/lib/queries/events";
 
+function normalize(str: string) {
+  return str.normalize("NFD").replace(/\p{Diacritic}/gu, "").toLowerCase();
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
@@ -127,6 +131,7 @@ export async function GET(req: Request) {
   const location = searchParams.get("location") || "all";
   const category = searchParams.get("category") || "all";
   const q = searchParams.get("q") || "";
+  const normalizedQ = q ? normalize(q) : "";
 
   const result = await getFilteredEvents({
     page,
@@ -135,7 +140,7 @@ export async function GET(req: Request) {
     date,
     location,
     category,
-    q,
+    q: normalizedQ,
   });
 
   return NextResponse.json(result);

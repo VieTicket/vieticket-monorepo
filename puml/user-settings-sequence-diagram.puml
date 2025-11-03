@@ -1,0 +1,239 @@
+@startuml user-settings-sequence-diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title User Settings Operations - Sequence Diagram
+
+actor User
+participant "UI Components" as UI
+participant "Server Actions" as Actions
+participant "Services" as Service
+participant "Repository" as Repo
+participant "Database" as DB
+participant "External APIs" as External
+
+== View/Edit Profile Flow ==
+
+User -> UI : Navigate to /profile/edit
+activate UI
+
+UI -> Actions : getProfileAction()
+activate Actions
+
+Actions -> Service : getFullUserProfile(userId)
+activate Service
+
+Service -> Repo : getUserWithOptionalOrganizerById(userId)
+activate Repo
+
+Repo -> DB : SELECT user, organizer data
+activate DB
+DB --> Repo : User & Organizer data
+deactivate DB
+
+Repo --> Service : Combined profile data
+deactivate Repo
+
+Service --> Actions : Profile data
+deactivate Service
+
+Actions --> UI : Render form with data
+deactivate Actions
+
+note over UI : User edits profile fields\n(name, phone, organizer details)
+
+User -> UI : Save Profile
+UI -> Actions : updateProfileAction(formData)
+activate Actions
+
+Actions -> Service : updateProfile(userId, userData, organizerData)
+activate Service
+
+Service -> Repo : updateUserAndOrganizerProfile()
+activate Repo
+
+Repo -> DB : BEGIN TRANSACTION
+activate DB
+Repo -> DB : UPDATE users SET ...
+Repo -> DB : UPDATE organizers SET ...
+DB --> Repo : COMMIT
+deactivate DB
+
+Repo --> Service : Success
+deactivate Repo
+
+Service --> Actions : Success response
+deactivate Service
+
+Actions --> UI : Success, revalidate path
+deactivate Actions
+
+UI --> User : Show success message
+deactivate UI
+
+== Avatar Upload Flow ==
+
+User -> UI : Upload avatar
+UI -> External : Upload to Cloudinary
+activate External
+External --> UI : secure_url
+deactivate External
+
+UI -> Actions : uploadAvatarAction(url)
+activate Actions
+
+Actions -> Service : updateAvatarUrl(userId, imageUrl)
+activate Service
+
+Service -> Repo : updateUserAndOrganizerProfile()
+activate Repo
+
+Repo -> DB : UPDATE users SET image = ?
+activate DB
+DB --> Repo : Success
+deactivate DB
+
+Repo --> Service : Success
+deactivate Service
+
+Service --> Actions : Success
+deactivate Service
+
+Actions --> UI : Success, revalidate
+deactivate Actions
+
+UI --> User : Update avatar preview
+deactivate UI
+
+== Change Password Flow ==
+
+User -> UI : Navigate to /profile/password
+activate UI
+
+note over UI : User enters old & new passwords
+
+User -> UI : Submit password change
+UI -> Actions : authClient.changePassword()
+activate Actions
+
+Actions -> Service : validateCurrentPassword()
+activate Service
+
+Service -> Repo : findUserById(userId)
+activate Repo
+
+Repo -> DB : SELECT user WHERE id = ?
+activate DB
+DB --> Repo : User data
+deactivate DB
+
+Repo --> Service : User data
+deactivate Repo
+
+Service --> Actions : Password validation result
+deactivate Service
+
+alt Password valid
+    Actions -> Service : hashNewPassword()
+    activate Service
+    
+    Service -> Repo : updateUserPassword()
+    activate Repo
+    
+    Repo -> DB : UPDATE users SET password = ?
+    activate DB
+    DB --> Repo : Success
+    deactivate DB
+    
+    Repo --> Service : Success
+    deactivate Service
+    
+    Service --> Actions : Success
+    deactivate Service
+    
+    Actions --> UI : Success response
+else Password invalid
+    Actions --> UI : Error: Invalid password
+end
+
+deactivate Actions
+
+UI --> User : Show result message
+deactivate UI
+
+== Change Language Flow ==
+
+User -> UI : Click language dropdown
+activate UI
+
+UI -> UI : Show language options
+
+User -> UI : Select new language (vi/en)
+
+UI -> UI : setLocale(selectedLanguage)
+
+note over UI : LocaleProvider updates:\n- localStorage.setItem('locale', lang)\n- Load new messages\n- Update NextIntl provider
+
+UI -> UI : Re-render all components\nwith new language
+
+UI --> User : UI updated with new language
+deactivate UI
+
+== Organizer Rejection Handling ==
+
+User -> UI : Load profile (organizer role)
+activate UI
+
+UI -> Actions : getProfileAction()
+activate Actions
+
+Actions -> Service : getFullUserProfile(userId)
+activate Service
+
+Service -> Repo : getUserWithOptionalOrganizerById(userId)
+activate Repo
+
+Repo -> DB : SELECT user, organizer data
+activate DB
+DB --> Repo : Data with rejection info
+deactivate DB
+
+Repo --> Service : Profile with rejection
+deactivate Repo
+
+Service --> Actions : Profile data
+deactivate Service
+
+Actions --> UI : Profile data
+deactivate Actions
+
+alt Has unseen rejection
+    UI -> UI : Show rejection modal
+    User -> UI : Acknowledge rejection
+    
+    UI -> Actions : markRejectionAsSeenAction()
+    activate Actions
+    
+    Actions -> Repo : markRejectionAsSeen(userId)
+    activate Repo
+    
+    Repo -> DB : UPDATE organizers SET rejection_seen = true
+    activate DB
+    DB --> Repo : Success
+    deactivate DB
+    
+    Repo --> Actions : Success
+    deactivate Repo
+    
+    Actions --> UI : Success
+    deactivate Actions
+    
+    UI -> UI : Hide modal
+end
+
+UI --> User : Display profile form
+deactivate UI
+
+@enduml

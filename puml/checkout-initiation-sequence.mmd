@@ -1,0 +1,49 @@
+sequenceDiagram
+    actor Customer
+    participant Frontend
+    participant CheckoutActions as "checkout-actions.ts"
+    participant CheckoutService as "checkout-service.ts"
+    participant CheckoutRepo as "checkout-repo.ts"
+    participant VNPayUtil as "vnpay/index.ts"
+    participant Database
+
+    Customer->>Frontend: Click "Purchase" with selected seats
+    Frontend->>CheckoutActions: createOrderAction(eventId, selectedSeatIds)
+    CheckoutActions->>CheckoutService: createPendingOrder(eventId, selectedSeatIds, user, ip)
+    
+    CheckoutService->>CheckoutRepo: getSeatAvailabilityStatus(selectedSeatIds)
+    CheckoutRepo->>Database: Query tickets and seat_holds tables
+    Database-->>CheckoutRepo: Return unavailable seats
+    CheckoutRepo-->>CheckoutService: { unavailableSeatIds }
+    
+    alt Seats are unavailable
+        CheckoutService-->>CheckoutActions: Throw SEATS_UNAVAILABLE error
+        CheckoutActions-->>Frontend: Return error with unavailable seats
+        Frontend-->>Customer: Display error message
+    end
+
+    CheckoutService->>CheckoutRepo: getSeatPricing(selectedSeatIds)
+    CheckoutRepo->>Database: Query seats, rows, areas tables
+    Database-->>CheckoutRepo: Return seat details with prices
+    CheckoutRepo-->>CheckoutService: Seat details array
+    
+    CheckoutService->>CheckoutService: Calculate totalAmount
+
+    CheckoutService->>CheckoutRepo: executeOrderTransaction(orderData, seatHoldsData)
+    CheckoutRepo->>Database: Start Transaction
+    Database->>Database: INSERT INTO orders (status='pending')
+    Database->>Database: INSERT INTO seat_holds (expiresAt=now+15m)
+    Database->>CheckoutRepo: End Transaction, return newOrder
+    CheckoutRepo-->>CheckoutService: newOrder
+
+    CheckoutService->>VNPayUtil: generatePaymentUrl(...)
+    VNPayUtil-->>CheckoutService: { vnp_TxnRef, paymentURL }
+
+    CheckoutService->>CheckoutRepo: updateOrderVNPayData(orderId, { vnp_TxnRef })
+    CheckoutRepo->>Database: UPDATE orders SET paymentMetadata
+    Database-->>CheckoutRepo: Return updated order
+    CheckoutRepo-->>CheckoutService: updatedOrder
+
+    CheckoutService-->>CheckoutActions: { vnpayURL, orderId, ... }
+    CheckoutActions-->>Frontend: Return success with order details
+    Frontend->>Customer: Redirect to vnpayURL

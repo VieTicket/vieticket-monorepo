@@ -1,0 +1,168 @@
+@startuml user-settings-architecture-diagram
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title User Settings System - Architecture Overview
+
+!define RECTANGLE class
+
+package "Frontend (Next.js App)" {
+    package "Pages" {
+        RECTANGLE "/profile/edit" as ProfileEditPage
+        RECTANGLE "/profile/password" as PasswordPage
+        RECTANGLE "/profile/layout" as ProfileLayout
+    }
+    
+    package "Components" {
+        RECTANGLE "AccountForm" as AccountForm {
+            - User profile fields
+            - Organizer fields
+            - Avatar upload
+            - Validation
+        }
+        
+        RECTANGLE "PasswordForm" as PasswordForm {
+            - Old password
+            - New password
+            - Confirm password
+            - Validation
+        }
+        
+        RECTANGLE "LanguageSwitcher" as LangSwitcher {
+            - Language dropdown
+            - Locale state
+        }
+        
+        RECTANGLE "SettingsSidebar" as Sidebar {
+            - Navigation menu
+            - Active states
+        }
+    }
+    
+    package "Providers/Context" {
+        RECTANGLE "LocaleProvider" as LocaleProvider {
+            - Language state
+            - Message loading
+            - localStorage sync
+        }
+        
+        RECTANGLE "AuthProvider" as AuthProvider {
+            - Session management
+            - User state
+        }
+    }
+}
+
+package "Backend Services" {
+    package "Server Actions" {
+        RECTANGLE "profile-actions.ts" as ProfileActions {
+            + updateProfileAction()
+            + getProfileAction()
+            + uploadAvatarAction()
+        }
+        
+        RECTANGLE "auth-actions.ts" as AuthActions {
+            + changePasswordAction()
+        }
+        
+        RECTANGLE "organizer-actions.ts" as OrganizerActions {
+            + markRejectionAsSeenAction()
+        }
+    }
+    
+    package "Services Layer" {
+        RECTANGLE "ProfileService" as ProfileService {
+            + updateProfile()
+            + getFullUserProfile()
+            + updateAvatarUrl()
+        }
+        
+        RECTANGLE "AuthService" as AuthService {
+            + changePassword()
+            + validatePassword()
+        }
+    }
+    
+    package "Repository Layer" {
+        RECTANGLE "UserRepository" as UserRepo {
+            + updateUserAndOrganizerProfile()
+            + getUserWithOptionalOrganizerById()
+            + updateUserPassword()
+        }
+        
+        RECTANGLE "OrganizerRepository" as OrganizerRepo {
+            + markRejectionAsSeen()
+            + updateOrganizerProfile()
+        }
+    }
+}
+
+package "External Services" {
+    RECTANGLE "Cloudinary API" as Cloudinary {
+        - Image upload
+        - CDN delivery
+    }
+    
+    RECTANGLE "NextIntl" as NextIntl {
+        - Internationalization
+        - Message management
+    }
+}
+
+package "Database" {
+    RECTANGLE "PostgreSQL" as DB {
+        - users table
+        - organizers table
+        - sessions table
+    }
+}
+
+' Page to Component relationships
+ProfileEditPage --> AccountForm
+ProfileEditPage --> Sidebar
+PasswordPage --> PasswordForm
+PasswordPage --> Sidebar
+ProfileLayout --> LangSwitcher
+
+' Component to Provider relationships
+AccountForm --> AuthProvider
+LangSwitcher --> LocaleProvider
+Sidebar --> AuthProvider
+
+' Component to Action relationships
+AccountForm --> ProfileActions
+AccountForm --> OrganizerActions
+PasswordForm --> AuthActions
+LangSwitcher --> LocaleProvider
+
+' Action to Service relationships
+ProfileActions --> ProfileService
+AuthActions --> AuthService
+OrganizerActions --> OrganizerRepo
+
+' Service to Repository relationships
+ProfileService --> UserRepo
+AuthService --> UserRepo
+
+' Repository to Database relationships
+UserRepo --> DB
+OrganizerRepo --> DB
+
+' External service relationships
+AccountForm --> Cloudinary
+LocaleProvider --> NextIntl
+
+' Flow annotations
+note right of AccountForm : "Handles profile editing,\navatar upload, organizer\napplication management"
+
+note right of PasswordForm : "Secure password change\nwith validation"
+
+note right of LangSwitcher : "Language switching\nwith persistence"
+
+note right of ProfileService : "Business logic for\nprofile operations"
+
+note right of UserRepo : "Data access layer\nwith transactions"
+
+@enduml

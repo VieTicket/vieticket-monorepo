@@ -36,6 +36,9 @@ interface ToolbarProps {
 export function Toolbar({ editor, eventData, onContentChange }: ToolbarProps) {
   if (!editor) return null;
 
+  // Debug logging
+  console.log("🎯 Toolbar eventData:", eventData);
+
   const handleAITextGenerated = (htmlContent: string) => {
     console.log("🤖 AI Text Generated:", htmlContent.substring(0, 100) + "...");
 
@@ -81,13 +84,15 @@ export function Toolbar({ editor, eventData, onContentChange }: ToolbarProps) {
   return (
     <div className="flex flex-wrap gap-1 border-b p-2">
       {/* AI Text Generator */}
-      {eventData && (
+      {eventData ? (
         <div className="mr-2 border-r pr-2">
           <AITextGenerator
             eventData={eventData}
             onTextGenerated={handleAITextGenerated}
           />
         </div>
+      ) : (
+        <div className="text-xs text-gray-500 mr-2">No event data</div>
       )}
 
       <Button

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import {
   updatePayoutStatusAction,
   uploadPayoutProofAction,
@@ -22,6 +23,7 @@ const STATUS_OPTIONS: PayoutStatus[] = [
 ];
 
 export default function AdminPaymentRequestsPage() {
+  const t = useTranslations("organizer-dashboard.RequestPayout");
   const [requests, setRequests] = useState<PayoutRequestWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -39,11 +41,11 @@ export default function AdminPaymentRequestsPage() {
         setTotalPages(response.data.totalPages || 1);
       } else {
         setRequests([]);
-        toast.error("Error", { description: response.message || "Failed to fetch payout requests" });
+        toast.error(t("toasts.fetchFailed"), { description: response.message || t("toasts.unexpectedError") });
       }
     } catch (error) {
       setRequests([]);
-      toast.error("Error", { description: "An unexpected error occurred" });
+      toast.error(t("toasts.unexpectedError"));
     } finally {
       setLoading(false);
     }
@@ -61,12 +63,12 @@ export default function AdminPaymentRequestsPage() {
   const handleAgreedAmountSave = async (requestId: string) => {
     const newAmount = agreedAmountEdits[requestId];
     if (newAmount === undefined || newAmount === null) return;
-    if (!window.confirm("Are you sure you want to update the agreed amount?")) return;
+  if (!window.confirm(t("confirm.updateAgreed"))) return;
 
     try {
       const result = await updatePayoutStatusAction(requestId, requests.find(r => r.id === requestId)?.status!, newAmount);
       if (result) {
-        toast.success("Success", { description: "Agreed amount updated successfully" });
+        toast.success(t("toasts.agreedAmountUpdated"));
         setRequests((prev) =>
           prev.map((req) =>
             req.id === requestId
@@ -80,10 +82,10 @@ export default function AdminPaymentRequestsPage() {
           return copy;
         });
       } else {
-        toast.error("Error", { description: "Failed to update agreed amount" });
+        toast.error(t("toasts.agreedAmountUpdateFailed"));
       }
     } catch (error: any) {
-      toast.error("Error", { description: error.message || "An unexpected error occurred" });
+      toast.error(error.message || t("toasts.unexpectedError"));
     }
   };
 
@@ -97,7 +99,7 @@ export default function AdminPaymentRequestsPage() {
   const handleStatusSave = async (requestId: string) => {
     const newStatus = statusEdits[requestId];
     if (!newStatus) return;
-    if (!window.confirm("Are you sure you want to update the status?")) return;
+  if (!window.confirm(t("confirm.updateStatus"))) return;
 
     // Only allow agreedAmount to be set when status is "approved"
     const updateData: {
@@ -112,7 +114,7 @@ export default function AdminPaymentRequestsPage() {
     try {
       const result = await updatePayoutStatusAction(requestId, updateData.status, updateData.agreedAmount);
       if (result) {
-        toast.success("Success", { description: "Status updated successfully" });
+        toast.success(t("toasts.statusUpdated"));
         setRequests((prev) =>
           prev.map((req) =>
             req.id === requestId
@@ -139,10 +141,10 @@ export default function AdminPaymentRequestsPage() {
           return copy;
         });
       } else {
-        toast.error("Error", { description: "Failed to update status" });
+        toast.error(t("toasts.statusUpdateFailed"));
       }
     } catch (error: any) {
-      toast.error("Error", { description: error.message || "An unexpected error occurred" });
+      toast.error(error.message || t("toasts.unexpectedError"));
     }
   };
 
@@ -152,55 +154,55 @@ export default function AdminPaymentRequestsPage() {
     try {
       const result = await uploadPayoutProofAction(requestId, proofUrl);
       if (result) {
-        toast.success("Proof uploaded successfully");
+        toast.success(t("toasts.proofUploaded"));
         setRequests((prev) =>
           prev.map((req) =>
             req.id === requestId ? { ...req, proofDocumentUrl: proofUrl } : req
           )
         );
       } else {
-        toast.error("Failed to upload proof");
+        toast.error(t("toasts.proofUploadFailed"));
       }
     } catch (error: any) {
-      toast.error(error.message || "An unexpected error occurred");
+      toast.error(error.message || t("toasts.unexpectedError"));
     }
   };
 
   if (loading) {
-    return <div className="container mx-auto py-8 px-4">Loading...</div>;
+    return <div className="container mx-auto py-8 px-4">{t("loading")}</div>;
   }
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <h1 className="text-2xl font-bold mb-6">Admin Payout Management</h1>
+      <h1 className="text-2xl font-bold mb-6">{t("title")}</h1>
       <div className="mb-4 flex items-center gap-2">
-        <label htmlFor="statusFilter" className="font-medium">Filter by status:</label>
+        <label htmlFor="statusFilter" className="font-medium">{t("filterLabel")}</label>
         <select
           id="statusFilter"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as PayoutStatus | "all")}
           className="border p-1"
         >
-          <option value="all">All</option>
+          <option value="all">{t("statusOptions.all")}</option>
           {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+            <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
           ))}
         </select>
       </div>
       {requests.length === 0 ? (
-        <p>No payout requests found.</p>
+        <p>{t("noRequests")}</p>
       ) : (
         <>
           <table className="min-w-full border">
             <thead>
               <tr className="border-b">
-                <th className="p-2">Event</th>
-                <th className="p-2">Requested Amount</th>
-                <th className="p-2">Agreed Amount</th>
-                <th className="p-2">Status</th>
-                <th className="p-2">Request Date</th>
-                <th className="p-2">Completion Date</th>
-                <th className="p-2">Actions</th>
+                <th className="p-2">{t("table.event")}</th>
+                <th className="p-2">{t("table.requestedAmount")}</th>
+                <th className="p-2">{t("table.agreedAmount")}</th>
+                <th className="p-2">{t("table.status")}</th>
+                <th className="p-2">{t("table.requestDate")}</th>
+                <th className="p-2">{t("table.completionDate")}</th>
+                <th className="p-2">{t("table.actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -208,14 +210,14 @@ export default function AdminPaymentRequestsPage() {
                 <tr key={request.id} className="border-b">
                   <td className="p-2">{request.event?.name || "N/A"}</td>
                   <td className="p-2">{request.requestedAmount.toLocaleString("vi-VN")} VND</td>
-                  <td className="p-2">
+                    <td className="p-2">
                     <input
                       type="number"
                       min={0}
                       value={agreedAmountEdits[request.id] ?? request.agreedAmount ?? ""}
                       onChange={e => handleAgreedAmountEdit(request.id, e.target.value)}
                       className="border p-1 w-24"
-                      placeholder="Agreed amount"
+                      placeholder={t("placeholders.agreedAmount")}
                     />
                     {agreedAmountEdits[request.id] !== undefined &&
                       agreedAmountEdits[request.id] !== request.agreedAmount && (
@@ -223,7 +225,7 @@ export default function AdminPaymentRequestsPage() {
                           className="ml-2 px-2 py-1 bg-green-500 text-white rounded"
                           onClick={() => handleAgreedAmountSave(request.id)}
                         >
-                          Save
+                          {t("buttons.save")}
                         </button>
                       )
                     }
@@ -235,7 +237,7 @@ export default function AdminPaymentRequestsPage() {
                       className="border p-1"
                     >
                       {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>{status.charAt(0).toUpperCase() + status.slice(1)}</option>
+                        <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
                       ))}
                     </select>
                     {statusEdits[request.id] && statusEdits[request.id] !== request.status && (
@@ -243,13 +245,13 @@ export default function AdminPaymentRequestsPage() {
                         className="ml-2 px-2 py-1 bg-blue-500 text-white rounded"
                         onClick={() => handleStatusSave(request.id)}
                       >
-                        Save
+                        {t("buttons.save")}
                       </button>
                     )}
                   </td>
                   <td className="p-2">{new Date(request.requestDate).toLocaleDateString("vi-VN")}</td>
                   <td className="p-2">{request.completionDate ? new Date(request.completionDate).toLocaleDateString("vi-VN") : "N/A"}</td>
-                  <td className="p-2 space-y-2">
+                    <td className="p-2 space-y-2">
                     {/* Show preview if already uploaded */}
                     {request.proofDocumentUrl && (
                       <a
@@ -258,12 +260,12 @@ export default function AdminPaymentRequestsPage() {
                         rel="noopener noreferrer"
                         className="block mb-2 text-blue-600 underline"
                       >
-                        View Evidence
+                        {t("table.viewEvidence")}
                       </a>
                     )}
                     <FileUploader
                       folder="payout-evidence"
-                      buttonLabel="Upload Evidence"
+                        buttonLabel={t("table.uploadEvidence")}
                       mode="button"
                       onUploadSuccess={(response) => handleProofUploadSuccess(request.id, response)}
                     />
@@ -278,17 +280,17 @@ export default function AdminPaymentRequestsPage() {
               disabled={page === 1}
               onClick={() => setPage((p) => Math.max(1, p - 1))}
             >
-              Previous
+              {t("buttons.previous")}
             </button>
             <span>
-              Page {page} of {totalPages}
+              {t("pagination.pageOf", { page, totalPages })}
             </span>
             <button
               className="px-3 py-1 border rounded"
               disabled={page === totalPages}
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             >
-              Next
+              {t("buttons.next")}
             </button>
           </div>
         </>

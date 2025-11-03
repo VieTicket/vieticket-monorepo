@@ -1,0 +1,79 @@
+@startuml change-language-sequence
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam handwritten false
+skinparam shadowing false
+
+title Language Switcher Sequence Diagram - VieTicket Application
+
+actor User as U
+participant "LanguageSwitcher\nComponent" as LS
+participant "LocaleProvider\nContext" as LP
+participant "LocalStorage" as localStorage
+participant "Next-Intl\nProvider" as NI
+participant "i18n.ts\ngetMessages()" as I18N
+participant "JSON Files\n(vi.json/en.json)" as JSON
+participant "UI Components\n(Header, Footer, etc.)" as UI
+
+note over U, UI: User Initiates Language Change
+
+U -> LS : Click language dropdown
+activate LS
+LS -> LS : Show dropdown menu\n(Vietnamese/English options)
+
+U -> LS : Select language (vi/en)
+LS -> LP : setLocale(selectedLang)
+activate LP
+
+note over LP: Update locale state and persist to localStorage
+
+LP -> localStorage : setItem("locale", selectedLang)
+activate localStorage
+localStorage --> LP : Stored successfully
+deactivate localStorage
+
+LP -> I18N : getMessages(selectedLang)
+activate I18N
+I18N -> JSON : Load locale file\n(vi.json or en.json)
+activate JSON
+JSON --> I18N : Return translation messages
+deactivate JSON
+I18N --> LP : Translation messages object
+deactivate I18N
+
+LP -> LP : setMessages(newMessages)
+LP -> NI : Update NextIntlClientProvider\nwith new messages
+activate NI
+
+note over NI: NextIntl provider context updated with new locale
+
+NI --> LP : Provider updated
+deactivate NI
+LP --> LS : Locale changed successfully
+deactivate LP
+
+note over LS, UI: UI Re-renders with new language
+
+LS -> LS : Update current language display
+LS --> U : Show selected language in dropdown
+
+par Parallel UI Updates
+    UI -> NI : useTranslations("key")
+    activate UI
+    NI --> UI : Return translated text
+    UI -> UI : Re-render with new language
+    UI --> U : Display updated text
+    deactivate UI
+    note over UI: All components using useTranslations\nautomatically re-render with new language
+    UI -> UI : Header navigation text
+    UI -> UI : Button labels  
+    UI -> UI : Form labels
+    UI -> UI : Page content
+    UI -> UI : Footer text
+end
+
+note over U, UI: Language change complete - entire UI now in selected language
+
+deactivate LS
+
+@enduml
