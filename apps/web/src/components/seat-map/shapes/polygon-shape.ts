@@ -46,8 +46,8 @@ export const createPolygon = (
 
   graphics
     .roundShape(relativePoints, cornerRadius)
-    .fill(0x9b59b6)
-    .stroke({ width: 2, color: 0x8e44ad });
+    .fill(0xffffff)
+    .stroke({ width: 2, color: 0x007aff });
 
   graphics.position.set(pivot.x, pivot.y);
   graphics.eventMode = "static";
@@ -63,8 +63,8 @@ export const createPolygon = (
     y: graphics.y,
     points: relativePoints, // Points with individual radii
     cornerRadius,
-    color: 0x9b59b6,
-    strokeColor: 0x8e44ad,
+    color: 0xffffff,
+    strokeColor: 0x007aff,
     strokeWidth: 2,
     selected: false,
     visible: true,

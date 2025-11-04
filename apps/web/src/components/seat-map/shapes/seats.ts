@@ -115,7 +115,36 @@ const getSeatSettingsForGrid = (gridId: string): SeatGridSettings => {
   );
 };
 
-// ✅ Update createSeat to use grid-specific settings
+// ✅ Default label style
+const DEFAULT_LABEL_STYLE: Partial<PIXI.TextStyle> = {
+  fontFamily: "Arial",
+  fontSize: 10,
+  fill: 0x0000ff,
+  fontWeight: "normal",
+  align: "center",
+};
+/**
+ * const richStyle = new TextStyle({
+ *     fontFamily: 'Arial',
+ *     fontSize: 32,
+ *     fill: 'white',
+ *     stroke: {
+ *         color: '#4a1850',
+ *         width: 5
+ *     },
+ *     dropShadow: {
+ *         color: '#000000',
+ *         blur: 4,
+ *         distance: 6,
+ *         angle: Math.PI / 6
+ *     },
+ *     wordWrap: true,
+ *     wordWrapWidth: 440,
+ *     lineHeight: 40,
+ *     align: 'center'
+ * });
+ */
+// ✅ Enhanced createSeat function
 export const createSeat = (
   x: number,
   y: number,
@@ -123,18 +152,29 @@ export const createSeat = (
   gridId: string,
   rowNumber: number,
   seatNumber: number,
-  settings?: SeatGridSettings, // Make optional, will get from grid if not provided
+  settings?: SeatGridSettings,
   addShapeEvents: boolean = true,
   id: string = generateShapeId(),
-  applyRowBend: boolean = true
+  applyRowBend: boolean = true,
+  showLabel: boolean = true,
+  labelStyle?: Partial<PIXI.TextStyle>
 ): SeatShape => {
-  // ✅ Use grid-specific settings if not provided
+  // Get seat settings
   const seatSettings = settings || getSeatSettingsForGrid(gridId);
+  const finalLabelStyle = new PIXI.TextStyle({
+    ...DEFAULT_LABEL_STYLE,
+    ...labelStyle,
+  });
 
-  const graphics = new PIXI.Graphics();
+  // ✅ Create container to hold both seat and label
+  const container = new PIXI.Container();
+  container.eventMode = "static";
+  container.cursor = "pointer";
+  container.interactive = true;
 
-  // Draw seat as circle
-  graphics
+  // ✅ Create seat graphics (circle)
+  const seatGraphics = new PIXI.Graphics();
+  seatGraphics
     .ellipse(0, 0, seatSettings.seatRadius, seatSettings.seatRadius)
     .fill(seatSettings.seatColor)
     .stroke({
@@ -142,12 +182,27 @@ export const createSeat = (
       color: seatSettings.seatStrokeColor,
     });
 
+  // ✅ Create label graphics
+  const labelText = `${seatNumber + 1}`;
+  const labelGraphics = new PIXI.Text({
+    text: labelText,
+    style: finalLabelStyle,
+  });
+
+  // Center the label on the seat
+  labelGraphics.anchor.set(0.5, 0.5);
+  labelGraphics.position.set(0, 0);
+  labelGraphics.visible = showLabel;
+
+  // ✅ Add both to container
+  container.addChild(seatGraphics);
+  container.addChild(labelGraphics);
+
   // ✅ Apply row bend if needed
   let finalY = y;
   if (applyRowBend) {
     const bendValue = getRowBend(rowId);
     if (bendValue !== 0) {
-      // Calculate bend offset for this seat
       const rowSeats = getSeatsByRowId(rowId);
       if (rowSeats.length > 1) {
         const minX = Math.min(...rowSeats.map((s) => s.x));
@@ -165,16 +220,16 @@ export const createSeat = (
     }
   }
 
-  graphics.position.set(x, finalY);
-  graphics.eventMode = "static";
-  graphics.cursor = "pointer";
-  graphics.interactive = true;
+  container.position.set(x, finalY);
 
+  // ✅ Create enhanced seat shape
   const seat: SeatShape = {
     id,
-    name: `${seatNumber + 1}`,
+    name: labelText,
     type: "ellipse",
-    graphics,
+    graphics: container,
+    seatGraphics,
+    labelGraphics,
     x,
     y: finalY,
     radiusX: seatSettings.seatRadius,
@@ -191,14 +246,197 @@ export const createSeat = (
     opacity: 1,
     rowId,
     gridId,
+    showLabel,
+    labelStyle: finalLabelStyle,
   };
 
   const eventManager = getEventManager();
   if (eventManager && addShapeEvents) {
-    eventManager.addShapeEvents(seat);
+    eventManager.addShapeEvents(seat as any);
   }
 
   return seat;
+};
+
+// ✅ Update seat graphics function
+export const updateSeatGraphics = (seat: SeatShape): void => {
+  if (!seat.graphics || !seat.seatGraphics || !seat.labelGraphics) return;
+
+  // Update seat circle
+  seat.seatGraphics.clear();
+  seat.seatGraphics
+    .ellipse(0, 0, seat.radiusX, seat.radiusY)
+    .fill(seat.color)
+    .stroke({
+      width: seat.strokeWidth,
+      color: seat.strokeColor,
+    });
+
+  // Update label
+  seat.labelGraphics.text = seat.name;
+  seat.labelGraphics.style = {
+    fontFamily: seat.labelStyle.fontFamily,
+    fontSize: seat.labelStyle.fontSize,
+    fill: seat.labelStyle.fill,
+    fontWeight: seat.labelStyle.fontWeight,
+    align: seat.labelStyle.align,
+  };
+  seat.labelGraphics.visible = seat.showLabel;
+
+  // Update container transforms
+  seat.graphics.position.set(seat.x, seat.y);
+  seat.graphics.rotation = seat.rotation || 0;
+  seat.graphics.scale.set(seat.scaleX || 1, seat.scaleY || 1);
+  seat.graphics.alpha = seat.opacity || 1;
+  seat.graphics.visible = seat.visible;
+};
+
+// ✅ Seat state management functions
+export const setSeatSelected = (seat: SeatShape, selected: boolean): void => {
+  seat.selected = selected;
+
+  if (selected) {
+    // Highlight selected seat
+    seat.seatGraphics.tint = 0x00ff00; // Green tint
+    seat.labelGraphics.style.fill = 0x000000; // Black text for contrast
+  } else {
+    // Reset to normal colors
+    seat.seatGraphics.tint = 0xffffff; // No tint
+    seat.labelGraphics.style.fill = seat.labelStyle.fill || 0xffffff;
+  }
+};
+
+export const setSeatAvailable = (seat: SeatShape, available: boolean): void => {
+  if (available) {
+    seat.color = seat.color; // Use original color
+    seat.seatGraphics.alpha = 1;
+    seat.labelGraphics.alpha = 1;
+  } else {
+    seat.seatGraphics.tint = 0x888888; // Gray tint for unavailable
+    seat.seatGraphics.alpha = 0.5;
+    seat.labelGraphics.alpha = 0.5;
+  }
+
+  updateSeatGraphics(seat);
+};
+
+export const setSeatLabelVisibility = (
+  seat: SeatShape,
+  visible: boolean
+): void => {
+  seat.showLabel = visible;
+  seat.labelGraphics.visible = visible;
+};
+
+export const updateSeatLabel = (seat: SeatShape, newLabel: string): void => {
+  seat.name = newLabel;
+  seat.labelGraphics.text = newLabel;
+};
+
+export const updateSeatLabelStyle = (
+  seat: SeatShape,
+  styleUpdate: Partial<PIXI.TextStyle>
+): void => {
+  seat.labelStyle = { ...seat.labelStyle, ...styleUpdate };
+  updateSeatGraphics(seat);
+};
+
+// ✅ Bulk operations for labels
+export const setRowLabelsVisibility = (
+  rowId: string,
+  visible: boolean
+): void => {
+  const seats = getSeatsByRowId(rowId) as SeatShape[];
+  seats.forEach((seat) => setSeatLabelVisibility(seat, visible));
+};
+
+export const setGridLabelsVisibility = (
+  gridId: string,
+  visible: boolean
+): void => {
+  const seats = getSeatsByGridId(gridId) as SeatShape[];
+  seats.forEach((seat) => setSeatLabelVisibility(seat, visible));
+};
+
+export const updateRowLabelStyle = (
+  rowId: string,
+  styleUpdate: Partial<PIXI.TextStyle>
+): void => {
+  const seats = getSeatsByRowId(rowId) as SeatShape[];
+  seats.forEach((seat) => updateSeatLabelStyle(seat, styleUpdate));
+};
+
+export const updateGridLabelStyle = (
+  gridId: string,
+  styleUpdate: Partial<PIXI.TextStyle>
+): void => {
+  const seats = getSeatsByGridId(gridId) as SeatShape[];
+  seats.forEach((seat) => updateSeatLabelStyle(seat, styleUpdate));
+};
+
+// ✅ Label positioning utilities
+export const setSeatLabelPosition = (
+  seat: SeatShape,
+  offsetX: number = 0,
+  offsetY: number = 0
+): void => {
+  seat.labelGraphics.position.set(offsetX, offsetY);
+};
+
+export const centerSeatLabel = (seat: SeatShape): void => {
+  seat.labelGraphics.position.set(0, 0);
+};
+
+// ✅ Auto-resize label based on seat size
+export const autoResizeSeatLabel = (seat: SeatShape): void => {
+  const seatRadius = Math.min(seat.radiusX, seat.radiusY);
+  const fontSize = Math.max(8, Math.min(16, seatRadius * 0.8));
+
+  updateSeatLabelStyle(seat, { fontSize });
+};
+
+// ✅ Type guard function
+export const isEnhancedSeat = (shape: any): shape is SeatShape => {
+  return (
+    shape.type === "ellipse" &&
+    shape.seatGraphics instanceof PIXI.Graphics &&
+    shape.labelGraphics instanceof PIXI.Text
+  );
+};
+
+// ✅ Migration helper for existing seats
+export const migrateSeatToContainer = (oldSeat: SeatShape): SeatShape => {
+  // Create new container-based seat from old seat data
+  const newSeat = createSeat(
+    oldSeat.x,
+    oldSeat.y,
+    oldSeat.rowId,
+    oldSeat.gridId,
+    0, // rowNumber - will be calculated
+    0, // seatNumber - will be calculated
+    {
+      seatSpacing: 25,
+      rowSpacing: 30,
+      seatRadius: oldSeat.radiusX,
+      seatColor: oldSeat.color,
+      seatStrokeColor: oldSeat.strokeColor,
+      seatStrokeWidth: oldSeat.strokeWidth,
+      price: 0,
+    },
+    false, // Don't add events yet
+    oldSeat.id
+  );
+
+  // Copy over old properties
+  newSeat.selected = oldSeat.selected;
+  newSeat.visible = oldSeat.visible;
+  newSeat.rotation = oldSeat.rotation;
+  newSeat.scaleX = oldSeat.scaleX;
+  newSeat.scaleY = oldSeat.scaleY;
+  newSeat.opacity = oldSeat.opacity;
+  newSeat.name = oldSeat.name;
+
+  return newSeat;
 };
 
 // ✅ Update createSeatGrid to use proper settings and naming
@@ -618,28 +856,6 @@ export const getTotalRevenue = (): number => {
   return areaModeContainer.grids.reduce((total, grid) => {
     return total + getGridRevenue(grid.id);
   }, 0);
-};
-
-// ✅ Simple seat graphics update - only updates visual appearance
-export const updateSeatGraphics = (seat: SeatShape): void => {
-  if (!seat.graphics) return;
-
-  // Clear and redraw graphics with current seat properties
-  seat.graphics.clear();
-  seat.graphics
-    .ellipse(0, 0, seat.radiusX, seat.radiusY)
-    .fill(seat.color)
-    .stroke({
-      width: seat.strokeWidth,
-      color: seat.strokeColor,
-    });
-
-  // Update position and transforms
-  seat.graphics.position.set(seat.x, seat.y);
-  seat.graphics.rotation = seat.rotation || 0;
-  seat.graphics.scale.set(seat.scaleX || 1, seat.scaleY || 1);
-  seat.graphics.alpha = seat.opacity || 1;
-  seat.graphics.visible = seat.visible;
 };
 
 // ✅ Update all seats in a row with row-specific settings and positioning

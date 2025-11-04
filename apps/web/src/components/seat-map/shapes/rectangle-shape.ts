@@ -14,8 +14,8 @@ export const createRectangle = (
   const graphics = new PIXI.Graphics();
   graphics
     .roundRect(-width / 2, -height / 2, width, height, 10)
-    .fill(0x3b82f6)
-    .stroke({ width: 2, color: 0x1e40af });
+    .fill(0xffffff)
+    .stroke({ width: 2, color: 0x007aff });
 
   // Position the graphics at the center
   graphics.position.set(x + width / 2, y + height / 2);
@@ -33,8 +33,8 @@ export const createRectangle = (
     width,
     height,
     cornerRadius: 10,
-    color: 0x3b82f6,
-    strokeColor: 0x1e40af,
+    color: 0xffffff,
+    strokeColor: 0x007aff,
     strokeWidth: 2,
     selected: false,
     visible: true,

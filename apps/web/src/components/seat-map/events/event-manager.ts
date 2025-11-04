@@ -155,6 +155,7 @@ export class EventManager {
         } else {
           hitShape = findShapeAtPoint(event, currentContainer);
         }
+        console.log("Hit shape on pointer down:", hitShape);
         if (
           !hitShape ||
           !hitShape.interactive ||

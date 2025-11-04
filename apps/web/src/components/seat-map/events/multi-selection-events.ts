@@ -124,22 +124,34 @@ const processShapeSelection = (
       }
     });
   } else {
-    shapes
-      .filter((shape) => shape.id !== "area-mode-container-id")
-      .forEach((shape) => {
-        if (shape.type === "container") {
-          // ✅ For containers, check if any child intersects with selection
-          const container = shape as ContainerGroup;
-          if (containerHasChildrenInSelection(container, rect)) {
-            shapesToSelect.push(container);
-          }
-        } else {
-          // ✅ For regular shapes, check direct intersection
-          if (isShapeInRectangle(shape, rect)) {
-            shapesToSelect.push(shape);
-          }
+    shapes.forEach((shape) => {
+      if (shape.type === "container") {
+        // ✅ For containers, check if any child intersects with selection
+        const container = shape as ContainerGroup;
+        if (container.id === "area-mode-container-id") {
+          debugger;
+          container.children.forEach((child) => {
+            const worldPosition = getWorldPosition(child, areaModeContainer!);
+            const worldChild = {
+              ...child,
+              x: worldPosition.x,
+              y: worldPosition.y,
+            };
+
+            if (isShapeInRectangle(worldChild, rect)) {
+              shapesToSelect.push(child);
+            }
+          });
+        } else if (containerHasChildrenInSelection(container, rect)) {
+          shapesToSelect.push(container);
         }
-      });
+      } else {
+        // ✅ For regular shapes, check direct intersection
+        if (isShapeInRectangle(shape, rect)) {
+          shapesToSelect.push(shape);
+        }
+      }
+    });
   }
 
   // Apply selection

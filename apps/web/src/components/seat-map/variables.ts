@@ -169,11 +169,8 @@ export const initializeAreaModeContainer = (): AreaModeContainer => {
       price: 100000,
     },
   };
-  areaModeContainer.interactive = false;
-  areaModeContainer.visible = false;
-  areaModeContainer.graphics.interactive = false;
-  areaModeContainer.graphics.visible = false;
-  areaModeContainer.graphics.alpha = 0;
+  areaModeContainer.graphics.zIndex = 100;
+  areaModeContainer.graphics.alpha = 0.3;
 
   // ✅ Add to shapes array so it can use all existing functionality
   shapes.push(areaModeContainer);

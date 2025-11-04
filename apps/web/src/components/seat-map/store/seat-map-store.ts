@@ -446,7 +446,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       }
     });
 
-    get()._saveToHistory(
+    const action = get()._saveToHistory(
       {
         shapes: shapesToDelete,
         selectedShapes: currentSelected,
@@ -458,6 +458,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
         context: { topLevel: [], nested: [] },
       }
     );
+    SeatMapCollaboration.broadcastShapeChange(action);
 
     if (
       (context.nested[0] !== undefined &&

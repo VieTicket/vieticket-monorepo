@@ -38,9 +38,14 @@ export interface EllipseShape extends BaseCanvasItem {
 }
 
 // ✅ New SeatShape interface extending EllipseShape
-export interface SeatShape extends EllipseShape {
+export interface SeatShape extends Omit<EllipseShape, "graphics"> {
+  graphics: PIXI.Container;
   rowId: string; // ID of the row this seat belongs to
   gridId: string; // ID of the grid this seat belongs to
+  seatGraphics: PIXI.Graphics; // The actual seat circle
+  labelGraphics: PIXI.Text; // The seat number/label
+  showLabel: boolean;
+  labelStyle: Partial<PIXI.TextStyle>;
 }
 
 export interface TextShape extends BaseCanvasItem {

@@ -4,7 +4,6 @@ import { useSeatMapStore } from "../store/seat-map-store";
 import { ImageShape, CanvasItem } from "../types";
 import { setShapes, shapes, shapeContainer } from "../variables";
 
-// ✅ Create a reference to the recreateShape function that will be set from outside
 let recreateShapeRef:
   | ((
       shapeData: CanvasItem,
@@ -13,7 +12,6 @@ let recreateShapeRef:
     ) => Promise<CanvasItem>)
   | null = null;
 
-// ✅ Export function to set the reference
 export const setRecreateShapeReference = (
   fn: (
     shapeData: CanvasItem,
@@ -55,9 +53,7 @@ export class SeatMapCollaboration {
   ): Promise<void> {
     const instance = SeatMapCollaboration.getInstance();
 
-    // Prevent multiple simultaneous initializations
     if (instance.isConnecting && instance.connectionPromise) {
-      console.log("⏳ Already connecting, waiting for existing connection...");
       return instance.connectionPromise;
     }
 
@@ -71,23 +67,15 @@ export class SeatMapCollaboration {
         userId: userId,
       },
     });
-    // Create connection promise
+
     instance.connectionPromise = new Promise<void>(async (resolve, reject) => {
       try {
-        console.log("🔌 Initializing SeatMapCollaboration...");
-
-        // Connect to socket
         await instance.connect();
 
-        // Wait for connection to be established
-        await instance.waitForConnection(10000); // 10 second timeout
+        await instance.waitForConnection(10000);
 
-        console.log("✅ Socket connected, now booting seat map...");
-
-        // Boot the seat map after connection is established
         await instance.bootSeatMapInternal(seatMapId, userId);
 
-        console.log("✅ Seat map booted successfully");
         instance.isConnecting = false;
         resolve();
       } catch (error) {
@@ -110,7 +98,6 @@ export class SeatMapCollaboration {
     return new Promise((resolve, reject) => {
       const checkConnection = () => {
         if (this.socket?.connected) {
-          console.log("✅ Socket connection established");
           resolve();
           return;
         }
@@ -140,9 +127,6 @@ export class SeatMapCollaboration {
         return;
       }
 
-      console.log(`🥾 Booting seat map: ${seatMapId} for user: ${userId}`);
-
-      // Set up one-time listeners for boot response
       const successHandler = async (data: any) => {
         await this.handleSeatMapBootSuccess(data);
         cleanup();
@@ -160,14 +144,11 @@ export class SeatMapCollaboration {
         this.socket?.off("seat_map_boot_error", errorHandler);
       };
 
-      // Listen for boot response
       this.socket.once("seat_map_boot_success", successHandler);
       this.socket.once("seat_map_boot_error", errorHandler);
 
-      // Emit boot request
       this.socket.emit("boot_seat_map", { seatMapId, userId });
 
-      // Timeout after 15 seconds
       setTimeout(() => {
         cleanup();
         reject(new Error("Boot seat map timeout"));
@@ -183,24 +164,6 @@ export class SeatMapCollaboration {
   public static isConnected(): boolean {
     const instance = SeatMapCollaboration.getInstance();
     return instance.isConnected();
-  }
-
-  public static getConnectionStatus(): {
-    connected: boolean;
-    reconnectAttempts: number;
-    isConnecting: boolean;
-  } {
-    const instance = SeatMapCollaboration.getInstance();
-    return {
-      connected: instance.socket?.connected ?? false,
-      reconnectAttempts: instance.reconnectAttempts,
-      isConnecting: instance.isConnecting,
-    };
-  }
-
-  public static reconnect(): void {
-    const instance = SeatMapCollaboration.getInstance();
-    instance.handleReconnect();
   }
 
   public static broadcastShapeChange(change: UndoRedoAction): void {
@@ -233,7 +196,6 @@ export class SeatMapCollaboration {
     }
   }
 
-  // Serialization helpers
   private serializeShape(shape: CanvasItem): any {
     const serialized: any = {};
 
@@ -317,14 +279,11 @@ export class SeatMapCollaboration {
     }
   }
 
-  // Connection management
   private async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const socketUrl =
           process.env.NEXT_PUBLIC_SEATMAP_SOCKET_URL || "http://localhost:8080";
-
-        console.log(`🔌 Connecting to socket server at ${socketUrl}`);
 
         this.socket = io(socketUrl, {
           transports: ["websocket", "polling"],
@@ -336,9 +295,7 @@ export class SeatMapCollaboration {
 
         this.setupEventListeners();
 
-        // Wait for connection
         this.socket.once("connect", () => {
-          console.log("✅ Socket connected");
           this.reconnectAttempts = 0;
           useSeatMapStore.setState((state) => ({
             collaboration: {
@@ -374,7 +331,6 @@ export class SeatMapCollaboration {
     });
 
     this.socket.on("disconnect", (reason) => {
-      console.log("🔌 Socket disconnected:", reason);
       useSeatMapStore.setState((state) => ({
         collaboration: {
           ...state.collaboration,
@@ -392,7 +348,6 @@ export class SeatMapCollaboration {
       }
     });
 
-    this.socket.on("room_state", (data) => this.handleRoomState(data));
     this.socket.on("shape_change", (data) => this.handleShapeChange(data));
     this.socket.on("image_upload_start", (data) =>
       this.handleImageUploadStart(data)
@@ -403,12 +358,8 @@ export class SeatMapCollaboration {
     this.socket.on("image_upload_failed", (data) =>
       this.handleImageUploadFailed(data)
     );
-    this.socket.on("user_joined", (data) => {
-      console.log("👤 User joined:", data);
-    });
-    this.socket.on("user_left", (data) => {
-      console.log("👋 User left:", data);
-    });
+    this.socket.on("user_joined", (data) => {});
+    this.socket.on("user_left", (data) => {});
   }
 
   private async handleSeatMapBootSuccess(data: {
@@ -422,9 +373,6 @@ export class SeatMapCollaboration {
     }>;
     message: string;
   }) {
-    console.log("✅ Seat map boot success:", data);
-
-    // Update store with seat map data
     useSeatMapStore.setState({
       seatMap: {
         id: data.seatMap.id,
@@ -443,7 +391,6 @@ export class SeatMapCollaboration {
       isLoading: false,
     });
 
-    // ✅ Recreate shapes with PIXI graphics
     if (data.seatMap.shapes && Array.isArray(data.seatMap.shapes)) {
       if (!recreateShapeRef) {
         console.error("❌ recreateShape function not initialized");
@@ -451,8 +398,6 @@ export class SeatMapCollaboration {
       }
 
       try {
-        console.log("🎨 Recreating shapes from server data...");
-
         const recreatedShapes: CanvasItem[] = [];
 
         for (const shapeData of data.seatMap.shapes) {
@@ -473,114 +418,30 @@ export class SeatMapCollaboration {
           }
         }
 
-        console.log(
-          `✅ Successfully recreated ${recreatedShapes.length} shapes`
-        );
-
         const hasAreaModeContainer = recreatedShapes.find(
           (shape: any) => shape.id === "area-mode-container-id"
         );
 
-        // ✅ Set initial shapes WITHOUT broadcasting
         if (!hasAreaModeContainer) {
           setShapes([...shapes, ...recreatedShapes]);
         } else {
           setShapes(recreatedShapes);
         }
 
-        // ✅ Update store with initial shapes (DON'T save to history or broadcast)
         useSeatMapStore
           .getState()
           .updateShapes([...shapes], false, undefined, false);
-
-        // ✅ NEW: Apply pending changes if any AFTER initial shapes are set
-        if (data.pendingChanges && data.pendingChanges.length > 0) {
-          console.log(
-            `🔄 Applying ${data.pendingChanges.length} pending changes...`
-          );
-
-          // Sort by timestamp to ensure correct order
-          const sortedChanges = data.pendingChanges.sort(
-            (a, b) => a.timestamp - b.timestamp
-          );
-
-          // Apply each change sequentially
-          for (const { change, fromUserId } of sortedChanges) {
-            try {
-              console.log(
-                `🔄 Applying pending change from user ${fromUserId}:`,
-                change
-              );
-
-              // ✅ Apply the remote change (this will update shapes in-place)
-              await useSeatMapStore
-                .getState()
-                .applyRemoteChange(change, fromUserId);
-
-              console.log(`✅ Applied change from user ${fromUserId}`);
-            } catch (error) {
-              console.error(
-                `❌ Failed to apply pending change from ${fromUserId}:`,
-                error
-              );
-            }
-          }
-
-          console.log("✅ All pending changes applied");
-          console.log("📊 Final shapes count:", shapes.length);
-        }
-
-        console.log("✅ Shapes loaded and rendered on canvas");
       } catch (error) {
         console.error("❌ Failed to recreate shapes:", error);
       }
     }
-  }
+    if (data.pendingChanges && data.pendingChanges.length > 0) {
+      const sortedChanges = data.pendingChanges.sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
-  private handleRoomState(data: {
-    seatMap: any;
-    users: any[];
-    pendingUploads: any[];
-  }) {
-    const roomUsers = data.users.map((user: any) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      joinedAt: new Date(user.joinedAt),
-    }));
-
-    useSeatMapStore.getState().updateRoomUsers(roomUsers);
-
-    if (data.seatMap && data.seatMap.shapes) {
-      const currentSeatMap = useSeatMapStore.getState().seatMap;
-
-      if (!currentSeatMap || currentSeatMap.id !== data.seatMap.id) {
-        const currentUserInfo = useSeatMapStore
-          .getState()
-          .collaboration.roomUsers.find((user) => user.id === this.userId);
-
-        useSeatMapStore.getState().loadSeatMapFromServer({
-          seatMap: {
-            id: data.seatMap.id,
-            name: data.seatMap.name,
-            image: data.seatMap.image || "",
-            createdBy: data.seatMap.createdBy || "",
-            publicity: data.seatMap.publicity || "private",
-            createdAt: data.seatMap.createdAt || new Date().toISOString(),
-            updatedAt: data.seatMap.updatedAt || new Date().toISOString(),
-            shapes: data.seatMap.shapes,
-          },
-          userInfo: currentUserInfo || {
-            id: this.userId,
-            name: `User ${this.userId}`,
-            joinedAt: new Date(),
-          },
-          roomUsers,
-        });
-      } else {
-        useSeatMapStore
-          .getState()
-          .updateShapes(data.seatMap.shapes, false, undefined, false);
+      for (const { change, fromUserId } of sortedChanges) {
+        await useSeatMapStore.getState().applyRemoteChange(change, fromUserId);
       }
     }
   }
@@ -589,7 +450,6 @@ export class SeatMapCollaboration {
     change: UndoRedoAction;
     fromUserId: string;
   }) {
-    console.log("🔄 Applying remote shape change from user:", data);
     if (data.fromUserId === this.userId) return;
     useSeatMapStore.getState().applyRemoteChange(data.change, data.fromUserId);
   }
@@ -622,17 +482,6 @@ export class SeatMapCollaboration {
     useSeatMapStore.getState().updateImageUploadState(data.imageId, "failed");
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay * this.reconnectAttempts);
-    } else {
-      console.error("💀 Max reconnection attempts reached");
-    }
-  }
-
   private broadcastShapeChange(change: UndoRedoAction) {
     if (!this.socket?.connected) {
       console.warn("⚠️ Socket not connected, cannot broadcast change");
@@ -640,7 +489,6 @@ export class SeatMapCollaboration {
     }
 
     const serializedChange = this.serializeUndoRedoAction(change);
-
     if (!serializedChange) {
       console.error("❌ Failed to serialize change, skipping broadcast");
       return;
@@ -704,7 +552,6 @@ export class SeatMapCollaboration {
 
   private disconnect() {
     if (this.socket) {
-      console.log("🔌 Disconnecting socket...");
       this.socket.disconnect();
       this.socket = null;
     }

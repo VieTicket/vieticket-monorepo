@@ -741,10 +741,7 @@ export const recreateShape = async (
           container.graphics.position.set(container.x, container.y);
           container.graphics.rotation = container.rotation;
           container.graphics.scale.set(container.scaleX, container.scaleY);
-          container.interactive = false;
           container.graphics.visible = true;
-          container.graphics.interactiveChildren = false;
-          container.graphics.interactive = false;
           container.graphics.alpha = 0.3;
         }
 

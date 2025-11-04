@@ -22,6 +22,7 @@ import {
   clearPreview,
 } from "../preview";
 import { getSelectionTransform } from "./transform-events";
+import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 
 // ✅ Enter area mode for a specific container
 export const enterAreaMode = () => {
@@ -71,9 +72,6 @@ export const exitAreaMode = () => {
     });
 
     if (areaModeContainer) {
-      areaModeContainer.interactive = false;
-      areaModeContainer.graphics.interactiveChildren = false;
-      areaModeContainer.graphics.interactive = false;
       areaModeContainer.graphics.alpha = 0.3;
     }
 
@@ -174,7 +172,7 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
     };
 
     // ✅ Save to history directly with creation context
-    useSeatMapStore.getState()._saveToHistory(
+    const action = useSeatMapStore.getState()._saveToHistory(
       {
         shapes: [],
         context: creationContext,
@@ -184,6 +182,7 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
         context: creationContext,
       }
     );
+    SeatMapCollaboration.broadcastShapeChange(action);
 
     gridCreated = true;
   }

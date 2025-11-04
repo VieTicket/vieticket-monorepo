@@ -13,26 +13,24 @@ export const createEllipse = (
 ): EllipseShape => {
   const graphics = new PIXI.Graphics();
 
-  graphics.stroke({
-    width: 2,
-    color: 0x047857,
-  });
-
-  const radialGradient = new PIXI.FillGradient({
-    type: "radial",
-    center: { x: 0.5, y: 0.5 },
-    innerRadius: 0,
-    outerCenter: { x: 0.5, y: 0.5 },
-    outerRadius: 0.5,
-    colorStops: [
-      { offset: 0, color: 0xffff00 },
-      { offset: 1, color: 0x00ff00 },
-    ],
-    textureSpace: "local",
-  });
+  // const radialGradient = new PIXI.FillGradient({
+  //   type: "radial",
+  //   center: { x: 0.5, y: 0.5 },
+  //   innerRadius: 0,
+  //   outerCenter: { x: 0.5, y: 0.5 },
+  //   outerRadius: 0.5,
+  //   colorStops: [
+  //     { offset: 0, color: 0xffff00 },
+  //     { offset: 1, color: 0x00ff00 },
+  //   ],
+  //   textureSpace: "local",
+  // });
 
   // Draw ellipse centered at origin
-  graphics.ellipse(0, 0, radiusX, radiusY).fill(radialGradient);
+  graphics.ellipse(0, 0, radiusX, radiusY).fill(0xffffff).stroke({
+    width: 2,
+    color: 0x007aff,
+  });
 
   // Position the graphics
   graphics.position.set(x, y);
@@ -48,8 +46,8 @@ export const createEllipse = (
     y,
     radiusX,
     radiusY,
-    color: 0x10b981,
-    strokeColor: 0x047857,
+    color: 0xffffff,
+    strokeColor: 0x007aff,
     strokeWidth: 2,
     selected: false,
     visible: true,
