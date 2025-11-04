@@ -5,6 +5,7 @@
   "module": "src/index.ts",
   "exports": {
     "./pg": "./src/postgres/connection.ts",
+    "./pg/direct": "./src/postgres/direct-connection.ts",
     "./pg/schema": "./src/postgres/schema.ts",
     "./pg/schemas/*": "./src/postgres/schemas/*-schemas.ts",
     "./pg/models/*": "./src/postgres/models/*-models.ts",
