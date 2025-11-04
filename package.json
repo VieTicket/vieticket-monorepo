@@ -24,8 +24,11 @@
     "apps/*",
     "packages/*"
   ],
-  "dependencies": {},
+  "dependencies": {
+    "mongoose": "^8.19.2"
+  },
   "catalog": {
-    "drizzle-orm": "^0.44.7"
+    "drizzle-orm": "^0.44.7",
+    "typescript": "5.9.3"
   }
 }
