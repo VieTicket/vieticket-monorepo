@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
-import { db } from "./lib/db";
+import { db } from "@vieticket/db/pg/direct";
 import { user, organizers } from "@vieticket/db/pg/schema";
 import { Role } from "@vieticket/db/pg/schema";
 
@@ -85,6 +85,7 @@ function getRequiredRole(pathname: string): Role | null {
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
   // Skip middleware for API routes that better-auth handles
   if (["/api/auth/"].some((prefix) => pathname.startsWith(prefix))) {
     return NextResponse.next();

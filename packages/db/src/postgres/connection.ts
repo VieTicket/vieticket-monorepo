@@ -55,26 +55,3 @@ function createDbInstance(url?: string): DbClient {
 
   return instance;
 }
-
-/**
- * @deprecated This function is deprecated. Prefer using the auto-inferred `db` instance 
- * or `configureDb()` for custom connections.
- * 
- * Creates a new Drizzle ORM database client using the provided connection string.
- * 
- * This function initializes a new Neon serverless connection pool with the given 
- * `connectionString`, and wraps it with Drizzle ORM, applying the provided schema.
- * 
- * Note: In modern usage, it is recommended to use the auto-inferred `db` instance 
- * (which reads `DATABASE_URL` from the environment) or the `configureDb(url)` function 
- * for cases where a custom connection is needed.
- * 
- * @param {string} connectionString - The full PostgreSQL connection string.
- * @returns {DbClient} A new Drizzle database client.
- */
-export function createDb(connectionString: string) {
-  const pool = new Pool({ connectionString });
-  return drizzle(pool, {
-    schema: { ...schema },
-  });
-}
