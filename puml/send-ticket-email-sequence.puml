@@ -1,0 +1,111 @@
+@startuml send-ticket-email-sequence
+actor User
+participant "Page" as Page
+participant "Component" as Comp
+participant "Action" as Action
+participant "Service" as Svc
+participant "Repo" as Repo
+participant "DB" as DB
+
+== Page Load ==
+User -> Page ++: Navigate
+Page -> Action ++: Get details
+Action -> Svc ++: Verify & fetch
+Svc -> Repo ++: Query ticket
+Repo -> DB ++: SELECT
+DB --> Repo --: Data
+Repo --> Svc --: Details
+Svc --> Action --: Data + QR
+Action --> Page --: Success
+Page -> Comp ++: Render(ticketId)
+deactivate Page
+
+== Init Status ==
+Comp -> Action ++: Get email status
+Action -> Svc ++: getTicketEmailStatus
+Svc -> Repo ++: Verify & get logs
+Repo -> DB ++: Query logs + limits
+DB --> Repo --: Data
+Repo --> Svc --: Status
+Svc --> Action --: Email status
+Action --> Comp --: Status data
+Comp -> Comp: Display
+deactivate Comp
+
+== Send Email ==
+User -> Comp ++: Enter email & Send
+
+alt Client Check Failed
+    Comp -> User: Error toast
+    deactivate Comp
+else Client OK
+    Comp -> Action ++: sendTicketEmail
+    Action -> Svc ++: Send email
+    
+    Svc -> Repo ++: Verify ownership
+    Repo -> DB ++: Check ticket
+    DB --> Repo --: Ticket
+    Repo --> Svc --: Data
+    
+    alt Invalid
+        Svc --> Action: Error
+        Action --> Comp: Error
+        Comp -> User: Error toast
+        deactivate Comp
+        deactivate Action
+        deactivate Svc
+    else Valid
+        Svc -> Repo ++: Check limits
+        Repo -> DB ++: Count + cooldown
+        DB --> Repo --: Limits
+        Repo --> Svc --: Status
+        
+        alt Exceeded
+            Svc --> Action: Error
+            Action --> Comp: Error
+            Comp -> User: Error toast
+            deactivate Comp
+            deactivate Action
+            deactivate Svc
+        else OK
+            Svc -> Repo ++: Get event
+            Repo -> DB ++: Query
+            DB --> Repo --: Event
+            Repo --> Svc --: Data
+            
+            participant "QR" as QR
+            participant "Mailer" as Mail
+            Svc -> QR ++: Generate
+            QR --> Svc --: Buffer
+            
+            Svc -> Mail ++: Send
+            Mail --> Svc --: OK
+            
+            Svc -> Repo ++: Log send
+            Repo -> DB ++: INSERT
+            DB --> Repo --: OK
+            Repo --> Svc --: OK
+            
+            Svc --> Action --: Success
+            Action --> Comp --: Success
+            
+            Comp -> Action ++: Refresh status
+            Action -> Svc ++: Get status
+            Svc -> Repo ++: Get latest
+            Repo -> DB ++: Query
+            DB --> Repo --: Data
+            Repo --> Svc --: Data
+            Svc --> Action --: Status
+            Action --> Comp --: New status
+            
+            Comp -> Comp: Update UI
+            Comp -> User: Success toast
+            deactivate Comp
+        end
+    end
+end
+
+note over Svc,Repo: Auth + Rate Limit + Logging
+note over User,DB: Max: 3 sends, 60min cooldown
+
+@enduml

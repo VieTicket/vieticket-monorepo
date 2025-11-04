@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface AITextGeneratorProps {
   eventData: {
@@ -34,6 +35,7 @@ export function AITextGenerator({
   eventData,
   onTextGenerated,
 }: AITextGeneratorProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const [isOpen, setIsOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -135,7 +137,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
     e: React.MouseEvent<HTMLButtonElement>
   ) => {
     if (!prompt.trim()) {
-      toast.error("Vui lòng nhập yêu cầu cho phần mô tả");
+      toast.error(t("ai.text.toasts.emptyPrompt"));
       return;
     }
 
@@ -157,13 +159,13 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
       if (!response.ok) {
         const errorText = await response.text();
-        toast.error(`API Error: ${errorText}`);
+        toast.error(t("ai.text.toasts.apiError", { error: errorText }));
         return;
       }
 
       const reader = response.body?.getReader();
       if (!reader) {
-        toast.error("Không thể đọc response");
+        toast.error(t("ai.text.toasts.readError"));
         return;
       }
 
@@ -179,11 +181,11 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
       const htmlContent = convertToTipTapHTML(fullResponse);
       onTextGenerated(htmlContent);
-      toast.success("Đã tạo mô tả sự kiện thành công!");
+  toast.success(t("ai.text.toasts.success"));
       handleOpenChange(false);
     } catch (error) {
       console.error("Error in API call:", error);
-      toast.error("Có lỗi xảy ra khi gọi AI. Vui lòng thử lại.");
+      toast.error(t("ai.text.toasts.callError"));
     } finally {
       setIsGenerating(false);
     }
@@ -258,13 +260,13 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogTrigger asChild>
+        <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
           className="gap-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100 text-purple-700 font-medium"
         >
-          <Sparkles className="h-4 w-4" />✨ AI Description
+          <Sparkles className="h-4 w-4" />{t("ai.text.trigger")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -274,12 +276,11 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
               <Sparkles className="h-6 w-6 text-white" />
             </div>
             <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent font-bold">
-              Tạo Mô Tả Sự Kiện Bằng AI
+              {t("ai.text.title")}
             </span>
           </DialogTitle>
           <DialogDescription className="text-base mt-2">
-            💡 Nhập yêu cầu cụ thể để AI tạo nội dung marketing hấp dẫn với màu
-            sắc và styling đẹp mắt
+            {t("ai.text.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -287,28 +288,28 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
           {/* Preview event info */}
           <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 p-5 rounded-xl shadow-sm">
             <h4 className="font-bold text-base mb-4 text-blue-800 flex items-center gap-2">
-              🎯 Thông tin sự kiện hiện tại
+              {t("ai.text.eventInfoTitle")}
             </h4>
             <div className="text-sm text-gray-700 space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span className="font-medium">Tên:</span>
+                    <span className="font-medium">{t("ai.text.labels.name")}</span>
                     <span className="text-blue-600 font-semibold">
                       {eventData.name || "Chưa có tên"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="font-medium">Loại:</span>
+                    <span className="font-medium">{t("ai.text.labels.type")}</span>
                     <span className="text-green-600 font-semibold">
                       {eventData.type || "Chưa xác định"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span className="font-medium">Địa điểm:</span>
+                    <span className="font-medium">{t("ai.text.labels.location")}</span>
                     <span className="text-orange-600 font-semibold">
                       {eventData.location || "Chưa xác định"}
                     </span>
@@ -317,7 +318,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                    <span className="font-medium">Bắt đầu:</span>
+                    <span className="font-medium">{t("ai.text.labels.start")}</span>
                     <span className="text-purple-600 font-semibold">
                       {eventData.startTime
                         ? new Date(eventData.startTime).toLocaleString("vi-VN")
@@ -326,7 +327,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span className="font-medium">Kết thúc:</span>
+                    <span className="font-medium">{t("ai.text.labels.end")}</span>
                     <span className="text-red-600 font-semibold">
                       {eventData.endTime
                         ? new Date(eventData.endTime).toLocaleString("vi-VN")
@@ -336,7 +337,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   {eventData.ticketPrice && (
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                      <span className="font-medium">Giá vé:</span>
+                      <span className="font-medium">{t("ai.text.labels.price")}</span>
                       <span className="text-yellow-600 font-bold">
                         {parseInt(eventData.ticketPrice).toLocaleString(
                           "vi-VN"
@@ -360,7 +361,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 htmlFor="prompt"
                 className="text-lg font-semibold text-gray-800"
               >
-                🎨 Yêu cầu sáng tạo cho mô tả
+                {t("ai.text.promptLabel")}
               </Label>
             </div>
 
@@ -373,14 +374,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   console.log("🔄 Prompt changing:", newValue);
                   setPrompt(newValue);
                 }}
-                placeholder="💡 Ví dụ sáng tạo:
-• Nhấn mạnh cơ hội networking độc đáo
-• Giới thiệu diễn giả/nghệ sĩ nổi tiếng  
-• Tạo FOMO với số lượng vé giới hạn
-• Highlight trải nghiệm độc quyền
-• Nhắc đến ưu đãi early bird
-• Tạo không khí sôi động, trẻ trung
-• Nhấn mạnh giá trị học hỏi/giải trí..."
+                placeholder={t("ai.text.placeholder")}
                 rows={6}
                 className="resize-none border-0 bg-white/70 backdrop-blur-sm text-base leading-relaxed shadow-sm"
               />
@@ -389,10 +383,8 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 <div className="p-1 bg-blue-100 rounded-full">
                   <span className="text-blue-600 text-xs">💡</span>
                 </div>
-                <p className="text-sm text-gray-600 leading-relaxed">
-                  <strong>Mẹo:</strong> Càng cụ thể thì AI sẽ tạo nội dung càng
-                  hấp dẫn và phù hợp! Hãy mô tả chi tiết về điểm độc đáo, đối
-                  tượng mục tiêu, và cảm xúc bạn muốn tạo ra.
+                  <p className="text-sm text-gray-600 leading-relaxed">
+                  <strong>{t("ai.text.tipTitle")}</strong> {t("ai.text.tipText")}
                 </p>
               </div>
             </div>
@@ -425,56 +417,36 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
             {/* Example Templates */}
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg p-4">
               <h5 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
-                📝 Template mẫu (click để copy):
+                {t("ai.text.templatesTitle")}
               </h5>
               <div className="space-y-2">
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Tạo không khí sôi động cho giới trẻ, nhấn mạnh cơ hội networking độc đáo, có diễn giả nổi tiếng trong ngành, trải nghiệm học hỏi thực tế, giá vé ưu đãi sớm, số lượng có hạn chỉ 200 vé"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.workshop"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎯 <strong>Sự kiện học tập/workshop:</strong> Networking +
-                  Expert + Limited tickets
+                  🎯 <strong>{t("ai.text.templates.workshopTitle")}</strong> {t("ai.text.templates.workshopShort")}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Đêm nhạc đỉnh cao với nghệ sĩ nổi tiếng, âm thanh ánh sáng hoành tráng, không gian lãng mạn cho couples, early bird giảm 30%, trải nghiệm âm nhạc không thể quên"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.concert"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎵 <strong>Concert/Nhạc:</strong> Celebrity artist + Romantic
-                  + Early bird discount
+                  🎵 <strong>{t("ai.text.templates.concertTitle")}</strong> {t("ai.text.templates.concertShort")}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Hội thảo công nghệ với chuyên gia hàng đầu, insights độc quyền về AI/Tech trends, cơ hội kết nối startup, demo sản phẩm mới, gift bag giá trị cho tất cả participants"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.tech"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  💻 <strong>Tech Conference:</strong> Expert insights + Startup
-                  networking + Exclusive demos
+                  💻 <strong>{t("ai.text.templates.techTitle")}</strong> {t("ai.text.templates.techShort")}
                 </button>
                 <button
                   type="button"
-                  onClick={() =>
-                    setPrompt(
-                      "Sự kiện âm nhạc huyền ảo bùng cháy cảm xúc, nghệ sĩ nổi tiếng, hệ thống âm thanh ánh sáng hoành tráng, không gian lãng mạn dành cho couples, ưu đãi early bird giảm 30%, trải nghiệm không thể quên"
-                    )
-                  }
+                  onClick={() => setPrompt(t("ai.text.templates.night"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🔥 <strong>Đêm nhạc huyền ảo:</strong> Bùng cháy cảm xúc +
-                  Nghệ sĩ nổi tiếng + Early bird 30%
+                  🔥 <strong>{t("ai.text.templates.nightTitle")}</strong> {t("ai.text.templates.nightShort")}
                 </button>
               </div>
             </div>
@@ -485,7 +457,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
           {/* Debug info - chỉ hiện khi development */}
           {process.env.NODE_ENV === "development" && (
             <div className="text-xs text-gray-500 flex-1 space-y-1">
-              <div>Debug: prompt="{prompt}"</div>
+              <div>{t("ai.text.debug")} prompt="{prompt}"</div>
               <div>
                 length={prompt.length} | trimmed="{prompt.trim()}" |
                 trim().length={prompt.trim().length}
@@ -494,7 +466,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 isGenerating={isGenerating.toString()} | !prompt.trim()=
                 {(!prompt.trim()).toString()}
               </div>
-              <div>disabled={(isGenerating || !prompt.trim()).toString()}</div>
+              <div>{t("ai.text.debugDisabled")} {(isGenerating || !prompt.trim()).toString()}</div>
             </div>
           )}
 
@@ -504,7 +476,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
             disabled={isGenerating}
             className="flex-1"
           >
-            ❌ Hủy
+            {t("ai.text.footer.cancel")}
           </Button>
 
           {/* Test button để debug */}
@@ -540,12 +512,12 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                🎨 Đang tạo magic...
+                {t("ai.text.footer.generating")}
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Tạo Mô Tả Siêu Hấp Dẫn
+                {t("ai.text.footer.generate")}
               </>
             )}
           </Button>

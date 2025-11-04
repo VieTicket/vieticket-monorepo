@@ -6,6 +6,7 @@ import TiptapEditorInput from "@/components/TiptapEditorInput";
 import ShowingsManagement from "@/components/create-event/ShowingsManagement";
 import type { EventFormData, Area } from "../../../../../types/event-types";
 import type { ShowingFormData } from "@/types/showings";
+import { useTranslations } from "next-intl";
 
 interface EventDetailsStepProps {
   formData: EventFormData;
@@ -30,6 +31,7 @@ export function EventDetailsStep({
   onDescriptionChange,
   onShowingsChange,
 }: EventDetailsStepProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent");
   const renderField = (
     name: keyof EventFormData,
     label: string,
@@ -152,19 +154,24 @@ export function EventDetailsStep({
 
   return (
     <>
-      <h2 className="text-xl font-semibold mb-4">Event Details</h2>
-      {renderField("name", "Event Title", "text")}
-      {renderField("type", "Event Category", "select", [
-        "Workshop",
-        "Concert",
-        "Webinar",
-        "Music",
-        "Sports",
-        "Art",
-        "Comedy",
-        "Food",
-        "Conference",
-      ])}
+      <h2 className="text-xl font-semibold mb-4">{t("eventDetails")}</h2>
+      {renderField("name", t("labels.eventTitle"), "text")}
+      {renderField(
+        "type",
+        t("labels.eventCategory"),
+        "select",
+        [
+          t("categories.workshop"),
+          t("categories.concert"),
+          t("categories.webinar"),
+          t("categories.music"),
+          t("categories.sports"),
+          t("categories.art"),
+          t("categories.comedy"),
+          t("categories.food"),
+          t("categories.conference"),
+        ]
+      )}
 
       {/* Showings Management Section */}
       <ShowingsManagement
@@ -180,31 +187,25 @@ export function EventDetailsStep({
       {showings.length > 0 && showings[0].startTime && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-start gap-2">
-            <div className="text-blue-600 mt-0.5">ℹ️</div>
-            <div className="text-sm text-blue-800">
-              <p className="font-medium">Ticket Sale Schedule</p>
-              <p>
-                Ticket sale dates are automatically calculated based on your
-                showings:
-              </p>
-              <ul className="mt-1 list-disc list-inside text-blue-700">
-                <li>Sale starts: 7 days before the earliest showing</li>
-                <li>Sale ends: 1 hour before the earliest showing</li>
-              </ul>
-              <p className="mt-1 text-xs">
-                Individual showings can have their own ticket sale schedules in
-                the next step.
-              </p>
-            </div>
+              <div className="text-blue-600 mt-0.5">ℹ️</div>
+              <div className="text-sm text-blue-800">
+                <p className="font-medium">{t("ticketSale.title")}</p>
+                <p>{t("ticketSale.description")}</p>
+                <ul className="mt-1 list-disc list-inside text-blue-700">
+                  <li>{t("ticketSale.saleStarts")}</li>
+                  <li>{t("ticketSale.saleEnds")}</li>
+                </ul>
+                <p className="mt-1 text-xs">{t("ticketSale.note")}</p>
+              </div>
           </div>
         </div>
       )}
 
-      {renderField("location", "Where will your event take place?")}
+        {renderField("location", t("labels.location"))}
 
       {/* Max Tickets per Order */}
       <div className="space-y-1">
-        <Label htmlFor="maxTicketsByOrder">Maximum Tickets per Order</Label>
+        <Label htmlFor="maxTicketsByOrder">{t("labels.maxTicketsPerOrder")}</Label>
         <Input
           id="maxTicketsByOrder"
           name="maxTicketsByOrder"
@@ -220,17 +221,14 @@ export function EventDetailsStep({
           className={errors.maxTicketsByOrder ? "border-red-500" : ""}
           min="1"
           max="20"
-          placeholder="e.g., 5"
+          placeholder={t("placeholders.example5")}
         />
         {errors.maxTicketsByOrder && (
           <p className="text-red-500 text-xs mt-1">
             {errors.maxTicketsByOrder}
           </p>
         )}
-        <p className="text-sm text-gray-500">
-          Set the maximum number of tickets a customer can purchase in a single
-          order
-        </p>
+        <p className="text-sm text-gray-500">{t("help.maxTicketsPerOrder")}</p>
       </div>
 
       <TiptapEditorInput

@@ -45,11 +45,86 @@ export default function EventFiltersSidebar({
 
   useEffect(() => {
     async function fetchProvinces() {
-      const res = await fetch(
-        "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json"
-      );
-      const data = await res.json();
-      setProvinces(Object.values(data).map((p: any) => p.name));
+      try {
+        const res = await fetch(
+          "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json"
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        const data = await res.json();
+        const provinceNames = Object.values(data).map((p: any) => p.name);
+        setProvinces(provinceNames);
+      } catch (error) {
+        console.error("Failed to fetch provinces, using fallback:", error);
+        // Fallback list of major Vietnamese provinces/cities
+        const fallbackProvinces = [
+          "Hà Nội",
+          "Hồ Chí Minh",
+          "Đà Nẵng",
+          "Hải Phòng",
+          "Cần Thơ",
+          "An Giang",
+          "Bà Rịa - Vũng Tàu",
+          "Bắc Giang",
+          "Bắc Kạn",
+          "Bạc Liêu",
+          "Bắc Ninh",
+          "Bến Tre",
+          "Bình Định",
+          "Bình Dương",
+          "Bình Phước",
+          "Bình Thuận",
+          "Cà Mau",
+          "Cao Bằng",
+          "Đắk Lắk",
+          "Đắk Nông",
+          "Điện Biên",
+          "Đồng Nai",
+          "Đồng Tháp",
+          "Gia Lai",
+          "Hà Giang",
+          "Hà Nam",
+          "Hà Tĩnh",
+          "Hải Dương",
+          "Hậu Giang",
+          "Hòa Bình",
+          "Hưng Yên",
+          "Khánh Hòa",
+          "Kiên Giang",
+          "Kon Tum",
+          "Lai Châu",
+          "Lâm Đồng",
+          "Lạng Sơn",
+          "Lào Cai",
+          "Long An",
+          "Nam Định",
+          "Nghệ An",
+          "Ninh Bình",
+          "Ninh Thuận",
+          "Phú Thọ",
+          "Phú Yên",
+          "Quảng Bình",
+          "Quảng Nam",
+          "Quảng Ngãi",
+          "Quảng Ninh",
+          "Quảng Trị",
+          "Sóc Trăng",
+          "Sơn La",
+          "Tây Ninh",
+          "Thái Bình",
+          "Thái Nguyên",
+          "Thanh Hóa",
+          "Thừa Thiên Huế",
+          "Tiền Giang",
+          "Trà Vinh",
+          "Tuyên Quang",
+          "Vĩnh Long",
+          "Vĩnh Phúc",
+          "Yên Bái"
+        ];
+        setProvinces(fallbackProvinces);
+      }
     }
     fetchProvinces();
   }, []);
@@ -101,7 +176,7 @@ export default function EventFiltersSidebar({
           onValueChange={(val) => onChange("location", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-            <SelectValue placeholder="All Locations" />
+            <SelectValue placeholder={t("AllLocation")} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
             <SelectItem value="all">{t("AllLocation")}</SelectItem>
@@ -122,7 +197,7 @@ export default function EventFiltersSidebar({
           onValueChange={(val) => onChange("category", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-            <SelectValue placeholder="All Categories" />
+            <SelectValue placeholder={t("categoryOptions.0.label")} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
             {categoryOptions.map(({ label, value }) => (

@@ -9,6 +9,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 type FormData = {
   oldPassword: string;
@@ -17,6 +18,7 @@ type FormData = {
 };
 
 export default function SetPasswordForm() {
+  const t = useTranslations("organizer-dashboard.Profile");
   const {
     register,
     handleSubmit,
@@ -28,7 +30,7 @@ export default function SetPasswordForm() {
 
   const onSubmit = async (data: FormData) => {
     if (data.newPassword !== data.confirmPassword) {
-      toast.error("Passwords do not match");
+      toast.error(t("setPassword.errors.passwordMismatch"));
       return;
     }
     await authClient.changePassword({
@@ -36,25 +38,25 @@ export default function SetPasswordForm() {
       currentPassword: data.oldPassword,
       revokeOtherSessions: true,
     });
-    toast.success("Password updated successfully");
+    toast.success(t("setPassword.toasts.success"));
     reset();
   };
 
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold pb-6">Set Password</h2>
+      <h2 className="text-2xl font-bold pb-6">{t("setPassword.title")}</h2>
       <hr className="w-full text-black py-6" />
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Old Password */}
         <div className="space-y-2 w-1/2">
-          <Label htmlFor="oldPassword">Old Password</Label>
+          <Label htmlFor="oldPassword">{t("setPassword.labels.oldPassword")}</Label>
           <Input
             id="oldPassword"
             className="py-6"
             type="password"
-            placeholder="Enter your old password"
+            placeholder={t("setPassword.placeholders.oldPassword")}
             {...register("oldPassword", {
-              required: "Old password is required",
+              required: t("setPassword.errors.oldPasswordRequired"),
             })}
           />
           {errors.oldPassword && (
@@ -63,14 +65,14 @@ export default function SetPasswordForm() {
         </div>
         {/* New Password */}
         <div className="space-y-2 w-1/2">
-          <Label htmlFor="newPassword">Password</Label>
+          <Label htmlFor="newPassword">{t("setPassword.labels.newPassword")}</Label>
           <Input
             id="newPassword"
             className="py-6"
             type="password"
-            placeholder="Enter your new password"
+            placeholder={t("setPassword.placeholders.newPassword")}
             {...register("newPassword", {
-              required: "New password is required",
+              required: t("setPassword.errors.newPasswordRequired"),
             })}
           />
           {errors.newPassword && (
@@ -79,17 +81,17 @@ export default function SetPasswordForm() {
         </div>
         {/* Confirm Password */}
         <div className="space-y-2 w-1/2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
+          <Label htmlFor="confirmPassword">{t("setPassword.labels.confirmPassword")}</Label>
           <div className="relative">
             <Input
               className="py-6"
               id="confirmPassword"
               type={showPassword ? "text" : "password"}
-              placeholder="Re-enter password"
+              placeholder={t("setPassword.placeholders.confirmPassword")}
               {...register("confirmPassword", {
-                required: "Please confirm your password",
+                required: t("setPassword.errors.confirmPasswordRequired"),
                 validate: (value) =>
-                  value === watch("newPassword") || "Passwords do not match",
+                  value === watch("newPassword") || t("setPassword.errors.passwordMismatch"),
               })}
             />
             <button
@@ -107,9 +109,7 @@ export default function SetPasswordForm() {
           )}
         </div>
         {/* Submit Button */}
-        <Button type="submit" className="w-1/2 mt-2 py-6">
-          Update Password
-        </Button>
+        <Button type="submit" className="w-1/2 mt-2 py-6">{t("setPassword.buttons.update")}</Button>
       </form>
     </div>
   );

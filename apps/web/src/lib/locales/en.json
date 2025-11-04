@@ -100,6 +100,10 @@
         "value": "1m-3m"
       },
       {
+        "label": "3,000,000₫ - 5,000,000₫",
+        "value": "3m-5m"
+      },
+      {
         "label": "Over 5,000,000₫",
         "value": "gt5m"
       }
@@ -193,28 +197,364 @@
       "creating": "Creating...",
       "updateEvent": "Update Event",
       "createEventt": "🎉 Create a New Event",
-      "saveandcontinue": "Save & Continue"
+      "saveandcontinue": "Save & Continue",
+
+      "areaA": "Area A",
+      "mainShowing": "Main Showing",
+
+      "pleaseFixErrors": "Please fix the errors before continuing",
+      "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
+
+      "toasts": {
+        "failedLoadEvent": "Failed to load event data",
+        "posterUploaded": "Poster uploaded successfully!",
+        "bannerUploaded": "Banner uploaded successfully!",
+        "selectedSeatMap": "Selected seat map: {name}",
+        "selectedSeatMapDesc": "{totalSeats} seats in {areasCount} areas",
+        "failedLoadSeatMap": "Failed to load seat map details",
+        "seatMapLoadError": "An error occurred while loading the seat map",
+        "uploadFailed": "Upload failed: {message}",
+        "eventUpdated": "✅ Event updated successfully!",
+        "eventAndSeatMapCreated": "🎉 Event and seat map created successfully!",
+        "eventCreated": "🎉 Event created successfully!",
+        "createEventFailed": "Something went wrong while creating the event."
+      }
+      ,
+      "steps": {
+        "edit": "Edit",
+        "banner": "Banner",
+        "preview": "Preview",
+        "ticketing": "Ticketing"
+      },
+      
+      "categories": {
+        "workshop": "Workshop",
+        "concert": "Concert",
+        "webinar": "Webinar",
+        "music": "Music",
+        "sports": "Sports",
+        "art": "Art",
+        "comedy": "Comedy",
+        "food": "Food",
+        "conference": "Conference"
+      },
+      "ticketSale": {
+        "title": "Ticket Sale Schedule",
+        "description": "Ticket sale dates are automatically calculated based on your showings:",
+        "saleStarts": "Sale starts: 7 days before the earliest showing",
+        "saleEnds": "Sale ends: 1 hour before the earliest showing",
+        "note": "Individual showings can have their own ticket sale schedules in the next step."
+      },
+      
+      "help": {
+        "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
+      }
+      ,
+      "showings": {
+        "title": "Event Showings",
+        "description": "Add multiple showings for your event (different times/dates)",
+        "add": "Add Showing",
+        "defaultName": "Showing {n}",
+        "showing": "Showing {n}"
+      },
+      "ai": {
+        "text": {
+          "trigger": "✨ AI Description",
+          "title": "Create Event Description with AI",
+          "description": "💡 Enter specific instructions and creative hints to generate an attractive marketing description.",
+          "eventInfoTitle": "🎯 Current event information",
+          "labels": {
+            "name": "Name:",
+            "type": "Type:",
+            "location": "Location:",
+            "start": "Start:",
+            "end": "End:",
+            "price": "Price:"
+          },
+          "promptLabel": "🎨 Creative brief for description",
+          "placeholder": "💡 Creative example:\n• Emphasize unique networking opportunities\n• Highlight guest speakers/artists\n• Create FOMO with limited tickets\n• Emphasize exclusive experiences\n• Mention early bird discounts",
+          "tipTitle": "Tip:",
+          "tipText": "The more specific you are, the better the AI output will match your needs.",
+          "suggestionsTitle": "🚀 Creative suggestions:",
+          "templatesTitle": "📝 Example templates (click to copy):",
+          "templates": {
+            "workshop": "Create an energetic learning event description focused on networking, expert speakers and limited tickets.",
+            "workshopTitle": "Workshop/Training",
+            "workshopShort": "Networking + Experts + Limited tickets",
+            "concert": "High-energy concert description with star artist, spectacular lights, romantic moments for couples and early bird discounts.",
+            "concertTitle": "Concert/Music",
+            "concertShort": "Celebrity artist + Romantic + Early bird",
+            "tech": "Tech conference with top speakers, exclusive insights on AI/Trends, startup networking and product demos.",
+            "techTitle": "Tech Conference",
+            "techShort": "Expert insights + Startup networking",
+            "night": "Magical music night with top artists, stunning lights, romantic atmosphere and early bird offers.",
+            "nightTitle": "Magical Music Night",
+            "nightShort": "Emotional + Star Artist + Early bird"
+          },
+          "debug": "Debug:",
+          "debugDisabled": "disabled=",
+          "footer": {
+            "cancel": "❌ Cancel",
+            "generating": "🎨 Generating...",
+            "generate": "Generate Super Engaging Description"
+          },
+          "toasts": {
+            "emptyPrompt": "Please enter a prompt for description",
+            "success": "Event description generated successfully!",
+            "readError": "Unable to read response",
+            "apiError": "API Error: {error}",
+            "callError": "An error occurred while calling the AI. Please try again."
+          }
+        },
+        "image": {
+          "cardTitle": "AI {type} Generator",
+          "types": { "poster": "Poster", "banner": "Banner" },
+          "backgroundLabel": "Background Prompt",
+          "backgroundPlaceholder": "Describe the background for your {type}",
+          "textOnImageLabel": "Text on Image (Optional)",
+          "textPlaceholder": "Example: \"LIVE MUSIC NIGHT 2025\"",
+          "styleLabel": "Style",
+          "selectPlaceholder": "Select a style",
+          "styles": {
+            "modern": "Modern",
+            "vibrant": "Vibrant",
+            "elegant": "Elegant",
+            "creative": "Creative",
+            "realistic": "Realistic",
+            "illustration": "Illustration"
+          },
+          "generating": "Generating...",
+          "generateBtn": "Generate Image",
+          "toasts": {
+            "enterBackground": "Please enter a background description",
+            "generated": "AI {type} generated successfully!",
+            "successApply": "Image applied successfully!",
+            "failedGenerate": "Failed to generate image."
+          },
+          "useBtn": "Use This Image",
+          "downloadBtn": "Download"
+        },
+        "media": {
+          "posterTitle": "Event Poster",
+          "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+          "posterAlt": "Event poster preview",
+          "uploadYourOwn": "Upload Your Own",
+          "uploadButtonPoster": "Upload Poster",
+          "removePoster": "Remove Poster",
+          "generateWithAI": "Generate with AI",
+          "bannerTitle": "Event Banner",
+          "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+          "bannerAlt": "Event banner preview",
+          "uploadButtonBanner": "Upload Banner",
+          "removeBanner": "Remove Banner",
+          "generateBannerWithAI": "Generate Banner with AI"
+        }
+      },
+      "placeholders": {
+        "example5": "e.g., 5",
+        "showingExample": "e.g., Morning Show, Evening Show"
+      },
+      "labels": {
+        "eventTitle": "Event Title",
+        "eventCategory": "Event Category",
+        "location": "Where will your event take place?",
+        "maxTicketsPerOrder": "Maximum Tickets per Order",
+        "description": "Additional Information",
+        "showingName": "Showing Name",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "ticketSaleStart": "Ticket Sale Start",
+        "ticketSaleEnd": "Ticket Sale End"
+      },
+      "errors": {
+        "nameRequired": "Event name is required",
+        "locationRequired": "Location is required",
+        "descriptionRequired": "Description is required",
+        "showingRequired": "At least one showing with start time is required",
+        "maxTicketsMin": "Maximum tickets per order must be at least 1",
+        "maxTicketsMax": "Maximum tickets per order cannot exceed 20",
+        "startTimePast": "Start time cannot be in the past",
+        "endTimePast": "End time cannot be in the past",
+        "endTimeBeforeStart": "End time must be after start time",
+        "ticketSaleStartPast": "Ticket sale start cannot be in the past",
+        "ticketSaleStartBeforeShowing": "Ticket sale must start before the showing",
+        "ticketSaleEndPast": "Ticket sale end cannot be in the past",
+        "ticketSaleEndAfterStart": "Ticket sale end must be after start date",
+        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts"
+      }
     },
     "SeatMap": {
       "seatMap": "SeatMap"
     },
     "ListEvent": {
-      "listEvent": "List Event"
+      "listEvent": "List Event",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by event name...",
+      "allEvents": "All Events",
+      "approved": "✓ Approved",
+      "pending": "⏳ Pending",
+      "rejected": "✗ Rejected"
     },
     "Rating": {
       "rating": "Rating"
     },
     "RequestPayout": {
-      "requestPayout": "Request Payout"
+      "requestPayout": "Request Payout",
+      "title": "Admin Payout Management",
+      "loading": "Loading...",
+      "filterLabel": "Filter by status:",
+      "statusOptions": {
+        "all": "All",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "in_discussion": "In Discussion",
+        "completed": "Completed"
+      },
+      "noRequests": "No payout requests found.",
+      "table": {
+        "event": "Event",
+        "requestedAmount": "Requested Amount",
+        "amount": "Amount",
+        "agreedAmount": "Agreed Amount",
+        "status": "Status",
+        "requestDate": "Request Date",
+        "completionDate": "Completion Date",
+        "actions": "Actions",
+        "viewEvidence": "View Evidence",
+        "uploadEvidence": "Upload Evidence"
+      },
+      "viewDetails": "View Details",
+      "empty": {
+        "title": "No payout requests",
+        "description": "You haven't created any payout requests yet.",
+        "createBtn": "Create your first request"
+      },
+      "placeholders": {
+        "agreedAmount": "Agreed amount"
+      },
+      "buttons": {
+        "save": "Save",
+        "previous": "Previous",
+        "next": "Next",
+        "newPayout": "New Payout Request"
+      },
+      "page": {
+        "title": "Payout Requests"
+      },
+      "pagination": {
+        "pageOf": "Page {page} of {totalPages}"
+      },
+      "confirm": {
+        "updateAgreed": "Are you sure you want to update the agreed amount?",
+        "updateStatus": "Are you sure you want to update the status?"
+      },
+      "toasts": {
+        "fetchFailed": "Failed to fetch payout requests",
+        "unexpectedError": "An unexpected error occurred",
+        "agreedAmountUpdated": "Agreed amount updated successfully",
+        "agreedAmountUpdateFailed": "Failed to update agreed amount",
+        "statusUpdated": "Status updated successfully",
+        "statusUpdateFailed": "Failed to update status",
+        "proofUploaded": "Proof uploaded successfully",
+        "proofUploadFailed": "Failed to upload proof"
+      }
     },
     "InspectTicket": {
       "inspectTicket": "Inspect Ticket"
     },
     "ChatWithAdmin": {
-      "chatWithAdmin": "Chat with Admin"
+      "chatWithAdmin": "Chat with Admin",
+      "chat": "Chat",
+      "your_conversations": "Your conversations"
     },
     "Profile": {
-      "profile": "Profile"
+      "profile": "Profile",
+      "settings": "Account Settings",
+      "accountInfo": "Account Info",
+      "password": "Password",
+      "loadingProfile": "Loading profile...",
+      "rejection": {
+        "title": "Application Rejected",
+        "description": "Your organizer application has been reviewed and unfortunately was not approved.",
+        "reasonTitle": "Reason for rejection:",
+        "helpText": "You can update your application information below and resubmit, or contact our support team if you have questions about this decision.",
+        "button": "I Understand",
+        "markedSeen": "Rejection notification marked as seen"
+      },
+      "organizerStatus": {
+        "active": "Your organizer account is active and approved!",
+        "pending": "Your organizer account is pending approval. Please complete all required fields below and wait for admin approval to access organizer features."
+      },
+      "photo": {
+        "title": "Profile Photo",
+        "uploadButton": "Upload New Avatar"
+      },
+      "personalInfo": { "title": "Personal Information" },
+      "labels": {
+        "fullName": "Full Name:",
+        "email": "Email:",
+        "dateOfBirth": "Date of Birth:",
+        "gender": "Gender:",
+        "phone": "Phone Number:"
+      },
+      "placeholders": {
+        "fullName": "Enter full name",
+        "email": "Email",
+        "dateOfBirth": "YYYY-MM-DD",
+        "gender": "Select gender",
+        "phone": "Enter phone number",
+        "organizerName": "Enter organizer name",
+        "website": "https://example.com",
+        "address": "Enter address",
+        "foundedDate": "YYYY-MM-DD",
+        "organizerType": "e.g. Entertainment, Cultural"
+      },
+      "contact": {
+        "title": "Contact Details",
+        "description": "These details are private and only used to contact you for ticketing or prizes."
+      },
+      "organizerDetails": {
+        "title": "Organizer Details",
+        "description": "Complete all fields below to submit for admin approval.",
+        "organizerName": "Organizer Name:",
+        "website": "Website:",
+        "address": "Address:",
+        "foundedDate": "Founded Date:",
+        "organizerType": "Organizer Type:"
+      },
+      "buttons": {
+        "submitForApproval": "Submit for Approval",
+        "saveProfile": "Save My Profile"
+      },
+      "toasts": {
+        "loadFailed": "Failed to load profile data",
+        "avatarUpdated": "Avatar updated!",
+        "saveFailed": "Failed to save profile",
+        "saveSuccess": "Profile updated successfully"
+      },
+      "setPassword": {
+        "title": "Set Password",
+        "labels": {
+          "oldPassword": "Old Password",
+          "newPassword": "Password",
+          "confirmPassword": "Confirm Password"
+        },
+        "placeholders": {
+          "oldPassword": "Enter your old password",
+          "newPassword": "Enter your new password",
+          "confirmPassword": "Re-enter password"
+        },
+        "errors": {
+          "passwordMismatch": "Passwords do not match",
+          "oldPasswordRequired": "Old password is required",
+          "newPasswordRequired": "New password is required",
+          "confirmPasswordRequired": "Please confirm your password"
+        },
+        "toasts": { "success": "Password updated successfully" },
+        "buttons": { "update": "Update Password" }
+      }
     },
     "SignOut": {
       "signOut": "Sign Out"

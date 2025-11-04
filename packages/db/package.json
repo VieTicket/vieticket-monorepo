@@ -29,13 +29,14 @@
   "devDependencies": {
     "dotenv": "^16.6.1",
     "drizzle-kit": "^0.31.4",
-    "tsx": "^4.20.3"
+    "tsx": "^4.20.3",
+    "typescript": "catalog:"
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.10.4",
-    "@typegoose/typegoose": "^12.17.0",
+    "@typegoose/typegoose": "^12.20.0",
     "@vieticket/utils": "*",
-    "drizzle-orm": "^0.44.2",
+    "drizzle-orm": "catalog:",
     "mongoose": "^8.16.3"
   }
 }

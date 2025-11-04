@@ -208,7 +208,9 @@ export async function createMultipleSeatMaps(
  * @param ids - Array of seat map IDs to delete.
  * @returns Deletion result with count of deleted documents.
  */
-export async function deleteMultipleSeatMaps(ids: string[]) {
+export async function deleteMultipleSeatMaps(
+  ids: string[]
+): Promise<{ acknowledged: boolean; deletedCount: number }> {
   await ensureMongoConnection();
   return SeatMapModel.deleteMany({ _id: { $in: ids } }).exec();
 }

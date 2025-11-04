@@ -4,6 +4,7 @@ import EventCard from "./EventCard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { Event } from "@vieticket/db/pg/schema";
 
 interface EventListProps {
@@ -17,6 +18,7 @@ export default function EventList({
   events,
   onEventDeleted,
 }: EventListProps) {
+  const t = useTranslations("organizer-dashboard.ListEvent");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string | null>(null);
 
@@ -35,15 +37,15 @@ export default function EventList({
   return (
     <div className="space-y-6">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <h2 className="text-xl font-bold text-gray-800">{title}</h2>
+  <h2 className="text-xl font-bold text-gray-800">{title}</h2>
 
         <div className="flex flex-col md:flex-row items-start md:items-center gap-3">
           <Label className="w-full md:w-auto">
             <span className="block mb-1 text-sm font-medium text-gray-700">
-              Search
+              {t("searchLabel")}
             </span>
             <Input
-              placeholder="Search by event name..."
+              placeholder={t("searchPlaceholder")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full md:w-60"
@@ -62,7 +64,7 @@ export default function EventList({
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
           }`}
         >
-          All Events
+          {t("allEvents")}
         </button>
         <button
           onClick={() => setStatusFilter("approved")}
@@ -72,7 +74,7 @@ export default function EventList({
               : "text-gray-600 hover:text-green-700 hover:bg-green-50"
           }`}
         >
-          ✓ Approved
+          {t("approved")}
         </button>
         <button
           onClick={() => setStatusFilter("pending")}
@@ -82,7 +84,7 @@ export default function EventList({
               : "text-gray-600 hover:text-yellow-700 hover:bg-yellow-50"
           }`}
         >
-          ⏳ Pending
+          {t("pending")}
         </button>
         <button
           onClick={() => setStatusFilter("rejected")}
@@ -92,7 +94,7 @@ export default function EventList({
               : "text-gray-600 hover:text-red-700 hover:bg-red-50"
           }`}
         >
-          ✗ Rejected
+          {t("rejected")}
         </button>
       </div>
 
