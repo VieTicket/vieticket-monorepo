@@ -399,6 +399,47 @@ export default function SeatSelectionPage({
                     ? "Ticket sales have not started for this showing yet. You can preview the seating chart below."
                     : "Tickets are not currently available for this showing. Please select another showing time."}
                 </p>
+
+                {/* Show ticket sale times when available */}
+                {showingData &&
+                  (showingData.ticketSaleStart ||
+                    showingData.ticketSaleEnd) && (
+                    <div className="text-xs text-orange-600 mb-3 p-2 bg-orange-100 rounded">
+                      <div className="font-medium mb-1">
+                        Ticket Sale Period:
+                      </div>
+                      {showingData.ticketSaleStart && (
+                        <div>
+                          Starts:{" "}
+                          {new Date(
+                            showingData.ticketSaleStart
+                          ).toLocaleDateString("vi-VN", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
+                      {showingData.ticketSaleEnd && (
+                        <div>
+                          Ends:{" "}
+                          {new Date(
+                            showingData.ticketSaleEnd
+                          ).toLocaleDateString("vi-VN", {
+                            weekday: "short",
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 {isTicketSaleActive === false ? (
                   <p className="text-xs text-orange-500">
                     Note: You cannot purchase tickets until sales begin.
@@ -424,15 +465,55 @@ export default function SeatSelectionPage({
                 <h4 className="font-medium text-blue-900 mb-2">
                   Selected Showing
                 </h4>
-                <div className="text-sm text-blue-700">
-                  <div className="flex items-center gap-2 mb-1">
-                    <Calendar className="w-3 h-3" />
-                    {formatShowingTime(showingData).date}
+                <div className="text-sm text-blue-700 space-y-2">
+                  <div>
+                    <span className="font-medium">Event Time:</span>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Calendar className="w-3 h-3" />
+                      {formatShowingTime(showingData).date}
+                    </div>
+                    <div className="flex items-center gap-2 ml-2">
+                      <Clock className="w-3 h-3" />
+                      {formatShowingTime(showingData).time}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-3 h-3" />
-                    {formatShowingTime(showingData).time}
-                  </div>
+
+                  {(showingData.ticketSaleStart ||
+                    showingData.ticketSaleEnd) && (
+                    <div className="pt-2 border-t border-blue-200">
+                      <span className="font-medium">Ticket Sale Period:</span>
+                      <div className="ml-2 text-xs">
+                        {showingData.ticketSaleStart && (
+                          <div>
+                            From:{" "}
+                            {new Date(
+                              showingData.ticketSaleStart
+                            ).toLocaleDateString("vi-VN", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                        {showingData.ticketSaleEnd && (
+                          <div>
+                            Until:{" "}
+                            {new Date(
+                              showingData.ticketSaleEnd
+                            ).toLocaleDateString("vi-VN", {
+                              year: "numeric",
+                              month: "short",
+                              day: "numeric",
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
