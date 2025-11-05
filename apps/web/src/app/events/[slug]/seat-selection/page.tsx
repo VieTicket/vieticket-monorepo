@@ -373,10 +373,6 @@ export default function SeatSelectionPage({
                         <span className="font-medium">
                           {showing.name || timeInfo.date}
                         </span>
-                        <span className="text-sm text-gray-500 flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          {timeInfo.time}
-                        </span>
                       </div>
                     </SelectItem>
                   );
@@ -460,63 +456,48 @@ export default function SeatSelectionPage({
               </div>
             )}
 
-            {selectedShowingId && showingData && !isShowingNotOnSale && (
-              <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">
-                  Selected Showing
-                </h4>
-                <div className="text-sm text-blue-700 space-y-2">
-                  <div>
-                    <span className="font-medium">Event Time:</span>
-                    <div className="flex items-center gap-2 ml-2">
-                      <Calendar className="w-3 h-3" />
-                      {formatShowingTime(showingData).date}
-                    </div>
-                    <div className="flex items-center gap-2 ml-2">
-                      <Clock className="w-3 h-3" />
-                      {formatShowingTime(showingData).time}
+            {selectedShowingId &&
+              showingData &&
+              !isShowingNotOnSale &&
+              (showingData.ticketSaleStart || showingData.ticketSaleEnd) && (
+                <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+                  <h4 className="font-medium text-blue-900 mb-2">
+                    Ticket Sale Period
+                  </h4>
+                  <div className="text-sm text-blue-700">
+                    <div className="ml-2 text-xs">
+                      {showingData.ticketSaleStart && (
+                        <div>
+                          From:{" "}
+                          {new Date(
+                            showingData.ticketSaleStart
+                          ).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
+                      {showingData.ticketSaleEnd && (
+                        <div>
+                          Until:{" "}
+                          {new Date(
+                            showingData.ticketSaleEnd
+                          ).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </div>
+                      )}
                     </div>
                   </div>
-
-                  {(showingData.ticketSaleStart ||
-                    showingData.ticketSaleEnd) && (
-                    <div className="pt-2 border-t border-blue-200">
-                      <span className="font-medium">Ticket Sale Period:</span>
-                      <div className="ml-2 text-xs">
-                        {showingData.ticketSaleStart && (
-                          <div>
-                            From:{" "}
-                            {new Date(
-                              showingData.ticketSaleStart
-                            ).toLocaleDateString("vi-VN", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
-                        {showingData.ticketSaleEnd && (
-                          <div>
-                            Until:{" "}
-                            {new Date(
-                              showingData.ticketSaleEnd
-                            ).toLocaleDateString("vi-VN", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
                 </div>
-              </div>
-            )}
+              )}
           </CardContent>
         </Card>
       )}
