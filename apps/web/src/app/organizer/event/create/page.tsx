@@ -137,7 +137,9 @@ function CreateEventPageInner() {
       const durationHours = durationMinutes / 60;
 
       if (durationMinutes < VALIDATION_CONFIG.MIN_SHOWING_DURATION_MINUTES) {
-        errors[`showing-${index}-endTime`] = t("errors.showingDurationTooShort");
+        errors[`showing-${index}-endTime`] = t(
+          "errors.showingDurationTooShort"
+        );
       }
 
       if (durationHours > VALIDATION_CONFIG.MAX_SHOWING_DURATION_HOURS) {
@@ -158,12 +160,16 @@ function CreateEventPageInner() {
 
     // Check if ticket sale times are provided
     if (!showing.ticketSaleStart) {
-      errors[`showing-${index}-ticketSaleStart`] = t("errors.ticketSaleStartRequired");
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartRequired"
+      );
       return { valid: false, errors };
     }
 
     if (!showing.ticketSaleEnd) {
-      errors[`showing-${index}-ticketSaleEnd`] = t("errors.ticketSaleEndRequired");
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndRequired"
+      );
       return { valid: false, errors };
     }
 
@@ -177,28 +183,41 @@ function CreateEventPageInner() {
 
     // Validate ticket sale start is not in the past
     if (ticketSaleStart <= now) {
-      errors[`showing-${index}-ticketSaleStart`] = t("errors.ticketSaleStartPast");
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartPast"
+      );
     }
 
     // Validate ticket sale end is after start
     if (ticketSaleEnd <= ticketSaleStart) {
-      errors[`showing-${index}-ticketSaleEnd`] = t("errors.ticketSaleEndAfterStart");
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndAfterStart"
+      );
     }
 
     // Validate ticket sale starts at least 2 days before showing
     const minSaleStart = new Date(showingStart);
-    minSaleStart.setDate(minSaleStart.getDate() - VALIDATION_CONFIG.MIN_TICKET_SALE_START_DAYS_BEFORE);
-    
+    minSaleStart.setDate(
+      minSaleStart.getDate() -
+        VALIDATION_CONFIG.MIN_TICKET_SALE_START_DAYS_BEFORE
+    );
+
     if (ticketSaleStart > minSaleStart) {
-      errors[`showing-${index}-ticketSaleStart`] = t("errors.ticketSaleStartTooLate");
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartTooLate"
+      );
     }
 
     // Validate ticket sale ends at least 1 day before showing
     const maxSaleEnd = new Date(showingStart);
-    maxSaleEnd.setDate(maxSaleEnd.getDate() - VALIDATION_CONFIG.MIN_TICKET_SALE_END_DAYS_BEFORE);
-    
+    maxSaleEnd.setDate(
+      maxSaleEnd.getDate() - VALIDATION_CONFIG.MIN_TICKET_SALE_END_DAYS_BEFORE
+    );
+
     if (ticketSaleEnd > maxSaleEnd) {
-      errors[`showing-${index}-ticketSaleEnd`] = t("errors.ticketSaleEndTooLate");
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndTooLate"
+      );
     }
 
     // Validate ticket sale window duration
@@ -208,11 +227,15 @@ function CreateEventPageInner() {
       const saleWindowDays = saleWindowHours / 24;
 
       if (saleWindowHours < VALIDATION_CONFIG.MIN_TICKET_SALE_WINDOW_HOURS) {
-        errors[`showing-${index}-ticketSaleStart`] = t("errors.ticketSaleWindowTooShort");
+        errors[`showing-${index}-ticketSaleStart`] = t(
+          "errors.ticketSaleWindowTooShort"
+        );
       }
 
       if (saleWindowDays > VALIDATION_CONFIG.MAX_TICKET_SALE_WINDOW_DAYS) {
-        errors[`showing-${index}-ticketSaleEnd`] = t("errors.ticketSaleWindowTooLong");
+        errors[`showing-${index}-ticketSaleEnd`] = t(
+          "errors.ticketSaleWindowTooLong"
+        );
       }
     }
 
@@ -224,7 +247,7 @@ function CreateEventPageInner() {
     showings: ShowingWithAreas[]
   ): { valid: boolean; errors: Record<string, string> } => {
     const errors: Record<string, string> = {};
-    const validShowings = showings.filter(s => s.startTime && s.endTime);
+    const validShowings = showings.filter((s) => s.startTime && s.endTime);
 
     if (validShowings.length <= 1) {
       return { valid: true, errors };
@@ -232,19 +255,24 @@ function CreateEventPageInner() {
 
     // Sort showings by start time
     const sortedShowings = [...validShowings].sort(
-      (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
     );
 
     // Check for duplicate start times
     const startTimes = new Set<number>();
-    
+
     for (let i = 0; i < sortedShowings.length; i++) {
       const startTime = new Date(sortedShowings[i].startTime).getTime();
-      
+
       if (startTimes.has(startTime)) {
         // Find original index in unsorted array
-        const originalIndex = showings.findIndex(s => s.startTime === sortedShowings[i].startTime);
-        errors[`showing-${originalIndex}-startTime`] = t("errors.duplicateShowingTime");
+        const originalIndex = showings.findIndex(
+          (s) => s.startTime === sortedShowings[i].startTime
+        );
+        errors[`showing-${originalIndex}-startTime`] = t(
+          "errors.duplicateShowingTime"
+        );
       } else {
         startTimes.add(startTime);
       }
@@ -263,10 +291,14 @@ function CreateEventPageInner() {
 
       if (bufferHours < VALIDATION_CONFIG.MIN_BUFFER_BETWEEN_SHOWINGS_HOURS) {
         // Find original index in unsorted array
-        const nextOriginalIndex = showings.findIndex(s => 
-          s.startTime === nextShowing.startTime && s.endTime === nextShowing.endTime
+        const nextOriginalIndex = showings.findIndex(
+          (s) =>
+            s.startTime === nextShowing.startTime &&
+            s.endTime === nextShowing.endTime
         );
-        errors[`showing-${nextOriginalIndex}-startTime`] = t("errors.showingTimesOverlap");
+        errors[`showing-${nextOriginalIndex}-startTime`] = t(
+          "errors.showingTimesOverlap"
+        );
       }
     }
 
@@ -280,7 +312,7 @@ function CreateEventPageInner() {
     const allErrors: Record<string, string> = {};
 
     // Check if at least one showing exists
-    if (showings.length === 0 || !showings.some(s => s.startTime)) {
+    if (showings.length === 0 || !showings.some((s) => s.startTime)) {
       allErrors.showings = t("errors.showingRequired");
       return { valid: false, errors: allErrors };
     }
@@ -466,7 +498,7 @@ function CreateEventPageInner() {
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 
-  if (result.success && result.data) {
+      if (result.success && result.data) {
         const enrichedSeatMap: SeatMapData = {
           ...seatMap,
           grids: result.data.gridData?.grids || [],
@@ -480,13 +512,14 @@ function CreateEventPageInner() {
         setShowSeatMapModal(false);
 
         toast.success(
-          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name })
-        , {
-          description: t("toasts.selectedSeatMapDesc", {
-            totalSeats: result.data.preview.totalSeats,
-            areasCount: result.data.preview.areas.length,
-          }),
-        });
+          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name }),
+          {
+            description: t("toasts.selectedSeatMapDesc", {
+              totalSeats: result.data.preview.totalSeats,
+              areasCount: result.data.preview.areas.length,
+            }),
+          }
+        );
       } else {
         console.error("❌ Failed to load seat map data:", result.error);
         toast.error(result.error || t("toasts.failedLoadSeatMap"));
@@ -597,21 +630,25 @@ function CreateEventPageInner() {
 
     // Clear relevant errors and validate showings
     const showingsValidation = validateAllShowings(newShowings);
-    
+
     setErrors((prev) => {
       const newErrors = { ...prev };
-      
+
       // Clear old showing-related errors
-      Object.keys(newErrors).forEach(key => {
-        if (key.startsWith('showing-') || key === 'showings' || 
-            key === 'ticketSaleStart' || key === 'ticketSaleEnd') {
+      Object.keys(newErrors).forEach((key) => {
+        if (
+          key.startsWith("showing-") ||
+          key === "showings" ||
+          key === "ticketSaleStart" ||
+          key === "ticketSaleEnd"
+        ) {
           delete newErrors[key];
         }
       });
-      
+
       // Add new validation errors
       Object.assign(newErrors, showingsValidation.errors);
-      
+
       return newErrors;
     });
   };
@@ -654,20 +691,20 @@ function CreateEventPageInner() {
       // Clear old showing-related errors and set new ones
       setErrors((prev) => {
         const newErrors = { ...prev };
-        
+
         // Clear old showing-related errors
-        Object.keys(newErrors).forEach(key => {
-          if (key.startsWith('showing-') || key === 'showings') {
+        Object.keys(newErrors).forEach((key) => {
+          if (key.startsWith("showing-") || key === "showings") {
             delete newErrors[key];
           }
         });
-        
+
         // Add new validation errors
         Object.assign(newErrors, basicErrors);
-        
+
         return newErrors;
       });
-      
+
       toast.error(t("pleaseFixErrors"));
       return;
     }
@@ -694,23 +731,25 @@ function CreateEventPageInner() {
     // Add showings data - convert times to UTC
     showings.forEach((showing, index) => {
       form.set(`showings[${index}].name`, showing.name);
-      
+
       // Convert times to UTC before sending to server
       if (showing.startTime) {
         const startTimeUTC = new Date(showing.startTime).toISOString();
         form.set(`showings[${index}].startTime`, startTimeUTC);
       }
-      
+
       if (showing.endTime) {
         const endTimeUTC = new Date(showing.endTime).toISOString();
         form.set(`showings[${index}].endTime`, endTimeUTC);
       }
-      
+
       if (showing.ticketSaleStart) {
-        const ticketSaleStartUTC = new Date(showing.ticketSaleStart).toISOString();
+        const ticketSaleStartUTC = new Date(
+          showing.ticketSaleStart
+        ).toISOString();
         form.set(`showings[${index}].ticketSaleStart`, ticketSaleStartUTC);
       }
-      
+
       if (showing.ticketSaleEnd) {
         const ticketSaleEndUTC = new Date(showing.ticketSaleEnd).toISOString();
         form.set(`showings[${index}].ticketSaleEnd`, ticketSaleEndUTC);
@@ -907,7 +946,7 @@ function CreateEventPageInner() {
             }}
             disabled={step === 1}
           >
-             {t("goback")}
+            {t("goback")}
           </Button>
           <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
         </div>

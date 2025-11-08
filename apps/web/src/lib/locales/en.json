@@ -218,15 +218,14 @@
         "eventAndSeatMapCreated": "🎉 Event and seat map created successfully!",
         "eventCreated": "🎉 Event created successfully!",
         "createEventFailed": "Something went wrong while creating the event."
-      }
-      ,
+      },
       "steps": {
         "edit": "Edit",
         "banner": "Banner",
         "preview": "Preview",
         "ticketing": "Ticketing"
       },
-      
+
       "categories": {
         "workshop": "Workshop",
         "concert": "Concert",
@@ -245,11 +244,10 @@
         "saleEnds": "Sale ends: 1 hour before the earliest showing",
         "note": "Individual showings can have their own ticket sale schedules in the next step."
       },
-      
+
       "help": {
         "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
-      }
-      ,
+      },
       "showings": {
         "title": "Event Showings",
         "description": "Add multiple showings for your event (different times/dates)",
