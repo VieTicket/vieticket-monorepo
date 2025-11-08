@@ -548,9 +548,9 @@ export default function SeatSelectionPage({
                     <div className="space-y-3">
                       {area.rows.map((row: any) => (
                         <div key={row.id} className="flex items-center gap-2">
-                          <div className="w-12 text-sm font-medium text-gray-600 text-right">
+                          {/* <div className="w-12 text-sm font-medium text-gray-600 text-right">
                             {row.rowName}
-                          </div>
+                          </div> */}
                           <div className="flex flex-wrap gap-1">
                             {row.seats.map((seat: any) => {
                               const status = getSeatStatus(seat.id);
