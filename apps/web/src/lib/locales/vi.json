@@ -216,7 +216,17 @@
                 "ticketSaleStartBeforeShowing": "Bán vé phải bắt đầu trước buổi chiếu",
                 "ticketSaleEndPast": "Thời gian kết thúc bán vé không thể ở quá khứ",
                 "ticketSaleEndAfterStart": "Thời gian kết thúc bán vé phải sau thời gian bắt đầu",
-                "ticketSaleEndBeforeShowing": "Bán vé phải kết thúc trước khi buổi chiếu bắt đầu"
+                "ticketSaleEndBeforeShowing": "Bán vé phải kết thúc trước khi buổi chiếu bắt đầu",
+                "showingDurationTooShort": "Thời lượng buổi chiếu phải ít nhất 30 phút",
+                "showingDurationTooLong": "Thời lượng buổi chiếu không được vượt quá 24 giờ",
+                "ticketSaleStartTooLate": "Bán vé phải bắt đầu ít nhất 2 ngày trước buổi chiếu",
+                "ticketSaleEndTooLate": "Bán vé phải kết thúc ít nhất 1 ngày trước buổi chiếu",
+                "ticketSaleWindowTooShort": "Thời gian bán vé phải ít nhất 6 giờ",
+                "ticketSaleWindowTooLong": "Thời gian bán vé không được vượt quá 90 ngày",
+                "showingTimesOverlap": "Các buổi chiếu phải cách nhau ít nhất 1 giờ",
+                "duplicateShowingTime": "Không được có hai buổi chiếu cùng thời gian bắt đầu",
+                "ticketSaleStartRequired": "Thời gian bắt đầu bán vé là bắt buộc",
+                "ticketSaleEndRequired": "Thời gian kết thúc bán vé là bắt buộc"
             },
             
             "toasts": {

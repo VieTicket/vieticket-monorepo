@@ -380,7 +380,17 @@
         "ticketSaleStartBeforeShowing": "Ticket sale must start before the showing",
         "ticketSaleEndPast": "Ticket sale end cannot be in the past",
         "ticketSaleEndAfterStart": "Ticket sale end must be after start date",
-        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts"
+        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts",
+        "showingDurationTooShort": "Showing duration must be at least 30 minutes",
+        "showingDurationTooLong": "Showing duration cannot exceed 24 hours",
+        "ticketSaleStartTooLate": "Ticket sale must start at least 2 days before showing",
+        "ticketSaleEndTooLate": "Ticket sale must end at least 1 day before showing",
+        "ticketSaleWindowTooShort": "Ticket sale window must be at least 6 hours",
+        "ticketSaleWindowTooLong": "Ticket sale window cannot exceed 90 days",
+        "showingTimesOverlap": "Showings must be at least 1 hour apart",
+        "duplicateShowingTime": "Cannot have two showings with the same start time",
+        "ticketSaleStartRequired": "Ticket sale start time is required",
+        "ticketSaleEndRequired": "Ticket sale end time is required"
       }
     },
     "SeatMap": {
