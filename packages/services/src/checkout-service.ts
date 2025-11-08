@@ -1,4 +1,7 @@
 import { User } from "@vieticket/db/pg/schema";
+import { db } from "@vieticket/db/pg";
+import { showings } from "@vieticket/db/pg/schemas/events";
+import { eq } from "drizzle-orm";
 import {
   executeOrderTransaction,
   getSeatAvailabilityStatus,
@@ -13,7 +16,9 @@ import {
 import { getEventByTicketId, getTicketDetails } from "@vieticket/repos/orders";
 import {
   findEventById,
+  findEventWithShowings,
   getEventSeatingStructure,
+  getShowingSeatingStructure,
 } from "@vieticket/repos/events";
 import {
   generatePaymentUrl,
@@ -24,14 +29,124 @@ import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client"
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
 
+export async function getShowingTicketData(
+  showingId: string,
+  user: Pick<User, "role">
+) {
+  if (user.role !== "customer") {
+    throw new Error("Unauthorized: Only customers can purchase tickets.");
+  }
+
+  try {
+    // 1. Get showing with event information
+    const showing = await db.query.showings.findFirst({
+      where: eq(showings.id, showingId),
+      with: {
+        event: true,
+      },
+    });
+
+    if (!showing) {
+      throw new Error("Showing not found.");
+    }
+
+    if (!showing.isActive) {
+      throw new Error("Showing is not active.");
+    }
+
+    if (showing.event.approvalStatus !== "approved") {
+      throw new Error("Event is not approved for ticket sales.");
+    }
+
+    // 2. Check if tickets are on sale for this showing
+    const now = new Date();
+    const ticketSaleStart =
+      showing.ticketSaleStart || showing.event.ticketSaleStart;
+    const ticketSaleEnd = showing.ticketSaleEnd || showing.event.ticketSaleEnd;
+
+    console.log("Debug - showing ticket sale validation:", {
+      showingId,
+      now: now.toISOString(),
+      ticketSaleStart: ticketSaleStart?.toISOString(),
+      ticketSaleEnd: ticketSaleEnd?.toISOString(),
+      isBeforeStart: ticketSaleStart ? now < ticketSaleStart : false,
+      isAfterEnd: ticketSaleEnd ? now > ticketSaleEnd : false,
+    });
+
+    // Only check if tickets sales have ended (not started yet should still allow viewing)
+    if (ticketSaleEnd && now > ticketSaleEnd) {
+      throw new Error("Ticket sales have ended for this showing.");
+    }
+
+    // If before sale start, allow viewing but mark as not yet on sale
+    const isTicketSaleActive = !ticketSaleStart || now >= ticketSaleStart;
+
+    // 3. Fetch seating structure and seat status for the showing
+    const [seatingStructure, seatStatus] = await Promise.all([
+      getShowingSeatingStructure(showingId),
+      getSeatStatus(showing.event.id), // Seat status is still event-based for now
+    ]);
+
+    console.log("Debug - showing seating structure result:", {
+      showingId,
+      eventId: showing.event.id,
+      seatingStructureLength: seatingStructure?.length,
+      seatStatusPaid: seatStatus?.paidSeatIds?.length,
+      seatStatusHold: seatStatus?.activeHoldSeatIds?.length,
+    });
+
+    // Detailed logging of seating structure
+    console.log("Debug - detailed seating structure:", {
+      areas:
+        seatingStructure?.map((area, areaIndex) => ({
+          areaIndex,
+          areaId: area.id,
+          areaName: area.name,
+          areaPrice: area.price,
+          areaEventId: area.eventId,
+          areaShowingId: area.showingId,
+          rowsCount: area.rows?.length || 0,
+          rows:
+            area.rows?.map((row, rowIndex) => ({
+              rowIndex,
+              rowId: row.id,
+              rowName: row.rowName,
+              seatsCount: row.seats?.length || 0,
+              sampleSeats:
+                row.seats?.slice(0, 3)?.map((seat) => ({
+                  seatId: seat.id,
+                  seatNumber: seat.seatNumber,
+                })) || [],
+            })) || [],
+        })) || [],
+    });
+
+    // 4. Return the data
+    return {
+      eventData: showing.event,
+      showingData: showing,
+      seatingStructure,
+      seatStatus,
+      isTicketSaleActive, // Include ticket sale status
+    };
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to get showing ticket data: ${error.message}`);
+    }
+    throw new Error(
+      "An unknown error occurred while fetching showing ticket data."
+    );
+  }
+}
+
 export async function getTicketData(eventId: string, user: Pick<User, "role">) {
   if (user.role !== "customer") {
     throw new Error("Unauthorized: Only customers can purchase tickets.");
   }
 
   try {
-    // 1. Fetch and validate event availability
-    const eventData = await findEventById(eventId);
+    // 1. Fetch and validate event availability with showings
+    const eventData = await findEventWithShowings(eventId);
 
     if (!eventData) {
       throw new Error("Event not found.");
@@ -41,25 +156,16 @@ export async function getTicketData(eventId: string, user: Pick<User, "role">) {
       throw new Error("Event is not approved for ticket sales.");
     }
 
-    const now = new Date();
-    if (
-      !eventData.ticketSaleStart ||
-      !eventData.ticketSaleEnd ||
-      now < eventData.ticketSaleStart ||
-      now > eventData.ticketSaleEnd
-    ) {
-      throw new Error("Event is not currently on sale.");
-    }
-
-    // 2. Fetch seating structure and seat status concurrently
+    // 2. Get event seating structure and seat status
     const [seatingStructure, seatStatus] = await Promise.all([
       getEventSeatingStructure(eventId),
-      getSeatStatus(eventId),
+      getSeatStatus(eventId), // Get seat status for the event
     ]);
 
-    // 3. Combine and return the data
+    // 3. Return event data with showings, seating structure, and seat status
     return {
       eventData,
+      showings: eventData.showings,
       seatingStructure,
       seatStatus,
     };
@@ -74,7 +180,8 @@ export async function getTicketData(eventId: string, user: Pick<User, "role">) {
 
 /**
  * Creates a pending order, holds seats, and generates a VNPay payment URL.
- * @param eventId - The ID of the event.
+ * @param eventId - The ID of the event (deprecated, use showingId).
+ * @param showingId - The ID of the showing.
  * @param selectedSeatIds - An array of seat IDs selected by the user.
  * @param user - The authenticated user object.
  * @param clientIp - The client's IP address.
@@ -84,7 +191,8 @@ export async function createPendingOrder(
   eventId: string,
   selectedSeatIds: string[],
   user: Pick<User, "id" | "role">,
-  clientIp: string
+  clientIp: string,
+  showingId?: string
 ) {
   if (user.role !== "customer") {
     throw new Error("Unauthorized: Only customers can purchase tickets.");
@@ -93,7 +201,35 @@ export async function createPendingOrder(
     throw new Error("At least one seat must be selected.");
   }
 
-  // 1. Check seat availability
+  // 1. Get event data to check maxTicketsByOrder
+  let eventData;
+  if (showingId) {
+    const showing = await db.query.showings.findFirst({
+      where: eq(showings.id, showingId),
+      with: { event: true },
+    });
+    if (!showing) {
+      throw new Error("Showing not found.");
+    }
+    eventData = showing.event;
+  } else {
+    eventData = await findEventById(eventId);
+    if (!eventData) {
+      throw new Error("Event not found.");
+    }
+  }
+
+  // 2. Check maxTicketsByOrder limit
+  if (
+    eventData.maxTicketsByOrder &&
+    selectedSeatIds.length > eventData.maxTicketsByOrder
+  ) {
+    throw new Error(
+      `Cannot select more than ${eventData.maxTicketsByOrder} tickets per order.`
+    );
+  }
+
+  // 3. Check seat availability
   const { unavailableSeatIds } =
     await getSeatAvailabilityStatus(selectedSeatIds);
   if (unavailableSeatIds.length > 0) {
@@ -103,14 +239,14 @@ export async function createPendingOrder(
     throw error;
   }
 
-  // 2. Get pricing and calculate total
+  // 4. Get pricing and calculate total
   const seatDetails = await getSeatPricing(selectedSeatIds);
   if (seatDetails.length !== selectedSeatIds.length) {
     throw new Error("Could not retrieve pricing for all selected seats.");
   }
   const totalAmount = seatDetails.reduce((sum, seat) => sum + seat.price, 0);
 
-  // 3. Create order and seat holds in a transaction
+  // 5. Create order and seat holds in a transaction
   const holdDurationMinutes = 15;
   const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
 
@@ -121,7 +257,7 @@ export async function createPendingOrder(
       status: "pending",
     },
     selectedSeatIds.map((seatId) => ({
-      eventId,
+      eventId: eventData.id,
       userId: user.id,
       seatId,
       expiresAt,
@@ -129,7 +265,7 @@ export async function createPendingOrder(
     }))
   );
 
-  // 4. Generate VNPay payment URL
+  // 6. Generate VNPay payment URL
   const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
   const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
     ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
@@ -146,10 +282,10 @@ export async function createPendingOrder(
 
   console.log(paymentURL);
 
-  // 5. Store VNPay transaction reference (optional, but good practice)
+  // 7. Store VNPay transaction reference (optional, but good practice)
   await updateOrderVNPayData(newOrder.id, { vnp_TxnRef });
 
-  // 6. Return response
+  // 8. Return response
   return {
     vnpayURL: paymentURL,
     orderId: newOrder.id,
@@ -566,8 +702,8 @@ async function sendOrderConfirmationEmail(
 
           <h2>🎟️ Vé của bạn</h2>
           ${ticketsWithQR
-        .map(
-          (ticket, index) => `
+            .map(
+              (ticket, index) => `
             <div class="ticket">
               <div class="ticket-header">
                 <div class="ticket-number">Vé #${index + 1}</div>
@@ -586,8 +722,8 @@ async function sendOrderConfirmationEmail(
               </div>
             </div>
           `
-        )
-        .join("")}
+            )
+            .join("")}
 
           <div class="important-note">
             <strong>📌 Lưu ý quan trọng:</strong>
@@ -625,15 +761,15 @@ Tổng tiền: ${formattedTotal}
 VÉ CỦA BẠN
 ===========
 ${ticketsWithQR
-        .map(
-          (ticket, index) => `
+  .map(
+    (ticket, index) => `
 Vé #${index + 1}
 - Khu vực: ${ticket.areaName}
 - Vị trí: Hàng ${ticket.rowName}, Ghế ${ticket.seatNumber}
 - Mã vé: ${ticket.ticketId}
 `
-        )
-        .join("")}
+  )
+  .join("")}
 
 LƯU Ý QUAN TRỌNG:
 - Vui lòng mang theo email này để xuất trình tại cổng vào
@@ -645,11 +781,11 @@ Liên hệ: support@vieticket.com
         `;
 
     // Prepare inline attachments
-    const inlineAttachments = ticketsWithQR.map(ticket => ({
+    const inlineAttachments = ticketsWithQR.map((ticket) => ({
       data: ticket.qrCodeBuffer,
       filename: `ticket-${ticket.ticketId}.png`,
       contentType: "image/png",
-      contentId: ticket.cid
+      contentId: ticket.cid,
     }));
 
     // Send email using the existing sendMail utility
@@ -658,7 +794,7 @@ Liên hệ: support@vieticket.com
       subject: `🎫 Xác nhận đơn hàng #${orderData.id} - VieTicket`,
       text: textContent,
       html: htmlContent,
-      inline: inlineAttachments
+      inline: inlineAttachments,
     });
 
     return true;
