@@ -8,6 +8,7 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
+import { useTranslations } from "next-intl";
 
 interface Props {
   selectedPriceRange: string;
@@ -15,34 +16,6 @@ interface Props {
   selectedLocation: string;
   selectedCategory: string;
   onChange: (key: string, value: string) => void;
-}
-
-const priceOptions = [
-  { label: "Under 500.000₫", value: "lt500k" },
-  { label: "500.000₫ - 1.000.000₫", value: "500k-1m" },
-  { label: "1.000.000₫ - 3.000.000₫", value: "1m-3m" },
-  { label: "3.000.000₫ - 5.000.000₫", value: "3m-5m" },
-  { label: "Over 5.000.000₫", value: "gt5m" },
-];
-
-const dateOptions = [
-  { label: "All", value: "all" },
-  { label: "Today", value: "today" },
-  { label: "This Week", value: "thisWeek" },
-];
-
-const categoryOptions = [
-  { label: "All Categories", value: "all" },
-  { label: "Entertainment", value: "Entertainment" },
-  { label: "Technology & Innovation", value: "Technology & Innovation" },
-  { label: "Business", value: "Business" },
-  { label: "Cultural & Arts", value: "Cultural & Arts" },
-  { label: "Sports & Fitness", value: "Sports & Fitness" },
-  { label: "Competition & Game shows", value: "Competition & Game shows" },
-];
-
-function simplifyProvince(name: string) {
-  return name.replace(/^(tỉnh|thành phố)\s+/i, "").trim();
 }
 
 export default function EventFiltersSidebar({
@@ -53,25 +26,115 @@ export default function EventFiltersSidebar({
   onChange,
 }: Props) {
   const [provinces, setProvinces] = useState<string[]>([]);
+  const t = useTranslations("event-sidebar");
+
+  const priceOptions = t.raw("priceOptions") as {
+    label: string;
+    value: string;
+  }[];
+
+  const dateOptions = t.raw("dateOptions") as {
+    label: string;
+    value: string;
+  }[];
+
+  const categoryOptions = t.raw("categoryOptions") as {
+    label: string;
+    value: string;
+  }[];
 
   useEffect(() => {
     async function fetchProvinces() {
       try {
-        const res = await fetch("https://provinces.open-api.vn/api/p");
+        const res = await fetch(
+          "https://raw.githubusercontent.com/madnh/hanhchinhvn/master/dist/tinh_tp.json"
+        );
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
         const data = await res.json();
-        setProvinces(data.map((prov: any) => simplifyProvince(prov.name)));
+        const provinceNames = Object.values(data).map((p: any) => p.name);
+        setProvinces(provinceNames);
       } catch (error) {
-        console.error("Lỗi khi tải danh sách tỉnh/thành", error);
+        console.error("Failed to fetch provinces, using fallback:", error);
+        // Fallback list of major Vietnamese provinces/cities
+        const fallbackProvinces = [
+          "Hà Nội",
+          "Hồ Chí Minh",
+          "Đà Nẵng",
+          "Hải Phòng",
+          "Cần Thơ",
+          "An Giang",
+          "Bà Rịa - Vũng Tàu",
+          "Bắc Giang",
+          "Bắc Kạn",
+          "Bạc Liêu",
+          "Bắc Ninh",
+          "Bến Tre",
+          "Bình Định",
+          "Bình Dương",
+          "Bình Phước",
+          "Bình Thuận",
+          "Cà Mau",
+          "Cao Bằng",
+          "Đắk Lắk",
+          "Đắk Nông",
+          "Điện Biên",
+          "Đồng Nai",
+          "Đồng Tháp",
+          "Gia Lai",
+          "Hà Giang",
+          "Hà Nam",
+          "Hà Tĩnh",
+          "Hải Dương",
+          "Hậu Giang",
+          "Hòa Bình",
+          "Hưng Yên",
+          "Khánh Hòa",
+          "Kiên Giang",
+          "Kon Tum",
+          "Lai Châu",
+          "Lâm Đồng",
+          "Lạng Sơn",
+          "Lào Cai",
+          "Long An",
+          "Nam Định",
+          "Nghệ An",
+          "Ninh Bình",
+          "Ninh Thuận",
+          "Phú Thọ",
+          "Phú Yên",
+          "Quảng Bình",
+          "Quảng Nam",
+          "Quảng Ngãi",
+          "Quảng Ninh",
+          "Quảng Trị",
+          "Sóc Trăng",
+          "Sơn La",
+          "Tây Ninh",
+          "Thái Bình",
+          "Thái Nguyên",
+          "Thanh Hóa",
+          "Thừa Thiên Huế",
+          "Tiền Giang",
+          "Trà Vinh",
+          "Tuyên Quang",
+          "Vĩnh Long",
+          "Vĩnh Phúc",
+          "Yên Bái"
+        ];
+        setProvinces(fallbackProvinces);
       }
     }
     fetchProvinces();
   }, []);
 
+
   return (
     <aside className="bg-white p-4 rounded shadow-md space-y-6 text-sm">
       {/* Price Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Price Range</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("PriceRange")}</h3>
         {priceOptions.map(({ label, value }) => (
           <label key={value} className="block mb-1 cursor-pointer">
             <input
@@ -89,7 +152,7 @@ export default function EventFiltersSidebar({
 
       {/* Date Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Start Date</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("StartDate")}</h3>
         {dateOptions.map(({ label, value }) => (
           <label key={value} className="block mb-1 cursor-pointer">
             <input
@@ -107,16 +170,16 @@ export default function EventFiltersSidebar({
 
       {/* Location Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Location</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("Location")}</h3>
         <Select
           value={selectedLocation}
           onValueChange={(val) => onChange("location", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-            <SelectValue placeholder="All Locations" />
+            <SelectValue placeholder={t("AllLocation")} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
-            <SelectItem value="all">All Locations</SelectItem>
+            <SelectItem value="all">{t("AllLocation")}</SelectItem>
             {provinces.map((name) => (
               <SelectItem key={name} value={name}>
                 {name}
@@ -128,13 +191,13 @@ export default function EventFiltersSidebar({
 
       {/* Category Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">Category</h3>
+        <h3 className="font-semibold text-gray-800 mb-2">{t("Category")}</h3>
         <Select
           value={selectedCategory}
           onValueChange={(val) => onChange("category", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
-            <SelectValue placeholder="All Categories" />
+            <SelectValue placeholder={t("categoryOptions.0.label")} />
           </SelectTrigger>
           <SelectContent className="max-h-60 overflow-y-auto">
             {categoryOptions.map(({ label, value }) => (

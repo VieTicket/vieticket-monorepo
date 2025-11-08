@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import EventFiltersSidebar from "@/components/events/eventfilters-sidebar";
 import StaticFilteredEventGrid from "@/components/events/static-filtered-event-grid";
 import { EventSummary } from "@/lib/queries/events";
+import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 interface EventPage {
   events: EventSummary[];
@@ -21,6 +23,7 @@ export default function FilteredClientGrid() {
   const location = searchParams.get("location") || "all";
   const category = searchParams.get("category") || "all";
   const q = searchParams.get("q") || "";
+  const t = useTranslations("event-sidebar");
 
   const {
     data,
@@ -28,6 +31,7 @@ export default function FilteredClientGrid() {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    error,
   } = useInfiniteQuery<EventPage>({
     queryKey: ['events', { price, date, location, category, q }],
     queryFn: async ({ pageParam = 1 }) => {
@@ -41,9 +45,16 @@ export default function FilteredClientGrid() {
         q,
       });
 
+      console.log("Fetching events with params:", params.toString());
+      
       const res = await fetch(`/api/events?${params}`);
-      if (!res.ok) throw new Error('Network response was not ok');
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Events API error:", res.status, errorText);
+        throw new Error(`Network response was not ok: ${res.status}`);
+      }
       const data = await res.json();
+      console.log("Events API response:", data);
       return data;
     },
     initialPageParam: 1,
@@ -78,6 +89,10 @@ export default function FilteredClientGrid() {
       <div className="flex-1 space-y-6">
         {isLoading ? (
           <div>Loading...</div>
+        ) : error ? (
+          <div className="text-red-500">
+            Error loading events: {error.message}
+          </div>
         ) : (
           <>
             {data?.pages.map((page, pageIndex) => (
@@ -89,13 +104,14 @@ export default function FilteredClientGrid() {
             
             {hasNextPage && (
               <div className="text-center">
-                <button
-                  onClick={() => fetchNextPage()}
+                <Button
+            onClick={() => fetchNextPage()}
                   disabled={isFetchingNextPage}
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                  variant="outline"
+                  size="lg"
                 >
-                  {isFetchingNextPage ? "Loading..." : "See more"}
-                </button>
+                  {isFetchingNextPage ? "Loading..." : t("seeMore")}
+                </Button>
               </div>
             )}
           </>

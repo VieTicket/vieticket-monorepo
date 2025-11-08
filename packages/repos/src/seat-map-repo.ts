@@ -108,10 +108,7 @@ export async function updateSeatMapById(
 ): Promise<SeatMap | null> {
   await ensureMongoConnection();
   // The `timestamps: true` option in the schema will automatically handle `updatedAt`.
-  const doc = await SeatMapModel.findByIdAndUpdate(id, updates, {
-    new: true,
-    runValidators: true,
-  }).exec();
+  const doc = await SeatMapModel.findByIdAndUpdate(id, updates).exec();
   return doc ? doc.toObject() : null;
 }
 
@@ -211,7 +208,9 @@ export async function createMultipleSeatMaps(
  * @param ids - Array of seat map IDs to delete.
  * @returns Deletion result with count of deleted documents.
  */
-export async function deleteMultipleSeatMaps(ids: string[]) {
+export async function deleteMultipleSeatMaps(
+  ids: string[]
+): Promise<{ acknowledged: boolean; deletedCount: number }> {
   await ensureMongoConnection();
   return SeatMapModel.deleteMany({ _id: { $in: ids } }).exec();
 }

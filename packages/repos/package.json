@@ -18,10 +18,11 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "catalog:"
   },
   "dependencies": {
-    "@vieticket/db": "*",
-    "drizzle-orm": "^0.44.2"
+    "@vieticket/db": "workspace:*",
+    "@vieticket/utils": "workspace:*",
+    "drizzle-orm": "catalog:"
   }
 }

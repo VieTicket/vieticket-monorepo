@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { organizers, areas, user } from "@vieticket/db/pg/schema";
 import type { EventFull } from "@vieticket/db/pg/schema";
+import { areas, user } from "@vieticket/db/pg/schema";
 
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { Event } from "@vieticket/db/pg/models/events";
 import { events } from "@vieticket/db/pg/schemas/events";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 
 const SORTABLE_COLUMNS = {
   views: events.views,
@@ -20,10 +20,53 @@ function normalizeLocation(str: string): string {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Bỏ dấu
-    .replace(/đ/g, "d")
-    .replace(/Đ/g, "D")
-    .replace(/\s/g, "") // Bỏ khoảng trắng
+    .replace(/đ/gi, "d") // Thay đ/Đ thành d/D  
+    .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a") // Các ký tự a có dấu
+    .replace(/[èéẹẻẽêềếệểễ]/gi, "e") // Các ký tự e có dấu
+    .replace(/[ìíịỉĩ]/gi, "i") // Các ký tự i có dấu
+    .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o") // Các ký tự o có dấu
+    .replace(/[ùúụủũưừứựửữ]/gi, "u") // Các ký tự u có dấu
+    .replace(/[ỳýỵỷỹ]/gi, "y") // Các ký tự y có dấu
+    .replace(/\s+/g, "") // Bỏ tất cả khoảng trắng
     .toLowerCase();
+}
+
+// Function to create location search patterns
+function createLocationSearchPatterns(location: string): string[] {
+  const baseNormalized = normalizeLocation(location);
+  
+  // Create comprehensive patterns for Vietnamese location matching
+  const patterns = new Set<string>();
+  
+  // Add base normalized pattern
+  patterns.add(baseNormalized);
+  
+  // Add pattern with all Vietnamese diacritics removed
+  const fullyNormalized = location
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove all diacritics
+    .replace(/đ/gi, "d") // Replace đ/Đ with d
+    .replace(/\s+/g, "") // Remove all spaces
+    .toLowerCase();
+  patterns.add(fullyNormalized);
+  
+  // Add original location without spaces, lowercase
+  patterns.add(location.replace(/\s+/g, "").toLowerCase());
+  
+  // For "Đà Nẵng" specifically, add common variations
+  const locationLower = location.toLowerCase();
+  if (locationLower.includes("đà nẵng") || locationLower.includes("da nang") || 
+      locationLower.includes("danang") || locationLower.includes("đanang")) {
+    patterns.add("danang");
+    patterns.add("dànẵng");
+    patterns.add("đànẵng");
+    patterns.add("đanang");
+    patterns.add("dànang");
+    patterns.add("đa nang");
+  }
+  
+  // Remove empty strings and return unique patterns
+  return Array.from(patterns).filter(p => p.length > 0);
 }
 
 export type EventSummary = Pick<
@@ -147,6 +190,10 @@ export async function getFilteredEvents({
   category?: string;
   q?: string;
 }) {
+  console.log("getFilteredEvents called with:", {
+    page, limit, price, date, location, category, q
+  });
+
   const whereConditions = [eq(events.approvalStatus, "approved")];
 
   // Price filter
@@ -160,19 +207,33 @@ export async function getFilteredEvents({
     };
 
     const [minPrice, maxPrice] = priceRanges[price] || [0, Infinity];
-    whereConditions.push(
-      sql`EXISTS (
-      SELECT 1 FROM ${areas}
-      WHERE areas.event_id = events.id
-      AND areas.price >= ${minPrice}
-      ${maxPrice !== Infinity ? sql`AND areas.price <= ${maxPrice}` : sql``}
-      )`
-    );
+    console.log(`Price filter: ${price} -> min: ${minPrice}, max: ${maxPrice}`);
+    
+    // Filter by minimum price (typical ticket price) instead of any area price
+    if (maxPrice !== Infinity) {
+      whereConditions.push(
+        sql`(
+          SELECT MIN(areas.price) FROM ${areas}
+          WHERE areas.event_id = events.id
+        ) >= ${minPrice} AND (
+          SELECT MIN(areas.price) FROM ${areas}
+          WHERE areas.event_id = events.id
+        ) <= ${maxPrice}`
+      );
+    } else {
+      whereConditions.push(
+        sql`(
+          SELECT MIN(areas.price) FROM ${areas}
+          WHERE areas.event_id = events.id
+        ) >= ${minPrice}`
+      );
+    }
   }
 
   // Date filter
   if (date && date !== "all") {
     const now = new Date();
+    console.log(`Date filter: ${date}`);
     if (date === "today") {
       whereConditions.push(sql`DATE(${events.startTime}) = CURRENT_DATE`);
     } else if (date === "thisWeek") {
@@ -184,25 +245,95 @@ export async function getFilteredEvents({
 
   // Location filter
   if (location && location !== "all") {
-    const normalized = normalizeLocation(location);
-
-    whereConditions.push(
-      sql`REPLACE(LOWER(REPLACE(${events.location}, ' ', '')), 'đ', 'd') LIKE ${`%${normalized}%`}`
+    console.log(`Location filter: ${location}`);
+    
+    // Function to create Vietnamese text variations
+    function createVietnameseVariations(text: string) {
+      const baseVariations = [
+        text, // Original
+        text.toLowerCase(),
+        text.toUpperCase(),
+        // Replace Vietnamese characters with base characters
+        text.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+            .replace(/[ìíịỉĩ]/gi, "i")
+            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+            .replace(/[ùúụủũưừứựửữ]/gi, "u")
+            .replace(/[ỳýỵỷỹ]/gi, "y")
+            .replace(/[đĐ]/gi, "d"),
+        // With spaces removed
+        text.replace(/\s+/g, "").toLowerCase(),
+        // Without diacritics and spaces
+        text.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+            .replace(/[ìíịỉĩ]/gi, "i")
+            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+            .replace(/[ùúụủũưừứựửữ]/gi, "u")
+            .replace(/[ỳýỵỷỹ]/gi, "y")
+            .replace(/[đĐ]/gi, "d")
+            .replace(/\s+/g, "")
+            .toLowerCase(),
+        // Additional variations for common swaps
+        text.replace(/ó/gi, "o").replace(/ò/gi, "o").replace(/ỏ/gi, "o").replace(/õ/gi, "o").replace(/ọ/gi, "o"),
+        text.replace(/á/gi, "a").replace(/à/gi, "a").replace(/ả/gi, "a").replace(/ã/gi, "a").replace(/ạ/gi, "a"),
+        // Mixed case variations
+        text.toLowerCase().replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+            .replace(/[ìíịỉĩ]/gi, "i")
+            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+            .replace(/[ùúụủũưừứựửữ]/gi, "u")
+            .replace(/[ỳýỵỷỹ]/gi, "y")
+            .replace(/[đĐ]/gi, "d")
+      ];
+      
+      // Add variations with punctuation and whitespace handling
+      const extendedVariations: string[] = [];
+      baseVariations.forEach(variation => {
+        extendedVariations.push(variation);
+        // Add with common punctuation
+        extendedVariations.push(variation + ",");
+        extendedVariations.push(variation + ".");
+        extendedVariations.push(variation + ";");
+        extendedVariations.push(" " + variation);
+        extendedVariations.push(variation + " ");
+        extendedVariations.push(" " + variation + " ");
+        extendedVariations.push(" " + variation + ",");
+        extendedVariations.push(" " + variation + ".");
+      });
+      
+      // Remove duplicates
+      return [...new Set(extendedVariations)];
+    }
+    
+    const searchPatterns = createVietnameseVariations(location);
+    console.log(`Search patterns: ${searchPatterns.join(', ')}`);
+    
+    // Use ILIKE (case-insensitive LIKE) for each pattern  
+    const conditions = searchPatterns.map(pattern => 
+      sql`${events.location} ILIKE ${'%' + pattern + '%'}`
     );
+    
+    whereConditions.push(sql`(${conditions.reduce((acc, condition, index) => 
+      index === 0 ? condition : sql`${acc} OR ${condition}`
+    )})`);
   }
 
   // Category filter
   if (category && category !== "all") {
+    console.log(`Category filter: ${category}`);
     whereConditions.push(sql`LOWER(${events.type}) = LOWER(${category})`);
   }
 
   // Search query
   if (q) {
     const likeQuery = `%${q}%`;
+    console.log(`Search filter: ${q}`);
     whereConditions.push(
       sql`(${events.name} ILIKE ${likeQuery} OR ${events.description} ILIKE ${likeQuery})`
     );
   }
+
+  console.log(`Total where conditions: ${whereConditions.length}`);
 
   const result = await db.query.events.findMany({
     limit,
@@ -235,23 +366,33 @@ export async function getFilteredEvents({
     where: and(...whereConditions),
   });
 
-  // Calculate typical ticket price
-  const eventsWithTypicalPrice = result.map((event) => ({
-    ...event,
-    typicalTicketPrice:
-      event.areas.length > 0
-        ? Math.min(...event.areas.map((area) => area.price))
-        : 0,
-    location: event.location ?? "",
-    bannerUrl: event.bannerUrl ?? "",
-    areas: undefined,
-  }));
+  console.log(`Found ${result.length} events`);
 
-  return {
+  // Calculate typical ticket price
+  const eventsWithTypicalPrice = result.map((event) => {
+    const typicalPrice = event.areas.length > 0
+      ? Math.min(...event.areas.map((area) => area.price))
+      : 0;
+    
+    console.log(`Event "${event.name}": areas prices = [${event.areas.map(a => a.price).join(', ')}], typical price = ${typicalPrice}`);
+    
+    return {
+      ...event,
+      typicalTicketPrice: typicalPrice,
+      location: event.location ?? "",
+      bannerUrl: event.bannerUrl ?? "",
+      areas: undefined,
+    };
+  });
+
+  const response = {
     events: eventsWithTypicalPrice,
     page,
     hasMore: result.length === limit,
   };
+
+  console.log("getFilteredEvents response:", response);
+  return response;
 }
 
 export async function getEventSummaries({

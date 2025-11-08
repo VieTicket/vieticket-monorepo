@@ -3,7 +3,7 @@
   "devDependencies": {
     "prettier": "^3.5.3",
     "turbo": "^2.5.5",
-    "typescript": "5.8.2"
+    "typescript": "5.9.3"
   },
   "engines": {
     "node": ">=18",
@@ -25,10 +25,10 @@
     "packages/*"
   ],
   "dependencies": {
-    "@tanstack/react-query": "^5.83.0",
-    "@tanstack/react-query-devtools": "^5.83.0",
-    "drizzle-orm": "^0.44.2",
-    "recharts": "^3.0.2",
-    "uuid": "^11.1.0"
+    "mongoose": "^8.19.2"
+  },
+  "catalog": {
+    "drizzle-orm": "^0.44.7",
+    "typescript": "5.9.3"
   }
 }

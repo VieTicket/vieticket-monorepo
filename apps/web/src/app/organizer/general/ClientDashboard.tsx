@@ -37,6 +37,7 @@ import {
   BarChart,
   Bar,
 } from "recharts";
+import { useTranslations } from "next-intl";
 
 // Simulate currency formatting function, replace with your own if needed
 const formatCurrencyVND = (amount: number) => {
@@ -78,36 +79,6 @@ type CustomTooltipProps = {
   label?: string;
 };
 
-// Custom Tooltip for charts
-const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-  if (active && payload && payload.length) {
-    return (
-      <div className="rounded-lg border bg-background p-2 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col space-y-1">
-            <span className="text-[0.70rem] uppercase text-muted-foreground">
-              {label}
-            </span>
-            <span className="font-bold text-muted-foreground">
-              {payload[0].name}
-            </span>
-          </div>
-          <div className="flex flex-col space-y-1 text-right">
-            <span className="text-[0.70rem] uppercase text-muted-foreground">
-              Revenue
-            </span>
-            <span className="font-bold text-foreground">
-              {formatCurrencyVND(payload[0].value)}
-            </span>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return null;
-};
-
 export default function OrganizerDashboardModern({
   revenueOverTime,
   revenueDistribution,
@@ -122,6 +93,36 @@ export default function OrganizerDashboardModern({
     (sum, item) => sum + (Number(item.ticketsSold) || 0),
     0
   );
+  const t = useTranslations("organizer-dashboard.General");
+
+  const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="rounded-lg border bg-background p-2 shadow-sm">
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex flex-col space-y-1">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                {label}
+              </span>
+              <span className="font-bold text-muted-foreground">
+                {payload[0].name}
+              </span>
+            </div>
+            <div className="flex flex-col space-y-1 text-right">
+              <span className="text-[0.70rem] uppercase text-muted-foreground">
+                {t("General.revenue")}
+              </span>
+              <span className="font-bold text-foreground">
+                {formatCurrencyVND(payload[0].value)}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
 
   useEffect(() => {
     console.log({
@@ -193,7 +194,7 @@ export default function OrganizerDashboardModern({
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
           <LayoutDashboard className="h-8 w-8 text-primary" />
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
-            Organizer Overview
+            {t("organizerOverview")}
           </h1>
         </div>
 
@@ -202,7 +203,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Revenue
+               {t("totalRevenue")}
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -211,7 +212,7 @@ export default function OrganizerDashboardModern({
                 {formatCurrencyVND(totalRevenue)}
               </div>
               <p className="text-xs text-muted-foreground">
-                Actual (after -20%):{" "}
+                {t("actual(-20%)")}:{" "}
                 {formatCurrencyVND((totalRevenue * 80) / 100)}
               </p>
             </CardContent>
@@ -219,7 +220,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Events
+                {t("totalEvents")}
               </CardTitle>
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -231,7 +232,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Tickets Sold
+                {t("ticketsSold")}
               </CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -245,7 +246,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                Featured Event
+                {t("featuredEvent")}
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -254,7 +255,7 @@ export default function OrganizerDashboardModern({
                 {topEvents[0]?.eventName}
               </div>
               <p className="text-xs text-muted-foreground">
-                Revenue: {formatCurrencyVND(topEvents[0]?.totalRevenue)}
+                {t("revenue:")} {formatCurrencyVND(topEvents[0]?.totalRevenue)}
               </p>
             </CardContent>
           </Card>
@@ -266,8 +267,8 @@ export default function OrganizerDashboardModern({
             <CardHeader>
               <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
                 <div>
-                  <CardTitle>Revenue Fluctuation</CardTitle>
-                  <CardDescription>Revenue over time.</CardDescription>
+                  <CardTitle>{t("revenueFluctuation")}</CardTitle>
+                  <CardDescription>{t("revenueOverTime")}</CardDescription>
                 </div>
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                   <select
@@ -275,10 +276,10 @@ export default function OrganizerDashboardModern({
                     onChange={(e) => setDateFilter(e.target.value)}
                     className="rounded border px-2 py-1 text-sm bg-white"
                   >
-                    <option value="all">All time</option>
-                    <option value="7days">Last 7 days</option>
-                    <option value="30days">Last 30 days</option>
-                    <option value="custom">Custom</option>
+                    <option value="all">{t("allTime")}</option>
+                    <option value="7days">{t("last7Days")}</option>
+                    <option value="30days">{t("last30Days")}</option>
+                    <option value="custom">{t("custom")}</option>
                   </select>
 
                   {dateFilter === "custom" && (
@@ -355,8 +356,8 @@ export default function OrganizerDashboardModern({
 
           <Card>
             <CardHeader>
-              <CardTitle>Revenue Structure</CardTitle>
-              <CardDescription>Revenue distribution by event.</CardDescription>
+              <CardTitle>{t("revenueStructure")}</CardTitle>
+              <CardDescription>{t("revenueDistributionByEvent")}</CardDescription>
             </CardHeader>
             <CardContent className="h-[250px] sm:h-[350px] w-full p-0 flex flex-col items-center justify-center">
               <ResponsiveContainer width="100%" height={200} minWidth={0}>
@@ -401,16 +402,16 @@ export default function OrganizerDashboardModern({
         {/* --- Top Events Table --- */}
         <Card>
           <CardHeader>
-            <CardTitle>Top Events by Revenue</CardTitle>
+            <CardTitle>{t("topEventsByRevenue")}</CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Event</TableHead>
-                  <TableHead className="text-center">Status</TableHead>
-                  <TableHead className="text-center">Tickets Sold</TableHead>
-                  <TableHead className="text-right">Revenue</TableHead>
+                  <TableHead>{t("event")}</TableHead>
+                  <TableHead className="text-center">{t("status")}</TableHead>
+                  <TableHead className="text-center">{t("ticketsSold")}</TableHead>
+                  <TableHead className="text-right">{t("revenue")}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

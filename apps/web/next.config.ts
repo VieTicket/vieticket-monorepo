@@ -1,4 +1,7 @@
 import type { NextConfig } from "next";
+import createNextIntlPlugin from 'next-intl/plugin';
+
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -18,12 +21,14 @@ const nextConfig: NextConfig = {
         ]
       : [{ protocol: "https", hostname: "**" }],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: 4 * 1024 * 1024,
+    },
+  },
   // Ensure `canvas` stays server-only in Server Components
-  serverExternalPackages: ["canvas"],
-  allowedDevOrigins: [
-    "**.lo.vtk.io.vn",
-    "lo.vtk.io.vn"
-  ],
+  serverExternalPackages: ["canvas", "jsdom"],
+  allowedDevOrigins: ["**.lo.vtk.io.vn", "lo.vtk.io.vn"],
 };
 
-export default nextConfig;
+export default withNextIntl(nextConfig);

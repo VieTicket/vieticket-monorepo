@@ -1,8 +1,6 @@
 "use client";
 
 import { Label } from "@/components/ui/label";
-import { SimpleTicketingMode } from "./simple-ticketing-mode";
-import { SeatMapTicketingMode } from "./seat-map-ticketing-mode";
 import { ShowingsTicketing } from "./showings-ticketing";
 import type {
   Area,
@@ -10,7 +8,7 @@ import type {
   SeatMapPreviewData,
   TicketingMode,
 } from "../../../../../types/event-types";
-import type { ShowingFormData } from "@/types/showings";
+import type { ShowingFormData, ShowingWithAreas } from "@/types/showings";
 
 interface TicketingStepProps {
   ticketingMode: TicketingMode;
@@ -24,7 +22,7 @@ interface TicketingStepProps {
   seatMapPreviewData: SeatMapPreviewData | null;
   setSeatMapPreviewData: (data: SeatMapPreviewData | null) => void;
   setShowSeatMapModal: (show: boolean) => void;
-  showings: ShowingFormData[];
+  showings: ShowingWithAreas[];
   hasSeatMapChanges?: boolean;
 }
 

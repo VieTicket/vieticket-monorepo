@@ -13,7 +13,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "drizzle-orm": "^0.29.0",
+    "drizzle-orm": "catalog:",
     "postgres": "^3.4.0",
     "@vieticket/db": "workspace:*"
   }
