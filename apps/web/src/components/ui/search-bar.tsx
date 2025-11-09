@@ -12,6 +12,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useTranslations } from "next-intl";
+import { useUserTracking } from "@/hooks/use-user-tracking";
+import { authClient } from '@/lib/auth/auth-client';
 
 // Debounce
 function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
@@ -25,11 +27,23 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T 
 export default function SearchBar() {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { trackSearch } = useUserTracking();
+  const { data: session } = authClient.useSession();
 
   const [query, setQuery] = useState(searchParams.get("q") || "");
   const [location, setLocation] = useState(searchParams.get("location") || "all");
   const [provinces, setProvinces] = useState<string[]>([]);
   const t = useTranslations("event-sidebar");
+
+  // Helper function to clear user-specific AI cache
+  const clearUserSpecificCache = () => {
+    if (typeof window !== 'undefined') {
+      const userId = session?.user?.id || null;
+      const userSuffix = userId ? `_${userId}` : '_anonymous';
+      localStorage.removeItem(`vieticket_recommendations${userSuffix}`);
+      localStorage.removeItem(`vieticket_behavior_hash${userSuffix}`);
+    }
+  };
 
   useEffect(() => {
     async function fetchProvinces() {
@@ -49,12 +63,22 @@ export default function SearchBar() {
 
       if (val) {
         params.set("q", val);
+        // Track search query for AI
+        trackSearch(val);
+        
+        // Clear AI cache để force refresh recommendations (user-specific)
+        clearUserSpecificCache();
       } else {
         params.delete("q");
       }
 
       if (loc && loc !== "all") {
         params.set("location", loc);
+        // Track location selection for AI
+        trackSearch(`location:${loc}`);
+        
+        // Clear AI cache (user-specific)
+        clearUserSpecificCache();
       } else {
         params.delete("location");
       }
