@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Select,
   SelectTrigger,
@@ -42,6 +42,13 @@ export default function EventFiltersSidebar({
     label: string;
     value: string;
   }[];
+
+  // Enhanced onChange handler that tracks AI behavior
+  const handleFilterChange = useCallback((key: string, value: string) => {
+    // Just call original onChange - let FilteredClientGrid handle tracking
+    // to avoid double tracking and infinite loops
+    onChange(key, value);
+  }, [onChange]);
 
   useEffect(() => {
     async function fetchProvinces() {
@@ -142,7 +149,7 @@ export default function EventFiltersSidebar({
               name="priceRange"
               value={value}
               checked={selectedPriceRange === value}
-              onChange={() => onChange("price", value)}
+              onChange={() => handleFilterChange("price", value)}
               className="mr-2"
             />
             {label}
@@ -160,7 +167,7 @@ export default function EventFiltersSidebar({
               name="date"
               value={value}
               checked={selectedDate === value}
-              onChange={() => onChange("date", value)}
+              onChange={() => handleFilterChange("date", value)}
               className="mr-2"
             />
             {label}
@@ -173,7 +180,7 @@ export default function EventFiltersSidebar({
         <h3 className="font-semibold text-gray-800 mb-2">{t("Location")}</h3>
         <Select
           value={selectedLocation}
-          onValueChange={(val) => onChange("location", val)}
+          onValueChange={(val) => handleFilterChange("location", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
             <SelectValue placeholder={t("AllLocation")} />
@@ -194,7 +201,7 @@ export default function EventFiltersSidebar({
         <h3 className="font-semibold text-gray-800 mb-2">{t("Category")}</h3>
         <Select
           value={selectedCategory}
-          onValueChange={(val) => onChange("category", val)}
+          onValueChange={(val) => handleFilterChange("category", val)}
         >
           <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
             <SelectValue placeholder={t("categoryOptions.0.label")} />
