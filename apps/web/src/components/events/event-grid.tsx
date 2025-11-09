@@ -5,7 +5,7 @@ import { Eye, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatCurrencyVND, formatTimeRange } from "@/lib/utils";
-import { use, useState, useTransition } from "react";
+import { use, useState, useTransition, useCallback } from "react";
 import {
   EventCursor,
   EventSummary,
@@ -14,7 +14,10 @@ import {
   SortableEventColumnKey,
 } from "@/lib/queries/events";
 import { Button } from "../ui/button";
+import { useEffect } from 'react';
+import { useUserTracking } from '@/hooks/use-user-tracking';
 import { useTranslations } from "next-intl";
+import { SmartEventGrid } from "./smart-event-grid";
 
 
 interface EventGridProps {
@@ -92,7 +95,7 @@ export function EventCard({
 
 function EventGridLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="w-full grid gap-4 justify-items-center grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 mx-4">
+    <div className="w-full grid gap-4 justify-items-center grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-4">
       {children}
     </div>
   );
@@ -121,12 +124,13 @@ export function EventGridSection({
 }: EventGridSectionProps) {
   const awaitedResult = use(initialEvents);
   const [events, setEvents] = useState<EventSummary[]>(awaitedResult.events);
+  // aiPool will hold a larger pool of events for AI to analyze (helps on initial ordering)
+  const [aiPool, setAiPool] = useState<EventSummary[]>(awaitedResult.events);
   const [hasMore, setHasMore] = useState(awaitedResult.hasMore);
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("home");
 
-
-  const handleClickSeeMore = () => {
+  const handleClickSeeMore = useCallback(() => {
     if (!hasMore || isPending) return;
 
     startTransition(async () => {
@@ -148,14 +152,65 @@ export function EventGridSection({
           sortColumnKey,
         });
 
+        // Filter out duplicate events to prevent key conflicts
+        const newEvents = result.events.filter(newEvent => 
+          !events.some(existingEvent => existingEvent.id === newEvent.id)
+        );
+
         // Append new events
-        setEvents((prev) => [...prev, ...result.events]);
+        console.log(`🔄 Loaded ${newEvents.length} new events (${result.events.length} total fetched). Total: ${events.length + newEvents.length}`);
+        setEvents((prev) => [...prev, ...newEvents]);
+        setAiPool((prev) => {
+          // Merge without duplicates
+          const merged = [...prev];
+          newEvents.forEach(e => {
+            if (!merged.some(m => m.id === e.id)) merged.push(e);
+          });
+          return merged;
+        });
         setHasMore(result.hasMore);
       } catch (error) {
         console.error("Failed to load more events:", error);
       }
     });
-  };
+  }, [hasMore, isPending, events, limit, sortColumnKey]);
+
+  // If user has significant behavior, prefetch a larger pool for AI to analyze so
+  // events page can surface prioritized items immediately.
+  const { userBehavior } = useUserTracking();
+  useEffect(() => {
+    const hasSignificantBehavior = userBehavior ? (
+      userBehavior.searchQueries?.length > 0 || 
+      userBehavior.viewedEvents?.length > 2 || 
+      userBehavior.clickedEvents?.length > 1 ||
+      userBehavior.eventEngagement?.length > 0
+    ) : false;
+
+    if (!hasSignificantBehavior) return;
+
+    const desiredPoolSize = 36;
+    if (aiPool.length >= desiredPoolSize) return;
+
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const result = await getEventSummaries({ limit: desiredPoolSize, sortColumnKey });
+        if (cancelled) return;
+        // Merge and dedupe
+        const merged = [...aiPool];
+        result.events.forEach(e => {
+          if (!merged.some(m => m.id === e.id)) merged.push(e);
+        });
+        setAiPool(merged);
+        console.log('🔎 Prefetched aiPool for EventGridSection, size:', merged.length);
+      } catch (err) {
+        console.error('Failed to prefetch aiPool for events page:', err);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [userBehavior, aiPool.length, sortColumnKey]);
 
   return (
     <section className="px-4 py-12">
@@ -163,7 +218,7 @@ export function EventGridSection({
         {t("titlecategories")}
       </h2>
 
-      <StaticEventGrid events={events} />
+  <SmartEventGrid events={events} aiPool={aiPool} renderLimit={events.length} showAIRecommendations={true} />
 
       {hasMore && (
         <div className="mt-8 flex justify-center">
