@@ -7,7 +7,6 @@ import { EventSummary } from "@/lib/queries/events";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { AITrackingProvider } from "@/components/ai/ai-tracking-provider";
-import { AIRecommendationsSection } from "@/components/events/ai-recommendations-section";
 import { SmartEventGrid } from "@/components/events/smart-event-grid";
 import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useUserTracking } from "@/hooks/use-user-tracking";
@@ -173,8 +172,6 @@ export default function FilteredClientGrid() {
         </div>
 
         <div className="flex-1 space-y-6">
-          {/* AI Recommendations Section */}
-          <AIRecommendationsSection />
           
           {isLoading ? (
             <div>Loading...</div>

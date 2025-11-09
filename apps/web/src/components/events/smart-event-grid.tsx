@@ -4,7 +4,6 @@ import { useEffect, useState, useMemo, useRef } from 'react';
 import { useAIRecommendations, useUserTracking, type EventForRecommendation, type RecommendationResult } from '@/hooks/use-user-tracking';
 import { EventSummary } from "@/lib/queries/events";
 import { StaticEventGrid } from './event-grid';
-import { AIRecommendationsSection } from './ai-recommendations-section';
 import { safeToISOString } from '@/components/ai/ai-utils';
 
 interface SmartEventGridProps {
@@ -150,7 +149,7 @@ export function SmartEventGrid({
   return (
     <div className="space-y-6">
       {/* AI Recommendations Section */}
-      {showAIRecommendations && <AIRecommendationsSection />}
+      {showAIRecommendations}
       
       {/* Personalized Event Grid */}
       <div className="relative">
