@@ -84,6 +84,257 @@ function CreateEventPageInner() {
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
+  // Validation constants (configurable)
+  const VALIDATION_CONFIG = {
+    MIN_SHOWING_DURATION_MINUTES: 30,
+    MAX_SHOWING_DURATION_HOURS: 24,
+    MIN_TICKET_SALE_START_DAYS_BEFORE: 2,
+    MIN_TICKET_SALE_END_DAYS_BEFORE: 1,
+    MIN_TICKET_SALE_WINDOW_HOURS: 6,
+    MAX_TICKET_SALE_WINDOW_DAYS: 90,
+    MIN_BUFFER_BETWEEN_SHOWINGS_HOURS: 1,
+  };
+
+  // Helper function to get current time in Vietnam timezone
+  const getCurrentVietnamTime = (): Date => {
+    return new Date();
+  };
+
+  // Validation for individual showing
+  const validateSingleShowing = (
+    showing: ShowingWithAreas,
+    index: number
+  ): { valid: boolean; errors: Record<string, string> } => {
+    const errors: Record<string, string> = {};
+    const now = getCurrentVietnamTime();
+
+    // Check required fields
+    if (!showing.startTime) {
+      errors[`showing-${index}-startTime`] = t("errors.startTimePast");
+      return { valid: false, errors };
+    }
+
+    if (!showing.endTime) {
+      errors[`showing-${index}-endTime`] = t("errors.endTimePast");
+      return { valid: false, errors };
+    }
+
+    const startTime = new Date(showing.startTime);
+    const endTime = new Date(showing.endTime);
+
+    // Validate start time is not in the past
+    if (startTime <= now) {
+      errors[`showing-${index}-startTime`] = t("errors.startTimePast");
+    }
+
+    // Validate end time is after start time
+    if (endTime <= startTime) {
+      errors[`showing-${index}-endTime`] = t("errors.endTimeBeforeStart");
+    } else {
+      // Validate duration
+      const durationMs = endTime.getTime() - startTime.getTime();
+      const durationMinutes = durationMs / (1000 * 60);
+      const durationHours = durationMinutes / 60;
+
+      if (durationMinutes < VALIDATION_CONFIG.MIN_SHOWING_DURATION_MINUTES) {
+        errors[`showing-${index}-endTime`] = t(
+          "errors.showingDurationTooShort"
+        );
+      }
+
+      if (durationHours > VALIDATION_CONFIG.MAX_SHOWING_DURATION_HOURS) {
+        errors[`showing-${index}-endTime`] = t("errors.showingDurationTooLong");
+      }
+    }
+
+    return { valid: Object.keys(errors).length === 0, errors };
+  };
+
+  // Validation for ticket sale times
+  const validateTicketSaleTimes = (
+    showing: ShowingWithAreas,
+    index: number
+  ): { valid: boolean; errors: Record<string, string> } => {
+    const errors: Record<string, string> = {};
+    const now = getCurrentVietnamTime();
+
+    // Check if ticket sale times are provided
+    if (!showing.ticketSaleStart) {
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartRequired"
+      );
+      return { valid: false, errors };
+    }
+
+    if (!showing.ticketSaleEnd) {
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndRequired"
+      );
+      return { valid: false, errors };
+    }
+
+    if (!showing.startTime) {
+      return { valid: false, errors };
+    }
+
+    const ticketSaleStart = new Date(showing.ticketSaleStart);
+    const ticketSaleEnd = new Date(showing.ticketSaleEnd);
+    const showingStart = new Date(showing.startTime);
+
+    // Validate ticket sale start is not in the past
+    if (ticketSaleStart <= now) {
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartPast"
+      );
+    }
+
+    // Validate ticket sale end is after start
+    if (ticketSaleEnd <= ticketSaleStart) {
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndAfterStart"
+      );
+    }
+
+    // Validate ticket sale starts at least 2 days before showing
+    const minSaleStart = new Date(showingStart);
+    minSaleStart.setDate(
+      minSaleStart.getDate() -
+        VALIDATION_CONFIG.MIN_TICKET_SALE_START_DAYS_BEFORE
+    );
+
+    if (ticketSaleStart > minSaleStart) {
+      errors[`showing-${index}-ticketSaleStart`] = t(
+        "errors.ticketSaleStartTooLate"
+      );
+    }
+
+    // Validate ticket sale ends at least 1 day before showing
+    const maxSaleEnd = new Date(showingStart);
+    maxSaleEnd.setDate(
+      maxSaleEnd.getDate() - VALIDATION_CONFIG.MIN_TICKET_SALE_END_DAYS_BEFORE
+    );
+
+    if (ticketSaleEnd > maxSaleEnd) {
+      errors[`showing-${index}-ticketSaleEnd`] = t(
+        "errors.ticketSaleEndTooLate"
+      );
+    }
+
+    // Validate ticket sale window duration
+    if (ticketSaleStart && ticketSaleEnd && ticketSaleEnd > ticketSaleStart) {
+      const saleWindowMs = ticketSaleEnd.getTime() - ticketSaleStart.getTime();
+      const saleWindowHours = saleWindowMs / (1000 * 60 * 60);
+      const saleWindowDays = saleWindowHours / 24;
+
+      if (saleWindowHours < VALIDATION_CONFIG.MIN_TICKET_SALE_WINDOW_HOURS) {
+        errors[`showing-${index}-ticketSaleStart`] = t(
+          "errors.ticketSaleWindowTooShort"
+        );
+      }
+
+      if (saleWindowDays > VALIDATION_CONFIG.MAX_TICKET_SALE_WINDOW_DAYS) {
+        errors[`showing-${index}-ticketSaleEnd`] = t(
+          "errors.ticketSaleWindowTooLong"
+        );
+      }
+    }
+
+    return { valid: Object.keys(errors).length === 0, errors };
+  };
+
+  // Validation for multiple showings (overlap and duplicates)
+  const validateMultipleShowings = (
+    showings: ShowingWithAreas[]
+  ): { valid: boolean; errors: Record<string, string> } => {
+    const errors: Record<string, string> = {};
+    const validShowings = showings.filter((s) => s.startTime && s.endTime);
+
+    if (validShowings.length <= 1) {
+      return { valid: true, errors };
+    }
+
+    // Sort showings by start time
+    const sortedShowings = [...validShowings].sort(
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+    );
+
+    // Check for duplicate start times
+    const startTimes = new Set<number>();
+
+    for (let i = 0; i < sortedShowings.length; i++) {
+      const startTime = new Date(sortedShowings[i].startTime).getTime();
+
+      if (startTimes.has(startTime)) {
+        // Find original index in unsorted array
+        const originalIndex = showings.findIndex(
+          (s) => s.startTime === sortedShowings[i].startTime
+        );
+        errors[`showing-${originalIndex}-startTime`] = t(
+          "errors.duplicateShowingTime"
+        );
+      } else {
+        startTimes.add(startTime);
+      }
+    }
+
+    // Check for overlaps and insufficient buffer time
+    for (let i = 0; i < sortedShowings.length - 1; i++) {
+      const currentShowing = sortedShowings[i];
+      const nextShowing = sortedShowings[i + 1];
+
+      const currentEnd = new Date(currentShowing.endTime);
+      const nextStart = new Date(nextShowing.startTime);
+
+      const bufferMs = nextStart.getTime() - currentEnd.getTime();
+      const bufferHours = bufferMs / (1000 * 60 * 60);
+
+      if (bufferHours < VALIDATION_CONFIG.MIN_BUFFER_BETWEEN_SHOWINGS_HOURS) {
+        // Find original index in unsorted array
+        const nextOriginalIndex = showings.findIndex(
+          (s) =>
+            s.startTime === nextShowing.startTime &&
+            s.endTime === nextShowing.endTime
+        );
+        errors[`showing-${nextOriginalIndex}-startTime`] = t(
+          "errors.showingTimesOverlap"
+        );
+      }
+    }
+
+    return { valid: Object.keys(errors).length === 0, errors };
+  };
+
+  // Combined validation for all showings
+  const validateAllShowings = (
+    showings: ShowingWithAreas[]
+  ): { valid: boolean; errors: Record<string, string> } => {
+    const allErrors: Record<string, string> = {};
+
+    // Check if at least one showing exists
+    if (showings.length === 0 || !showings.some((s) => s.startTime)) {
+      allErrors.showings = t("errors.showingRequired");
+      return { valid: false, errors: allErrors };
+    }
+
+    // Validate each individual showing
+    for (let i = 0; i < showings.length; i++) {
+      if (showings[i].startTime || showings[i].endTime) {
+        const showingValidation = validateSingleShowing(showings[i], i);
+        Object.assign(allErrors, showingValidation.errors);
+
+        const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
+        Object.assign(allErrors, ticketSaleValidation.errors);
+      }
+    }
+
+    // Validate multiple showings relationships
+    const multipleShowingsValidation = validateMultipleShowings(showings);
+    Object.assign(allErrors, multipleShowingsValidation.errors);
+
+    return { valid: Object.keys(allErrors).length === 0, errors: allErrors };
+  };
+
   // Load event data for editing
   useEffect(() => {
     if (!eventId) return;
@@ -247,7 +498,7 @@ function CreateEventPageInner() {
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 
-  if (result.success && result.data) {
+      if (result.success && result.data) {
         const enrichedSeatMap: SeatMapData = {
           ...seatMap,
           grids: result.data.gridData?.grids || [],
@@ -261,13 +512,14 @@ function CreateEventPageInner() {
         setShowSeatMapModal(false);
 
         toast.success(
-          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name })
-        , {
-          description: t("toasts.selectedSeatMapDesc", {
-            totalSeats: result.data.preview.totalSeats,
-            areasCount: result.data.preview.areas.length,
-          }),
-        });
+          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name }),
+          {
+            description: t("toasts.selectedSeatMapDesc", {
+              totalSeats: result.data.preview.totalSeats,
+              areasCount: result.data.preview.areas.length,
+            }),
+          }
+        );
       } else {
         console.error("❌ Failed to load seat map data:", result.error);
         toast.error(result.error || t("toasts.failedLoadSeatMap"));
@@ -304,6 +556,7 @@ function CreateEventPageInner() {
   const validateStep1 = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    // Basic field validation
     if (!formData.name.trim()) {
       newErrors.name = t("errors.nameRequired");
     }
@@ -313,16 +566,18 @@ function CreateEventPageInner() {
     if (!formData.description.trim()) {
       newErrors.description = t("errors.descriptionRequired");
     }
-    if (showings.length === 0 || !showings[0].startTime) {
-      newErrors.showings = t("errors.showingRequired");
-    }
 
+    // Max tickets validation
     if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
       newErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
     }
     if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
       newErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
     }
+
+    // Comprehensive showings validation
+    const showingsValidation = validateAllShowings(showings);
+    Object.assign(newErrors, showingsValidation.errors);
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -336,6 +591,7 @@ function CreateEventPageInner() {
     if (step === 1) {
       if (!validateStep1()) {
         toast.error(t("pleaseFixErrors"));
+        scrollToTop();
         return;
       }
     }
@@ -346,6 +602,7 @@ function CreateEventPageInner() {
   const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
     setShowings(newShowings);
 
+    // Auto-calculate ticket sale times if showings are valid
     if (newShowings.length > 0) {
       const validShowings = newShowings.filter((s) => s.startTime);
 
@@ -371,15 +628,29 @@ function CreateEventPageInner() {
       }
     }
 
-    if (errors.showings || errors.ticketSaleStart || errors.ticketSaleEnd) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.showings;
-        delete newErrors.ticketSaleStart;
-        delete newErrors.ticketSaleEnd;
-        return newErrors;
+    // Clear relevant errors and validate showings
+    const showingsValidation = validateAllShowings(newShowings);
+
+    setErrors((prev) => {
+      const newErrors = { ...prev };
+
+      // Clear old showing-related errors
+      Object.keys(newErrors).forEach((key) => {
+        if (
+          key.startsWith("showing-") ||
+          key === "showings" ||
+          key === "ticketSaleStart" ||
+          key === "ticketSaleEnd"
+        ) {
+          delete newErrors[key];
+        }
       });
-    }
+
+      // Add new validation errors
+      Object.assign(newErrors, showingsValidation.errors);
+
+      return newErrors;
+    });
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -387,6 +658,54 @@ function CreateEventPageInner() {
 
     if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
       toast.error(t("confirmSeatMapUpdate"));
+      return;
+    }
+
+    // Comprehensive validation before submission
+    const basicErrors: Record<string, string> = {};
+
+    // Basic fields validation
+    if (!formData.name.trim()) {
+      basicErrors.name = t("errors.nameRequired");
+    }
+    if (!formData.location.trim()) {
+      basicErrors.location = t("errors.locationRequired");
+    }
+    if (!formData.description.trim()) {
+      basicErrors.description = t("errors.descriptionRequired");
+    }
+
+    // Max tickets validation
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
+      basicErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
+    }
+    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
+      basicErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
+    }
+
+    // Comprehensive showings validation
+    const showingsValidation = validateAllShowings(showings);
+    Object.assign(basicErrors, showingsValidation.errors);
+
+    if (Object.keys(basicErrors).length > 0) {
+      // Clear old showing-related errors and set new ones
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+
+        // Clear old showing-related errors
+        Object.keys(newErrors).forEach((key) => {
+          if (key.startsWith("showing-") || key === "showings") {
+            delete newErrors[key];
+          }
+        });
+
+        // Add new validation errors
+        Object.assign(newErrors, basicErrors);
+
+        return newErrors;
+      });
+
+      toast.error(t("pleaseFixErrors"));
       return;
     }
 
@@ -409,15 +728,32 @@ function CreateEventPageInner() {
     form.set("ticketingMode", ticketingMode);
     form.set("maxTicketsByOrder", formData.maxTicketsByOrder?.toString() || "");
 
+    // Add showings data - convert times to UTC
     showings.forEach((showing, index) => {
       form.set(`showings[${index}].name`, showing.name);
-      form.set(`showings[${index}].startTime`, showing.startTime);
-      form.set(`showings[${index}].endTime`, showing.endTime);
-      form.set(
-        `showings[${index}].ticketSaleStart`,
-        showing.ticketSaleStart || ""
-      );
-      form.set(`showings[${index}].ticketSaleEnd`, showing.ticketSaleEnd || "");
+
+      // Convert times to UTC before sending to server
+      if (showing.startTime) {
+        const startTimeUTC = new Date(showing.startTime).toISOString();
+        form.set(`showings[${index}].startTime`, startTimeUTC);
+      }
+
+      if (showing.endTime) {
+        const endTimeUTC = new Date(showing.endTime).toISOString();
+        form.set(`showings[${index}].endTime`, endTimeUTC);
+      }
+
+      if (showing.ticketSaleStart) {
+        const ticketSaleStartUTC = new Date(
+          showing.ticketSaleStart
+        ).toISOString();
+        form.set(`showings[${index}].ticketSaleStart`, ticketSaleStartUTC);
+      }
+
+      if (showing.ticketSaleEnd) {
+        const ticketSaleEndUTC = new Date(showing.ticketSaleEnd).toISOString();
+        form.set(`showings[${index}].ticketSaleEnd`, ticketSaleEndUTC);
+      }
     });
 
     if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
@@ -610,7 +946,7 @@ function CreateEventPageInner() {
             }}
             disabled={step === 1}
           >
-             {t("goback")}
+            {t("goback")}
           </Button>
           <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
         </div>

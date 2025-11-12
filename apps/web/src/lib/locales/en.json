@@ -218,15 +218,14 @@
         "eventAndSeatMapCreated": "🎉 Event and seat map created successfully!",
         "eventCreated": "🎉 Event created successfully!",
         "createEventFailed": "Something went wrong while creating the event."
-      }
-      ,
+      },
       "steps": {
         "edit": "Edit",
         "banner": "Banner",
         "preview": "Preview",
         "ticketing": "Ticketing"
       },
-      
+
       "categories": {
         "workshop": "Workshop",
         "concert": "Concert",
@@ -245,11 +244,10 @@
         "saleEnds": "Sale ends: 1 hour before the earliest showing",
         "note": "Individual showings can have their own ticket sale schedules in the next step."
       },
-      
+
       "help": {
         "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
-      }
-      ,
+      },
       "showings": {
         "title": "Event Showings",
         "description": "Add multiple showings for your event (different times/dates)",
@@ -380,7 +378,17 @@
         "ticketSaleStartBeforeShowing": "Ticket sale must start before the showing",
         "ticketSaleEndPast": "Ticket sale end cannot be in the past",
         "ticketSaleEndAfterStart": "Ticket sale end must be after start date",
-        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts"
+        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts",
+        "showingDurationTooShort": "Showing duration must be at least 30 minutes",
+        "showingDurationTooLong": "Showing duration cannot exceed 24 hours",
+        "ticketSaleStartTooLate": "Ticket sale must start at least 2 days before showing",
+        "ticketSaleEndTooLate": "Ticket sale must end at least 1 day before showing",
+        "ticketSaleWindowTooShort": "Ticket sale window must be at least 6 hours",
+        "ticketSaleWindowTooLong": "Ticket sale window cannot exceed 90 days",
+        "showingTimesOverlap": "Showings must be at least 1 hour apart",
+        "duplicateShowingTime": "Cannot have two showings with the same start time",
+        "ticketSaleStartRequired": "Ticket sale start time is required",
+        "ticketSaleEndRequired": "Ticket sale end time is required"
       }
     },
     "SeatMap": {
