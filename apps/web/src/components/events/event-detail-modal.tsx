@@ -1,9 +1,16 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Calendar,
   MapPin,
@@ -15,6 +22,7 @@ import {
   Tag,
   FileText,
   Image as ImageIcon,
+  Film,
 } from "lucide-react";
 import { PendingEvent } from "@/hooks/use-admin-data";
 
@@ -58,6 +66,13 @@ export function EventDetailModal({
   onReject,
   isProcessing,
 }: EventDetailModalProps) {
+  const [selectedShowingId, setSelectedShowingId] = useState<string>("");
+
+  // Reset selected showing when event changes
+  useEffect(() => {
+    setSelectedShowingId("");
+  }, [event?.id]);
+
   // Memoize formatted dates to prevent recalculation
   const formattedDates = useMemo(() => {
     if (!event) return null;
@@ -89,6 +104,24 @@ export function EventDetailModal({
       }),
     };
   }, [event?.start_date, event?.end_date, event?.created_at]);
+
+  // Get selected showing details
+  const selectedShowing = useMemo(() => {
+    if (!event?.showings || !selectedShowingId) return null;
+    return event.showings.find((s) => s.id === selectedShowingId);
+  }, [event?.showings, selectedShowingId]);
+
+  // Format showing date/time
+  const formatShowingDateTime = (dateString: string) => {
+    return new Date(dateString).toLocaleString("vi-VN", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      weekday: "long",
+    });
+  };
 
   if (!event || !formattedDates) return null;
 
@@ -137,6 +170,97 @@ export function EventDetailModal({
             {event.description || "No description available for this event."}
           </p>
         </DetailCard>
+
+        {/* Showings Dropdown */}
+        {event.showings && event.showings.length > 0 && (
+          <DetailCard icon={Film} title="Lịch chiếu (Showings)">
+            <div className="space-y-4">
+              <Select
+                value={selectedShowingId}
+                onValueChange={setSelectedShowingId}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Chọn lịch chiếu để xem chi tiết" />
+                </SelectTrigger>
+                <SelectContent>
+                  {event.showings.map((showing) => (
+                    <SelectItem key={showing.id} value={showing.id}>
+                      {showing.name || "Lịch chiếu không tên"} -{" "}
+                      {formatShowingDateTime(showing.startTime)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              {selectedShowing && (
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Tên lịch chiếu:
+                      </span>
+                      <p className="text-gray-600">
+                        {selectedShowing.name || "Không có tên"}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Trạng thái:
+                      </span>
+                      <p className="text-gray-600">
+                        {selectedShowing.isActive ? (
+                          <span className="text-green-600">Đang hoạt động</span>
+                        ) : (
+                          <span className="text-red-600">Không hoạt động</span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Thời gian bắt đầu:
+                      </span>
+                      <p className="text-gray-600">
+                        {formatShowingDateTime(selectedShowing.startTime)}
+                      </p>
+                    </div>
+                    <div>
+                      <span className="font-semibold text-gray-700">
+                        Thời gian kết thúc:
+                      </span>
+                      <p className="text-gray-600">
+                        {formatShowingDateTime(selectedShowing.endTime)}
+                      </p>
+                    </div>
+                    {selectedShowing.ticketSaleStart && (
+                      <div>
+                        <span className="font-semibold text-gray-700">
+                          Bắt đầu bán vé:
+                        </span>
+                        <p className="text-gray-600">
+                          {formatShowingDateTime(selectedShowing.ticketSaleStart)}
+                        </p>
+                      </div>
+                    )}
+                    {selectedShowing.ticketSaleEnd && (
+                      <div>
+                        <span className="font-semibold text-gray-700">
+                          Kết thúc bán vé:
+                        </span>
+                        <p className="text-gray-600">
+                          {formatShowingDateTime(selectedShowing.ticketSaleEnd)}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="text-sm text-gray-500">
+                Tổng số lịch chiếu: {event.showings.length}
+              </div>
+            </div>
+          </DetailCard>
+        )}
 
         {/* Event Details Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

@@ -23,6 +23,16 @@ export interface ChartData {
   };
 }
 
+export interface EventShowing {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  ticketSaleStart: string | null;
+  ticketSaleEnd: string | null;
+  isActive: boolean;
+}
+
 export interface PendingEvent {
   id: string;
   title: string;
@@ -38,6 +48,7 @@ export interface PendingEvent {
   approvalStatus: "pending" | "approved" | "rejected"; // Changed from is_approved
   image_url?: string;
   category: string;
+  showings?: EventShowing[];
 }
 
 export interface UpdateEventApprovalRequest {

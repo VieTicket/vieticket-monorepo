@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { events, organizers } from "@vieticket/db/pg/schema";
-import { isNull, eq } from "drizzle-orm";
+import { events, organizers, showings } from "@vieticket/db/pg/schema";
+import { isNull, eq, inArray } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -28,7 +28,43 @@ export async function GET() {
       .where(eq(events.approvalStatus, "pending"))
       .orderBy(events.createdAt);
 
-    return NextResponse.json(pendingEvents);
+    // Fetch showings for pending events
+    const eventIds = pendingEvents.map((e) => e.id);
+    const allShowings = eventIds.length > 0
+      ? await db
+          .select()
+          .from(showings)
+          .where(inArray(showings.eventId, eventIds))
+      : [];
+
+    // Group showings by eventId
+    const showingsByEventId = new Map<string, typeof allShowings>();
+    for (const showing of allShowings) {
+      const eventId = showing.eventId;
+      if (!showingsByEventId.has(eventId)) {
+        showingsByEventId.set(eventId, []);
+      }
+      showingsByEventId.get(eventId)!.push(showing);
+    }
+
+    // Transform to include showings
+    const transformedEvents = pendingEvents.map((event) => {
+      const eventShowings = showingsByEventId.get(event.id) || [];
+      return {
+        ...event,
+        showings: eventShowings.map((showing) => ({
+          id: showing.id,
+          name: showing.name || "",
+          startTime: showing.startTime.toISOString(),
+          endTime: showing.endTime.toISOString(),
+          ticketSaleStart: showing.ticketSaleStart?.toISOString() || null,
+          ticketSaleEnd: showing.ticketSaleEnd?.toISOString() || null,
+          isActive: showing.isActive,
+        })),
+      };
+    });
+
+    return NextResponse.json(transformedEvents);
   } catch (error) {
     console.error("Error fetching pending events:", error);
     return NextResponse.json(
