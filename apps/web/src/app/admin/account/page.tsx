@@ -345,28 +345,40 @@ export default function AccountPage() {
                   const statusInfo = getStatusInfo(user);
                   return (
                     <TableRow key={user.id}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
+                      <TableCell className="font-medium min-w-0 max-w-xs">
+                        <div className="truncate" title={user.name}>
+                          {user.name}
+                        </div>
+                      </TableCell>
+                      <TableCell className="min-w-0 max-w-xs">
+                        <div className="truncate" title={user.email}>
+                          {user.email}
+                        </div>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={statusInfo.variant}>
-                          {statusInfo.status}
+                      <TableCell className="min-w-0 max-w-xs">
+                        <Badge variant={statusInfo.variant} className="truncate max-w-full">
+                          <span className="truncate block" title={statusInfo.status}>
+                            {statusInfo.status}
+                          </span>
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="min-w-0 max-w-xs">
                         {user.banned && user.banReason && (
                           <div className="max-w-xs">
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
                               {user.banReason}
                             </div>
                             {user.banExpires && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
-                                <Clock className="h-3 w-3" />
-                                Expires: {formatDateTime(user.banExpires.toString())}
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
+                                <Clock className="h-3 w-3 flex-shrink-0" />
+                                <span className="truncate">
+                                  Expires: {formatDateTime(user.banExpires.toString())}
+                                </span>
                               </div>
                             )}
                           </div>

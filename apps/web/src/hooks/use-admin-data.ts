@@ -54,8 +54,13 @@ const fetchAdminStats = async (): Promise<AdminStats> => {
   return response.json();
 };
 
-const fetchChartData = async (): Promise<ChartData> => {
-  const response = await fetch("/api/admin/charts");
+const fetchChartData = async (startDate?: string, endDate?: string): Promise<ChartData> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  
+  const url = `/api/admin/charts${params.toString() ? `?${params.toString()}` : ""}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch chart data");
   }
@@ -105,10 +110,10 @@ export const useAdminStats = () => {
   });
 };
 
-export const useChartData = () => {
+export const useChartData = (startDate?: string, endDate?: string) => {
   return useQuery({
-    queryKey: ["chart-data"],
-    queryFn: fetchChartData,
+    queryKey: ["chart-data", startDate, endDate],
+    queryFn: () => fetchChartData(startDate, endDate),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
   });

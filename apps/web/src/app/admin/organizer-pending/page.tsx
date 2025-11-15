@@ -246,64 +246,69 @@ export default function OrganizerPendingPage() {
                   {organizers.map((organizer) => (
                     <TableRow key={organizer.id}>
                       <TableCell>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
                           {organizer.user.image && (
                             <img
                               src={organizer.user.image}
                               alt={organizer.name}
-                              className="w-10 h-10 rounded-full object-cover"
+                              className="w-10 h-10 rounded-full object-cover flex-shrink-0"
                             />
                           )}
-                          <div>
-                            <div className="font-medium">{organizer.name}</div>
-                            <div className="text-sm text-muted-foreground">
+                          <div className="min-w-0 flex-1">
+                            <div className="font-medium truncate">{organizer.name}</div>
+                            <div className="text-sm text-muted-foreground truncate">
                               {organizer.organizerType || "Type not specified"}
                             </div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1">
-                          <div className="font-medium">
+                        <div className="space-y-1 min-w-0">
+                          <div className="font-medium truncate">
                             {organizer.user.name}
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {organizer.user.email}
+                          <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                            <Mail className="h-3 w-3 flex-shrink-0" />
+                            <span className="truncate">{organizer.user.email}</span>
                           </div>
                           {organizer.user.phone && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Phone className="h-3 w-3" />
-                              {organizer.user.phone}
+                            <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                              <Phone className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{organizer.user.phone}</span>
                             </div>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="space-y-1 text-sm">
+                        <div className="space-y-1 text-sm min-w-0 max-w-xs">
                           {organizer.website && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Globe className="h-3 w-3" />
+                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                              <Globe className="h-3 w-3 flex-shrink-0" />
                               <a
                                 href={organizer.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:underline"
+                                className="hover:underline truncate"
+                                title={organizer.website}
                               >
-                                Website
+                                {organizer.website}
                               </a>
                             </div>
                           )}
                           {organizer.address && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <MapPin className="h-3 w-3" />
-                              {organizer.address}
+                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                              <MapPin className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate" title={organizer.address}>
+                                {organizer.address}
+                              </span>
                             </div>
                           )}
                           {organizer.foundedDate && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Calendar className="h-3 w-3" />
-                              Founded: {formatDate(organizer.foundedDate)}
+                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                              <Calendar className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">
+                                Founded: {formatDate(organizer.foundedDate)}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -373,14 +378,14 @@ export default function OrganizerPendingPage() {
                     Personal Information
                   </Label>
                   <div className="mt-2 space-y-2">
-                    <div>
+                    <div className="break-words">
                       <strong>Name:</strong> {selectedOrganizer.user.name}
                     </div>
-                    <div>
+                    <div className="break-words">
                       <strong>Email:</strong> {selectedOrganizer.user.email}
                     </div>
                     {selectedOrganizer.user.phone && (
-                      <div>
+                      <div className="break-words">
                         <strong>Phone:</strong> {selectedOrganizer.user.phone}
                       </div>
                     )}
@@ -391,16 +396,16 @@ export default function OrganizerPendingPage() {
                     Organization Details
                   </Label>
                   <div className="mt-2 space-y-2">
-                    <div>
+                    <div className="break-words">
                       <strong>Organization Name:</strong>{" "}
                       {selectedOrganizer.name}
                     </div>
-                    <div>
+                    <div className="break-words">
                       <strong>Type:</strong>{" "}
                       {selectedOrganizer.organizerType || "Not specified"}
                     </div>
                     {selectedOrganizer.foundedDate && (
-                      <div>
+                      <div className="break-words">
                         <strong>Founded:</strong>{" "}
                         {formatDate(selectedOrganizer.foundedDate)}
                       </div>
@@ -411,7 +416,7 @@ export default function OrganizerPendingPage() {
               {selectedOrganizer.website && (
                 <div>
                   <Label className="text-sm font-medium">Website</Label>
-                  <div className="mt-1">
+                  <div className="mt-1 break-all">
                     <a
                       href={selectedOrganizer.website}
                       target="_blank"
@@ -426,7 +431,7 @@ export default function OrganizerPendingPage() {
               {selectedOrganizer.address && (
                 <div>
                   <Label className="text-sm font-medium">Address</Label>
-                  <div className="mt-1">{selectedOrganizer.address}</div>
+                  <div className="mt-1 break-words">{selectedOrganizer.address}</div>
                 </div>
               )}
               <div>
