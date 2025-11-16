@@ -127,6 +127,10 @@ export const useChartData = (startDate?: string, endDate?: string) => {
     queryFn: () => fetchChartData(startDate, endDate),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    // Keep previous data while fetching new data to avoid loading state
+    placeholderData: (previousData) => previousData,
+    // Refetch on window focus only if data is stale
+    refetchOnWindowFocus: false,
   });
 };
 

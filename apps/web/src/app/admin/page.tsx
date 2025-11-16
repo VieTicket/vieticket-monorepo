@@ -31,6 +31,7 @@ import {
   ChartSkeleton,
   StatsCardSkeleton,
 } from "@/components/ui/loading";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // Register Chart.js components only once
 ChartJS.register(
@@ -92,6 +93,10 @@ export default function AdminDashboard() {
   const [startDate, setStartDate] = useState<string>("");
   const [endDate, setEndDate] = useState<string>("");
 
+  // Debounce date filters to avoid too many API calls
+  const debouncedStartDate = useDebounce(startDate, 500);
+  const debouncedEndDate = useDebounce(endDate, 500);
+
   // Use React Query hooks for data fetching
   const {
     data: stats,
@@ -101,8 +106,12 @@ export default function AdminDashboard() {
   const {
     data: chartData,
     isLoading: chartLoading,
+    isFetching: chartFetching,
     error: chartError,
-  } = useChartData(startDate || undefined, endDate || undefined);
+  } = useChartData(
+    debouncedStartDate || undefined,
+    debouncedEndDate || undefined
+  );
 
   // Helper function to set date range presets
   const setDateRange = (days: number) => {
@@ -169,6 +178,14 @@ export default function AdminDashboard() {
     () => ({
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 10,
+          right: 10,
+          bottom: 10,
+          left: 10,
+        },
+      },
       plugins: {
         legend: {
           display: false,
@@ -180,10 +197,16 @@ export default function AdminDashboard() {
           grid: {
             color: "rgba(0, 0, 0, 0.1)",
           },
+          ticks: {
+            padding: 8,
+          },
         },
         x: {
           grid: {
             display: false,
+          },
+          ticks: {
+            padding: 8,
           },
         },
       },
@@ -191,8 +214,8 @@ export default function AdminDashboard() {
     []
   );
 
-  // Show loading skeleton if either data is loading
-  if (statsLoading || chartLoading) {
+  // Show loading skeleton only for initial stats load
+  if (statsLoading) {
     return <PageSkeleton />;
   }
 
@@ -372,12 +395,23 @@ export default function AdminDashboard() {
         <div className="grid gap-4 md:grid-cols-2">
           <Card>
             <CardHeader>
-              <CardTitle>Revenue Trend</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Revenue Trend</CardTitle>
+                {chartFetching && (
+                  <div className="text-xs text-muted-foreground animate-pulse">
+                    Đang tải...
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                {chartData ? (
-                  <Line data={revenueChartData} options={chartOptions} />
+            <CardContent className="p-4">
+              <div className="h-[300px] w-full relative -mx-2">
+                {chartLoading && !chartData ? (
+                  <ChartSkeleton />
+                ) : chartData ? (
+                  <div className={chartFetching ? "opacity-60 transition-opacity w-full h-full" : "w-full h-full"}>
+                    <Line data={revenueChartData} options={chartOptions} />
+                  </div>
                 ) : (
                   <ChartSkeleton />
                 )}
@@ -387,12 +421,23 @@ export default function AdminDashboard() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Events Created</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Events Created</CardTitle>
+                {chartFetching && (
+                  <div className="text-xs text-muted-foreground animate-pulse">
+                    Đang tải...
+                  </div>
+                )}
+              </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                {chartData ? (
-                  <Bar data={eventsChartData} options={chartOptions} />
+            <CardContent className="p-4">
+              <div className="h-[300px] w-full relative -mx-2">
+                {chartLoading && !chartData ? (
+                  <ChartSkeleton />
+                ) : chartData ? (
+                  <div className={chartFetching ? "opacity-60 transition-opacity w-full h-full" : "w-full h-full"}>
+                    <Bar data={eventsChartData} options={chartOptions} />
+                  </div>
                 ) : (
                   <ChartSkeleton />
                 )}
