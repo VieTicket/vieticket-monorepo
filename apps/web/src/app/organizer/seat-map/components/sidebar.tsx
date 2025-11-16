@@ -17,7 +17,7 @@ interface SidebarProps {
   recentSeatMaps: SeatMapItem[];
   onShowTemplates: () => void;
   onShowDrafts: () => void;
-  formatDate: (date: string) => string;
+  formatDate: (date: Date) => string;
 }
 
 export function Sidebar({

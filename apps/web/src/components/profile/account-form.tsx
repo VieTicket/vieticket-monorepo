@@ -216,7 +216,7 @@ export function AccountForm() {
     const result = await uploadAvatarAction(url);
     if (result.success) {
       setImagePreview(url);
-  toast.success(t("toasts.avatarUpdated"));
+      toast.success(t("toasts.avatarUpdated"));
     } else {
       toast.error(result.message);
     }
@@ -260,16 +260,16 @@ export function AccountForm() {
         const result = await updateProfileAction(formData);
 
         if (result.success) {
-    // Prefer server message if available, otherwise use generic localized message
-    toast.success(result.message || t("toasts.saveSuccess"));
+          // Prefer server message if available, otherwise use generic localized message
+          toast.success(result.message || t("toasts.saveSuccess"));
           // Reset the image file after successful save
           setImageFile(null);
         } else {
-    toast.error(result.message || t("toasts.saveFailed"));
+          toast.error(result.message || t("toasts.saveFailed"));
         }
       } catch (error) {
         console.error("Error saving profile:", error);
-  toast.error(t("toasts.saveFailed"));
+        toast.error(t("toasts.saveFailed"));
       }
     });
   };
@@ -280,7 +280,7 @@ export function AccountForm() {
 
       if (result.success) {
         setShowRejectionModal(false);
-  toast.success(t("rejection.markedSeen"));
+        toast.success(t("rejection.markedSeen"));
       } else {
         console.error("Failed to mark rejection as seen:", result.error);
         // Still close the modal even if the API call fails
@@ -323,12 +323,16 @@ export function AccountForm() {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-600">{t("rejection.title")}</DialogTitle>
+            <DialogTitle className="text-red-600">
+              {t("rejection.title")}
+            </DialogTitle>
             <DialogDescription>{t("rejection.description")}</DialogDescription>
           </DialogHeader>
           <div className="py-4">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <h4 className="font-medium text-red-800 mb-2">{t("rejection.reasonTitle")}</h4>
+              <h4 className="font-medium text-red-800 mb-2">
+                {t("rejection.reasonTitle")}
+              </h4>
               <p className="text-red-700">{rejectionReason}</p>
             </div>
             <div className="mt-4 text-sm text-gray-600">
@@ -336,7 +340,9 @@ export function AccountForm() {
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleRejectionModalClose}>{t("rejection.button")}</Button>
+            <Button onClick={handleRejectionModalClose}>
+              {t("rejection.button")}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -362,14 +368,18 @@ export function AccountForm() {
                 isOrganizerActive ? "text-green-800" : "text-orange-800"
               }
             >
-              {isOrganizerActive ? t("organizerStatus.active") : t("organizerStatus.pending")}
+              {isOrganizerActive
+                ? t("organizerStatus.active")
+                : t("organizerStatus.pending")}
             </AlertDescription>
           </Alert>
         )}
 
       {/* Profile Photo Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">{t("photo.title")}</h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-4">
+          {t("photo.title")}
+        </h3>
         <div className="flex items-center gap-4">
           <Avatar className="w-28 h-28">
             <AvatarImage src={imagePreview ?? undefined} alt={name} />
@@ -392,7 +402,9 @@ export function AccountForm() {
 
       {/* Personal Information Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-4">{t("personalInfo.title")}</h3>
+        <h3 className="text-xl font-bold text-slate-800 mb-4">
+          {t("personalInfo.title")}
+        </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             id="name"
@@ -429,8 +441,12 @@ export function AccountForm() {
 
       {/* Contact Details Section */}
       <section>
-        <h3 className="text-xl font-bold text-slate-800 mb-2">{t("contact.title")}</h3>
-        <p className="text-sm text-slate-500 mb-4">{t("contact.description")}</p>
+        <h3 className="text-xl font-bold text-slate-800 mb-2">
+          {t("contact.title")}
+        </h3>
+        <p className="text-sm text-slate-500 mb-4">
+          {t("contact.description")}
+        </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
             id="phone"
@@ -449,7 +465,9 @@ export function AccountForm() {
             {t("organizerDetails.title")}
             <span className="text-red-500 ml-1">*</span>
           </h3>
-          <p className="text-sm text-slate-500 mb-4">{t("organizerDetails.description")}</p>
+          <p className="text-sm text-slate-500 mb-4">
+            {t("organizerDetails.description")}
+          </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <FormField
               id="organizerName"

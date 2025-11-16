@@ -228,7 +228,6 @@
         "ticketSaleStartRequired": "Thời gian bắt đầu bán vé là bắt buộc",
         "ticketSaleEndRequired": "Thời gian kết thúc bán vé là bắt buộc"
       },
-
       "toasts": {
         "failedLoadEvent": "Tải dữ liệu sự kiện thất bại",
         "posterUploaded": "Tải poster lên thành công!",
@@ -341,7 +340,10 @@
         },
         "image": {
           "cardTitle": "AI {type} Generator",
-          "types": { "poster": "Poster", "banner": "Banner" },
+          "types": {
+            "poster": "Poster",
+            "banner": "Banner"
+          },
           "backgroundLabel": "Mô tả nền",
           "backgroundPlaceholder": "Mô tả nền cho {type}",
           "textOnImageLabel": "Văn bản trên ảnh (Tùy chọn)",
@@ -383,7 +385,6 @@
           "generateBannerWithAI": "Generate Banner with AI"
         }
       },
-
       "help": {
         "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
       }
@@ -496,7 +497,9 @@
         "title": "Ảnh Hồ Sơ",
         "uploadButton": "Tải lên Avatar mới"
       },
-      "personalInfo": { "title": "Thông Tin Cá Nhân" },
+      "personalInfo": {
+        "title": "Thông Tin Cá Nhân"
+      },
       "labels": {
         "fullName": "Họ và tên:",
         "email": "Email:",
@@ -557,8 +560,12 @@
           "newPasswordRequired": "Mật khẩu mới là bắt buộc",
           "confirmPasswordRequired": "Vui lòng xác nhận mật khẩu"
         },
-        "toasts": { "success": "Đã cập nhật mật khẩu thành công" },
-        "buttons": { "update": "Cập nhật Mật khẩu" }
+        "toasts": {
+          "success": "Đã cập nhật mật khẩu thành công"
+        },
+        "buttons": {
+          "update": "Cập nhật Mật khẩu"
+        }
       }
     },
     "SignOut": {
@@ -661,7 +668,7 @@
         },
         "khanh": {
           "name": "Trần Đình Khanh",
-          "role": "Thành viên phát triển", 
+          "role": "Thành viên phát triển",
           "bio": "Đóng góp vào việc phát triển các tính năng và hệ thống."
         },
         "hoang": {
@@ -700,19 +707,29 @@
     "contactInfo": {
       "phone": {
         "title": "Điện thoại",
-        "details": ["Hotline: 0766 567 846"]
+        "details": [
+          "Hotline: 0766 567 846"
+        ]
       },
       "email": {
         "title": "Email",
-        "details": ["dt.khanh3007@gmail.com", "Liên hệ tất cả vấn đề"]
+        "details": [
+          "dt.khanh3007@gmail.com",
+          "Liên hệ tất cả vấn đề"
+        ]
       },
       "address": {
         "title": "Địa chỉ",
-        "details": ["123 Đường Nguyễn Văn Linh, Q.Hải Châu, TP.Đà Nẵng"]
+        "details": [
+          "123 Đường Nguyễn Văn Linh, Q.Hải Châu, TP.Đà Nẵng"
+        ]
       },
       "hours": {
         "title": "Giờ làm việc",
-        "details": ["Thứ 2 - Thứ 6: 8:00 - 17:30", "Thứ 7: 8:00 - 12:00"]
+        "details": [
+          "Thứ 2 - Thứ 6: 8:00 - 17:30",
+          "Thứ 7: 8:00 - 12:00"
+        ]
       }
     },
     "support": {
@@ -786,7 +803,7 @@
         },
         "phone": {
           "title": "Điện thoại",
-          "hotline": "Hotline: 0766 567 846"        
+          "hotline": "Hotline: 0766 567 846"
         }
       }
     }

@@ -2,7 +2,7 @@ import * as PIXI from "pixi.js";
 
 export interface BaseCanvasItem {
   id: string;
-  name: string; // User-friendly name for properties panel
+  name: string;
   visible: boolean;
   interactive: boolean;
   selected?: boolean;
@@ -15,7 +15,6 @@ export interface BaseCanvasItem {
   graphics: PIXI.Graphics | PIXI.Text | PIXI.Container | PIXI.Sprite;
 }
 
-// Shape-specific interfaces
 export interface RectangleShape extends BaseCanvasItem {
   type: "rectangle";
   width: number;
@@ -37,10 +36,24 @@ export interface EllipseShape extends BaseCanvasItem {
   graphics: PIXI.Graphics;
 }
 
-// ✅ New SeatShape interface extending EllipseShape
-export interface SeatShape extends EllipseShape {
-  rowId: string; // ID of the row this seat belongs to
-  gridId: string; // ID of the grid this seat belongs to
+export interface SeatLabelStyle {
+  fontFamily: string;
+  fontSize: number;
+  fill: number | string;
+  fontWeight: string;
+  align: string;
+  strokeColor?: number | string;
+  strokeWidth?: number;
+}
+
+export interface SeatShape extends Omit<EllipseShape, "graphics"> {
+  graphics: PIXI.Container;
+  rowId: string;
+  gridId: string;
+  seatGraphics: PIXI.Graphics;
+  labelGraphics: PIXI.Text;
+  showLabel: boolean;
+  labelStyle: SeatLabelStyle;
 }
 
 export interface TextShape extends BaseCanvasItem {
@@ -71,9 +84,9 @@ export interface ImageShape extends BaseCanvasItem {
   originalHeight: number;
   graphics: PIXI.Sprite;
   uploadState?: "uploading" | "uploaded" | "failed";
-  uploadId?: string; // Track upload operations
-  tempBlobUrl?: string; // Keep blob URL for immediate display
-  uploadedBy?: string; // User ID who uploaded the image
+  uploadId?: string;
+  tempBlobUrl?: string;
+  uploadedBy?: string;
   uploadedAt?: Date;
   cloudinaryUrl?: string;
 }
@@ -86,14 +99,35 @@ export interface SVGShape extends BaseCanvasItem {
   graphics: PIXI.Graphics;
 }
 
+export interface FreeShapePoint {
+  x: number;
+  y: number;
+  cp1x?: number;
+  cp1y?: number;
+  cp2x?: number;
+  cp2y?: number;
+  type: "move" | "curve" | "line";
+  smoothness?: number;
+}
+
+export interface FreeShape extends BaseCanvasItem {
+  type: "freeshape";
+  points: FreeShapePoint[];
+  closed: boolean;
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  smoothness: number;
+  graphics: PIXI.Graphics;
+}
+
 export interface ContainerGroup extends BaseCanvasItem {
   type: "container";
   children: CanvasItem[];
-  expanded: boolean; // For properties panel UI
+  expanded: boolean;
   graphics: PIXI.Container;
 }
 
-// ✅ Seat grid settings interface
 export interface SeatGridSettings {
   seatSpacing: number;
   rowSpacing: number;
@@ -104,36 +138,34 @@ export interface SeatGridSettings {
   price: number;
 }
 
-// ✅ Grid data structure
-export interface GridData {
-  id: string;
-  name: string;
-  rows: RowData[];
+export interface RowShape extends ContainerGroup {
+  children: SeatShape[];
+  rowName: string;
+  seatSpacing: number;
+  gridId: string;
+  labelGraphics?: PIXI.Text;
+  labelPlacement: "left" | "middle" | "right" | "none";
+  createdAt: Date;
+}
+
+export interface GridShape extends ContainerGroup {
+  children: RowShape[];
+  gridName: string;
   seatSettings: SeatGridSettings;
   createdAt: Date;
 }
 
-// ✅ Row data structure
-export interface RowData {
-  id: string;
-  name: string;
-  seats: string[];
-  bend?: number;
-  seatSpacing?: number;
-}
-
-// ✅ New AreaModeContainer interface extending ContainerGroup
 export interface AreaModeContainer extends ContainerGroup {
-  grids: GridData[];
+  children: GridShape[];
   defaultSeatSettings: SeatGridSettings;
 }
+
 export interface UserInfo {
   id: string;
   name: string;
   cursor?: { x: number; y: number };
   isActive: boolean;
 }
-// Union type for all canvas items
 export type CanvasItem =
   | RectangleShape
   | EllipseShape
@@ -143,10 +175,15 @@ export type CanvasItem =
   | ImageShape
   | SVGShape
   | ContainerGroup
-  | AreaModeContainer;
+  | FreeShape
+  | AreaModeContainer
+  | RowShape
+  | GridShape;
 
-// Helper type for just shapes (excluding containers)
-export type ShapeItem = Exclude<CanvasItem, ContainerGroup | AreaModeContainer>;
+export type ShapeItem = Exclude<
+  CanvasItem,
+  ContainerGroup | AreaModeContainer | RowShape | GridShape
+>;
 
 export type Tool =
   | "select"
@@ -155,7 +192,8 @@ export type Tool =
   | "text"
   | "polygon"
   | "pan"
-  | "seat-grid";
+  | "seat-grid"
+  | "freeshape";
 
 export interface CanvasInventoryProps {
   shapes: CanvasItem[];

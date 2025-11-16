@@ -587,6 +587,6 @@ export async function getEventsByOrganizer(organizerId: string) {
 }
 
 export async function getEventById(eventId: string) {
-  const result = await getEventByIdOptimized(eventId);
-  return result[0] || null;
+  const events = await getEventsById(eventId);
+  return events[0] || null;
 }

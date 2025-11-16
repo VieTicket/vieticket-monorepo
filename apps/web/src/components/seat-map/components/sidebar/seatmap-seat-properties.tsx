@@ -3,8 +3,8 @@ import { areaModeContainer } from "../../variables";
 import { DebouncedInput } from "../inputs/debounced-input";
 import { useSeatMapStore } from "../../store/seat-map-store";
 import { SeatGridSettings } from "../../types";
-import { setSeatGridSettings } from "../../shapes";
 import { ColorPicker } from "../inputs/color-picker";
+import { setSeatGridSettings } from "../../shapes/grid-shape";
 
 export const SeatMapSeatSettings = () => {
   const shapes = useSeatMapStore((state) => state.shapes);

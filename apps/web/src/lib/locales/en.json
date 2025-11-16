@@ -198,13 +198,10 @@
       "updateEvent": "Update Event",
       "createEventt": "🎉 Create a New Event",
       "saveandcontinue": "Save & Continue",
-
       "areaA": "Area A",
       "mainShowing": "Main Showing",
-
       "pleaseFixErrors": "Please fix the errors before continuing",
       "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
-
       "toasts": {
         "failedLoadEvent": "Failed to load event data",
         "posterUploaded": "Poster uploaded successfully!",
@@ -225,7 +222,6 @@
         "preview": "Preview",
         "ticketing": "Ticketing"
       },
-
       "categories": {
         "workshop": "Workshop",
         "concert": "Concert",
@@ -244,7 +240,6 @@
         "saleEnds": "Sale ends: 1 hour before the earliest showing",
         "note": "Individual showings can have their own ticket sale schedules in the next step."
       },
-
       "help": {
         "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
       },
@@ -306,7 +301,10 @@
         },
         "image": {
           "cardTitle": "AI {type} Generator",
-          "types": { "poster": "Poster", "banner": "Banner" },
+          "types": {
+            "poster": "Poster",
+            "banner": "Banner"
+          },
           "backgroundLabel": "Background Prompt",
           "backgroundPlaceholder": "Describe the background for your {type}",
           "textOnImageLabel": "Text on Image (Optional)",
@@ -499,7 +497,9 @@
         "title": "Profile Photo",
         "uploadButton": "Upload New Avatar"
       },
-      "personalInfo": { "title": "Personal Information" },
+      "personalInfo": {
+        "title": "Personal Information"
+      },
       "labels": {
         "fullName": "Full Name:",
         "email": "Email:",
@@ -560,8 +560,12 @@
           "newPasswordRequired": "New password is required",
           "confirmPasswordRequired": "Please confirm your password"
         },
-        "toasts": { "success": "Password updated successfully" },
-        "buttons": { "update": "Update Password" }
+        "toasts": {
+          "success": "Password updated successfully"
+        },
+        "buttons": {
+          "update": "Update Password"
+        }
       }
     },
     "SignOut": {
@@ -703,19 +707,29 @@
     "contactInfo": {
       "phone": {
         "title": "Phone",
-        "details": ["Hotline: 0766 567 846"]
+        "details": [
+          "Hotline: 0766 567 846"
+        ]
       },
       "email": {
         "title": "Email",
-        "details": ["dt.khanh3007@gmail.com", "Contact for all inquiries"]
+        "details": [
+          "dt.khanh3007@gmail.com",
+          "Contact for all inquiries"
+        ]
       },
       "address": {
         "title": "Address",
-        "details": ["123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"]
+        "details": [
+          "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+        ]
       },
       "hours": {
         "title": "Working hours",
-        "details": ["Monday - Friday: 8:00 - 17:30", "Saturday: 8:00 - 12:00"]
+        "details": [
+          "Monday - Friday: 8:00 - 17:30",
+          "Saturday: 8:00 - 12:00"
+        ]
       }
     },
     "support": {
@@ -743,7 +757,7 @@
           "response": "Response within 1 business day"
         }
       }
-    },    
+    },
     "faq": {
       "badge": "❓ FAQ",
       "title": "You might need to know",
