@@ -126,9 +126,12 @@ const EventCard = ({
 
         {/* Event Details */}
         <div className="space-y-3 flex-1 min-h-0">
-          <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
-            {event.description || "No description available"}
-          </p>
+          <div 
+            className="text-sm text-gray-600 line-clamp-3 leading-relaxed prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ 
+              __html: event.description || "No description available" 
+            }}
+          />
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-gray-600">

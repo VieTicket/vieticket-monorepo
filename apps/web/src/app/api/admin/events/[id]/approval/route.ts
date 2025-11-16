@@ -9,18 +9,26 @@ export async function PATCH(
 ) {
   try {
     const awaitParams = await params;
-    const { is_approved } = await request.json();
+    const { approval_status } = await request.json();
     const eventId = awaitParams.id;
+
+    // Validate approval status
+    if (!approval_status || !["approved", "rejected"].includes(approval_status)) {
+      return NextResponse.json(
+        { error: "Invalid approval status. Must be 'approved' or 'rejected'" },
+        { status: 400 }
+      );
+    }
 
     // Update the event approval status
     await db
       .update(events)
-      .set({ approvalStatus: is_approved ? "approved" : "rejected" })
+      .set({ approvalStatus: approval_status })
       .where(eq(events.id, eventId));
 
     return NextResponse.json({
       success: true,
-      message: `Event ${is_approved ? "approved" : "rejected"} successfully`,
+      message: `Event ${approval_status} successfully`,
     });
   } catch (error) {
     console.error("Error updating event approval:", error);
