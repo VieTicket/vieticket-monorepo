@@ -1,10 +1,7 @@
-import type { User } from "better-auth";
-import { Role } from "@vieticket/db/pg/schema";
 import { Session } from "better-auth/types";
 import auth from "@vieticket/auth";
+import { UserWithRole } from "better-auth/plugins";
 export { auth };
-
-type UserWithRole = Omit<User, "role"> & { role: Role };
 
 export async function getAuthSession(headers: Headers): Promise<{
   session: Session;

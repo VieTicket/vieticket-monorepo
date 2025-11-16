@@ -1,5 +1,5 @@
 // Should import from "vnpay/types-only" but there's some bugs on the vnpay's internal package (not our fault)
-import { ProductCode, ReturnQueryFromVNPay, dateFormat } from "vnpay";
+import { ProductCode, type ReturnQueryFromVNPay, dateFormat } from "vnpay";
 import { toZonedTime } from 'date-fns-tz';
 import { vnpay } from ".";
 

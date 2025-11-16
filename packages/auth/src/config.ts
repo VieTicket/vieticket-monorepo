@@ -5,8 +5,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getResetPasswordEmail } from "./emails/reset-password";
 import { getVerificationEmail } from "./emails/verify-email";
 import { sendMail } from "@vieticket/utils/mailer";
+import organization from "./org-team"
 
-export const authConfig = betterAuth({
+export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "pg",
         schema: {
@@ -83,4 +84,7 @@ export const authConfig = betterAuth({
             enabled: true,
         },
     },
+    plugins: [
+        organization
+    ]
 });
