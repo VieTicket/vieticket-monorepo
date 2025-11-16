@@ -564,5 +564,231 @@
     "SignOut": {
       "signOut": "Đăng Xuất"
     }
+  },
+  "about": {
+    "hero": {
+      "badge": "🚀 Về VieTicket",
+      "title": "Nền tảng vé sự kiện hàng đầu Việt Nam",
+      "subtitle": "Kết nối người tham gia với những trải nghiệm sự kiện tuyệt vời, từ âm nhạc, thể thao đến hội nghị và nhiều hơn nữa."
+    },
+    "stats": {
+      "users": {
+        "value": "500K+",
+        "label": "Người dùng tin tưởng"
+      },
+      "events": {
+        "value": "10K+",
+        "label": "Sự kiện đã tổ chức"
+      },
+      "provinces": {
+        "value": "63",
+        "label": "Tỉnh thành"
+      },
+      "reliability": {
+        "value": "99.9%",
+        "label": "Độ tin cậy"
+      }
+    },
+    "mission": {
+      "badge": "🎯 Sứ mệnh",
+      "title": "Tại sao VieTicket được ra đời?",
+      "content": "VieTicket được sinh ra với sứ mệnh dân chủ hóa việc tiếp cận sự kiện tại Việt Nam. Chúng tôi tin rằng mọi người đều xứng đáng có những trải nghiệm sự kiện tuyệt vời, bất kể họ ở đâu, làm gì. Từ concert, hội nghị, workshop đến các sự kiện thể thao - tất cả đều nên dễ dàng tìm kiếm, đặt vé và tham gia.",
+      "vision": {
+        "title": "Tầm nhìn 2030",
+        "content": "Trở thành siêu ứng dụng giải trí và sự kiện số 1 Đông Nam Á, nơi mọi trải nghiệm đáng nhớ bắt đầu."
+      }
+    },
+    "features": {
+      "badge": "⚡ Tính năng",
+      "title": "Tại sao chọn VieTicket?",
+      "list": {
+        "fastBooking": {
+          "title": "Đặt vé nhanh chóng",
+          "description": "Chỉ trong vài cú click, bạn đã có vé tham gia sự kiện yêu thích."
+        },
+        "security": {
+          "title": "Bảo mật tuyệt đối",
+          "description": "Thông tin cá nhân và giao dịch được bảo vệ bằng công nghệ mã hóa hiện đại."
+        },
+        "eTicket": {
+          "title": "Vé điện tử tiện lợi",
+          "description": "E-ticket trên smartphone, không cần lo lắng về việc mất vé giấy."
+        },
+        "aiPersonal": {
+          "title": "AI cá nhân hóa",
+          "description": "Hệ thống AI thông minh gợi ý sự kiện phù hợp với sở thích của bạn."
+        },
+        "support": {
+          "title": "Hỗ trợ 24/7",
+          "description": "Đội ngũ hỗ trợ khách hàng luôn sẵn sàng giúp đỡ bạn mọi lúc, mọi nơi."
+        },
+        "diverse": {
+          "title": "Đa dạng sự kiện",
+          "description": "Từ âm nhạc, thể thao đến kinh doanh - hàng nghìn sự kiện chờ bạn khám phá."
+        }
+      }
+    },
+    "timeline": {
+      "badge": "📈 Hành trình",
+      "title": "Hành trình phát triển VieTicket",
+      "events": {
+        "2024": {
+          "year": "2024",
+          "title": "Ý tưởng ra đời",
+          "description": "Ý tưởng VieTicket được hình thành bởi đội ngũ sinh viên đam mê công nghệ và sự kiện."
+        },
+        "2025": {
+          "year": "2025",
+          "title": "Đang phát triển",
+          "description": "Hiện tại đang tích cực phát triển nền tảng với các tính năng đặt vé thông minh và quản lý sự kiện."
+        },
+        "2026": {
+          "year": "2026",
+          "title": "Ra mắt và mở rộng",
+          "description": "Mục tiêu ra mắt chính thức, phục vụ hàng ngàn sự kiện và mở rộng ra các tỉnh thành."
+        }
+      }
+    },
+    "team": {
+      "badge": "👥 Đội ngũ phát triển",
+      "title": "Những người đứng sau VieTicket",
+      "subtitle": "Đội ngũ đam mê công nghệ và sự kiện, cam kết tạo ra trải nghiệm tuyệt vời cho người dùng.",
+      "members": {
+        "vinh": {
+          "name": "Đặng Thành Vinh",
+          "role": "Thành viên phát triển",
+          "bio": "Tham gia phát triển và xây dựng nền tảng VieTicket."
+        },
+        "khanh": {
+          "name": "Trần Đình Khanh",
+          "role": "Thành viên phát triển", 
+          "bio": "Đóng góp vào việc phát triển các tính năng và hệ thống."
+        },
+        "hoang": {
+          "name": "Nguyễn Phạm Việt Hoàng",
+          "role": "Thành viên phát triển",
+          "bio": "Tham gia xây dựng trải nghiệm người dùng cho VieTicket."
+        },
+        "ha": {
+          "name": "Lê Thy An Hạ",
+          "role": "Thành viên phát triển",
+          "bio": "Đóng góp vào việc phát triển sản phẩm và tính năng."
+        },
+        "hung": {
+          "name": "Dương Việt Hùng",
+          "role": "Thành viên phát triển",
+          "bio": "Tham gia phát triển và tối ưu hóa hệ thống VieTicket."
+        }
+      }
+    },
+    "cta": {
+      "badge": "🚀 Tham gia ngay",
+      "title": "Sẵn sàng khám phá?",
+      "subtitle": "Hãy trở thành một phần của cộng đồng VieTicket ngay hôm nay",
+      "buttons": {
+        "events": "Khám phá sự kiện",
+        "organizer": "Liên hệ chúng tôi"
+      }
+    }
+  },
+  "contact": {
+    "hero": {
+      "badge": "📞 Liên hệ",
+      "title": "Chúng tôi luôn sẵn sàng hỗ trợ bạn",
+      "subtitle": "Có thắc mắc hay cần hỗ trợ? Đội ngũ VieTicket luôn sẵn sàng giúp đỡ bạn 24/7. Hãy liên hệ với chúng tôi qua bất kỳ kênh nào dưới đây."
+    },
+    "contactInfo": {
+      "phone": {
+        "title": "Điện thoại",
+        "details": ["Hotline: 0766 567 846"]
+      },
+      "email": {
+        "title": "Email",
+        "details": ["dt.khanh3007@gmail.com", "Liên hệ tất cả vấn đề"]
+      },
+      "address": {
+        "title": "Địa chỉ",
+        "details": ["123 Đường Nguyễn Văn Linh, Q.Hải Châu, TP.Đà Nẵng"]
+      },
+      "hours": {
+        "title": "Giờ làm việc",
+        "details": ["Thứ 2 - Thứ 6: 8:00 - 17:30", "Thứ 7: 8:00 - 12:00"]
+      }
+    },
+    "support": {
+      "title": "Chọn đúng chuyên mục hỗ trợ",
+      "subtitle": "Để được hỗ trợ nhanh chóng và chính xác nhất, vui lòng chọn đúng chuyên mục khi gửi tin nhắn",
+      "categories": {
+        "customer": {
+          "title": "Hỗ trợ khách hàng",
+          "description": "Hỗ trợ về đặt vé, thanh toán và các vấn đề kỹ thuật",
+          "response": "Phản hồi trong 2-4 giờ"
+        },
+        "business": {
+          "title": "Hợp tác kinh doanh",
+          "description": "Đăng ký trở thành đối tác tổ chức sự kiện",
+          "response": "Phản hồi trong 1 ngày làm việc"
+        },
+        "partnership": {
+          "title": "Quan hệ đối tác",
+          "description": "Hợp tác chiến lược và đầu tư",
+          "response": "Phản hồi trong 2-3 ngày làm việc"
+        },
+        "media": {
+          "title": "Báo chí & Truyền thông",
+          "description": "Thông tin báo chí, PR và marketing",
+          "response": "Phản hồi trong 1 ngày làm việc"
+        }
+      }
+    },
+    "faq": {
+      "badge": "❓ Câu hỏi thường gặp",
+      "title": "Có thể bạn cần biết",
+      "subtitle": "Những câu hỏi được đặt nhiều nhất từ người dùng VieTicket",
+      "items": {
+        "booking": {
+          "question": "Làm thế nào để đặt vé sự kiện?",
+          "answer": "Bạn có thể tìm kiếm sự kiện, chọn vé và thanh toán trực tuyến qua website hoặc app VieTicket."
+        },
+        "cancellation": {
+          "question": "Tôi có thể hủy hoặc đổi vé không?",
+          "answer": "Chính sách hủy/đổi vé tùy thuộc vào từng sự kiện. Vui lòng xem chi tiết trong mục 'Điều khoản' của từng sự kiện."
+        },
+        "eticket": {
+          "question": "Vé điện tử có an toàn không?",
+          "answer": "Vé điện tử của VieTicket được mã hóa QR Code và có hệ thống xác thực chặt chẽ, đảm bảo an toàn tuyệt đối."
+        },
+        "organizer": {
+          "question": "Làm sao để trở thành đối tác tổ chức sự kiện?",
+          "answer": "Bạn có thể đăng ký tài khoản Organizer và gửi đăng ký qua email business@vieticket.com hoặc liên hệ hotline."
+        }
+      },
+      "notFound": "Không tìm thấy câu trả lời? Hãy liên hệ trực tiếp với chúng tôi",
+      "callNow": "Gọi ngay: 0766 567 846",
+      "emailSupport": "Email hỗ trợ"
+    },
+    "office": {
+      "badge": "📍 Địa chỉ",
+      "title": "Ghé thăm văn phòng của chúng tôi",
+      "headquarters": "VieTicket - Trụ sở chính",
+      "mapPlaceholder": "Google Maps sẽ được tích hợp tại đây",
+      "mapDescription": "Interactive map với vị trí chính xác văn phòng VieTicket",
+      "details": {
+        "address": {
+          "title": "Địa chỉ",
+          "line1": "123 Đường Nguyễn Văn Linh, Q.7, TP.HCM"
+        },
+        "hours": {
+          "title": "Giờ làm việc",
+          "weekdays": "Thứ 2 - Thứ 6: 8:00 - 17:30",
+          "saturday": "Thứ 7: 8:00 - 12:00",
+          "sunday": "Chủ nhật: Nghỉ"
+        },
+        "phone": {
+          "title": "Điện thoại",
+          "hotline": "Hotline: 0766 567 846"        
+        }
+      }
+    }
   }
 }
