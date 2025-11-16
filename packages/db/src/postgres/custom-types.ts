@@ -1,4 +1,4 @@
-import { VNPayOrderData } from "@vieticket/utils/vnpay";
+import { type VNPayOrderData } from "@vieticket/utils/vnpay";
 import { customType } from "drizzle-orm/pg-core";
 
 type NumericConfig = {

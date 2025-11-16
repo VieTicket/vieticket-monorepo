@@ -1,2 +1,2 @@
-import { authConfig } from "./config";
-export default authConfig;
+import { auth } from "./config";
+export default auth;
