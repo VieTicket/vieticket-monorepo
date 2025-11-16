@@ -15,12 +15,13 @@
     "@types/bun": "latest"
   },
   "peerDependencies": {
-    "typescript": "^5"
+    "typescript": "catalog:"
   },
   "dependencies": {
-    "@vieticket/repos": "*",
     "@vieticket/db": "*",
-    "@vieticket/utils": "*"
+    "@vieticket/repos": "*",
+    "@vieticket/utils": "*",
+    "openai": "^6.7.0"
   },
   "private": true
 }

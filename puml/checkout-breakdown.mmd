@@ -1,0 +1,58 @@
+classDiagram
+    direction LR
+
+    class CheckoutActions {
+        <<File>>
+        /apps/web/src/lib/actions/customer/checkout-actions.ts
+        +getTicketsAction(eventId): Promise<ActionResult>
+        +createOrderAction(eventId, selectedSeatIds): Promise<ActionResult>
+    }
+
+    class CheckoutService {
+        <<File>>
+        /packages/services/src/checkout-service.ts
+        +getTicketData(eventId, user): Promise<TicketData>
+        +createPendingOrder(eventId, selectedSeatIds, user, clientIp): Promise<PendingOrder>
+        +processPaymentResult(vnpayResponseData, user): Promise<PaymentProcessingResult>
+        +sendOrderConfirmationEmail(user, orderData, tickets): Promise<boolean>
+    }
+
+    class CheckoutRepo {
+        <<File>>
+        /packages/repos/src/checkout-repo.ts
+        +getSeatStatus(eventId): Promise<SeatStatus>
+        +getSeatPricing(selectedSeatIds): Promise<SeatPriceInfo[]>
+        +getSeatAvailabilityStatus(selectedSeatIds): Promise<SeatAvailability>
+        +executeOrderTransaction(orderData, seatHoldsData): Promise<Order>
+        +updateOrderVNPayData(orderId, vnpayData): Promise<Order>
+        +getOrderByVNPayTxnRef(vnpTxnRef): Promise<Order | null>
+        +updateOrderStatus(orderId, status): Promise<Order>
+        +getUserUnconfirmedSeatHolds(userId, orderId): Promise<SeatHold[]>
+        +executePaymentTransaction(orderId, userId, ticketData): Promise<PaymentTransactionResult>
+    }
+
+    class OrderSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/orders-schemas.ts
+        +seatHolds
+        +orders
+        +tickets
+        +refunds
+    }
+
+    class EventSchemas {
+        <<Schema>>
+        /packages/db/src/postgres/schemas/events-schemas.ts
+        +events
+        +showings
+        +areas
+        +rows
+        +seats
+    }
+
+    CheckoutActions --> CheckoutService : calls
+    CheckoutService --> CheckoutRepo : calls
+    CheckoutRepo --> OrderSchemas : uses
+    CheckoutRepo --> EventSchemas : uses
+
+```

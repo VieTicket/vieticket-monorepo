@@ -19,6 +19,8 @@ import {
   setOriginalPositions,
   setOriginalPolygonPoints,
   setShapes,
+  isAreaMode,
+  areaModeContainer,
 } from "../variables";
 import {
   clearAllSelections,
@@ -51,9 +53,6 @@ export const handleShapeSelection = (
     if (isMultiSelect) {
       shape.selected = !shape.selected;
     } else {
-      clearAllSelections();
-      shape.selected = true;
-
       const shapePath = getContainerPath(shape);
       if (shapePath.length > 0) {
         setSelectedContainer(shapePath.slice(0, -1));
@@ -63,12 +62,8 @@ export const handleShapeSelection = (
     }
 
     const allSelectedShapes = getAllSelectedShapes();
-
-    // ✅ Update selection without saving history
     useSeatMapStore.getState().setSelectedShapes(allSelectedShapes, false);
   }
-
-  // ✅ Update shapes without saving history
   setShapes([...shapes]);
   useSeatMapStore.getState().updateShapes([...shapes], false);
 
@@ -88,7 +83,6 @@ export const onStageClick = () => {
     setSelectedContainer([]);
     const selectedShapes = useSeatMapStore.getState().selectedShapes;
 
-    // ✅ Clear selection without saving history
     if (selectedShapes.length > 0) {
       useSeatMapStore.getState().setSelectedShapes([], false);
       setShapes([...shapes]);
@@ -115,7 +109,6 @@ export const handleDoubleClick = (
     if (hitChild) {
       hitChild.selected = true;
 
-      // ✅ Update selection without saving history
       useSeatMapStore.getState().setSelectedShapes([hitChild], false);
 
       const selectionTransform = getSelectionTransform();
@@ -124,8 +117,8 @@ export const handleDoubleClick = (
       }
 
       setPreviouslyClickedShape(shape);
+      console.log("hitChild", hitChild);
     } else {
-      // ✅ Clear selection without saving history
       useSeatMapStore.getState().setSelectedShapes([], false);
 
       const selectionTransform = getSelectionTransform();
@@ -135,7 +128,6 @@ export const handleDoubleClick = (
       setPreviouslyClickedShape(hitChild);
     }
 
-    // ✅ Update shapes without saving history
     setShapes([...shapes]);
     useSeatMapStore.getState().updateShapes([...shapes], false);
   } else {
@@ -161,8 +153,16 @@ export const startShapeDrag = (
       return;
     }
   } else {
+    let selectedNested;
+
     if (shape.selected) {
       setDraggedShapes(getAllSelectedIncludingNested());
+    } else if (
+      isAreaMode &&
+      (selectedNested = getAllSelectedIncludingNested()).length > 0 &&
+      ("gridName" in selectedNested[0] || "rowName" in selectedNested[0])
+    ) {
+      setDraggedShapes(selectedNested);
     } else {
       setPreviouslyClickedShape(
         useSeatMapStore.getState().selectedShapes[0] || null
@@ -171,7 +171,6 @@ export const startShapeDrag = (
       shape.selected = true;
       setDraggedShapes([shape]);
 
-      // ✅ Update selection without saving history (drag already saved)
       useSeatMapStore.getState().setSelectedShapes([shape], false);
       setShapes([...shapes]);
       useSeatMapStore.getState().updateShapes([...shapes], false);
@@ -215,7 +214,6 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
     const parentContainer = findParentContainer(shape);
 
     if (parentContainer) {
-      // Convert world delta to container's local coordinate system
       const localDelta = worldDeltaToContainerLocal(
         deltaX,
         deltaY,
@@ -241,11 +239,9 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
         shape.graphics.position.set(shape.x, shape.y);
         updatePolygonGraphics(shape);
       } else if (shape.type === "svg") {
-        // Special handling for SVG shapes due to pivot
         shape.x = original.x + deltaX;
         shape.y = original.y + deltaY;
 
-        // Update graphics position directly
         shape.graphics.position.set(shape.x, shape.y);
       } else {
         shape.x = original.x + localDelta.x;
@@ -253,7 +249,6 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
         shape.graphics.position.set(shape.x, shape.y);
       }
     } else {
-      // Shape is at root level - use world coordinates directly
       if (
         shape.type === "polygon" &&
         shape.points &&
@@ -301,13 +296,12 @@ const getAllSelectedIncludingNested = () => {
   addSelectedRecursively(shapes);
   return selectedShapes;
 };
-// Helper function to convert world delta to container's local coordinate system
+
 function worldDeltaToContainerLocal(
   worldDeltaX: number,
   worldDeltaY: number,
   container: ContainerGroup
 ): { x: number; y: number } {
-  // Calculate the accumulated rotation of all parent containers
   let totalRotation = 0;
   let totalScaleX = 1;
   let totalScaleY = 1;
@@ -320,14 +314,10 @@ function worldDeltaToContainerLocal(
     currentContainer = findParentContainer(currentContainer);
   }
 
-  // Apply inverse transforms to convert world delta to local delta
-
-  // First, apply inverse scaling
   const scaledDeltaX = worldDeltaX / totalScaleX;
   const scaledDeltaY = worldDeltaY / totalScaleY;
 
-  // Then, apply inverse rotation
-  const cos = Math.cos(-totalRotation); // Negative for inverse rotation
+  const cos = Math.cos(-totalRotation);
   const sin = Math.sin(-totalRotation);
 
   const localDeltaX = scaledDeltaX * cos - scaledDeltaY * sin;
@@ -344,12 +334,10 @@ export const endShapeDrag = () => {
   const afterDragShapes = draggedShapes;
   const beforeDragShapes = cloneCanvasItems(draggedShapes);
 
-  // ✅ Restore original positions for ALL dragged shapes
   for (let index = 0; index < draggedShapes.length; index++) {
     beforeDragShapes[index].x = originalPositions[index].x;
     beforeDragShapes[index].y = originalPositions[index].y;
 
-    // Also restore original polygon points if applicable
     if (
       draggedShapes[index].type === "polygon" &&
       originalPolygonPoints[index]
@@ -373,7 +361,7 @@ export const endShapeDrag = () => {
   if (selectionTransform) {
     selectionTransform.updateSelection(afterDragShapes);
   }
-  // ✅ Check if ANY shape moved significantly (not just the first one)
+
   let hasMoved = false;
   for (let i = 0; i < beforeDragShapes.length; i++) {
     const before = beforeDragShapes[i];
@@ -385,7 +373,6 @@ export const endShapeDrag = () => {
     }
   }
 
-  // ✅ Only save history if shapes actually moved
   if (hasMoved) {
     useSeatMapStore
       .getState()
@@ -419,7 +406,15 @@ export const onShapePointerDown = (
         currentContainer,
         event
       );
-      startShapeDrag(event, actualShape);
+
+      if (isAreaMode) {
+        startShapeDrag(event, shape);
+      } else {
+        if (actualShape.type === "ellipse" && "seatGraphics" in actualShape) {
+        } else {
+          startShapeDrag(event, actualShape);
+        }
+      }
       break;
     }
   }
@@ -442,19 +437,17 @@ export const onShapePointerUp = (
 
     const currentContainer = getCurrentContainer();
     const actualShape = resolveShapeForContext(shape, currentContainer, event);
-
     const currentTime = Date.now();
     const isDoubleClick =
       lastClickTarget?.id === shape.id &&
       currentTime - lastClickTime < doubleClickThreshold;
-
+    if (isCurrentlyShapeDragging()) {
+      endShapeDrag();
+    }
     if (isDoubleClick) {
       handleDoubleClick(event, actualShape);
     } else {
       handleShapeSelection(event, actualShape);
-    }
-    if (isCurrentlyShapeDragging()) {
-      endShapeDrag();
     }
 
     return { currentTime, actualShape: shape };

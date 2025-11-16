@@ -27,10 +27,10 @@ import {
 } from "../utils/grouping";
 import { getSelectionTransform } from "../events/transform-events";
 import {
-  findShapeInContainer,
   findParentContainer,
   findShapeById,
   getWorldCoordinates,
+  findShapeInContainerRecursive,
 } from "../shapes/index";
 
 interface DragState {
@@ -399,8 +399,14 @@ export const LayerList = React.memo(
           for (const mainShape of shapes) {
             if (mainShape.type === "container") {
               const containerGroup = mainShape as ContainerGroup;
-              shape = findShapeInContainer(containerGroup, shapeId);
-              if (shape) break;
+              let found = findShapeInContainerRecursive(
+                containerGroup,
+                shapeId
+              );
+              if (found) {
+                shape = found.shape;
+                break;
+              }
             }
           }
         }
@@ -446,8 +452,14 @@ export const LayerList = React.memo(
           for (const mainShape of shapes) {
             if (mainShape.type === "container") {
               const containerGroup = mainShape as ContainerGroup;
-              shape = findShapeInContainer(containerGroup, shapeId);
-              if (shape) break;
+              let found = findShapeInContainerRecursive(
+                containerGroup,
+                shapeId
+              );
+              if (found) {
+                shape = found.shape;
+                break;
+              }
             }
           }
         }

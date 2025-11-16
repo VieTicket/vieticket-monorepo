@@ -20,21 +20,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
-
-type SeatMapItem = {
-  id: string;
-  name: string;
-  updatedAt: string;
-  createdAt: string;
-  image?: string;
-  createdBy: string;
-  publicity?: "public" | "private";
-};
+import { SeatMapItem } from "../page";
 
 interface SeatMapCardProps {
   item: SeatMapItem;
   viewMode: "grid" | "list";
-  formatDate: (date: string) => string;
+  formatDate: (date: Date) => string;
   showActions?: boolean;
   onPublish?: (seatMapId: string) => void;
   onDelete?: (seatMapId: string) => void;

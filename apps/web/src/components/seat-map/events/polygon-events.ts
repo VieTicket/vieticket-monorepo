@@ -13,7 +13,7 @@ import {
   clearPolygonPreview,
 } from "../preview";
 
-const CLOSE_THRESHOLD = 15; // pixels
+const CLOSE_THRESHOLD = 15;
 const MIN_POINTS = 3;
 
 const isNearFirstPoint = (
@@ -38,7 +38,6 @@ export const onPolygonStart = (event: PIXI.FederatedPointerEvent) => {
   const newPoint = { x: localPoint.x, y: localPoint.y };
 
   if (!polygonDrawingState.isDrawing) {
-    // Start new polygon
     const newState = {
       isDrawing: true,
       points: [newPoint],
@@ -47,17 +46,14 @@ export const onPolygonStart = (event: PIXI.FederatedPointerEvent) => {
     setPolygonDrawingState(newState);
     createPolygonPreview();
   } else {
-    // Add point to existing polygon
     const firstPoint = polygonDrawingState.points[0];
 
-    // Check if clicking near first point to close polygon
     if (
       polygonDrawingState.points.length >= MIN_POINTS &&
       isNearFirstPoint(newPoint, firstPoint)
     ) {
       finishPolygon();
     } else {
-      // Add new point
       const newPoints = [...polygonDrawingState.points, newPoint];
       const newState = {
         ...polygonDrawingState,
@@ -78,7 +74,6 @@ export const onPolygonMove = (event: PIXI.FederatedPointerEvent) => {
 
   const currentPoint = { x: localPoint.x, y: localPoint.y };
 
-  // Update preview with current mouse position
   const previewPoints = [...polygonDrawingState.points, currentPoint];
 
   const newState = {
@@ -118,7 +113,6 @@ export const cancelPolygonDrawing = () => {
   resetPolygonDrawing();
 };
 
-// Handle right-click to finish polygon
 export const onPolygonRightClick = (event: PIXI.FederatedPointerEvent) => {
   if (currentTool !== "polygon" || !polygonDrawingState.isDrawing) return;
 
@@ -131,7 +125,6 @@ export const onPolygonRightClick = (event: PIXI.FederatedPointerEvent) => {
   }
 };
 
-// Handle escape key to cancel
 export const onPolygonEscape = () => {
   if (currentTool === "polygon" && polygonDrawingState.isDrawing) {
     cancelPolygonDrawing();

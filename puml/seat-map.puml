@@ -286,10 +286,10 @@ Page -> Organizer: Display updated drafts list
 
 @enduml
 
-@startuml edit-existing-seat-map
+@startuml edit-seat-map
 autonumber
 !theme plain
-title Edit Existing Seat Map Flow
+title Edit Seat Map
 
 actor Organizer
 participant "Seat Map Canvas Page\n(UI Components)" as Page
@@ -398,5 +398,104 @@ Note over Cloudinary
   - q_auto (quality)
   - Responsive delivery
 end note
+
+@enduml
+
+
+@startuml delete-seat-map
+autonumber
+!theme plain
+title Delete Seat Map Flow
+
+actor Organizer
+participant "Seat Map Directory Page\n(UI Components)" as Page
+participant "API Actions" as Actions
+participant "Auth Service" as Auth
+participant "SeatMap Service" as Service
+participant "SeatMap Repository" as Repo
+participant "Event Repository" as EventRepo
+participant "Cloudinary" as Cloud
+participant "MongoDB" as MongoDB
+
+== Delete Initiation ==
+Organizer -> Page: Click "Delete" on seat map card
+activate Page
+
+Page -> Page: Show confirmation dialog
+Note right of Page
+  Dialog message:
+  "Are you sure you want to delete '{seatMapName}'?
+  This action cannot be undone."
+end note
+
+Organizer -> Page: Confirm deletion
+Page -> Page: Set deleting state for seat map ID
+
+Page -> Actions: deleteSeatMapAction(seatMapId)
+activate Actions
+
+Actions -> Auth: getAuthSession()
+activate Auth
+Auth --> Actions: Session with user data
+deactivate Auth
+
+
+    alt Seat map not found
+        Service --> Actions: { success: false, error: "Seat map not found" }
+        Actions --> Page: Error response
+        Page -> Organizer: Show error toast
+        Page -> Page: Clear deleting state
+    else Ownership validation
+        alt User is not the creator
+            Service --> Actions: { success: false, error: "Unauthorized" }
+            Actions --> Page: Error response
+            Page -> Organizer: Show error toast
+            Page -> Page: Clear deleting state
+        else User is the creator
+            Service -> EventRepo: checkSeatMapUsage(seatMapId)
+            activate EventRepo
+            EventRepo -> MongoDB: Query events using this seat map
+            activate MongoDB
+            MongoDB --> EventRepo: Events using seat map
+            deactivate MongoDB
+            EventRepo --> Service: Usage count
+            deactivate EventRepo
+            
+            alt Seat map is in use
+                Service --> Actions: { success: false, error: "Cannot delete. Used in X events" }
+                Actions --> Page: Error response
+                Page -> Organizer: Show detailed error toast
+                Page -> Page: Clear deleting state
+            else Seat map not in use
+                alt Seat map has image
+                    Service -> Cloud: deleteImage(public_id)
+                    activate Cloud
+                    Cloud --> Service: Deletion confirmation
+                    deactivate Cloud
+                end
+                
+                Service -> Repo: deleteSeatMapById(seatMapId)
+                activate Repo
+                Repo -> MongoDB: Delete seat map document
+                activate MongoDB
+                MongoDB --> Repo: Deletion result
+                deactivate MongoDB
+                Repo --> Service: Deleted seat map
+                deactivate Repo
+                
+                Service --> Actions: { success: true, data: deletedSeatMap }
+                deactivate Service
+                
+                Actions --> Page: Success response
+                deactivate Actions
+                
+                Page -> Page: Remove seat map from local state
+                Page -> Page: Clear deleting state
+                Page -> Organizer: Show success toast
+            end
+        end
+end
+
+deactivate Page
 
 @enduml

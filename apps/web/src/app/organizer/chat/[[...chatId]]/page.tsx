@@ -4,6 +4,7 @@ import { getAuthSession } from "@/lib/auth/auth";
 import { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: `Nhắn tin`,
@@ -49,11 +50,13 @@ export default async function ChatPage({
     return <div>Error: Stream API key is not configured.</div>;
   }
 
+  const t = await getTranslations("organizer-dashboard");
+
   return (
     <div className="container mx-auto py-4 px-4">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold">Tin nhắn</h1>
-        <p className="text-muted-foreground">Các cuộc trò chuyện của bạn</p>
+        <h1 className="text-2xl font-bold">{t("ChatWithAdmin.chat")}</h1>
+        <p className="text-muted-foreground">{t("ChatWithAdmin.your_conversations")}</p>
       </div>
 
       <ChatClient

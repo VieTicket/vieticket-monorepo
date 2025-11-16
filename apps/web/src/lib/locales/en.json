@@ -2,11 +2,23 @@
   "home": {
     "logIn": "Log In",
     "signUp": "Sign Up",
-    "nav":[
-        { "label": "Home", "href": "/" },
-        { "label": "Events", "href": "/events" },
-        { "label": "About", "href": "/about" },
-        { "label": "Contact", "href": "/contact" }
+    "nav": [
+      {
+        "label": "Home",
+        "href": "/"
+      },
+      {
+        "label": "Events",
+        "href": "/events"
+      },
+      {
+        "label": "About",
+        "href": "/about"
+      },
+      {
+        "label": "Contact",
+        "href": "/contact"
+      }
     ],
     "carousel": {
       "slide1": {
@@ -24,23 +36,23 @@
     },
     "description": "Find the best events around you.",
     "categories": {
-        "title": "Explore Categories",
-        "types":{
-            "Entertainment": "Entertainment",
-            "Technology & Innovation": "Technology & Innovation",
-            "Business": "Business",
-            "Cultural & Arts": "Cultural & Arts",
-            "Sports & Fitness": "Sports & Fitness",
-            "Competition & Game shows": "Competition & Game shows"
-        }
+      "title": "Explore Categories",
+      "types": {
+        "Entertainment": "Entertainment",
+        "Technology & Innovation": "Technology & Innovation",
+        "Business": "Business",
+        "Cultural & Arts": "Cultural & Arts",
+        "Sports & Fitness": "Sports & Fitness",
+        "Competition & Game shows": "Competition & Game shows"
+      }
     },
     "titlecategories": "Explore the Best Online Events",
     "seeMore": "See More"
   },
   "footer": {
-    "companyInfo":{
-        "title": "Company Info",
-        "properties": [
+    "companyInfo": {
+      "title": "Company Info",
+      "properties": [
         "About Us",
         "Contact Us",
         "Careers",
@@ -49,26 +61,751 @@
         "Privacy Policy"
       ]
     },
-    "help":{
-        "title": "Help",
-        "properties": [
+    "help": {
+      "title": "Help",
+      "properties": [
         "Account Support",
         "Listing Events",
         "Event Ticketing",
         "Ticket Purchase Terms & Conditions"
-      ]  
+      ]
     },
     "categories": {
-        "title": "Explore Categories",
-        "properties":[
-            "Entertainment",
-            "Technology & Innovation",
-            "Business",
-            "Cultural & Arts",
-            "Sports & Fitness",
-            "Competition & Game shows"
-        ]
+      "title": "Explore Categories",
+      "properties": [
+        "Entertainment",
+        "Technology & Innovation",
+        "Business",
+        "Cultural & Arts",
+        "Sports & Fitness",
+        "Competition & Game shows"
+      ]
     },
     "followUs": "Follow Us"
-}
+  },
+  "event-sidebar": {
+    "Searchevents": "Search events...",
+    "PriceRange": "Price Range",
+    "priceOptions": [
+      {
+        "label": "Under 500,000₫",
+        "value": "lt500k"
+      },
+      {
+        "label": "500,000₫ - 1,000,000₫",
+        "value": "500k-1m"
+      },
+      {
+        "label": "1,000,000₫ - 3,000,000₫",
+        "value": "1m-3m"
+      },
+      {
+        "label": "3,000,000₫ - 5,000,000₫",
+        "value": "3m-5m"
+      },
+      {
+        "label": "Over 5,000,000₫",
+        "value": "gt5m"
+      }
+    ],
+    "seeMore": "See More",
+    "StartDate": "Start Date",
+    "dateOptions": [
+      {
+        "label": "All",
+        "value": "all"
+      },
+      {
+        "label": "Today",
+        "value": "today"
+      },
+      {
+        "label": "This Week",
+        "value": "thisWeek"
+      }
+    ],
+    "Category": "Categories",
+    "categoryOptions": [
+      {
+        "label": "All Categories",
+        "value": "all"
+      },
+      {
+        "label": "Entertainment",
+        "value": "Entertainment"
+      },
+      {
+        "label": "Technology & Innovation",
+        "value": "Technology & Innovation"
+      },
+      {
+        "label": "Business",
+        "value": "Business"
+      },
+      {
+        "label": "Cultural & Arts",
+        "value": "Cultural & Arts"
+      },
+      {
+        "label": "Sports & Fitness",
+        "value": "Sports & Fitness"
+      },
+      {
+        "label": "Competition & Game shows",
+        "value": "Competition & Game shows"
+      }
+    ],
+    "Location": "Location",
+    "AllLocation": "All Locations"
+  },
+  "organizer-dashboard": {
+    "General": {
+      "general": "General",
+      "revenue": "Revenue",
+      "organizerOverview": "Organizer Overview",
+      "totalRevenue": "Total Revenue",
+      "actual(-20%)": "Actual (-20%)",
+      "totalEvents": "Total Events",
+      "ticketsSold": "Tickets Sold",
+      "featuredEvent": "Featured Event",
+      "revenue:": "Revenue:",
+      "revenueFluctuation": "Revenue Fluctuation",
+      "revenueOverTime": "Revenue Over Time",
+      "allTime": "All Time",
+      "last7Days": "Last 7 Days",
+      "last30Days": "Last 30 Days",
+      "custom": "Custom",
+      "revenueStructure": "Revenue Structure",
+      "revenueDistributionByEvent": "Revenue distribution by event.",
+      "topEventsByRevenue": "Top Events by Revenue",
+      "event": "Event",
+      "status": "Status"
+    },
+    "CreateEvent": {
+      "createEvent": "Create Event",
+      "eventDetails": "Event Details",
+      "seatMap": "Seat Map",
+      "editEvent": "Edit Event",
+      "seatMapUpdateRequired": "⚠️ Seat Map Update Required",
+      "text1": "You have changed the seat map configuration. This will:",
+      "text2": "Delete all existing areas and seats.",
+      "text3": "Recreate the entire seat map structure.",
+      "text4": "This action cannot be undone.",
+      "text5": "I understand and confirm that I have updated the seat map",
+      "goback": "Go Back",
+      "updating": "Updating...",
+      "creating": "Creating...",
+      "updateEvent": "Update Event",
+      "createEventt": "🎉 Create a New Event",
+      "saveandcontinue": "Save & Continue",
+      "areaA": "Area A",
+      "mainShowing": "Main Showing",
+      "pleaseFixErrors": "Please fix the errors before continuing",
+      "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
+      "toasts": {
+        "failedLoadEvent": "Failed to load event data",
+        "posterUploaded": "Poster uploaded successfully!",
+        "bannerUploaded": "Banner uploaded successfully!",
+        "selectedSeatMap": "Selected seat map: {name}",
+        "selectedSeatMapDesc": "{totalSeats} seats in {areasCount} areas",
+        "failedLoadSeatMap": "Failed to load seat map details",
+        "seatMapLoadError": "An error occurred while loading the seat map",
+        "uploadFailed": "Upload failed: {message}",
+        "eventUpdated": "✅ Event updated successfully!",
+        "eventAndSeatMapCreated": "🎉 Event and seat map created successfully!",
+        "eventCreated": "🎉 Event created successfully!",
+        "createEventFailed": "Something went wrong while creating the event."
+      },
+      "steps": {
+        "edit": "Edit",
+        "banner": "Banner",
+        "preview": "Preview",
+        "ticketing": "Ticketing"
+      },
+      "categories": {
+        "workshop": "Workshop",
+        "concert": "Concert",
+        "webinar": "Webinar",
+        "music": "Music",
+        "sports": "Sports",
+        "art": "Art",
+        "comedy": "Comedy",
+        "food": "Food",
+        "conference": "Conference"
+      },
+      "ticketSale": {
+        "title": "Ticket Sale Schedule",
+        "description": "Ticket sale dates are automatically calculated based on your showings:",
+        "saleStarts": "Sale starts: 7 days before the earliest showing",
+        "saleEnds": "Sale ends: 1 hour before the earliest showing",
+        "note": "Individual showings can have their own ticket sale schedules in the next step."
+      },
+      "help": {
+        "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
+      },
+      "showings": {
+        "title": "Event Showings",
+        "description": "Add multiple showings for your event (different times/dates)",
+        "add": "Add Showing",
+        "defaultName": "Showing {n}",
+        "showing": "Showing {n}"
+      },
+      "ai": {
+        "text": {
+          "trigger": "✨ AI Description",
+          "title": "Create Event Description with AI",
+          "description": "💡 Enter specific instructions and creative hints to generate an attractive marketing description.",
+          "eventInfoTitle": "🎯 Current event information",
+          "labels": {
+            "name": "Name:",
+            "type": "Type:",
+            "location": "Location:",
+            "start": "Start:",
+            "end": "End:",
+            "price": "Price:"
+          },
+          "promptLabel": "🎨 Creative brief for description",
+          "placeholder": "💡 Creative example:\n• Emphasize unique networking opportunities\n• Highlight guest speakers/artists\n• Create FOMO with limited tickets\n• Emphasize exclusive experiences\n• Mention early bird discounts",
+          "tipTitle": "Tip:",
+          "tipText": "The more specific you are, the better the AI output will match your needs.",
+          "suggestionsTitle": "🚀 Creative suggestions:",
+          "templatesTitle": "📝 Example templates (click to copy):",
+          "templates": {
+            "workshop": "Create an energetic learning event description focused on networking, expert speakers and limited tickets.",
+            "workshopTitle": "Workshop/Training",
+            "workshopShort": "Networking + Experts + Limited tickets",
+            "concert": "High-energy concert description with star artist, spectacular lights, romantic moments for couples and early bird discounts.",
+            "concertTitle": "Concert/Music",
+            "concertShort": "Celebrity artist + Romantic + Early bird",
+            "tech": "Tech conference with top speakers, exclusive insights on AI/Trends, startup networking and product demos.",
+            "techTitle": "Tech Conference",
+            "techShort": "Expert insights + Startup networking",
+            "night": "Magical music night with top artists, stunning lights, romantic atmosphere and early bird offers.",
+            "nightTitle": "Magical Music Night",
+            "nightShort": "Emotional + Star Artist + Early bird"
+          },
+          "debug": "Debug:",
+          "debugDisabled": "disabled=",
+          "footer": {
+            "cancel": "❌ Cancel",
+            "generating": "🎨 Generating...",
+            "generate": "Generate Super Engaging Description"
+          },
+          "toasts": {
+            "emptyPrompt": "Please enter a prompt for description",
+            "success": "Event description generated successfully!",
+            "readError": "Unable to read response",
+            "apiError": "API Error: {error}",
+            "callError": "An error occurred while calling the AI. Please try again."
+          }
+        },
+        "image": {
+          "cardTitle": "AI {type} Generator",
+          "types": {
+            "poster": "Poster",
+            "banner": "Banner"
+          },
+          "backgroundLabel": "Background Prompt",
+          "backgroundPlaceholder": "Describe the background for your {type}",
+          "textOnImageLabel": "Text on Image (Optional)",
+          "textPlaceholder": "Example: \"LIVE MUSIC NIGHT 2025\"",
+          "styleLabel": "Style",
+          "selectPlaceholder": "Select a style",
+          "styles": {
+            "modern": "Modern",
+            "vibrant": "Vibrant",
+            "elegant": "Elegant",
+            "creative": "Creative",
+            "realistic": "Realistic",
+            "illustration": "Illustration"
+          },
+          "generating": "Generating...",
+          "generateBtn": "Generate Image",
+          "toasts": {
+            "enterBackground": "Please enter a background description",
+            "generated": "AI {type} generated successfully!",
+            "successApply": "Image applied successfully!",
+            "failedGenerate": "Failed to generate image."
+          },
+          "useBtn": "Use This Image",
+          "downloadBtn": "Download"
+        },
+        "media": {
+          "posterTitle": "Event Poster",
+          "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+          "posterAlt": "Event poster preview",
+          "uploadYourOwn": "Upload Your Own",
+          "uploadButtonPoster": "Upload Poster",
+          "removePoster": "Remove Poster",
+          "generateWithAI": "Generate with AI",
+          "bannerTitle": "Event Banner",
+          "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+          "bannerAlt": "Event banner preview",
+          "uploadButtonBanner": "Upload Banner",
+          "removeBanner": "Remove Banner",
+          "generateBannerWithAI": "Generate Banner with AI"
+        }
+      },
+      "placeholders": {
+        "example5": "e.g., 5",
+        "showingExample": "e.g., Morning Show, Evening Show"
+      },
+      "labels": {
+        "eventTitle": "Event Title",
+        "eventCategory": "Event Category",
+        "location": "Where will your event take place?",
+        "maxTicketsPerOrder": "Maximum Tickets per Order",
+        "description": "Additional Information",
+        "showingName": "Showing Name",
+        "startTime": "Start Time",
+        "endTime": "End Time",
+        "ticketSaleStart": "Ticket Sale Start",
+        "ticketSaleEnd": "Ticket Sale End"
+      },
+      "errors": {
+        "nameRequired": "Event name is required",
+        "locationRequired": "Location is required",
+        "descriptionRequired": "Description is required",
+        "showingRequired": "At least one showing with start time is required",
+        "maxTicketsMin": "Maximum tickets per order must be at least 1",
+        "maxTicketsMax": "Maximum tickets per order cannot exceed 20",
+        "startTimePast": "Start time cannot be in the past",
+        "endTimePast": "End time cannot be in the past",
+        "endTimeBeforeStart": "End time must be after start time",
+        "ticketSaleStartPast": "Ticket sale start cannot be in the past",
+        "ticketSaleStartBeforeShowing": "Ticket sale must start before the showing",
+        "ticketSaleEndPast": "Ticket sale end cannot be in the past",
+        "ticketSaleEndAfterStart": "Ticket sale end must be after start date",
+        "ticketSaleEndBeforeShowing": "Ticket sale must end before the showing starts",
+        "showingDurationTooShort": "Showing duration must be at least 30 minutes",
+        "showingDurationTooLong": "Showing duration cannot exceed 24 hours",
+        "ticketSaleStartTooLate": "Ticket sale must start at least 2 days before showing",
+        "ticketSaleEndTooLate": "Ticket sale must end at least 1 day before showing",
+        "ticketSaleWindowTooShort": "Ticket sale window must be at least 6 hours",
+        "ticketSaleWindowTooLong": "Ticket sale window cannot exceed 90 days",
+        "showingTimesOverlap": "Showings must be at least 1 hour apart",
+        "duplicateShowingTime": "Cannot have two showings with the same start time",
+        "ticketSaleStartRequired": "Ticket sale start time is required",
+        "ticketSaleEndRequired": "Ticket sale end time is required"
+      }
+    },
+    "SeatMap": {
+      "seatMap": "SeatMap"
+    },
+    "ListEvent": {
+      "listEvent": "List Event",
+      "searchLabel": "Search",
+      "searchPlaceholder": "Search by event name...",
+      "allEvents": "All Events",
+      "approved": "✓ Approved",
+      "pending": "⏳ Pending",
+      "rejected": "✗ Rejected"
+    },
+    "Rating": {
+      "rating": "Rating"
+    },
+    "RequestPayout": {
+      "requestPayout": "Request Payout",
+      "title": "Admin Payout Management",
+      "loading": "Loading...",
+      "filterLabel": "Filter by status:",
+      "statusOptions": {
+        "all": "All",
+        "pending": "Pending",
+        "approved": "Approved",
+        "rejected": "Rejected",
+        "cancelled": "Cancelled",
+        "in_discussion": "In Discussion",
+        "completed": "Completed"
+      },
+      "noRequests": "No payout requests found.",
+      "table": {
+        "event": "Event",
+        "requestedAmount": "Requested Amount",
+        "amount": "Amount",
+        "agreedAmount": "Agreed Amount",
+        "status": "Status",
+        "requestDate": "Request Date",
+        "completionDate": "Completion Date",
+        "actions": "Actions",
+        "viewEvidence": "View Evidence",
+        "uploadEvidence": "Upload Evidence"
+      },
+      "viewDetails": "View Details",
+      "empty": {
+        "title": "No payout requests",
+        "description": "You haven't created any payout requests yet.",
+        "createBtn": "Create your first request"
+      },
+      "placeholders": {
+        "agreedAmount": "Agreed amount"
+      },
+      "buttons": {
+        "save": "Save",
+        "previous": "Previous",
+        "next": "Next",
+        "newPayout": "New Payout Request"
+      },
+      "page": {
+        "title": "Payout Requests"
+      },
+      "pagination": {
+        "pageOf": "Page {page} of {totalPages}"
+      },
+      "confirm": {
+        "updateAgreed": "Are you sure you want to update the agreed amount?",
+        "updateStatus": "Are you sure you want to update the status?"
+      },
+      "toasts": {
+        "fetchFailed": "Failed to fetch payout requests",
+        "unexpectedError": "An unexpected error occurred",
+        "agreedAmountUpdated": "Agreed amount updated successfully",
+        "agreedAmountUpdateFailed": "Failed to update agreed amount",
+        "statusUpdated": "Status updated successfully",
+        "statusUpdateFailed": "Failed to update status",
+        "proofUploaded": "Proof uploaded successfully",
+        "proofUploadFailed": "Failed to upload proof"
+      }
+    },
+    "InspectTicket": {
+      "inspectTicket": "Inspect Ticket"
+    },
+    "ChatWithAdmin": {
+      "chatWithAdmin": "Chat with Admin",
+      "chat": "Chat",
+      "your_conversations": "Your conversations"
+    },
+    "Profile": {
+      "profile": "Profile",
+      "settings": "Account Settings",
+      "accountInfo": "Account Info",
+      "password": "Password",
+      "loadingProfile": "Loading profile...",
+      "rejection": {
+        "title": "Application Rejected",
+        "description": "Your organizer application has been reviewed and unfortunately was not approved.",
+        "reasonTitle": "Reason for rejection:",
+        "helpText": "You can update your application information below and resubmit, or contact our support team if you have questions about this decision.",
+        "button": "I Understand",
+        "markedSeen": "Rejection notification marked as seen"
+      },
+      "organizerStatus": {
+        "active": "Your organizer account is active and approved!",
+        "pending": "Your organizer account is pending approval. Please complete all required fields below and wait for admin approval to access organizer features."
+      },
+      "photo": {
+        "title": "Profile Photo",
+        "uploadButton": "Upload New Avatar"
+      },
+      "personalInfo": {
+        "title": "Personal Information"
+      },
+      "labels": {
+        "fullName": "Full Name:",
+        "email": "Email:",
+        "dateOfBirth": "Date of Birth:",
+        "gender": "Gender:",
+        "phone": "Phone Number:"
+      },
+      "placeholders": {
+        "fullName": "Enter full name",
+        "email": "Email",
+        "dateOfBirth": "YYYY-MM-DD",
+        "gender": "Select gender",
+        "phone": "Enter phone number",
+        "organizerName": "Enter organizer name",
+        "website": "https://example.com",
+        "address": "Enter address",
+        "foundedDate": "YYYY-MM-DD",
+        "organizerType": "e.g. Entertainment, Cultural"
+      },
+      "contact": {
+        "title": "Contact Details",
+        "description": "These details are private and only used to contact you for ticketing or prizes."
+      },
+      "organizerDetails": {
+        "title": "Organizer Details",
+        "description": "Complete all fields below to submit for admin approval.",
+        "organizerName": "Organizer Name:",
+        "website": "Website:",
+        "address": "Address:",
+        "foundedDate": "Founded Date:",
+        "organizerType": "Organizer Type:"
+      },
+      "buttons": {
+        "submitForApproval": "Submit for Approval",
+        "saveProfile": "Save My Profile"
+      },
+      "toasts": {
+        "loadFailed": "Failed to load profile data",
+        "avatarUpdated": "Avatar updated!",
+        "saveFailed": "Failed to save profile",
+        "saveSuccess": "Profile updated successfully"
+      },
+      "setPassword": {
+        "title": "Set Password",
+        "labels": {
+          "oldPassword": "Old Password",
+          "newPassword": "Password",
+          "confirmPassword": "Confirm Password"
+        },
+        "placeholders": {
+          "oldPassword": "Enter your old password",
+          "newPassword": "Enter your new password",
+          "confirmPassword": "Re-enter password"
+        },
+        "errors": {
+          "passwordMismatch": "Passwords do not match",
+          "oldPasswordRequired": "Old password is required",
+          "newPasswordRequired": "New password is required",
+          "confirmPasswordRequired": "Please confirm your password"
+        },
+        "toasts": {
+          "success": "Password updated successfully"
+        },
+        "buttons": {
+          "update": "Update Password"
+        }
+      }
+    },
+    "SignOut": {
+      "signOut": "Sign Out"
+    }
+  },
+  "about": {
+    "hero": {
+      "badge": "🚀 About VieTicket",
+      "title": "Vietnam's Leading Event Ticketing Platform",
+      "subtitle": "Connecting attendees with amazing event experiences, from music and sports to conferences and much more."
+    },
+    "stats": {
+      "users": {
+        "value": "500K+",
+        "label": "Trusted users"
+      },
+      "events": {
+        "value": "10K+",
+        "label": "Events organized"
+      },
+      "provinces": {
+        "value": "63",
+        "label": "Provinces"
+      },
+      "reliability": {
+        "value": "99.9%",
+        "label": "Reliability"
+      }
+    },
+    "mission": {
+      "badge": "🎯 Mission",
+      "title": "Why was VieTicket created?",
+      "content": "VieTicket was born with the mission to democratize event access in Vietnam. We believe everyone deserves great event experiences, regardless of where they are or what they do. From concerts, conferences, workshops to sporting events - everything should be easy to find, book and attend.",
+      "vision": {
+        "title": "Vision 2030",
+        "content": "To become the #1 entertainment and event super app in Southeast Asia, where every memorable experience begins."
+      }
+    },
+    "features": {
+      "badge": "⚡ Features",
+      "title": "Why choose VieTicket?",
+      "list": {
+        "fastBooking": {
+          "title": "Quick booking",
+          "description": "Just a few clicks and you'll have tickets to your favorite events."
+        },
+        "security": {
+          "title": "Absolute security",
+          "description": "Personal information and transactions are protected with modern encryption technology."
+        },
+        "eTicket": {
+          "title": "Convenient e-tickets",
+          "description": "E-tickets on your smartphone, no need to worry about losing paper tickets."
+        },
+        "aiPersonal": {
+          "title": "AI personalization",
+          "description": "Smart AI system suggests events that match your preferences."
+        },
+        "support": {
+          "title": "24/7 support",
+          "description": "Customer support team is always ready to help you anytime, anywhere."
+        },
+        "diverse": {
+          "title": "Diverse events",
+          "description": "From music, sports to business - thousands of events waiting for you to explore."
+        }
+      }
+    },
+    "timeline": {
+      "badge": "📈 Journey",
+      "title": "VieTicket development journey",
+      "events": {
+        "2024": {
+          "year": "2024",
+          "title": "Idea Born",
+          "description": "VieTicket idea was conceived by a team of students passionate about technology and events."
+        },
+        "2025": {
+          "year": "2025",
+          "title": "In Development",
+          "description": "Currently actively developing the platform with smart ticketing and event management features."
+        },
+        "2026": {
+          "year": "2026",
+          "title": "Launch & Expansion",
+          "description": "Target official launch, serving thousands of events and expanding to multiple provinces."
+        }
+      }
+    },
+    "team": {
+      "badge": "👥 Development team",
+      "title": "The people behind VieTicket",
+      "subtitle": "A team passionate about technology and events, committed to creating amazing experiences for users.",
+      "members": {
+        "vinh": {
+          "name": "Dang Thanh Vinh",
+          "role": "Development Member",
+          "bio": "Contributing to the development and building of VieTicket platform."
+        },
+        "khanh": {
+          "name": "Tran Dinh Khanh",
+          "role": "Development Member",
+          "bio": "Contributing to the development of features and systems."
+        },
+        "hoang": {
+          "name": "Nguyen Pham Viet Hoang",
+          "role": "Development Member",
+          "bio": "Participating in building user experiences for VieTicket."
+        },
+        "ha": {
+          "name": "Le Thy An Ha",
+          "role": "Development Member",
+          "bio": "Contributing to product development and features."
+        },
+        "hung": {
+          "name": "Duong Viet Hung",
+          "role": "Development Member",
+          "bio": "Participating in system development and optimization."
+        }
+      }
+    },
+    "cta": {
+      "badge": "🚀 Join now",
+      "title": "Ready to explore?",
+      "subtitle": "Become part of the VieTicket community today",
+      "buttons": {
+        "events": "Explore events",
+        "organizer": "Contact Us"
+      }
+    }
+  },
+  "contact": {
+    "hero": {
+      "badge": "📞 Contact",
+      "title": "We're always ready to help you",
+      "subtitle": "Have questions or need support? The VieTicket team is always ready to help you 24/7. Contact us through any of the channels below."
+    },
+    "contactInfo": {
+      "phone": {
+        "title": "Phone",
+        "details": [
+          "Hotline: 0766 567 846"
+        ]
+      },
+      "email": {
+        "title": "Email",
+        "details": [
+          "dt.khanh3007@gmail.com",
+          "Contact for all inquiries"
+        ]
+      },
+      "address": {
+        "title": "Address",
+        "details": [
+          "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+        ]
+      },
+      "hours": {
+        "title": "Working hours",
+        "details": [
+          "Monday - Friday: 8:00 - 17:30",
+          "Saturday: 8:00 - 12:00"
+        ]
+      }
+    },
+    "support": {
+      "title": "Choose the right support category",
+      "subtitle": "For the fastest and most accurate support, please select the appropriate category when sending your message",
+      "categories": {
+        "customer": {
+          "title": "Customer support",
+          "description": "Support for ticket booking, payments and technical issues",
+          "response": "Response within 2-4 hours"
+        },
+        "business": {
+          "title": "Business partnership",
+          "description": "Register to become an event organizing partner",
+          "response": "Response within 1 business day"
+        },
+        "partnership": {
+          "title": "Strategic partnerships",
+          "description": "Strategic partnerships and investments",
+          "response": "Response within 2-3 business days"
+        },
+        "media": {
+          "title": "Press & Media",
+          "description": "Press information, PR and marketing",
+          "response": "Response within 1 business day"
+        }
+      }
+    },
+    "faq": {
+      "badge": "❓ FAQ",
+      "title": "You might need to know",
+      "subtitle": "The most frequently asked questions from VieTicket users",
+      "items": {
+        "booking": {
+          "question": "How to book event tickets?",
+          "answer": "You can search for events, select tickets and pay online through VieTicket website or app."
+        },
+        "cancellation": {
+          "question": "Can I cancel or exchange tickets?",
+          "answer": "Cancellation/exchange policy depends on each event. Please see details in the 'Terms' section of each event."
+        },
+        "eticket": {
+          "question": "Are e-tickets safe?",
+          "answer": "VieTicket e-tickets are encrypted with QR codes and have a strict authentication system, ensuring absolute security."
+        },
+        "organizer": {
+          "question": "How to become an event organizing partner?",
+          "answer": "You can register for an Organizer account and send your registration via email business@vieticket.com or contact our hotline."
+        }
+      },
+      "notFound": "Can't find the answer? Contact us directly",
+      "callNow": "Call now: 0766 567 846",
+      "emailSupport": "Email support"
+    },
+    "office": {
+      "badge": "📍 Address",
+      "title": "Visit our office",
+      "headquarters": "VieTicket Headquarters",
+      "mapPlaceholder": "Google Maps will be integrated here",
+      "mapDescription": "Interactive map with exact VieTicket office location",
+      "details": {
+        "address": {
+          "title": "Address",
+          "line1": "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+        },
+        "hours": {
+          "title": "Working hours",
+          "weekdays": "Monday - Friday: 8:00 - 17:30",
+          "saturday": "Saturday: 8:00 - 12:00",
+          "sunday": "Sunday: Closed"
+        },
+        "phone": {
+          "title": "Phone",
+          "hotline": "Hotline: 0766 567 846"
+        }
+      }
+    }
+  }
 }

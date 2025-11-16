@@ -9,6 +9,9 @@ import {
   ContainerGroup,
   SeatShape,
   AreaModeContainer,
+  GridShape,
+  RowShape,
+  SeatGridSettings,
 } from "../types";
 import {
   useSeatMapStore,
@@ -38,10 +41,28 @@ import { createPolygon } from "../shapes/polygon-shape";
 import { createContainer } from "../shapes/container-shape";
 import { createSVG } from "../shapes/svg-shape";
 import * as PIXI from "pixi.js";
-import { findParentContainer, findShapeRecursively } from "../shapes";
+import {
+  findContainerRecursively,
+  findParentContainer,
+  findShapeRecursively,
+} from "../shapes";
 import { addToGroup, removeFromGroup, ungroupContainer } from "./grouping";
-import { recreateSeat, removeSeatFromGrid } from "../shapes/seats";
 import { setRecreateShapeReference } from "../collaboration/seatmap-socket-client";
+import {
+  getGridById,
+  recreateGridShape,
+  removeSeatFromGrid,
+  updateGridGraphics,
+} from "../shapes/grid-shape";
+import {
+  recreateRowShape,
+  updateMultipleRowLabelRotations,
+  updateRowGraphics,
+  updateRowLabelPosition,
+  updateRowLabelRotation,
+  updateSeatLabelNumberingInRow,
+} from "../shapes/row-shape";
+import { createPixiTextStyle, recreateSeat } from "../shapes/seat-shape";
 
 const applyDeltaRestore = async (
   action: UndoRedoAction,
@@ -51,7 +72,6 @@ const applyDeltaRestore = async (
 ) => {
   const store = useSeatMapStore.getState();
   const currentShapes = store.shapes;
-  console.log("currentShapes:", currentShapes, shapes);
   const eventManager = getEventManager();
 
   let updatedShapes = [...currentShapes];
@@ -63,17 +83,16 @@ const applyDeltaRestore = async (
   let stateToApply = getStateToApply(action, isUndo, operationType);
 
   const affectedIds = stateToApply.affectedIds || [];
-
-  console.log(
-    `🔄 Applying ${operationType} operation (isUndo: ${isUndo}, updateHistory: ${updateHistory})`
-  );
+  console.log("------------------------------");
+  console.log("currentShapes:", currentShapes);
+  console.log("Operation Type:", operationType, null, 2);
+  console.log("Action: ", action, null, 2);
+  console.log("State to Apply:", stateToApply, null, 2);
 
   switch (operationType) {
     case "CREATE":
       const shapesToRecreate = stateToApply.shapes || [];
       const creationContext = stateToApply.context;
-
-      console.log("Creation context:", stateToApply);
 
       if (creationContext?.nested.length || creationContext?.topLevel.length) {
         for (const topLevelItem of creationContext.topLevel) {
@@ -82,11 +101,7 @@ const applyDeltaRestore = async (
           );
           if (shapeData) {
             try {
-              const recreatedShape = await recreateShape(
-                shapeData,
-                true,
-                false
-              );
+              const recreatedShape = await recreateShape(shapeData, true);
               shapeContainer!.addChild(recreatedShape.graphics);
               addShape(recreatedShape);
               updatedShapes.push(recreatedShape);
@@ -95,23 +110,28 @@ const applyDeltaRestore = async (
             }
           }
         }
-
+        let affectedRows = new Set<RowShape>();
         for (const nestedItem of creationContext.nested) {
-          const shapeData = shapesToRecreate.find(
-            (s) => s.id === nestedItem.id
-          );
-
-          const parentContainer = findShapeRecursively(
-            updatedShapes,
-            nestedItem.parentId!
-          ) as ContainerGroup;
-
-          if (
-            shapeData &&
-            parentContainer &&
-            parentContainer.type === "container"
-          ) {
-            try {
+          try {
+            const shapeData =
+              nestedItem.parentId === "area-mode-container-id" &&
+              creationContext.operation === "create-seat-grid"
+                ? (shapesToRecreate[0] as ContainerGroup).children.find(
+                    (s) => s.id === nestedItem.id
+                  )
+                : shapesToRecreate.find((s) => s.id === nestedItem.id);
+            const parentContainer = findShapeRecursively(
+              updatedShapes,
+              nestedItem.parentId!
+            ) as ContainerGroup;
+            if (parentContainer && "rowName" in parentContainer) {
+              affectedRows.add(parentContainer as RowShape);
+            }
+            if (
+              shapeData &&
+              parentContainer &&
+              parentContainer.type === "container"
+            ) {
               const recreatedShape = await recreateShape(
                 shapeData,
                 false,
@@ -123,10 +143,17 @@ const applyDeltaRestore = async (
               if (parentContainer.graphics instanceof PIXI.Container) {
                 parentContainer.graphics.addChild(recreatedShape.graphics);
               }
-            } catch (error) {
-              console.error("Failed to recreate nested shape:", error);
             }
+          } catch (error) {
+            console.error("Failed to recreate nested shape:", error);
           }
+        }
+        if (affectedRows.size > 0) {
+          affectedRows.forEach((row) => {
+            updateRowLabelPosition(row);
+            updateRowLabelRotation(row);
+            updateSeatLabelNumberingInRow(row, "numerical");
+          });
         }
       } else {
         for (const shapeData of shapesToRecreate) {
@@ -167,10 +194,6 @@ const applyDeltaRestore = async (
         });
       }
 
-      console.log(
-        "DELETE operation - removing shapes with context:",
-        stateToApply
-      );
       if (context?.nested.length || context?.topLevel.length) {
         context.nested.forEach((nestedItem) => {
           const findAndRemoveFromParent = (
@@ -267,14 +290,6 @@ const applyDeltaRestore = async (
         const itemToMove = findShapeRecursively(updatedShapes, itemId);
         if (!itemToMove) break;
 
-        console.log("MOVE operation:", {
-          itemId,
-          fromParentId,
-          toParentId,
-          originalPosition,
-          currentPosition: { x: itemToMove.x, y: itemToMove.y },
-        });
-
         const currentParent = findParentContainer(itemToMove);
 
         if (currentParent) {
@@ -333,9 +348,10 @@ const applyDeltaRestore = async (
       break;
 
     case "GROUP":
-      console.log("group action:", action);
-      const shapesToRemove = stateToApply.shapes || [];
-
+      const shapesToRemove =
+        action.data.after.shapes?.length! > 1
+          ? action.data.after.shapes || []
+          : action.data.before.shapes || [];
       const removeShapeRecursively = (shape: CanvasItem) => {
         const shapeToRemove = updatedShapes.find((s) => s.id === shape.id);
         if (shapeToRemove) {
@@ -357,14 +373,13 @@ const applyDeltaRestore = async (
             (removedShape: CanvasItem) => removedShape.id === shape.id
           )
       );
-      const containerCreationData = getStateToApply(action, isUndo, "UNGROUP")
-        .shapes?.[0];
+      const containerCreationData = stateToApply.selectedShapes?.[0];
       if (containerCreationData && containerCreationData.type === "container") {
         try {
           const recreatedContainer = await recreateShape(
             containerCreationData,
             true,
-            isUndo && stateToApply.context?.operation === "ungroup"
+            isUndo && stateToApply.shapes?.length! > 0
           );
           shapeContainer!.addChild(recreatedContainer.graphics);
           addShape(recreatedContainer);
@@ -376,38 +391,14 @@ const applyDeltaRestore = async (
       break;
 
     case "UNGROUP":
-      console.log("ungroup action:", action);
-      const containerData = stateToApply.shapes?.[0];
+      const containerData = stateToApply.selectedShapes?.[0];
       if (containerData && containerData.type === "container") {
-        const findContainerRecursively = (
-          searchShapes: CanvasItem[],
-          targetId: string
-        ): ContainerGroup | null => {
-          for (const shape of searchShapes) {
-            if (shape.id === targetId && shape.type === "container") {
-              return shape as ContainerGroup;
-            }
-            if (shape.type === "container") {
-              const found = findContainerRecursively(
-                (shape as ContainerGroup).children,
-                targetId
-              );
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
         const existingContainer = findContainerRecursively(
           updatedShapes,
           containerData.id
         );
 
         if (existingContainer) {
-          console.log(
-            "Found existing container to ungroup:",
-            existingContainer
-          );
           const ungroupedShapes = ungroupContainer(existingContainer);
 
           const removeContainerFromParent = (
@@ -432,19 +423,16 @@ const applyDeltaRestore = async (
             existingContainer.id,
             updatedShapes
           );
-
           const addUngroupedShapesToParent = (
             ungroupedShapes: CanvasItem[]
           ) => {
             const parentContainer = findParentContainer(existingContainer);
-
             if (parentContainer) {
               parentContainer.children.push(...ungroupedShapes);
             } else {
               updatedShapes.push(...ungroupedShapes);
             }
           };
-
           addUngroupedShapesToParent(ungroupedShapes);
         } else {
           try {
@@ -465,7 +453,6 @@ const applyDeltaRestore = async (
 
     case "MODIFY":
     default:
-      console.log("modify action:", action);
       const applyChangesToShape = (
         shapeToApply: CanvasItem,
         searchShapes: CanvasItem[]
@@ -504,7 +491,13 @@ const applyDeltaRestore = async (
                   updateSVGGraphics(existingShape as SVGShape);
                   break;
                 case "container":
-                  updateContainerGraphics(existingShape as ContainerGroup);
+                  if ("gridName" in (existingShape as GridShape)) {
+                    updateGridGraphics(existingShape as GridShape);
+                  } else if ("rowName" in (existingShape as RowShape)) {
+                    updateRowGraphics(existingShape as RowShape);
+                  } else {
+                    updateContainerGraphics(existingShape as ContainerGroup);
+                  }
                   break;
               }
             }
@@ -529,13 +522,12 @@ const applyDeltaRestore = async (
   }
 
   setShapes(updatedShapes);
-
+  console.log(updatedShapes);
   if (!updateHistory) {
     store.updateShapes(updatedShapes, false, undefined, false);
   } else {
     store.updateShapes(updatedShapes, false, undefined, true);
   }
-
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
     selectionTransform.updateSelection([]);
@@ -576,7 +568,24 @@ export const recreateShape = async (
       const ellipseData = shapeData as EllipseShape | SeatShape;
 
       if ((ellipseData as any).rowId && (ellipseData as any).gridId) {
-        recreatedShape = recreateSeat(ellipseData as SeatShape, addShapeEvents);
+        const seatData = ellipseData as SeatShape;
+        let currentSeatSettings: SeatGridSettings | undefined;
+        if (areaModeContainer) {
+          const grid = getGridById(seatData.gridId);
+          if (grid) {
+            currentSeatSettings = grid.seatSettings;
+          }
+        }
+        recreatedShape = recreateSeat(
+          seatData,
+          true,
+          false,
+          currentSeatSettings
+        );
+
+        const recreatedSeat = recreatedShape as SeatShape;
+        recreatedSeat.showLabel = seatData.showLabel;
+        recreatedSeat.labelStyle = seatData.labelStyle;
       } else {
         recreatedShape = createEllipse(
           ellipseData.x,
@@ -674,14 +683,14 @@ export const recreateShape = async (
     }
 
     case "container": {
-      const containerData = shapeData as ContainerGroup | AreaModeContainer;
+      const containerData = shapeData as
+        | ContainerGroup
+        | AreaModeContainer
+        | GridShape
+        | RowShape;
 
-      const isAreaModeContainer =
-        containerData.id === "area-mode-container-id" &&
-        "grids" in containerData &&
-        "defaultSeatSettings" in containerData;
-
-      if (isAreaModeContainer) {
+      // Handle AreaModeContainer
+      if (containerData.id === "area-mode-container-id") {
         const areaModeData = containerData as AreaModeContainer;
 
         let container = areaModeContainer;
@@ -696,8 +705,6 @@ export const recreateShape = async (
         container.scaleX = areaModeData.scaleX || 1;
         container.scaleY = areaModeData.scaleY || 1;
         container.opacity = areaModeData.opacity || 1;
-
-        container.grids = areaModeData.grids || [];
         container.defaultSeatSettings =
           areaModeData.defaultSeatSettings || container.defaultSeatSettings;
 
@@ -706,31 +713,18 @@ export const recreateShape = async (
         }
         container.children = [];
 
+        // Recreate GridShape children
         if (areaModeData.children && areaModeData.children.length > 0) {
-          console.log(
-            `🎨 Recreating ${areaModeData.children.length} seats for area mode container...`
-          );
-
-          for (const childData of areaModeData.children) {
+          for (const gridData of areaModeData.children) {
             try {
-              if (
-                childData.type === "ellipse" &&
-                (childData as any).rowId &&
-                (childData as any).gridId
-              ) {
-                const recreatedSeat = recreateSeat(
-                  childData as SeatShape,
-                  addShapeEvents
-                );
-
-                container.children.push(recreatedSeat);
-                if (container.graphics instanceof PIXI.Container) {
-                  container.graphics.addChild(recreatedSeat.graphics);
-                }
+              const recreatedGrid = await recreateGridShape(gridData);
+              container.children.push(recreatedGrid);
+              if (container.graphics instanceof PIXI.Container) {
+                container.graphics.addChild(recreatedGrid.graphics);
               }
             } catch (error) {
               console.error(
-                `❌ Failed to recreate child in area mode container:`,
+                `❌ Failed to recreate grid in area mode container:`,
                 error
               );
             }
@@ -741,16 +735,37 @@ export const recreateShape = async (
           container.graphics.position.set(container.x, container.y);
           container.graphics.rotation = container.rotation;
           container.graphics.scale.set(container.scaleX, container.scaleY);
-          container.interactive = false;
           container.graphics.visible = true;
-          container.graphics.interactiveChildren = false;
-          container.graphics.interactive = false;
           container.graphics.alpha = 0.3;
         }
 
         recreatedShape = container;
         return recreatedShape;
-      } else {
+      }
+
+      // Handle GridShape
+      else if ((containerData as GridShape).gridName !== undefined) {
+        recreatedShape = await recreateGridShape(containerData as GridShape);
+      }
+
+      // Handle RowShape
+      else if ((containerData as RowShape).rowName !== undefined) {
+        const rowData = containerData as RowShape;
+
+        // ✅ Get current grid settings for row recreation
+        let currentSeatSettings: SeatGridSettings | undefined;
+        if (areaModeContainer) {
+          const grid = getGridById(rowData.gridId);
+          if (grid) {
+            currentSeatSettings = grid.seatSettings;
+          }
+        }
+
+        recreatedShape = await recreateRowShape(rowData, currentSeatSettings);
+      }
+
+      // Handle regular ContainerGroup
+      else {
         recreatedShape = createContainer(
           [],
           containerData.name,
@@ -772,7 +787,6 @@ export const recreateShape = async (
           recreatedChildren.forEach((child, index) => {
             if (recreatedShape.graphics instanceof PIXI.Container) {
               const originalChild = containerData.children![index];
-              console.log("useRelativePositioning:", useRelativePositioning);
               if (useRelativePositioning) {
                 const relativeX = originalChild.x - containerData.x;
                 const relativeY = originalChild.y - containerData.y;
@@ -828,12 +842,23 @@ export const recreateShape = async (
 const getOperationType = (before: any, after: any) => {
   const beforeShapes = before.shapes || [];
   const afterShapes = after.shapes || [];
-
-  if (beforeShapes.length === 0 && afterShapes.length > 0) {
+  if (
+    (beforeShapes.length === 0 && afterShapes.length > 0) ||
+    (beforeShapes[0].id === "area-mode-container-id" &&
+      before.context !== undefined &&
+      before.context.operation === "create-seat-grid" &&
+      beforeShapes[0].children.length < afterShapes[0].children.length)
+  ) {
     return "CREATE";
   }
 
-  if (beforeShapes.length > 0 && afterShapes.length === 0) {
+  if (
+    (beforeShapes.length > 0 && afterShapes.length === 0) ||
+    (beforeShapes[0].id === "area-mode-container-id" &&
+      before.context !== undefined &&
+      before.context.operation === "create-seat-grid" &&
+      beforeShapes[0].children.length > afterShapes[0].children.length)
+  ) {
     return "DELETE";
   }
 
@@ -877,14 +902,6 @@ const getOperationType = (before: any, after: any) => {
     )
   ) {
     return "MODIFY";
-  }
-
-  if (
-    !before.shapes &&
-    !after.shapes &&
-    (before.selectedShapes || after.selectedShapes)
-  ) {
-    return "SELECT";
   }
 
   return "MODIFY";
@@ -974,7 +991,62 @@ export const canUndo = (): boolean => {
 export const canRedo = (): boolean => {
   return useSeatMapStore.getState().canRedo();
 };
+export const handleRemoteUndoRedo = async (
+  actionId: string,
+  operation: "undo" | "redo",
+  fromUserId: string
+): Promise<boolean> => {
+  const store = useSeatMapStore.getState();
+  const historyStack = store.historyStack;
 
+  // Find the action in our history
+  const actionIndex = historyStack.findIndex(
+    (action) => action.id === actionId
+  );
+
+  if (actionIndex === -1) {
+    console.log(
+      `⚠️ Remote ${operation} action ${actionId} not found in local history`
+    );
+    return false;
+  }
+
+  const action = historyStack[actionIndex];
+
+  // Apply the remote operation without broadcasting
+  await applyDeltaRestore(action, operation === "undo", false, false);
+
+  // Remove the action from our history stack
+  const newHistoryStack = [...historyStack];
+  newHistoryStack.splice(actionIndex, 1);
+
+  // Adjust current history index
+  let newCurrentIndex = store.currentHistoryIndex;
+  if (actionIndex <= newCurrentIndex) {
+    newCurrentIndex = Math.max(-1, newCurrentIndex - 1);
+  }
+
+  // Update store
+  useSeatMapStore.setState({
+    historyStack: newHistoryStack,
+    currentHistoryIndex: newCurrentIndex,
+  });
+
+  console.log(
+    `✅ Applied remote ${operation} from user ${fromUserId} for action: ${actionId}`
+  );
+
+  return true;
+};
+
+// ✅ Add function to sync local history with server
+export const syncHistoryWithServer = (): void => {
+  const store = useSeatMapStore.getState();
+
+  if (store.collaboration.isConnected) {
+    store.syncWithServerPendingChanges();
+  }
+};
 /**
  * Clear undo/redo history
  */

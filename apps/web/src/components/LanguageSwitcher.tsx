@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useRouter } from "next/navigation";
 
 const locales = [
   { code: "vi", label: "Vietnamese" },
@@ -19,11 +20,20 @@ const locales = [
 export default function LanguageSwitcher() {
   const { locale, setLocale } = useLocale();
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   // Đảm bảo render đúng trên client
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  const handleLocaleChange = (newLocale: "vi" | "en") => {
+    setLocale(newLocale);
+    // Force refresh để server components cập nhật locale
+    setTimeout(() => {
+      router.refresh();
+    }, 100);
+  };
 
   if (!mounted) return null;
 
@@ -44,7 +54,7 @@ export default function LanguageSwitcher() {
         {locales.map((item) => (
           <DropdownMenuItem
             key={item.code}
-            onClick={() => setLocale(item.code as "vi" | "en")}
+            onClick={() => handleLocaleChange(item.code as "vi" | "en")}
             className={`flex items-center gap-2 cursor-pointer ${
               locale === item.code ? "font-semibold text-blue-600" : ""
             }`}

@@ -146,7 +146,7 @@ export const createContainerGroup = (
 
   const containerGroup: ContainerGroup = {
     id: generateShapeId(),
-    name: name || `Group ${items.length} items`,
+    name: name || `Group`,
     type: "container",
     visible: true,
     interactive: true,

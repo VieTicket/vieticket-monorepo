@@ -132,17 +132,12 @@ export function DashboardOverview({
   totalAvailableTickets: initialTotalAvailableTickets,
   recentTransactions: initialRecentTransactions,
 }: Props) {
-  // --- MOCK DATA ---
-  // If no props are passed, use mock data for demonstration
-  const revenueOverTime = initialRevenueOverTime;
-
-  const ticketTypeRevenue = initialTicketTypeRevenue;
-  console.log(ticketTypeRevenue);
-
-  const totalAvailableTickets = initialTotalAvailableTickets || 1500; // Total available tickets for the event
-
-  const recentTransactions = initialRecentTransactions;
-  // --- END MOCK DATA ---
+  // Use the actual data from props
+  const revenueOverTime = initialRevenueOverTime || [];
+  const ticketTypeRevenue = initialTicketTypeRevenue || [];
+  const totalAvailableTickets = initialTotalAvailableTickets || 0;
+  const recentTransactions = initialRecentTransactions || [];
+  // --- END DATA SETUP ---
 
   // Calculate overview metrics
   const totalRevenue = useMemo(() => {
@@ -157,10 +152,15 @@ export function DashboardOverview({
     return totalTicketsSold > 0 ? totalRevenue / totalTicketsSold : 0;
   }, [totalRevenue, totalTicketsSold]);
 
+  // Calculate remaining tickets
+  const remainingTickets = useMemo(() => {
+    return Math.max(0, totalAvailableTickets - totalTicketsSold);
+  }, [totalAvailableTickets, totalTicketsSold]);
+
   const ticketSoldPercentage = useMemo(() => {
-    return totalAvailableTickets > 0
-      ? (totalTicketsSold / totalAvailableTickets) * 100
-      : 0;
+    if (totalAvailableTickets <= 0) return 0;
+    const percentage = (totalTicketsSold / totalAvailableTickets) * 100;
+    return Math.min(100, Math.max(0, percentage)); // Ensure between 0-100%
   }, [totalTicketsSold, totalAvailableTickets]);
 
   // State for time filter
@@ -200,6 +200,10 @@ export function DashboardOverview({
 
   // Filter revenue data by date range
   const filteredRevenue = useMemo(() => {
+    if (dateFilter === "all") {
+      return revenueOverTime;
+    }
+
     let fromTime = -Infinity;
     let toTime = Infinity;
 
@@ -215,10 +219,12 @@ export function DashboardOverview({
       toTime = customToDate ? new Date(customToDate).getTime() : Infinity;
     }
 
-    return revenueOverTime.filter((item) => {
+    const filtered = revenueOverTime.filter((item) => {
       const current = new Date(item.date).getTime();
       return current >= fromTime && current <= toTime;
     });
+
+    return filtered;
   }, [revenueOverTime, dateFilter, customFromDate, customToDate]);
 
   // Generate dynamic colors for pie chart
@@ -297,12 +303,15 @@ export function DashboardOverview({
               {ticketSoldPercentage.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              {totalTicketsSold.toLocaleString()} /{" "}
-              {totalAvailableTickets.toLocaleString()} tickets
+              {totalTicketsSold.toLocaleString()} sold /{" "}
+              {totalAvailableTickets.toLocaleString()} total
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {remainingTickets.toLocaleString()} tickets remaining
             </p>
             <div className="w-full bg-gray-200 rounded-full h-2 mt-2 dark:bg-gray-700">
               <div
-                className="bg-purple-500 h-2 rounded-full"
+                className="bg-purple-500 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${ticketSoldPercentage}%` }}
               ></div>
             </div>
@@ -390,53 +399,60 @@ export function DashboardOverview({
         </CardHeader>
         <CardContent className="h-[350px] p-0">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={filteredRevenue}
-              margin={{ top: 20, right: 30, left: 10, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <XAxis
-                dataKey="date"
-                stroke="#888888"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value: string) => {
-                  const date = new Date(value);
-                  return date.toLocaleDateString("vi-VN", {
-                    day: "2-digit",
-                    month: "2-digit",
-                  });
-                }}
-              />
-              <YAxis
-                stroke="#888888"
-                fontSize={12}
-                tickLine={false}
-                axisLine={false}
-                tickFormatter={(value) => `${formatLargeNumber(Number(value))}`}
-              />
-              <Tooltip content={<CustomAreaTooltip />} />
-              <Bar
-                type="step"
-                dataKey="total"
-                stroke="#3b82f6"
-                fill="url(#colorTotal)"
-                name="Revenue"
-                strokeWidth={2}
-                // activeDot={{
-                //   r: 6,
-                //   fill: "#3b82f6",
-                //   stroke: "#fff",
-                //   strokeWidth: 2,
-                // }}
-              />
-            </BarChart>
+            {filteredRevenue && filteredRevenue.length > 0 ? (
+              <AreaChart
+                data={filteredRevenue}
+                margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="colorTotalOverview"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <XAxis
+                  dataKey="date"
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value: string) => {
+                    const date = new Date(value);
+                    return date.toLocaleDateString("vi-VN", {
+                      day: "2-digit",
+                      month: "2-digit",
+                    });
+                  }}
+                />
+                <YAxis
+                  stroke="#888888"
+                  fontSize={12}
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${Number(value) / 1000000}M`}
+                />
+                <Tooltip content={<CustomAreaTooltip />} />
+                <Area
+                  dataKey="total"
+                  fill="url(#colorTotalOverview)"
+                  name="Revenue"
+                  type="monotone"
+                />
+              </AreaChart>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center text-muted-foreground">
+                  <p className="text-lg">No revenue data available</p>
+                  <p className="text-sm">Revenue data will appear here once transactions are made</p>
+                </div>
+              </div>
+            )}
           </ResponsiveContainer>
         </CardContent>
       </Card>
@@ -453,7 +469,7 @@ export function DashboardOverview({
             </CardDescription>
           </CardHeader>
           <CardContent className="h-[350px] flex flex-col items-center justify-center p-4">
-            {ticketTypeRevenue.length > 0 ? (
+            {ticketTypeRevenue && ticketTypeRevenue.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -495,7 +511,8 @@ export function DashboardOverview({
               </ResponsiveContainer>
             ) : (
               <div className="text-center text-muted-foreground">
-                No revenue distribution data.
+                <p className="text-lg">No ticket type data</p>
+                <p className="text-sm">Revenue distribution will appear here once ticket types are configured</p>
               </div>
             )}
           </CardContent>
@@ -548,7 +565,7 @@ export function DashboardOverview({
                   </tr>
                 </thead>
                 <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {recentTransactions.length > 0 ? (
+                  {recentTransactions && recentTransactions.length > 0 ? (
                     recentTransactions.map((transaction, index) => (
                       <tr
                         key={index}
@@ -595,9 +612,12 @@ export function DashboardOverview({
                     <tr>
                       <td
                         colSpan={5}
-                        className="px-6 py-4 text-center text-sm text-muted-foreground"
+                        className="px-6 py-8 text-center text-sm text-muted-foreground"
                       >
-                        No recent transactions.
+                        <div className="flex flex-col items-center">
+                          <p className="text-lg">No transactions yet</p>
+                          <p className="text-sm">Transaction history will appear here once tickets are sold</p>
+                        </div>
                       </td>
                     </tr>
                   )}

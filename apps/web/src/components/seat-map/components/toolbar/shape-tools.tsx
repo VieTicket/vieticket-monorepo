@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MousePointer, Square, Circle, Type, Hand } from "lucide-react";
 import { FaDrawPolygon } from "react-icons/fa";
 import { Tool } from "../../types";
+import { PiPolygonFill } from "react-icons/pi";
 
 const tools = [
   { id: "select", icon: MousePointer, label: "Select" },
@@ -10,6 +11,7 @@ const tools = [
   { id: "rectangle", icon: Square, label: "Rectangle" },
   { id: "ellipse", icon: Circle, label: "Ellipse" },
   { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
+  { id: "freeshape", icon: PiPolygonFill, label: "Free Shape" },
   { id: "text", icon: Type, label: "Text" },
 ] as const;
 

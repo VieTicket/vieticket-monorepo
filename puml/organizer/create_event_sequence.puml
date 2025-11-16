@@ -1,85 +1,187 @@
-@startuml
-title Create Event Flow (With Activation Bars)
+@startuml create-event-with-ai
 autonumber
+!theme plain
+title Create Event Flow with AI Generation
+
 actor Organizer
-participant UI
-participant "EventsActions" as Actions
-participant Service
-participant Mutation
-database DB
+participant "Event Form" as Form
+participant "AI Service" as AI
+participant "Event Action" as Action
+participant "Database" as DB
+participant "Cloudinary" as Cloud
 
-Organizer -> UI: Fill event form (info, ticketing, seat map, media) 
-activate UI
+== Form Setup ==
+Organizer -> Form: Access create event page
+Form -> Form: Initialize form (info, ticketing, media)
 
-group Client-side interaction
-    UI -> UI: handleChange(), validateDateTime(), setFormData()
-    UI -> UI: handlePosterUpload(), handleBannerUpload()
+== AI Generation (Optional) ==
+alt User wants AI description
+    Organizer -> Form: Click "Generate Description"
+    Form -> AI: generateEventDescription(eventName, type)
+    activate AI
+    AI --> Form: Generated description
+    deactivate AI
+    Form -> Form: Set description field
+end
 
-    alt Seatmap mode selected
-        UI -> UI: handleSeatMapSelection()
-        UI -> Actions: previewSeatMapDataAction()
-        activate Actions
-        Actions --> UI: seatMapPreviewData
-        deactivate Actions
-    else Simple ticketing
-        UI -> UI: setAreas()
+alt User wants AI poster
+    Organizer -> Form: Click "Generate Poster"
+    Form -> AI: generateEventPoster(eventName, description)
+    activate AI
+    AI -> AI: Create image prompt
+    AI -> AI: Generate image
+    AI --> Form: Generated poster URL
+    deactivate AI
+    Form -> Cloud: Upload generated image
+    Cloud --> Form: Cloudinary URL
+    Form -> Form: Set poster field
+end
+
+== Event Creation ==
+Organizer -> Form: Fill remaining fields
+
+alt Seat Map Ticketing
+    Organizer -> Form: Select seat map
+    Form -> Action: previewSeatMapAction(seatMapId)
+    Action -> DB: Get seat map data (areas, rows, seats)
+    DB --> Action: Seat map structure
+    Action --> Form: Preview seat map with pricing
+    Form -> Form: Show seat map preview
+    Organizer -> Form: Set prices for each area
+else Simple Ticketing
+    Organizer -> Form: Define areas manually
+    Form -> Form: Set area names, prices, seat counts
+end
+
+Organizer -> Form: Click "Submit"
+
+Form -> Form: Validate form data
+Form -> Action: createEventAction(formData)
+
+activate Action
+Action -> Action: Validate auth & data
+Action -> DB: Begin transaction
+activate DB
+
+alt Simple Ticketing
+    DB -> DB: Insert event
+    DB -> DB: Insert areas, rows, seats
+else Seat Map Ticketing  
+    DB -> DB: Insert event with seatMapId
+    DB -> DB: Insert areas from seat map with prices
+    DB -> DB: Insert rows and seats from seat map structure
+end
+
+DB --> Action: Event created
+deactivate DB
+Action --> Form: { success: true, eventId }
+deactivate Action
+
+Form -> Form: Show success message
+Form -> Form: Redirect to event list
+
+@enduml
+
+@startuml seat-map-ticketing-flow
+!theme plain
+title Seat Map Ticketing Configuration
+
+participant "Event Form" as Form
+participant "Seat Map Service" as SeatMapService
+participant "Event Action" as Action
+participant "Database" as DB
+
+== Seat Map Selection ==
+Form -> Form: User selects "Seat Map Ticketing" mode
+Form -> SeatMapService: getSeatMapsByOrganizer()
+SeatMapService -> DB: Query organizer's seat maps
+DB --> SeatMapService: Available seat maps list
+SeatMapService --> Form: Seat maps dropdown
+
+== Preview & Pricing ==
+Form -> Form: User selects a seat map
+Form -> Action: previewSeatMapAction(seatMapId)
+activate Action
+Action -> DB: Get seat map structure
+activate DB
+DB --> Action: {areas[], rows[], seats[]}
+deactivate DB
+Action --> Form: Seat map preview data
+deactivate Action
+
+Form -> Form: Display seat map canvas
+Form -> Form: Show areas list for pricing
+
+loop For each area in seat map
+    Form -> Form: User sets ticket price for area
+    Form -> Form: Calculate total seats per area
+end
+
+== Validation & Creation ==
+Form -> Form: Validate all areas have prices
+Form -> Action: createEventAction(eventData + seatMapConfig)
+
+activate Action
+Action -> DB: Begin transaction
+activate DB
+DB -> DB: Insert event (with seatMapId)
+
+loop For each area from seat map
+    DB -> DB: Insert area (with organizer's price)
+    loop For each row in area
+        DB -> DB: Insert row (from seat map structure)
+        DB -> DB: Insert seats (from seat map structure)
     end
 end
 
-Organizer -> UI: Click "Save & Continue" (steps navigation)
-UI -> UI: Step validation (check errors)
+DB --> Action: Event created with seat map structure
+deactivate DB
+Action --> Form: Success with pricing summary
+deactivate Action
 
-Organizer -> UI: Click "Submit"
-alt Validation fails
-    UI -> Organizer: Show errors via toast
-else Validation passes
-    UI -> Actions: onSubmit(formData)
-    activate Actions
-    Actions -> Service: handleCreateEvent(validEvent)
-    activate Service
+@enduml
+!theme plain
+title AI Generation Service Details
 
-    alt Simple Ticketing
-        Service -> Mutation: createEvent(validEvent)
-        activate Mutation
-        Mutation -> DB: Insert event
-        activate DB
-        DB --> Mutation: Success
-        loop For each area
-            Service -> Mutation: createArea
-            Mutation -> DB: Insert area
-            Service -> Mutation: createRow
-            Mutation -> DB: Insert row (A)
-            Service -> Mutation: createSeats
-            Mutation -> DB: Insert seats (by seatCount)
-        end
-        deactivate DB
-        deactivate Mutation
-    else Seat Map Ticketing
-        Service -> Mutation: createEvent(validEvent)
-        activate Mutation
-        Mutation -> DB: Insert event (with seatMapId)
-        activate DB
-        DB --> Mutation: Success
-        loop For each area in seat map
-            Service -> Mutation: createAreaWithId
-            Mutation -> DB: Insert area (with id, price)
-            loop For each row in area
-                Service -> Mutation: createRowWithId
-                Mutation -> DB: Insert row (with id, rowName)
-                Service -> Mutation: createSeatsWithIds
-                Mutation -> DB: Insert seats (with id, seatNumber)
-            end
-        end
-        deactivate DB
-        deactivate Mutation
-    end
+participant "Event Form" as Form
+participant "AI Service" as AI
+participant "OpenAI API" as OpenAI
+participant "Image Generator" as ImageGen
+participant "Cloudinary" as Cloud
 
-    Service --> Actions: Event created (eventId)
-    deactivate Service
-    Actions --> UI: Success/Failure response
-    deactivate Actions
-    UI --> Organizer: Show result (success or error)
+== Description Generation ==
+Form -> AI: generateDescription(eventName, eventType, location?)
+activate AI
+AI -> AI: Build prompt template
+AI -> OpenAI: POST /chat/completions
+activate OpenAI
+OpenAI --> AI: Generated text
+deactivate OpenAI
+AI -> AI: Format and validate response
+AI --> Form: Polished description
+deactivate AI
+
+== Poster Generation ==
+Form -> AI: generatePoster(eventName, description, style?)
+activate AI
+AI -> AI: Create image prompt from event data
+AI -> ImageGen: Generate image (DALL-E/Stable Diffusion)
+activate ImageGen
+ImageGen --> AI: Image blob/URL
+deactivate ImageGen
+AI -> Cloud: Upload to storage
+Cloud --> AI: Permanent image URL
+AI --> Form: Image URL + metadata
+deactivate AI
+
+== Error Handling ==
+alt AI service unavailable
+    Form -> AI: Generate content
+    AI --> Form: { success: false, error: "AI service unavailable" }
+    Form -> Form: Show fallback message
+else Rate limit exceeded
+    AI --> Form: { success: false, error: "Rate limit exceeded" }
+    Form -> Form: Disable AI buttons temporarily
 end
 
-deactivate UI
 @enduml
