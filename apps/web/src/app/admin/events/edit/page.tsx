@@ -4,6 +4,17 @@ import { useState, useEffect, useTransition, Suspense, Fragment } from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { X } from "lucide-react";
+import {
   handleAdminUpdateEvent,
   fetchEventByIdForAdmin,
 } from "../../../../lib/actions/admin/events-action";
@@ -82,6 +93,7 @@ function CreateEventPageInner() {
   ]);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
+  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
   // Validation constants (configurable)
   const VALIDATION_CONFIG = {
@@ -847,11 +859,30 @@ function CreateEventPageInner() {
     }
   };
 
+  const handleExit = () => {
+    setShowExitConfirm(true);
+  };
+
+  const handleConfirmExit = () => {
+    router.push("/admin/events-pending");
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">
-        {eventId ? "Edit Event (Admin)" : t("createEvent")}
-      </h1>
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-3xl font-semibold">
+          {eventId ? "Edit Event (Admin)" : t("createEvent")}
+        </h1>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleExit}
+          className="h-8 w-8"
+          aria-label="Close"
+        >
+          <X className="h-5 w-5" />
+        </Button>
+      </div>
 
       <StepProgressBar step={step} />
       <Separator className="mb-6" />
@@ -946,6 +977,27 @@ function CreateEventPageInner() {
         onSelect={handleSeatMapSelection}
         selectedSeatMapId={selectedSeatMap}
       />
+
+      {/* Exit Confirmation Dialog */}
+      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Xác nhận thoát</AlertDialogTitle>
+            <AlertDialogDescription>
+              Bạn có chắc chắn muốn thoát? Tất cả các thay đổi chưa lưu sẽ bị mất.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmExit}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Thoát
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
