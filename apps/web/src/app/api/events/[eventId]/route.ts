@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchEventById } from "@/lib/services/eventService";
+import { getEventById } from "@/lib/services/eventService";
 
 export async function GET(
   request: NextRequest,
@@ -7,9 +7,9 @@ export async function GET(
 ) {
   try {
     const { eventId } = await params;
-    
-    const event = await fetchEventById(eventId);
-    
+
+    const event = await getEventById(eventId);
+
     return NextResponse.json({
       success: true,
       event,

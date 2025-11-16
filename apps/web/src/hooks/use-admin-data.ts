@@ -23,6 +23,16 @@ export interface ChartData {
   };
 }
 
+export interface EventShowing {
+  id: string;
+  name: string;
+  startTime: string;
+  endTime: string;
+  ticketSaleStart: string | null;
+  ticketSaleEnd: string | null;
+  isActive: boolean;
+}
+
 export interface PendingEvent {
   id: string;
   title: string;
@@ -38,6 +48,7 @@ export interface PendingEvent {
   approvalStatus: "pending" | "approved" | "rejected"; // Changed from is_approved
   image_url?: string;
   category: string;
+  showings?: EventShowing[];
 }
 
 export interface UpdateEventApprovalRequest {
@@ -54,8 +65,13 @@ const fetchAdminStats = async (): Promise<AdminStats> => {
   return response.json();
 };
 
-const fetchChartData = async (): Promise<ChartData> => {
-  const response = await fetch("/api/admin/charts");
+const fetchChartData = async (startDate?: string, endDate?: string): Promise<ChartData> => {
+  const params = new URLSearchParams();
+  if (startDate) params.append("startDate", startDate);
+  if (endDate) params.append("endDate", endDate);
+  
+  const url = `/api/admin/charts${params.toString() ? `?${params.toString()}` : ""}`;
+  const response = await fetch(url);
   if (!response.ok) {
     throw new Error("Failed to fetch chart data");
   }
@@ -105,12 +121,16 @@ export const useAdminStats = () => {
   });
 };
 
-export const useChartData = () => {
+export const useChartData = (startDate?: string, endDate?: string) => {
   return useQuery({
-    queryKey: ["chart-data"],
-    queryFn: fetchChartData,
+    queryKey: ["chart-data", startDate, endDate],
+    queryFn: () => fetchChartData(startDate, endDate),
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 10 * 60 * 1000, // 10 minutes
+    // Keep previous data while fetching new data to avoid loading state
+    placeholderData: (previousData) => previousData,
+    // Refetch on window focus only if data is stale
+    refetchOnWindowFocus: false,
   });
 };
 

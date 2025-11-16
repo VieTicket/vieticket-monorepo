@@ -13,6 +13,7 @@ import {
   createShowing,
   deleteAreasByEventId,
   deleteShowingsByEventId,
+  getEventsById,
   getEventByIdOptimized,
   getEventsByOrganizerOptimized,
   incrementEventView,
