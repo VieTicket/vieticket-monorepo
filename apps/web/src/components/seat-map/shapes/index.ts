@@ -5,6 +5,7 @@ import {
   EllipseShape,
   PolygonShape,
   RectangleShape,
+  SeatShape,
   SVGShape,
 } from "../types";
 import {
@@ -15,22 +16,26 @@ import {
   selectedContainer,
   setShapes,
   areaModeContainer,
+  isAreaMode,
 } from "../variables";
 import { cloneCanvasItems, useSeatMapStore } from "../store/seat-map-store";
 import { getEventManager } from "../events/event-manager";
 import { v4 as uuidv4 } from "uuid";
 import { getSelectionTransform } from "../events/transform-events";
-import { cleanupEmptyGrids, removeSeatsFromGrid } from "./seats";
+import { removeSeatsFromGrid } from "./grid-shape";
+import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
+import {
+  getRowByIdFromAllGrids,
+  updateMultipleRowLabelRotations,
+  updateRowLabelPosition,
+  updateRowLabelRotation,
+  updateSeatLabelNumberingInRow,
+} from "./row-shape";
 export { createRectangle } from "./rectangle-shape";
 export { createEllipse } from "./ellipse-shape";
 export { createText } from "./text-shape";
 export { updatePolygonGraphics } from "./polygon-shape";
-export {
-  createSeat,
-  createSeatGrid,
-  updateSeatGraphics,
-  setSeatGridSettings,
-} from "./seats";
+export { createSeat, updateSeatGraphics } from "./seat-shape";
 
 export const generateShapeId = () => uuidv4();
 
@@ -104,22 +109,27 @@ export const getContainerPath = (targetShape: CanvasItem): ContainerGroup[] => {
   return path;
 };
 
-export const findShapeInContainer = (
+export const findShapeInContainerRecursive = (
   container: ContainerGroup,
-  shapeId: string
-): CanvasItem | undefined => {
+  shapeId: string,
+  parent: ContainerGroup | null = null
+): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
   for (const child of container.children) {
     if (child.id === shapeId) {
-      return child;
+      return { shape: child, parent: container };
     }
     if (child.type === "container") {
-      const found = findShapeInContainer(child as ContainerGroup, shapeId);
+      const found = findShapeInContainerRecursive(
+        child as ContainerGroup,
+        shapeId,
+        child as ContainerGroup
+      );
       if (found) {
         return found;
       }
     }
   }
-  return undefined;
+  return null;
 };
 // Same same but different
 export const findShapeRecursively = (
@@ -132,6 +142,25 @@ export const findShapeRecursively = (
     }
     if (shape.type === "container") {
       const found = findShapeRecursively(
+        (shape as ContainerGroup).children,
+        targetId
+      );
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
+export const findContainerRecursively = (
+  searchShapes: CanvasItem[],
+  targetId: string
+): ContainerGroup | null => {
+  for (const shape of searchShapes) {
+    if (shape.id === targetId && shape.type === "container") {
+      return shape as ContainerGroup;
+    }
+    if (shape.type === "container") {
+      const found = findContainerRecursively(
         (shape as ContainerGroup).children,
         targetId
       );
@@ -183,28 +212,6 @@ export const getWorldCoordinates = (
   return { x: worldX, y: worldY };
 };
 
-const findShapeInContainerRecursive = (
-  container: ContainerGroup,
-  shapeId: string,
-  parent: ContainerGroup | null = null
-): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
-  for (const child of container.children) {
-    if (child.id === shapeId) {
-      return { shape: child, parent: container };
-    }
-    if (child.type === "container") {
-      const found = findShapeInContainerRecursive(
-        child as ContainerGroup,
-        shapeId,
-        child as ContainerGroup
-      );
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-};
 export const getCurrentContainer = (): ContainerGroup | null => {
   if (selectedContainer.length === 0) return null;
   return selectedContainer[selectedContainer.length - 1];
@@ -635,87 +642,329 @@ export const clearAllSelections = () => {
 
 export const deleteShapes = () => {
   const eventManager = getEventManager();
+  const selectedShapes = useSeatMapStore.getState().selectedShapes;
+
+  if (selectedShapes.length === 0) return;
+
+  const originalShapes = cloneCanvasItems(shapes);
+  const seatsToRemove: string[] = [];
+  const affectedRowIds = new Set<string>();
+
+  // ✅ Enhanced context tracking for hierarchical deletions
+  const findShapeContext = (
+    targetId: string,
+    shapeList: CanvasItem[],
+    parentId: string | null = null
+  ): {
+    shape: CanvasItem | null;
+    parentId: string | null;
+    isTopLevel: boolean;
+    isAreaModeNested: boolean;
+  } => {
+    for (const shape of shapeList) {
+      if (shape.id === targetId) {
+        return {
+          shape,
+          parentId,
+          isTopLevel: parentId === null,
+          isAreaModeNested: isAreaMode,
+        };
+      }
+
+      // ✅ Handle area mode container specially
+      if (shape.id === "area-mode-container-id" && areaModeContainer) {
+        // Search in grids
+        for (const grid of areaModeContainer.children) {
+          if (grid.id === targetId) {
+            return {
+              shape: grid,
+              parentId: areaModeContainer.id,
+              isTopLevel: false,
+              isAreaModeNested: true,
+            };
+          }
+
+          // Search in rows within grids
+          for (const row of grid.children) {
+            if (row.id === targetId) {
+              return {
+                shape: row,
+                parentId: grid.id,
+                isTopLevel: false,
+                isAreaModeNested: true,
+              };
+            }
+
+            // Search in seats within rows
+            for (const seat of row.children) {
+              if (seat.id === targetId) {
+                return {
+                  shape: seat,
+                  parentId: row.id,
+                  isTopLevel: false,
+                  isAreaModeNested: true,
+                };
+              }
+            }
+          }
+        }
+      }
+
+      // Regular container search
+      if (shape.type === "container") {
+        const found = findShapeContext(
+          targetId,
+          (shape as any).children,
+          shape.id
+        );
+        if (found.shape) {
+          return found;
+        }
+      }
+    }
+
+    return {
+      shape: null,
+      parentId: null,
+      isTopLevel: false,
+      isAreaModeNested: false,
+    };
+  };
+
+  // ✅ Enhanced context building
+  const context = {
+    topLevel: [] as Array<{
+      id: string;
+      type: string;
+      parentId: string | null;
+    }>,
+    nested: [] as Array<{
+      id: string;
+      type: string;
+      parentId: string | null;
+    }>,
+    operation: "delete",
+  };
+
   const selectedShapesToDelete: Array<{
     shape: CanvasItem;
     parent: ContainerGroup | null;
+    context: ReturnType<typeof findShapeContext>;
   }> = [];
 
-  const selectedShapes = useSeatMapStore.getState().selectedShapes;
-  if (selectedShapes.length === 0) return;
-  const originalShapes = cloneCanvasItems(shapes);
-
-  // ✅ Track seats to remove from grid data
-  const seatsToRemove: string[] = [];
-
+  // ✅ Build deletion context with hierarchy awareness
   selectedShapes.forEach((selectedShape) => {
-    // ✅ Check if this is a seat and collect its ID
-    if (
-      selectedShape.type === "ellipse" &&
-      (selectedShape as any).rowId &&
-      (selectedShape as any).gridId
-    ) {
-      seatsToRemove.push(selectedShape.id);
-    }
+    const shapeContext = findShapeContext(selectedShape.id, shapes);
 
-    const foundInMain = shapes.find((s) => s.id === selectedShape.id);
-    if (foundInMain) {
-      selectedShapesToDelete.push({ shape: foundInMain, parent: null });
+    if (shapeContext.shape) {
+      selectedShapesToDelete.push({
+        shape: shapeContext.shape,
+        parent: shapeContext.parentId
+          ? (findShapeRecursively(
+              shapes,
+              shapeContext.parentId
+            ) as ContainerGroup)
+          : null,
+        context: shapeContext,
+      });
+
+      // ✅ Track seats and affected rows
+      if (
+        shapeContext.shape.type === "ellipse" &&
+        (shapeContext.shape as any).rowId &&
+        (shapeContext.shape as any).gridId
+      ) {
+        const seat = shapeContext.shape as SeatShape;
+        seatsToRemove.push(seat.id);
+        affectedRowIds.add(seat.rowId);
+      }
+
+      // ✅ Track seats in deleted rows
+      if (
+        shapeContext.shape.type === "container" &&
+        (shapeContext.shape as any).rowName
+      ) {
+        const row = shapeContext.shape as any;
+        row.children?.forEach((seat: SeatShape) => {
+          seatsToRemove.push(seat.id);
+        });
+        affectedRowIds.add(row.id);
+      }
+
+      // ✅ Track seats in deleted grids
+      if (
+        shapeContext.shape.type === "container" &&
+        (shapeContext.shape as any).gridName
+      ) {
+        const grid = shapeContext.shape as any;
+        grid.children?.forEach((row: any) => {
+          affectedRowIds.add(row.id);
+          row.children?.forEach((seat: SeatShape) => {
+            seatsToRemove.push(seat.id);
+          });
+        });
+      }
+
+      // ✅ Add to appropriate context category
+      if (shapeContext.isTopLevel) {
+        context.topLevel.push({
+          id: shapeContext.shape.id,
+          type: shapeContext.shape.type,
+          parentId: null,
+        });
+      } else {
+        context.nested.push({
+          id: shapeContext.shape.id,
+          type: shapeContext.shape.type,
+          parentId: shapeContext.parentId!,
+        });
+      }
+    }
+  });
+
+  // ✅ Handle area mode deletions with hierarchy
+  const handleAreaModeDeletion = (
+    shape: CanvasItem,
+    parentShape: CanvasItem | null
+  ) => {
+    if (!areaModeContainer) return;
+
+    // Remove from area mode container structure
+    if (parentShape?.id === areaModeContainer.id) {
+      // Removing a grid
+      const gridIndex = areaModeContainer.children.findIndex(
+        (g) => g.id === shape.id
+      );
+      if (gridIndex !== -1) {
+        areaModeContainer.children.splice(gridIndex, 1);
+        if (shape.graphics.parent) {
+          shape.graphics.parent.removeChild(shape.graphics);
+        }
+      }
     } else {
-      for (const mainShape of shapes) {
-        if (mainShape.type === "container") {
-          const containerGroup = mainShape as ContainerGroup;
-          const foundShape = findShapeInContainer(
-            containerGroup,
-            selectedShape.id
-          );
-          if (foundShape) {
-            selectedShapesToDelete.push({
-              shape: foundShape,
-              parent: containerGroup,
-            });
+      // Find and remove from nested structure
+      for (const grid of areaModeContainer.children) {
+        if (parentShape?.id === grid.id) {
+          // Removing a row
+          const rowIndex = grid.children.findIndex((r) => r.id === shape.id);
+          if (rowIndex !== -1) {
+            grid.children.splice(rowIndex, 1);
+            if (shape.graphics.parent) {
+              shape.graphics.parent.removeChild(shape.graphics);
+            }
+          }
+          break;
+        }
+
+        for (const row of grid.children) {
+          if (parentShape?.id === row.id) {
+            // Removing a seat
+            const seatIndex = row.children.findIndex((s) => s.id === shape.id);
+            if (seatIndex !== -1) {
+              row.children.splice(seatIndex, 1);
+              if (shape.graphics.parent) {
+                shape.graphics.parent.removeChild(shape.graphics);
+              }
+            }
             break;
           }
         }
       }
     }
-  });
+  };
 
-  // ✅ Remove seats from grid data before deletion
-  if (seatsToRemove.length > 0) {
-    removeSeatsFromGrid(seatsToRemove);
-  }
-
-  selectedShapesToDelete.forEach(({ shape, parent }) => {
+  // ✅ Perform deletions with hierarchy handling
+  selectedShapesToDelete.forEach(({ shape, parent, context: shapeContext }) => {
     if (eventManager) {
       eventManager.removeShapeEvents(shape);
     }
 
-    if (shape.graphics && shape.graphics.parent) {
-      shape.graphics.parent.removeChild(shape.graphics);
+    // ✅ Handle area mode nested deletions
+    if (shapeContext.isAreaModeNested) {
+      handleAreaModeDeletion(shape, parent);
     }
-
-    if (parent) {
+    // Handle regular container deletions
+    else if (parent) {
       const index = parent.children.findIndex((child) => child.id === shape.id);
       if (index !== -1) {
         parent.children.splice(index, 1);
       }
-    } else {
+
+      if (shape.graphics && shape.graphics.parent) {
+        shape.graphics.parent.removeChild(shape.graphics);
+      }
+    }
+    // Handle top-level deletions
+    else {
+      if (shape.graphics && shape.graphics.parent) {
+        shape.graphics.parent.removeChild(shape.graphics);
+      }
+
       const index = shapes.findIndex((s) => s.id === shape.id);
       if (index !== -1) {
         shapes.splice(index, 1);
       }
     }
   });
+  // ✅ Update affected row labels after deletions
+  if (affectedRowIds.size > 0) {
+    affectedRowIds.forEach((rowId) => {
+      const row = getRowByIdFromAllGrids(rowId);
+      console.log(row);
+      if (row && row.children.length > 0) {
+        // Only update rows that still have seats
+        updateRowLabelPosition(row);
+        updateRowLabelRotation(row);
+        updateSeatLabelNumberingInRow(row, "numerical");
+      }
+    });
+  }
+
+  // ✅ Clean up empty containers
+  const cleanupEmptyContainers = () => {
+    if (!areaModeContainer) return;
+
+    // Remove empty rows from grids
+    areaModeContainer.children.forEach((grid) => {
+      grid.children = grid.children.filter((row) => row.children.length > 0);
+    });
+
+    // Remove empty grids
+    areaModeContainer.children = areaModeContainer.children.filter(
+      (grid) => grid.children.length > 0
+    );
+  };
+
+  cleanupEmptyContainers();
 
   setShapes([...shapes]);
 
-  // ✅ History automatically saved inside deleteShapes
-  useSeatMapStore.getState().deleteShapes(originalShapes);
+  // ✅ Save to history with enhanced context
+  const action = useSeatMapStore.getState()._saveToHistory(
+    {
+      shapes: selectedShapesToDelete.map((item) => item.shape),
+      selectedShapes: selectedShapes,
+      context,
+    },
+    {
+      shapes: [],
+      selectedShapes: [],
+      context: { topLevel: [], nested: [], operation: "delete" },
+    }
+  );
 
+  SeatMapCollaboration.broadcastShapeChange(action);
+
+  // ✅ Update store shapes
+  useSeatMapStore.getState().updateShapes([...shapes], false, context, false);
+
+  // ✅ Clear selection
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
     selectionTransform.updateSelection([]);
   }
+
+  useSeatMapStore.getState().setSelectedShapes([]);
 };
 
 export const clearCanvas = () => {

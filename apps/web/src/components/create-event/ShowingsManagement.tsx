@@ -106,7 +106,11 @@ export default function ShowingsManagement({
           </h3>
           <p className="text-sm text-gray-600">{t("showings.description")}</p>
         </div>
-        <Button type="button" onClick={addShowing} className="flex items-center gap-2">
+        <Button
+          type="button"
+          onClick={addShowing}
+          className="flex items-center gap-2"
+        >
           <Plus className="w-4 h-4" />
           {t("showings.add")}
         </Button>
@@ -119,7 +123,9 @@ export default function ShowingsManagement({
             className="p-4 border rounded-lg bg-gray-50 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">{t("showings.showing", { n: index + 1 })}</h4>
+              <h4 className="font-medium">
+                {t("showings.showing", { n: index + 1 })}
+              </h4>
               {showings.length > 1 && (
                 <Button
                   type="button"
@@ -136,7 +142,9 @@ export default function ShowingsManagement({
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {/* Showing Name */}
               <div>
-                <Label htmlFor={`showing-name-${index}`}>{t("labels.showingName")}</Label>
+                <Label htmlFor={`showing-name-${index}`}>
+                  {t("labels.showingName")}
+                </Label>
                 <Input
                   id={`showing-name-${index}`}
                   value={showing.name}
@@ -147,7 +155,9 @@ export default function ShowingsManagement({
 
               {/* Start Time */}
               <div>
-                <Label htmlFor={`showing-start-${index}`}>{t("labels.startTime")}</Label>
+                <Label htmlFor={`showing-start-${index}`}>
+                  {t("labels.startTime")}
+                </Label>
                 <Input
                   id={`showing-start-${index}`}
                   type="datetime-local"
@@ -168,7 +178,9 @@ export default function ShowingsManagement({
 
               {/* End Time */}
               <div>
-                <Label htmlFor={`showing-end-${index}`}>{t("labels.endTime")}</Label>
+                <Label htmlFor={`showing-end-${index}`}>
+                  {t("labels.endTime")}
+                </Label>
                 <Input
                   id={`showing-end-${index}`}
                   type="datetime-local"

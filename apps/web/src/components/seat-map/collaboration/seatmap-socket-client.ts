@@ -4,7 +4,6 @@ import { useSeatMapStore } from "../store/seat-map-store";
 import { ImageShape, CanvasItem } from "../types";
 import { setShapes, shapes, shapeContainer } from "../variables";
 
-// ✅ Create a reference to the recreateShape function that will be set from outside
 let recreateShapeRef:
   | ((
       shapeData: CanvasItem,
@@ -13,7 +12,6 @@ let recreateShapeRef:
     ) => Promise<CanvasItem>)
   | null = null;
 
-// ✅ Export function to set the reference
 export const setRecreateShapeReference = (
   fn: (
     shapeData: CanvasItem,
@@ -55,9 +53,7 @@ export class SeatMapCollaboration {
   ): Promise<void> {
     const instance = SeatMapCollaboration.getInstance();
 
-    // Prevent multiple simultaneous initializations
     if (instance.isConnecting && instance.connectionPromise) {
-      console.log("⏳ Already connecting, waiting for existing connection...");
       return instance.connectionPromise;
     }
 
@@ -71,23 +67,15 @@ export class SeatMapCollaboration {
         userId: userId,
       },
     });
-    // Create connection promise
+
     instance.connectionPromise = new Promise<void>(async (resolve, reject) => {
       try {
-        console.log("🔌 Initializing SeatMapCollaboration...");
-
-        // Connect to socket
         await instance.connect();
 
-        // Wait for connection to be established
-        await instance.waitForConnection(10000); // 10 second timeout
+        await instance.waitForConnection(10000);
 
-        console.log("✅ Socket connected, now booting seat map...");
-
-        // Boot the seat map after connection is established
         await instance.bootSeatMapInternal(seatMapId, userId);
 
-        console.log("✅ Seat map booted successfully");
         instance.isConnecting = false;
         resolve();
       } catch (error) {
@@ -110,7 +98,6 @@ export class SeatMapCollaboration {
     return new Promise((resolve, reject) => {
       const checkConnection = () => {
         if (this.socket?.connected) {
-          console.log("✅ Socket connection established");
           resolve();
           return;
         }
@@ -140,9 +127,6 @@ export class SeatMapCollaboration {
         return;
       }
 
-      console.log(`🥾 Booting seat map: ${seatMapId} for user: ${userId}`);
-
-      // Set up one-time listeners for boot response
       const successHandler = async (data: any) => {
         await this.handleSeatMapBootSuccess(data);
         cleanup();
@@ -160,14 +144,11 @@ export class SeatMapCollaboration {
         this.socket?.off("seat_map_boot_error", errorHandler);
       };
 
-      // Listen for boot response
       this.socket.once("seat_map_boot_success", successHandler);
       this.socket.once("seat_map_boot_error", errorHandler);
 
-      // Emit boot request
       this.socket.emit("boot_seat_map", { seatMapId, userId });
 
-      // Timeout after 15 seconds
       setTimeout(() => {
         cleanup();
         reject(new Error("Boot seat map timeout"));
@@ -183,24 +164,6 @@ export class SeatMapCollaboration {
   public static isConnected(): boolean {
     const instance = SeatMapCollaboration.getInstance();
     return instance.isConnected();
-  }
-
-  public static getConnectionStatus(): {
-    connected: boolean;
-    reconnectAttempts: number;
-    isConnecting: boolean;
-  } {
-    const instance = SeatMapCollaboration.getInstance();
-    return {
-      connected: instance.socket?.connected ?? false,
-      reconnectAttempts: instance.reconnectAttempts,
-      isConnecting: instance.isConnecting,
-    };
-  }
-
-  public static reconnect(): void {
-    const instance = SeatMapCollaboration.getInstance();
-    instance.handleReconnect();
   }
 
   public static broadcastShapeChange(change: UndoRedoAction): void {
@@ -226,6 +189,21 @@ export class SeatMapCollaboration {
     instance.broadcastImageUploadFailed(imageId);
   }
 
+  public static broadcastUndoAction(actionId: string): void {
+    const instance = SeatMapCollaboration.getInstance();
+    instance.broadcastUndoRedo(actionId, "undo");
+  }
+
+  public static broadcastRedoAction(actionId: string): void {
+    const instance = SeatMapCollaboration.getInstance();
+    instance.broadcastUndoRedo(actionId, "redo");
+  }
+
+  public static requestPendingChanges(): void {
+    const instance = SeatMapCollaboration.getInstance();
+    instance.requestPendingChanges();
+  }
+
   public static resetInstance(): void {
     if (SeatMapCollaboration.instance) {
       SeatMapCollaboration.instance.disconnect();
@@ -233,7 +211,6 @@ export class SeatMapCollaboration {
     }
   }
 
-  // Serialization helpers
   private serializeShape(shape: CanvasItem): any {
     const serialized: any = {};
 
@@ -317,14 +294,11 @@ export class SeatMapCollaboration {
     }
   }
 
-  // Connection management
   private async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       try {
         const socketUrl =
           process.env.NEXT_PUBLIC_SEATMAP_SOCKET_URL || "http://localhost:8080";
-
-        console.log(`🔌 Connecting to socket server at ${socketUrl}`);
 
         this.socket = io(socketUrl, {
           transports: ["websocket", "polling"],
@@ -336,9 +310,7 @@ export class SeatMapCollaboration {
 
         this.setupEventListeners();
 
-        // Wait for connection
         this.socket.once("connect", () => {
-          console.log("✅ Socket connected");
           this.reconnectAttempts = 0;
           useSeatMapStore.setState((state) => ({
             collaboration: {
@@ -374,7 +346,6 @@ export class SeatMapCollaboration {
     });
 
     this.socket.on("disconnect", (reason) => {
-      console.log("🔌 Socket disconnected:", reason);
       useSeatMapStore.setState((state) => ({
         collaboration: {
           ...state.collaboration,
@@ -392,7 +363,6 @@ export class SeatMapCollaboration {
       }
     });
 
-    this.socket.on("room_state", (data) => this.handleRoomState(data));
     this.socket.on("shape_change", (data) => this.handleShapeChange(data));
     this.socket.on("image_upload_start", (data) =>
       this.handleImageUploadStart(data)
@@ -403,11 +373,15 @@ export class SeatMapCollaboration {
     this.socket.on("image_upload_failed", (data) =>
       this.handleImageUploadFailed(data)
     );
-    this.socket.on("user_joined", (data) => {
-      console.log("👤 User joined:", data);
+    this.socket.on("user_joined", (data) => {});
+    this.socket.on("user_left", (data) => {});
+    this.socket.on("undo_redo_action", (data) => {
+      this.handleRemoteUndoRedo(data);
     });
-    this.socket.on("user_left", (data) => {
-      console.log("👋 User left:", data);
+
+    // ✅ NEW: Handle pending changes response
+    this.socket.on("pending_changes_response", (data) => {
+      this.handlePendingChangesResponse(data);
     });
   }
 
@@ -422,9 +396,6 @@ export class SeatMapCollaboration {
     }>;
     message: string;
   }) {
-    console.log("✅ Seat map boot success:", data);
-
-    // Update store with seat map data
     useSeatMapStore.setState({
       seatMap: {
         id: data.seatMap.id,
@@ -443,7 +414,6 @@ export class SeatMapCollaboration {
       isLoading: false,
     });
 
-    // ✅ Recreate shapes with PIXI graphics
     if (data.seatMap.shapes && Array.isArray(data.seatMap.shapes)) {
       if (!recreateShapeRef) {
         console.error("❌ recreateShape function not initialized");
@@ -451,8 +421,6 @@ export class SeatMapCollaboration {
       }
 
       try {
-        console.log("🎨 Recreating shapes from server data...");
-
         const recreatedShapes: CanvasItem[] = [];
 
         for (const shapeData of data.seatMap.shapes) {
@@ -473,114 +441,30 @@ export class SeatMapCollaboration {
           }
         }
 
-        console.log(
-          `✅ Successfully recreated ${recreatedShapes.length} shapes`
-        );
-
         const hasAreaModeContainer = recreatedShapes.find(
           (shape: any) => shape.id === "area-mode-container-id"
         );
 
-        // ✅ Set initial shapes WITHOUT broadcasting
         if (!hasAreaModeContainer) {
           setShapes([...shapes, ...recreatedShapes]);
         } else {
           setShapes(recreatedShapes);
         }
 
-        // ✅ Update store with initial shapes (DON'T save to history or broadcast)
         useSeatMapStore
           .getState()
           .updateShapes([...shapes], false, undefined, false);
-
-        // ✅ NEW: Apply pending changes if any AFTER initial shapes are set
-        if (data.pendingChanges && data.pendingChanges.length > 0) {
-          console.log(
-            `🔄 Applying ${data.pendingChanges.length} pending changes...`
-          );
-
-          // Sort by timestamp to ensure correct order
-          const sortedChanges = data.pendingChanges.sort(
-            (a, b) => a.timestamp - b.timestamp
-          );
-
-          // Apply each change sequentially
-          for (const { change, fromUserId } of sortedChanges) {
-            try {
-              console.log(
-                `🔄 Applying pending change from user ${fromUserId}:`,
-                change
-              );
-
-              // ✅ Apply the remote change (this will update shapes in-place)
-              await useSeatMapStore
-                .getState()
-                .applyRemoteChange(change, fromUserId);
-
-              console.log(`✅ Applied change from user ${fromUserId}`);
-            } catch (error) {
-              console.error(
-                `❌ Failed to apply pending change from ${fromUserId}:`,
-                error
-              );
-            }
-          }
-
-          console.log("✅ All pending changes applied");
-          console.log("📊 Final shapes count:", shapes.length);
-        }
-
-        console.log("✅ Shapes loaded and rendered on canvas");
       } catch (error) {
         console.error("❌ Failed to recreate shapes:", error);
       }
     }
-  }
+    if (data.pendingChanges && data.pendingChanges.length > 0) {
+      const sortedChanges = data.pendingChanges.sort(
+        (a, b) => a.timestamp - b.timestamp
+      );
 
-  private handleRoomState(data: {
-    seatMap: any;
-    users: any[];
-    pendingUploads: any[];
-  }) {
-    const roomUsers = data.users.map((user: any) => ({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      joinedAt: new Date(user.joinedAt),
-    }));
-
-    useSeatMapStore.getState().updateRoomUsers(roomUsers);
-
-    if (data.seatMap && data.seatMap.shapes) {
-      const currentSeatMap = useSeatMapStore.getState().seatMap;
-
-      if (!currentSeatMap || currentSeatMap.id !== data.seatMap.id) {
-        const currentUserInfo = useSeatMapStore
-          .getState()
-          .collaboration.roomUsers.find((user) => user.id === this.userId);
-
-        useSeatMapStore.getState().loadSeatMapFromServer({
-          seatMap: {
-            id: data.seatMap.id,
-            name: data.seatMap.name,
-            image: data.seatMap.image || "",
-            createdBy: data.seatMap.createdBy || "",
-            publicity: data.seatMap.publicity || "private",
-            createdAt: data.seatMap.createdAt || new Date().toISOString(),
-            updatedAt: data.seatMap.updatedAt || new Date().toISOString(),
-            shapes: data.seatMap.shapes,
-          },
-          userInfo: currentUserInfo || {
-            id: this.userId,
-            name: `User ${this.userId}`,
-            joinedAt: new Date(),
-          },
-          roomUsers,
-        });
-      } else {
-        useSeatMapStore
-          .getState()
-          .updateShapes(data.seatMap.shapes, false, undefined, false);
+      for (const { change, fromUserId } of sortedChanges) {
+        await useSeatMapStore.getState().applyRemoteChange(change, fromUserId);
       }
     }
   }
@@ -589,7 +473,6 @@ export class SeatMapCollaboration {
     change: UndoRedoAction;
     fromUserId: string;
   }) {
-    console.log("🔄 Applying remote shape change from user:", data);
     if (data.fromUserId === this.userId) return;
     useSeatMapStore.getState().applyRemoteChange(data.change, data.fromUserId);
   }
@@ -622,14 +505,180 @@ export class SeatMapCollaboration {
     useSeatMapStore.getState().updateImageUploadState(data.imageId, "failed");
   }
 
-  private handleReconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      setTimeout(() => {
-        this.connect();
-      }, this.reconnectDelay * this.reconnectAttempts);
-    } else {
-      console.error("💀 Max reconnection attempts reached");
+  // ✅ Updated: Handle remote undo/redo with full action data
+  private handleRemoteUndoRedo(data: {
+    action: UndoRedoAction;
+    operation: "undo" | "redo";
+    fromUserId: string;
+    timestamp: number;
+  }) {
+    if (data.fromUserId === this.userId) return;
+
+    console.log(
+      `🔄 Remote ${data.operation} action from user ${data.fromUserId}, action ID: ${data.action.id}`
+    );
+
+    // ✅ Apply the remote undo/redo action directly
+    this.applyRemoteUndoRedoAction(data.action, data.operation);
+
+    // ✅ Show notification
+    this.showRemoteUndoRedoNotification(data);
+  }
+
+  // ✅ NEW: Apply remote undo/redo action
+  private async applyRemoteUndoRedoAction(
+    action: UndoRedoAction,
+    operation: "undo" | "redo"
+  ) {
+    try {
+      // ✅ Import the undo-redo utility function
+      const { applyDeltaRestore } = await import("../utils/undo-redo");
+
+      // ✅ Apply the action as if it were a remote change
+      await applyDeltaRestore(
+        action,
+        operation === "undo", // isUndo
+        false, // updateHistory - don't save to local history
+        false // broadcastToOthers - don't broadcast back
+      );
+
+      console.log(`✅ Applied remote ${operation} action: ${action.id}`);
+    } catch (error) {
+      console.error(`❌ Failed to apply remote ${operation} action:`, error);
+    }
+  }
+
+  // ✅ Updated: Broadcast undo/redo action with full action data
+  private broadcastUndoRedo(actionId: string, operation: "undo" | "redo") {
+    if (!this.socket?.connected) {
+      console.warn(`⚠️ Socket not connected, cannot broadcast ${operation}`);
+      return;
+    }
+
+    // ✅ Find the action in local history
+    const store = useSeatMapStore.getState();
+    const action = store.historyStack.find((a) => a.id === actionId);
+
+    if (!action) {
+      console.warn(
+        `⚠️ Action ${actionId} not found in local history, cannot broadcast ${operation}`
+      );
+      return;
+    }
+
+    try {
+      // ✅ Serialize the full action
+      const serializedAction = this.serializeUndoRedoAction(action);
+      if (!serializedAction) {
+        console.error(`❌ Failed to serialize action ${actionId}`);
+        return;
+      }
+
+      this.socket.emit("undo_redo_action", {
+        seatMapId: this.seatMapId,
+        action: serializedAction,
+        operation,
+        fromUserId: this.userId,
+        timestamp: Date.now(),
+      });
+
+      console.log(
+        `📤 Broadcasted ${operation} action with full data: ${actionId}`
+      );
+    } catch (error) {
+      console.error(`❌ Failed to broadcast ${operation} action:`, error);
+    }
+  }
+
+  // ✅ NEW: Handle pending changes response
+  private handlePendingChangesResponse(data: {
+    seatMapId: string;
+    pendingChanges: Array<{
+      change: UndoRedoAction;
+      fromUserId: string;
+      timestamp: number;
+    }>;
+    timestamp: number;
+  }) {
+    console.log(
+      `📋 Received ${data.pendingChanges.length} pending changes for room ${data.seatMapId}`
+    );
+
+    // ✅ Apply pending changes that are newer than our last known state
+    this.applyPendingChanges(data.pendingChanges);
+  }
+
+  // ✅ NEW: Request pending changes from server
+  private requestPendingChanges() {
+    if (!this.socket?.connected) {
+      console.warn("⚠️ Socket not connected, cannot request pending changes");
+      return;
+    }
+
+    try {
+      this.socket.emit("request_pending_changes", {
+        seatMapId: this.seatMapId,
+        fromUserId: this.userId,
+        timestamp: Date.now(),
+      });
+
+      console.log("📤 Requested pending changes from server");
+    } catch (error) {
+      console.error("❌ Failed to request pending changes:", error);
+    }
+  }
+
+  // ✅ NEW: Show notification for remote undo/redo
+  private showRemoteUndoRedoNotification(data: {
+    action: UndoRedoAction;
+    operation: "undo" | "redo";
+    fromUserId: string;
+    timestamp: number;
+  }) {
+    // ✅ Find user name from room users
+    const collaboration = useSeatMapStore.getState().collaboration;
+    const user = collaboration.roomUsers.find((u) => u.id === data.fromUserId);
+    const userName = user?.name || `User ${data.fromUserId}`;
+
+    console.log(`🔔 ${userName} performed ${data.operation} action`);
+
+    // ✅ You can add toast notification here if desired
+    // Example: showToast(`${userName} performed ${data.operation}`, 'info');
+  }
+
+  private async applyPendingChanges(
+    pendingChanges: Array<{
+      change: UndoRedoAction;
+      fromUserId: string;
+      timestamp: number;
+    }>
+  ) {
+    // ✅ Sort by timestamp to ensure proper order
+    const sortedChanges = pendingChanges.sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
+
+    // ✅ Get current timestamp to filter out changes we might have already applied
+    const store = useSeatMapStore.getState();
+    const lastKnownTimestamp =
+      store.historyStack.length > 0
+        ? Math.max(...store.historyStack.map((action) => action.timestamp))
+        : 0;
+
+    // ✅ Apply only changes that are newer than our last known timestamp
+    const newChanges = sortedChanges.filter(
+      ({ change, fromUserId }) =>
+        change.timestamp > lastKnownTimestamp && fromUserId !== this.userId
+    );
+
+    console.log(`🔄 Applying ${newChanges.length} new pending changes`);
+
+    for (const { change, fromUserId } of newChanges) {
+      try {
+        await store.applyRemoteChange(change, fromUserId);
+      } catch (error) {
+        console.error(`❌ Failed to apply pending change ${change.id}:`, error);
+      }
     }
   }
 
@@ -640,7 +689,6 @@ export class SeatMapCollaboration {
     }
 
     const serializedChange = this.serializeUndoRedoAction(change);
-
     if (!serializedChange) {
       console.error("❌ Failed to serialize change, skipping broadcast");
       return;
@@ -704,7 +752,6 @@ export class SeatMapCollaboration {
 
   private disconnect() {
     if (this.socket) {
-      console.log("🔌 Disconnecting socket...");
       this.socket.disconnect();
       this.socket = null;
     }

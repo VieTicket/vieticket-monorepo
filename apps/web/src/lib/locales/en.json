@@ -198,13 +198,10 @@
       "updateEvent": "Update Event",
       "createEventt": "🎉 Create a New Event",
       "saveandcontinue": "Save & Continue",
-
       "areaA": "Area A",
       "mainShowing": "Main Showing",
-
       "pleaseFixErrors": "Please fix the errors before continuing",
       "confirmSeatMapUpdate": "Please confirm seat map update to proceed.",
-
       "toasts": {
         "failedLoadEvent": "Failed to load event data",
         "posterUploaded": "Poster uploaded successfully!",
@@ -225,7 +222,6 @@
         "preview": "Preview",
         "ticketing": "Ticketing"
       },
-
       "categories": {
         "workshop": "Workshop",
         "concert": "Concert",
@@ -244,7 +240,6 @@
         "saleEnds": "Sale ends: 1 hour before the earliest showing",
         "note": "Individual showings can have their own ticket sale schedules in the next step."
       },
-
       "help": {
         "maxTicketsPerOrder": "Set the maximum number of tickets a customer can purchase in a single order"
       },
@@ -306,7 +301,10 @@
         },
         "image": {
           "cardTitle": "AI {type} Generator",
-          "types": { "poster": "Poster", "banner": "Banner" },
+          "types": {
+            "poster": "Poster",
+            "banner": "Banner"
+          },
           "backgroundLabel": "Background Prompt",
           "backgroundPlaceholder": "Describe the background for your {type}",
           "textOnImageLabel": "Text on Image (Optional)",
@@ -499,7 +497,9 @@
         "title": "Profile Photo",
         "uploadButton": "Upload New Avatar"
       },
-      "personalInfo": { "title": "Personal Information" },
+      "personalInfo": {
+        "title": "Personal Information"
+      },
       "labels": {
         "fullName": "Full Name:",
         "email": "Email:",
@@ -560,12 +560,252 @@
           "newPasswordRequired": "New password is required",
           "confirmPasswordRequired": "Please confirm your password"
         },
-        "toasts": { "success": "Password updated successfully" },
-        "buttons": { "update": "Update Password" }
+        "toasts": {
+          "success": "Password updated successfully"
+        },
+        "buttons": {
+          "update": "Update Password"
+        }
       }
     },
     "SignOut": {
       "signOut": "Sign Out"
+    }
+  },
+  "about": {
+    "hero": {
+      "badge": "🚀 About VieTicket",
+      "title": "Vietnam's Leading Event Ticketing Platform",
+      "subtitle": "Connecting attendees with amazing event experiences, from music and sports to conferences and much more."
+    },
+    "stats": {
+      "users": {
+        "value": "500K+",
+        "label": "Trusted users"
+      },
+      "events": {
+        "value": "10K+",
+        "label": "Events organized"
+      },
+      "provinces": {
+        "value": "63",
+        "label": "Provinces"
+      },
+      "reliability": {
+        "value": "99.9%",
+        "label": "Reliability"
+      }
+    },
+    "mission": {
+      "badge": "🎯 Mission",
+      "title": "Why was VieTicket created?",
+      "content": "VieTicket was born with the mission to democratize event access in Vietnam. We believe everyone deserves great event experiences, regardless of where they are or what they do. From concerts, conferences, workshops to sporting events - everything should be easy to find, book and attend.",
+      "vision": {
+        "title": "Vision 2030",
+        "content": "To become the #1 entertainment and event super app in Southeast Asia, where every memorable experience begins."
+      }
+    },
+    "features": {
+      "badge": "⚡ Features",
+      "title": "Why choose VieTicket?",
+      "list": {
+        "fastBooking": {
+          "title": "Quick booking",
+          "description": "Just a few clicks and you'll have tickets to your favorite events."
+        },
+        "security": {
+          "title": "Absolute security",
+          "description": "Personal information and transactions are protected with modern encryption technology."
+        },
+        "eTicket": {
+          "title": "Convenient e-tickets",
+          "description": "E-tickets on your smartphone, no need to worry about losing paper tickets."
+        },
+        "aiPersonal": {
+          "title": "AI personalization",
+          "description": "Smart AI system suggests events that match your preferences."
+        },
+        "support": {
+          "title": "24/7 support",
+          "description": "Customer support team is always ready to help you anytime, anywhere."
+        },
+        "diverse": {
+          "title": "Diverse events",
+          "description": "From music, sports to business - thousands of events waiting for you to explore."
+        }
+      }
+    },
+    "timeline": {
+      "badge": "📈 Journey",
+      "title": "VieTicket development journey",
+      "events": {
+        "2024": {
+          "year": "2024",
+          "title": "Idea Born",
+          "description": "VieTicket idea was conceived by a team of students passionate about technology and events."
+        },
+        "2025": {
+          "year": "2025",
+          "title": "In Development",
+          "description": "Currently actively developing the platform with smart ticketing and event management features."
+        },
+        "2026": {
+          "year": "2026",
+          "title": "Launch & Expansion",
+          "description": "Target official launch, serving thousands of events and expanding to multiple provinces."
+        }
+      }
+    },
+    "team": {
+      "badge": "👥 Development team",
+      "title": "The people behind VieTicket",
+      "subtitle": "A team passionate about technology and events, committed to creating amazing experiences for users.",
+      "members": {
+        "vinh": {
+          "name": "Dang Thanh Vinh",
+          "role": "Development Member",
+          "bio": "Contributing to the development and building of VieTicket platform."
+        },
+        "khanh": {
+          "name": "Tran Dinh Khanh",
+          "role": "Development Member",
+          "bio": "Contributing to the development of features and systems."
+        },
+        "hoang": {
+          "name": "Nguyen Pham Viet Hoang",
+          "role": "Development Member",
+          "bio": "Participating in building user experiences for VieTicket."
+        },
+        "ha": {
+          "name": "Le Thy An Ha",
+          "role": "Development Member",
+          "bio": "Contributing to product development and features."
+        },
+        "hung": {
+          "name": "Duong Viet Hung",
+          "role": "Development Member",
+          "bio": "Participating in system development and optimization."
+        }
+      }
+    },
+    "cta": {
+      "badge": "🚀 Join now",
+      "title": "Ready to explore?",
+      "subtitle": "Become part of the VieTicket community today",
+      "buttons": {
+        "events": "Explore events",
+        "organizer": "Contact Us"
+      }
+    }
+  },
+  "contact": {
+    "hero": {
+      "badge": "📞 Contact",
+      "title": "We're always ready to help you",
+      "subtitle": "Have questions or need support? The VieTicket team is always ready to help you 24/7. Contact us through any of the channels below."
+    },
+    "contactInfo": {
+      "phone": {
+        "title": "Phone",
+        "details": [
+          "Hotline: 0766 567 846"
+        ]
+      },
+      "email": {
+        "title": "Email",
+        "details": [
+          "dt.khanh3007@gmail.com",
+          "Contact for all inquiries"
+        ]
+      },
+      "address": {
+        "title": "Address",
+        "details": [
+          "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+        ]
+      },
+      "hours": {
+        "title": "Working hours",
+        "details": [
+          "Monday - Friday: 8:00 - 17:30",
+          "Saturday: 8:00 - 12:00"
+        ]
+      }
+    },
+    "support": {
+      "title": "Choose the right support category",
+      "subtitle": "For the fastest and most accurate support, please select the appropriate category when sending your message",
+      "categories": {
+        "customer": {
+          "title": "Customer support",
+          "description": "Support for ticket booking, payments and technical issues",
+          "response": "Response within 2-4 hours"
+        },
+        "business": {
+          "title": "Business partnership",
+          "description": "Register to become an event organizing partner",
+          "response": "Response within 1 business day"
+        },
+        "partnership": {
+          "title": "Strategic partnerships",
+          "description": "Strategic partnerships and investments",
+          "response": "Response within 2-3 business days"
+        },
+        "media": {
+          "title": "Press & Media",
+          "description": "Press information, PR and marketing",
+          "response": "Response within 1 business day"
+        }
+      }
+    },
+    "faq": {
+      "badge": "❓ FAQ",
+      "title": "You might need to know",
+      "subtitle": "The most frequently asked questions from VieTicket users",
+      "items": {
+        "booking": {
+          "question": "How to book event tickets?",
+          "answer": "You can search for events, select tickets and pay online through VieTicket website or app."
+        },
+        "cancellation": {
+          "question": "Can I cancel or exchange tickets?",
+          "answer": "Cancellation/exchange policy depends on each event. Please see details in the 'Terms' section of each event."
+        },
+        "eticket": {
+          "question": "Are e-tickets safe?",
+          "answer": "VieTicket e-tickets are encrypted with QR codes and have a strict authentication system, ensuring absolute security."
+        },
+        "organizer": {
+          "question": "How to become an event organizing partner?",
+          "answer": "You can register for an Organizer account and send your registration via email business@vieticket.com or contact our hotline."
+        }
+      },
+      "notFound": "Can't find the answer? Contact us directly",
+      "callNow": "Call now: 0766 567 846",
+      "emailSupport": "Email support"
+    },
+    "office": {
+      "badge": "📍 Address",
+      "title": "Visit our office",
+      "headquarters": "VieTicket Headquarters",
+      "mapPlaceholder": "Google Maps will be integrated here",
+      "mapDescription": "Interactive map with exact VieTicket office location",
+      "details": {
+        "address": {
+          "title": "Address",
+          "line1": "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+        },
+        "hours": {
+          "title": "Working hours",
+          "weekdays": "Monday - Friday: 8:00 - 17:30",
+          "saturday": "Saturday: 8:00 - 12:00",
+          "sunday": "Sunday: Closed"
+        },
+        "phone": {
+          "title": "Phone",
+          "hotline": "Hotline: 0766 567 846"
+        }
+      }
     }
   }
 }

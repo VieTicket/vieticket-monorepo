@@ -9,10 +9,6 @@ import {
   showings,
 } from "@vieticket/db/pg/schema";
 
-// ========================================
-// EVENT MUTATIONS
-// ========================================
-
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
 }
@@ -37,6 +33,7 @@ export async function getEventsById(eventId: string) {
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     with: {
+      organizer: true,
       areas: {
         with: {
           rows: {
@@ -55,9 +52,6 @@ export async function getEventsById(eventId: string) {
 
 export async function deleteEvent(eventId: string) {
   return db.transaction(async (tx) => {
-    // Delete all related data in proper order due to foreign key constraints
-
-    // 1. Delete seats first
     await tx.execute(sql`
       DELETE FROM seats 
       WHERE row_id IN (
@@ -67,7 +61,6 @@ export async function deleteEvent(eventId: string) {
       )
     `);
 
-    // 2. Delete rows
     await tx.execute(sql`
       DELETE FROM rows 
       WHERE area_id IN (
@@ -75,17 +68,14 @@ export async function deleteEvent(eventId: string) {
       )
     `);
 
-    // 3. Delete areas
     await tx.execute(sql`
       DELETE FROM areas WHERE event_id = ${eventId}
     `);
 
-    // 4. Delete showings
     await tx.execute(sql`
       DELETE FROM showings WHERE event_id = ${eventId}
     `);
 
-    // 5. Finally delete the event
     const [deletedEvent] = await tx
       .delete(events)
       .where(eq(events.id, eventId))
@@ -94,10 +84,6 @@ export async function deleteEvent(eventId: string) {
     return deletedEvent;
   });
 }
-
-// ========================================
-// SHOWING MUTATIONS
-// ========================================
 
 export async function createShowing(showing: {
   eventId: string;
@@ -136,10 +122,6 @@ export async function getShowingById(showingId: string) {
     },
   });
 }
-
-// ========================================
-// AREA MUTATIONS
-// ========================================
 
 export async function createArea(area: {
   eventId: string;
@@ -196,10 +178,6 @@ export async function deleteAreaById(areaId: string) {
   return db.delete(areas).where(eq(areas.id, areaId));
 }
 
-// ========================================
-// ROW MUTATIONS
-// ========================================
-
 export async function createRow(row: { areaId: string; rowName: string }) {
   return db.insert(rows).values(row).returning();
 }
@@ -237,10 +215,6 @@ export async function deleteRowsByAreaId(areaId: string) {
 export async function deleteRowById(rowId: string) {
   return db.delete(rows).where(eq(rows.id, rowId));
 }
-
-// ========================================
-// SEAT MUTATIONS
-// ========================================
 
 export async function createSeats(
   seatsData: {
@@ -282,10 +256,6 @@ export async function deleteSeatById(seatId: string) {
   return db.delete(seats).where(eq(seats.id, seatId));
 }
 
-// ========================================
-// BULK OPERATIONS
-// ========================================
-
 export async function deleteAllEventStructure(eventId: string) {
   await db.transaction(async (tx) => {
     await tx.delete(areas).where(eq(areas.eventId, eventId));
@@ -298,10 +268,6 @@ export async function deleteAllShowingStructure(showingId: string) {
     await tx.delete(areas).where(eq(areas.showingId, showingId));
   });
 }
-
-// ========================================
-// QUERY HELPERS
-// ========================================
 
 export async function getCompleteEventById(eventId: string) {
   return db.query.events.findFirst({
@@ -432,8 +398,6 @@ export async function getShowingStatistics(showingId: string) {
   return statistics;
 }
 
-// ========== OPTIMIZED BULK OPERATIONS ==========
-
 export async function deleteAllShowingDataForEvent(eventId: string) {
   return db.transaction(async (tx) => {
     await tx.execute(sql`
@@ -467,8 +431,6 @@ export async function deleteAllShowingDataForEvent(eventId: string) {
     `);
   });
 }
-
-// ========== OPTIMIZED EVENT CREATION FUNCTIONS ==========
 
 export async function createEventWithShowingsOptimized(
   eventPayload: NewEvent,
@@ -655,8 +617,6 @@ export async function createEventWithShowingsIndividualOptimized(
     return { eventId };
   });
 }
-
-// ========== OPTIMIZED EVENT UPDATE FUNCTIONS ==========
 
 export async function updateEventWithShowingsOptimized(
   eventPayload: any,
@@ -907,8 +867,6 @@ export async function updateEventWithShowingsIndividualOptimized(
     return { eventId };
   });
 }
-
-// ========== OPTIMIZED READ OPERATIONS ==========
 
 export async function checkEventSeatsData(eventId: string) {
   const result = await db.execute(sql`

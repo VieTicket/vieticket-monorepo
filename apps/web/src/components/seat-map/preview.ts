@@ -138,3 +138,79 @@ export const clearPolygonPreview = () => {
     previewGraphics.clear();
   }
 };
+// Add to preview.ts
+
+let freeShapePreviewGraphics: PIXI.Graphics | null = null;
+
+export const createFreeShapePreview = () => {
+  if (!previewContainer) return;
+
+  clearFreeShapePreview();
+
+  freeShapePreviewGraphics = new PIXI.Graphics();
+  previewContainer.addChild(freeShapePreviewGraphics);
+};
+
+export const updateFreeShapePreview = (
+  points: Array<{ x: number; y: number }>,
+  showCloseIndicator: boolean = false
+) => {
+  if (!freeShapePreviewGraphics || points.length < 1) return;
+
+  freeShapePreviewGraphics.clear();
+
+  if (points.length < 2) {
+    // Just show a dot for the first point
+    freeShapePreviewGraphics.circle(points[0].x, points[0].y, 3).fill(0x0099ff);
+    return;
+  }
+
+  // Draw the path
+  freeShapePreviewGraphics.moveTo(points[0].x, points[0].y);
+
+  for (let i = 1; i < points.length; i++) {
+    freeShapePreviewGraphics.lineTo(points[i].x, points[i].y);
+  }
+
+  freeShapePreviewGraphics.stroke({
+    width: 2,
+    color: 0x0099ff,
+    alpha: 0.8,
+  });
+
+  // Show close indicator
+  if (showCloseIndicator && points.length > 2) {
+    const firstPoint = points[0];
+    const lastPoint = points[points.length - 1];
+
+    freeShapePreviewGraphics
+      .moveTo(lastPoint.x, lastPoint.y)
+      .lineTo(firstPoint.x, firstPoint.y)
+      .stroke({
+        width: 2,
+        color: 0x00ff00,
+        alpha: 0.6,
+      });
+
+    // Highlight first point
+    freeShapePreviewGraphics.circle(firstPoint.x, firstPoint.y, 8).stroke({
+      width: 2,
+      color: 0x00ff00,
+      alpha: 0.8,
+    });
+  }
+
+  // Show current points
+  points.forEach((point, index) => {
+    freeShapePreviewGraphics!
+      .circle(point.x, point.y, index === 0 ? 5 : 3)
+      .fill(index === 0 ? 0x00ff00 : 0x0099ff);
+  });
+};
+
+export const clearFreeShapePreview = () => {
+  if (freeShapePreviewGraphics && previewContainer) {
+    previewContainer.removeChild(freeShapePreviewGraphics);
+    freeShapePreviewGraphics = null;
+  }
+};

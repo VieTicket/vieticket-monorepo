@@ -156,22 +156,17 @@ export function EventDetailsStep({
     <>
       <h2 className="text-xl font-semibold mb-4">{t("eventDetails")}</h2>
       {renderField("name", t("labels.eventTitle"), "text")}
-      {renderField(
-        "type",
-        t("labels.eventCategory"),
-        "select",
-        [
-          t("categories.workshop"),
-          t("categories.concert"),
-          t("categories.webinar"),
-          t("categories.music"),
-          t("categories.sports"),
-          t("categories.art"),
-          t("categories.comedy"),
-          t("categories.food"),
-          t("categories.conference"),
-        ]
-      )}
+      {renderField("type", t("labels.eventCategory"), "select", [
+        t("categories.workshop"),
+        t("categories.concert"),
+        t("categories.webinar"),
+        t("categories.music"),
+        t("categories.sports"),
+        t("categories.art"),
+        t("categories.comedy"),
+        t("categories.food"),
+        t("categories.conference"),
+      ])}
 
       {/* Showings Management Section */}
       <ShowingsManagement
@@ -187,25 +182,27 @@ export function EventDetailsStep({
       {showings.length > 0 && showings[0].startTime && (
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
           <div className="flex items-start gap-2">
-              <div className="text-blue-600 mt-0.5">ℹ️</div>
-              <div className="text-sm text-blue-800">
-                <p className="font-medium">{t("ticketSale.title")}</p>
-                <p>{t("ticketSale.description")}</p>
-                <ul className="mt-1 list-disc list-inside text-blue-700">
-                  <li>{t("ticketSale.saleStarts")}</li>
-                  <li>{t("ticketSale.saleEnds")}</li>
-                </ul>
-                <p className="mt-1 text-xs">{t("ticketSale.note")}</p>
-              </div>
+            <div className="text-blue-600 mt-0.5">ℹ️</div>
+            <div className="text-sm text-blue-800">
+              <p className="font-medium">{t("ticketSale.title")}</p>
+              <p>{t("ticketSale.description")}</p>
+              <ul className="mt-1 list-disc list-inside text-blue-700">
+                <li>{t("ticketSale.saleStarts")}</li>
+                <li>{t("ticketSale.saleEnds")}</li>
+              </ul>
+              <p className="mt-1 text-xs">{t("ticketSale.note")}</p>
+            </div>
           </div>
         </div>
       )}
 
-        {renderField("location", t("labels.location"))}
+      {renderField("location", t("labels.location"))}
 
       {/* Max Tickets per Order */}
       <div className="space-y-1">
-        <Label htmlFor="maxTicketsByOrder">{t("labels.maxTicketsPerOrder")}</Label>
+        <Label htmlFor="maxTicketsByOrder">
+          {t("labels.maxTicketsPerOrder")}
+        </Label>
         <Input
           id="maxTicketsByOrder"
           name="maxTicketsByOrder"

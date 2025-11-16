@@ -15,16 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { SeatMapCard } from "./seat-map-card";
 import Link from "next/link";
-
-type SeatMapItem = {
-  id: string;
-  name: string;
-  updatedAt: string;
-  createdAt: string;
-  image?: string;
-  createdBy: string;
-  publicity?: "public" | "private";
-};
+import { SeatMapItem } from "../page";
 
 interface DraftsViewProps {
   filteredSeatMaps: SeatMapItem[];
@@ -35,7 +26,7 @@ interface DraftsViewProps {
   setViewMode: (mode: "grid" | "list") => void;
   selectedTab: string;
   setSelectedTab: (tab: string) => void;
-  formatDate: (date: string) => string;
+  formatDate: (date: Date) => string;
   onPublish: (seatMapId: string) => void;
   onDelete: (seatMapId: string) => void;
   publishingIds: Set<string>;

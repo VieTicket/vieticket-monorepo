@@ -19,7 +19,7 @@ export async function GET() {
         organizer_name: organizers.name,
         organizer_email: organizers.id, // Will need to join with user table for email
         created_at: events.createdAt,
-        is_approved: events.approvalStatus,
+        approvalStatus: events.approvalStatus,
         image_url: events.posterUrl,
         category: events.type,
       })

@@ -27,6 +27,49 @@ export async function handleCreateEvent(
   const ticketingMode = formData.get("ticketingMode") as string;
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
+  console.log(formData);
+  console.log("📥 Creating event:", {
+    eventName,
+    ticketingMode,
+    seatMapId: seatMapId || "none",
+    hasSeatMapData: !!seatMapData,
+  });
+
+  let showingIndex = 0;
+  const showings: {
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    ticketSaleStart?: Date | null;
+    ticketSaleEnd?: Date | null;
+    seatMapId?: string;
+  }[] = [];
+  while (true) {
+    const name = formData.get(`showings[${showingIndex}].name`);
+    const startTime = formData.get(`showings[${showingIndex}].startTime`);
+    const endTime = formData.get(`showings[${showingIndex}].endTime`);
+
+    if (!name || !startTime || !endTime) break;
+
+    showings.push({
+      name: name.toString(),
+      startTime: new Date(startTime.toString()),
+      endTime: new Date(endTime.toString()),
+      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    });
+
+    showingIndex++;
+  }
+
+  console.log(`📋 Parsed ${showings.length} showings`);
+
+  if (showings.length === 0) {
+    throw new Error("At least one showing is required");
+  }
+
+  // For compatibility, use first showing's times as event start/end
+  const eventStartTime = showings[0].startTime;
+  const eventEndTime = showings[showings.length - 1].endTime;
 
   const eventTicketSaleStart = formData.get("ticketSaleStart")
     ? (() => {
@@ -48,16 +91,6 @@ export async function handleCreateEvent(
       })()
     : null;
 
-  const showings: {
-    name: string;
-    startTime: Date;
-    endTime: Date;
-    ticketSaleStart?: Date | null;
-    ticketSaleEnd?: Date | null;
-    seatMapId?: string;
-  }[] = [];
-
-  let showingIndex = 0;
   while (true) {
     const name = formData.get(`showings[${showingIndex}].name`);
     const startTime = formData.get(`showings[${showingIndex}].startTime`);
@@ -118,8 +151,65 @@ export async function handleCreateEvent(
     throw new Error("At least one showing is required");
   }
 
-  const eventStartTime = showings[0].startTime;
-  const eventEndTime = showings[showings.length - 1].endTime;
+  while (true) {
+    const name = formData.get(`showings[${showingIndex}].name`);
+    const startTime = formData.get(`showings[${showingIndex}].startTime`);
+    const endTime = formData.get(`showings[${showingIndex}].endTime`);
+    const ticketSaleStart = formData.get(
+      `showings[${showingIndex}].ticketSaleStart`
+    );
+    const ticketSaleEnd = formData.get(
+      `showings[${showingIndex}].ticketSaleEnd`
+    );
+
+    if (!name || !startTime || !endTime) break;
+
+    const startDate = new Date(startTime.toString());
+    const endDate = new Date(endTime.toString());
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error(`Invalid date format in showing: ${name}`);
+    }
+
+    const ticketSaleStartDate =
+      ticketSaleStart && ticketSaleStart.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleStart.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() - 7);
+            return date;
+          })();
+
+    const ticketSaleEndDate =
+      ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleEnd.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            const date = new Date(startDate);
+            date.setHours(date.getHours() - 1);
+            return date;
+          })();
+
+    showings.push({
+      name: name.toString(),
+      startTime: startDate,
+      endTime: endDate,
+      ticketSaleStart: ticketSaleStartDate,
+      ticketSaleEnd: ticketSaleEndDate,
+      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    });
+
+    showingIndex++;
+  }
+
+  if (showings.length === 0) {
+    throw new Error("At least one showing is required");
+  }
 
   const eventPayload = {
     name: eventName,
@@ -229,8 +319,6 @@ export async function handleCreateEvent(
         areaIndex++;
       }
 
-      console.log("Copy mode areas:", areas);
-
       if (areas.length === 0) {
         throw new Error("At least one area is required for simple ticketing");
       }
@@ -279,8 +367,6 @@ export async function handleCreateEvent(
           areaIndex++;
         }
 
-        console.log(`Showing ${showingIdx} areas:`, areas);
-
         if (areas.length === 0) {
           throw new Error(
             `Showing ${showingIdx + 1} must have at least one area`
@@ -298,6 +384,7 @@ export async function handleCreateEvent(
     }
   }
 
+  console.log("✅ Event created successfully:", result?.eventId);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   return result ? { eventId: result.eventId } : undefined;
@@ -311,6 +398,13 @@ export async function handleUpdateEvent(formData: FormData) {
   const ticketingMode = formData.get("ticketingMode") as string;
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
+
+  console.log("📝 Updating event:", {
+    eventId,
+    ticketingMode,
+    seatMapId: seatMapId || "none",
+    hasSeatMapData: !!seatMapData,
+  });
 
   const existingEvent = await getEventById(eventId);
   if (!existingEvent) {
@@ -531,8 +625,6 @@ export async function handleUpdateEvent(formData: FormData) {
         index++;
       }
 
-      console.log("Update copy mode areas:", areas);
-
       if (areas.length === 0) {
         throw new Error("At least one area is required for simple ticketing");
       }
@@ -594,6 +686,7 @@ export async function handleUpdateEvent(formData: FormData) {
     }
   }
 
+  console.log("✅ Event updated successfully:", eventId);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   revalidatePath(`/event/${existingEvent.slug}`);

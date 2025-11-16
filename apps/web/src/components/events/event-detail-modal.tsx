@@ -166,9 +166,12 @@ export function EventDetailModal({
 
         {/* Description */}
         <DetailCard icon={FileText} title="Description">
-          <p className="leading-relaxed whitespace-pre-wrap">
-            {event.description || "No description available for this event."}
-          </p>
+          <div 
+            className="leading-relaxed prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ 
+              __html: event.description || "No description available for this event." 
+            }}
+          />
         </DetailCard>
 
         {/* Showings Dropdown */}

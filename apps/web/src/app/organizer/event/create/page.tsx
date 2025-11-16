@@ -491,7 +491,7 @@ function CreateEventPageInner() {
     toast.success(t("toasts.bannerUploaded"));
   };
 
-  // Seat map selection handler
+  // ✅ Corrected seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
     console.log("📥 Processing seat map selection:", seatMap.name);
 

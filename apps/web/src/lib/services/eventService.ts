@@ -1,34 +1,27 @@
+import { SeatMapGridData } from "@/types/event-types";
+import { Event, NewEvent } from "@vieticket/db/pg/schema";
+import { v4 as uuidv4 } from "uuid";
+import { db } from "../db";
+import { getEventBySlug } from "../queries/events";
 import {
-  createEvent,
-  createArea,
-  createRow,
-  createSeats,
-  getEventsById,
-  updateEventById,
-  getAreasByEventId,
-  updateAreaById,
-  getRowsByAreaId,
-  deleteSeatsByRowId,
-  deleteAreasByEventId,
-  deleteShowingsByEventId,
   createAreaWithId,
+  createEvent,
+  createEventWithShowingsIndividualOptimized,
+  createEventWithShowingsOptimized,
   createRowWithId,
   createSeatsWithIds,
-  incrementEventView,
   createShowing,
-  updateEventWithShowingsOptimized,
-  updateEventWithShowingsIndividualOptimized,
-  createEventWithShowingsOptimized,
-  createEventWithShowingsIndividualOptimized,
+  deleteAreasByEventId,
+  deleteShowingsByEventId,
+  getEventsById,
   getEventByIdOptimized,
   getEventsByOrganizerOptimized,
+  incrementEventView,
+  updateEventById,
+  updateEventWithShowingsIndividualOptimized,
+  updateEventWithShowingsOptimized
 } from "../queries/events-mutation";
-import { db } from "../db";
 import { createEventInputSchema } from "../validaters/validateEvent";
-import { Event, NewEvent } from "@vieticket/db/pg/schema";
-import { getEventBySlug } from "../queries/events";
-import { SeatMapGridData } from "@/types/event-types";
-import { v4 as uuidv4 } from "uuid";
 
 /**
  * ✅ Create event with showings using simple ticketing (copy mode)
@@ -587,6 +580,6 @@ export async function getEventsByOrganizer(organizerId: string) {
 }
 
 export async function getEventById(eventId: string) {
-  const result = await getEventByIdOptimized(eventId);
-  return result[0] || null;
+  const events = await getEventsById(eventId);
+  return events[0] || null;
 }

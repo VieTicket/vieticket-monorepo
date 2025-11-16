@@ -3,8 +3,11 @@ import {
   CanvasItem,
   ContainerGroup,
   EllipseShape,
+  GridShape,
   PolygonShape,
   RectangleShape,
+  RowShape,
+  SeatShape,
   SVGShape,
 } from "../types";
 import {
@@ -109,37 +112,136 @@ const processShapeSelection = (
   isMultiSelect: boolean
 ) => {
   const shapesToSelect: CanvasItem[] = [];
+  const selectedSeatsByGrid = new Map<string, Set<string>>(); // gridId -> Set<seatId>
+  const selectedSeatsByRow = new Map<string, Set<string>>(); // rowId -> Set<seatId>
 
   if (isAreaMode && areaModeContainer) {
-    areaModeContainer.children.forEach((child) => {
-      const worldPosition = getWorldPosition(child, areaModeContainer!);
-      const worldChild = {
-        ...child,
-        x: worldPosition.x,
-        y: worldPosition.y,
-      };
+    // Process area mode container children (grids)
+    areaModeContainer.children.forEach((grid) => {
+      const gridSeatsInSelection: SeatShape[] = [];
+      // Check all rows in this grid
+      grid.children.forEach((row) => {
+        const rowSeatsInSelection: SeatShape[] = [];
 
-      if (isShapeInRectangle(worldChild, rect)) {
-        shapesToSelect.push(child);
+        // Check all seats in this row
+        row.children.forEach((seat) => {
+          const seatWorldPosition = getWorldPosition(seat, row);
+          // Convert to absolute world position
+          const absoluteSeatPosition = {
+            ...seat,
+            x: seatWorldPosition.x,
+            y: seatWorldPosition.y,
+          };
+
+          if (isShapeInRectangle(absoluteSeatPosition, rect)) {
+            rowSeatsInSelection.push(seat);
+            gridSeatsInSelection.push(seat);
+
+            // Track selected seats by row and grid
+            if (!selectedSeatsByRow.has(row.id)) {
+              selectedSeatsByRow.set(row.id, new Set());
+            }
+            selectedSeatsByRow.get(row.id)!.add(seat.id);
+
+            if (!selectedSeatsByGrid.has(grid.id)) {
+              selectedSeatsByGrid.set(grid.id, new Set());
+            }
+            selectedSeatsByGrid.get(grid.id)!.add(seat.id);
+          }
+        });
+
+        // Check if all seats in this row are selected
+        if (
+          rowSeatsInSelection.length > 0 &&
+          rowSeatsInSelection.length === row.children.length
+        ) {
+          // All seats in row are selected - select the row instead
+          const existingRowSelection = shapesToSelect.find(
+            (s) => s.id === row.id
+          );
+          if (!existingRowSelection) {
+            // Remove individual seats from this row from selection
+            rowSeatsInSelection.forEach((seat) => {
+              const seatIndex = shapesToSelect.findIndex(
+                (s) => s.id === seat.id
+              );
+              if (seatIndex !== -1) {
+                shapesToSelect.splice(seatIndex, 1);
+              }
+            });
+            // Add the row instead
+            shapesToSelect.push(row);
+          }
+        } else {
+          // Not all seats in row are selected - add individual seats
+          rowSeatsInSelection.forEach((seat) => {
+            if (!shapesToSelect.find((s) => s.id === seat.id)) {
+              shapesToSelect.push(seat);
+            }
+          });
+        }
+      });
+
+      // Check if all seats in this grid are selected
+      const totalSeatsInGrid = grid.children.reduce(
+        (total, row) => total + row.children.length,
+        0
+      );
+      if (
+        gridSeatsInSelection.length > 0 &&
+        gridSeatsInSelection.length === totalSeatsInGrid
+      ) {
+        // All seats in grid are selected - select the grid instead
+        const existingGridSelection = shapesToSelect.find(
+          (s) => s.id === grid.id
+        );
+        if (!existingGridSelection) {
+          // Remove all rows and seats from this grid from selection
+          shapesToSelect.splice(
+            0,
+            shapesToSelect.length,
+            ...shapesToSelect.filter((s) => {
+              // Keep shapes that are not part of this grid
+              if (s.type === "ellipse" && "gridId" in s) {
+                return (s as SeatShape).gridId !== grid.id;
+              }
+              if (s.type === "container" && "gridId" in s) {
+                return (s as RowShape).gridId !== grid.id;
+              }
+              return true;
+            })
+          );
+          // Add the grid instead
+          shapesToSelect.push(grid);
+        }
       }
     });
   } else {
-    shapes
-      .filter((shape) => shape.id !== "area-mode-container-id")
-      .forEach((shape) => {
-        if (shape.type === "container") {
-          // ✅ For containers, check if any child intersects with selection
-          const container = shape as ContainerGroup;
-          if (containerHasChildrenInSelection(container, rect)) {
-            shapesToSelect.push(container);
-          }
-        } else {
-          // ✅ For regular shapes, check direct intersection
-          if (isShapeInRectangle(shape, rect)) {
-            shapesToSelect.push(shape);
-          }
+    shapes.forEach((shape) => {
+      if (shape.type === "container") {
+        const container = shape as ContainerGroup;
+        if (container.id === "area-mode-container-id") {
+          container.children.forEach((child) => {
+            const worldPosition = getWorldPosition(child, container);
+            const worldChild = {
+              ...child,
+              x: worldPosition.x,
+              y: worldPosition.y,
+            };
+
+            if (isShapeInRectangle(worldChild, rect)) {
+              shapesToSelect.push(child);
+            }
+          });
+        } else if (containerHasChildrenInSelection(container, rect)) {
+          shapesToSelect.push(container);
         }
-      });
+      } else {
+        if (isShapeInRectangle(shape, rect)) {
+          shapesToSelect.push(shape);
+        }
+      }
+    });
   }
 
   // Apply selection
@@ -167,7 +269,6 @@ const processShapeSelection = (
   }
 };
 
-// ✅ Check if a container has any children within the selection rectangle
 const containerHasChildrenInSelection = (
   container: ContainerGroup,
   rect: { x: number; y: number; width: number; height: number }
@@ -197,7 +298,6 @@ const containerHasChildrenInSelection = (
   return false;
 };
 
-// ✅ Get world position of a shape within a container
 const getWorldPosition = (
   shape: CanvasItem,
   container: ContainerGroup
@@ -216,14 +316,12 @@ const getWorldPosition = (
   return { x: shape.x + container.x, y: shape.y + container.y };
 };
 
-// ✅ Check if a shape intersects with selection rectangle
 const isShapeInRectangle = (
   shape: CanvasItem,
   rect: { x: number; y: number; width: number; height: number }
 ): boolean => {
   const shapeBounds = getShapeBounds(shape);
 
-  // Check if rectangles intersect
   return !(
     shapeBounds.right < rect.x ||
     shapeBounds.left > rect.x + rect.width ||
@@ -232,8 +330,6 @@ const isShapeInRectangle = (
   );
 };
 
-// ✅ Get bounding box of a shape
-// ✅ Get bounding box of a shape (updated to match hitTestChild logic)
 const getShapeBounds = (shape: CanvasItem) => {
   let bounds = {
     left: shape.x,

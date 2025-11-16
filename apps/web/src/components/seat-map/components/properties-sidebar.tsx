@@ -5,7 +5,7 @@ import { useSeatMapStore } from "../store/seat-map-store";
 import { DefaultProperties } from "./sidebar/default-properties";
 import { SingleItemProperties } from "./sidebar/single-item-properties";
 import { AreaModeProperties } from "./sidebar/area-mode-properties";
-import { SeatShape } from "../types";
+import { GridShape, RowShape, SeatShape } from "../types";
 import { isAreaMode } from "../variables";
 
 export const PropertiesSidebar = React.memo(() => {
@@ -15,17 +15,29 @@ export const PropertiesSidebar = React.memo(() => {
     if (selectedItems.length === 0) {
       return <DefaultProperties />;
     }
-
-    // ✅ Area Mode Logic: Check if all selected items are seats
     if (isAreaMode && selectedItems.length > 0) {
-      const seatShapes = selectedItems.filter(
-        (shape): shape is SeatShape =>
-          shape.type === "ellipse" && "gridId" in shape && "rowId" in shape
+      // Filter for area mode compatible shapes: SeatShape, RowShape, or GridShape
+      const areaModeShapes = selectedItems.filter(
+        (shape): shape is SeatShape | GridShape | RowShape =>
+          // SeatShape check
+          (shape.type === "ellipse" && "gridId" in shape && "rowId" in shape) ||
+          // GridShape check
+          (shape.type === "container" &&
+            "gridName" in shape &&
+            "seatSettings" in shape) ||
+          // RowShape check
+          (shape.type === "container" &&
+            "rowName" in shape &&
+            "gridId" in shape &&
+            "labelPlacement" in shape)
       );
 
-      // If all selected items are seats, use area mode properties
-      if (seatShapes.length === selectedItems.length) {
-        return <AreaModeProperties selectedShapes={seatShapes} />;
+      // If all selected items are area mode compatible, use area mode properties
+      if (
+        areaModeShapes.length === selectedItems.length &&
+        areaModeShapes.length > 0
+      ) {
+        return <AreaModeProperties selectedShapes={areaModeShapes} />;
       }
     }
 

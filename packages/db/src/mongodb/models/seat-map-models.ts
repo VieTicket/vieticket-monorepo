@@ -12,7 +12,6 @@ export interface BaseCanvasItem {
   opacity: number;
 }
 
-// Shape-specific interfaces matching PIXI.js types
 export interface RectangleShape extends BaseCanvasItem {
   type: "rectangle";
   width: number;
@@ -32,10 +31,21 @@ export interface EllipseShape extends BaseCanvasItem {
   strokeWidth: number;
 }
 
-// ✅ SeatShape interface extending EllipseShape
+export interface SeatLabelStyle {
+  fontFamily: string;
+  fontSize: number;
+  fill: number | string;
+  fontWeight: string;
+  align: string;
+  strokeColor?: number | string;
+  strokeWidth?: number;
+}
+
 export interface SeatShape extends EllipseShape {
-  rowId: string; // ID of the row this seat belongs to
-  gridId: string; // ID of the grid this seat belongs to
+  rowId: string;
+  gridId: string;
+  showLabel: boolean;
+  labelStyle: SeatLabelStyle;
 }
 
 export interface TextShape extends BaseCanvasItem {
@@ -77,13 +87,33 @@ export interface SVGShape extends BaseCanvasItem {
   originalHeight: number;
 }
 
+export interface FreeShapePoint {
+  x: number;
+  y: number;
+  cp1x?: number;
+  cp1y?: number;
+  cp2x?: number;
+  cp2y?: number;
+  type: "move" | "curve" | "line";
+  smoothness?: number;
+}
+
+export interface FreeShape extends BaseCanvasItem {
+  type: "freeshape";
+  points: FreeShapePoint[];
+  closed: boolean;
+  color: number;
+  strokeColor: number;
+  strokeWidth: number;
+  smoothness: number;
+}
+
 export interface ContainerGroup extends BaseCanvasItem {
   type: "container";
   children: CanvasItem[];
-  expanded: boolean; // For properties panel UI
+  expanded: boolean;
 }
 
-// ✅ Seat grid settings interface
 export interface SeatGridSettings {
   seatSpacing: number;
   rowSpacing: number;
@@ -94,31 +124,27 @@ export interface SeatGridSettings {
   price: number;
 }
 
-// ✅ Grid data structure
-export interface GridData {
-  id: string;
-  name: string;
-  rows: RowData[];
+export interface RowShape extends ContainerGroup {
+  children: SeatShape[];
+  rowName: string;
+  seatSpacing: number;
+  gridId: string;
+  labelPlacement: "left" | "middle" | "right" | "none";
+  createdAt: Date;
+}
+
+export interface GridShape extends ContainerGroup {
+  children: RowShape[];
+  gridName: string;
   seatSettings: SeatGridSettings;
   createdAt: Date;
 }
 
-// ✅ Row data structure
-export interface RowData {
-  id: string;
-  name: string;
-  seats: string[];
-  bend?: number;
-  seatSpacing?: number;
-}
-
-// ✅ AreaModeContainer interface extending ContainerGroup
 export interface AreaModeContainer extends ContainerGroup {
-  grids: GridData[];
+  children: GridShape[];
   defaultSeatSettings: SeatGridSettings;
 }
 
-// Union type for all canvas items
 export type CanvasItem =
   | RectangleShape
   | EllipseShape
@@ -128,17 +154,19 @@ export type CanvasItem =
   | ImageShape
   | SVGShape
   | ContainerGroup
-  | AreaModeContainer;
+  | FreeShape
+  | AreaModeContainer
+  | RowShape
+  | GridShape;
 
-// Helper types for application use
 export type CreateSeatMapInput = {
   name: string;
   shapes: CanvasItem[];
   image: string;
   createdBy: string;
-  publicity?: "public" | "private"; // Optional, defaults to 'private'
-  draftedFrom?: string; // ObjectId as string
-  originalCreator?: string; // Set automatically when drafting
+  publicity?: "public" | "private";
+  draftedFrom?: string;
+  originalCreator?: string;
 };
 
 export type UpdateSeatMapInput = Partial<Omit<CreateSeatMapInput, "createdBy">>;
@@ -156,7 +184,6 @@ export type SeatMap = {
   updatedAt?: Date;
 };
 
-// Type for public seat map listings
 export type PublicSeatMap = {
   id: string;
   name: string;
@@ -169,7 +196,6 @@ export type PublicSeatMap = {
   draftCount?: number;
 };
 
-// Type for draft creation
 export type DraftSeatMapInput = {
   originalSeatMapId: string;
   name: string;
