@@ -41,11 +41,13 @@ export default function Footer() {
               {section.links.map((link, i) => (
                 <li key={i} className="flex items-center gap-2">
                   {section.icons && section.icons[i]}
-                  <div className=" cursor-pointer">{link}</div>
+                  <div className=" cursor-pointer">{link}
+                  </div>
                 </li>
               ))}
             </ul>
           </div>
+          
         ))}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
           <LanguageSwitcher />

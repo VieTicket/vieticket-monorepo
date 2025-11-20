@@ -151,6 +151,66 @@ export async function handleCreateEvent(
     throw new Error("At least one showing is required");
   }
 
+  while (true) {
+    const name = formData.get(`showings[${showingIndex}].name`);
+    const startTime = formData.get(`showings[${showingIndex}].startTime`);
+    const endTime = formData.get(`showings[${showingIndex}].endTime`);
+    const ticketSaleStart = formData.get(
+      `showings[${showingIndex}].ticketSaleStart`
+    );
+    const ticketSaleEnd = formData.get(
+      `showings[${showingIndex}].ticketSaleEnd`
+    );
+
+    if (!name || !startTime || !endTime) break;
+
+    const startDate = new Date(startTime.toString());
+    const endDate = new Date(endTime.toString());
+
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      throw new Error(`Invalid date format in showing: ${name}`);
+    }
+
+    const ticketSaleStartDate =
+      ticketSaleStart && ticketSaleStart.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleStart.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            const date = new Date(startDate);
+            date.setDate(date.getDate() - 7);
+            return date;
+          })();
+
+    const ticketSaleEndDate =
+      ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
+        ? (() => {
+            const date = new Date(ticketSaleEnd.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
+        : (() => {
+            const date = new Date(startDate);
+            date.setHours(date.getHours() - 1);
+            return date;
+          })();
+
+    showings.push({
+      name: name.toString(),
+      startTime: startDate,
+      endTime: endDate,
+      ticketSaleStart: ticketSaleStartDate,
+      ticketSaleEnd: ticketSaleEndDate,
+      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    });
+
+    showingIndex++;
+  }
+
+  if (showings.length === 0) {
+    throw new Error("At least one showing is required");
+  }
+
   const eventPayload = {
     name: eventName,
     slug,

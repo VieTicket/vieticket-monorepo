@@ -296,7 +296,6 @@ const getAllSelectedIncludingNested = () => {
   addSelectedRecursively(shapes);
   return selectedShapes;
 };
-
 function worldDeltaToContainerLocal(
   worldDeltaX: number,
   worldDeltaY: number,

@@ -1499,7 +1499,6 @@ export class SelectionTransform {
       this.drawSelectionBox();
       this.updateHandlePositions();
       this.updatePolygonVertexHandles();
-
       this.container.visible = true;
     } else {
       this.container.visible = false;

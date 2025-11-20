@@ -33,6 +33,7 @@ export async function getEventsById(eventId: string) {
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
     with: {
+      organizer: true,
       areas: {
         with: {
           rows: {

@@ -1,12 +1,12 @@
 "use server";
 
 import { db } from "@/lib/db";
-import { organizers, areas, user } from "@vieticket/db/pg/schema";
 import type { EventFull } from "@vieticket/db/pg/schema";
+import { areas, user } from "@vieticket/db/pg/schema";
 
-import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 import { Event } from "@vieticket/db/pg/models/events";
 import { events } from "@vieticket/db/pg/schemas/events";
+import { and, desc, eq, lt, or, sql } from "drizzle-orm";
 
 const SORTABLE_COLUMNS = {
   views: events.views,
@@ -131,11 +131,47 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
 
   return {
     ...event,
-    organizer: {
-      ...event.organizer,
-      avatar,
+    organizer: event.organizer
+      ? {
+          ...event.organizer,
+          avatar,
+        }
+      : undefined,
+  } as EventFull;
+}
+
+export async function getEventByIdFull(eventId: string): Promise<EventFull | null> {
+  // Get the event using relations to include organizer, areas, and showings
+  const event = await db.query.events.findFirst({
+    where: eq(events.id, eventId),
+    with: {
+      organizer: true,
+      areas: true,
+      showings: true,
     },
-  };
+  });
+
+  if (!event) return null;
+
+  // Get organizer avatar from user table
+  let avatar = null;
+  if (event.organizer) {
+    const userAvatar = await db.query.user.findFirst({
+      where: eq(user.id, event.organizer.id),
+      columns: { image: true },
+    });
+    avatar = userAvatar?.image || null;
+  }
+
+  return {
+    ...event,
+    organizer: event.organizer
+      ? {
+          ...event.organizer,
+          avatar,
+        }
+      : undefined,
+  } as EventFull;
 }
 export async function getFilteredEvents({
   page = 1,

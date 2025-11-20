@@ -26,6 +26,7 @@ import {
   Clock as ClockIcon,
   Search,
   CalendarDays,
+  Edit,
 } from "lucide-react";
 import { PageSkeleton } from "@/components/ui/loading";
 import {
@@ -35,6 +36,7 @@ import {
 } from "@/hooks/use-admin-data";
 import { EventDetailModal } from "@/components/events/event-detail-modal";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 // Event Card Component
 const EventCard = ({
@@ -43,12 +45,14 @@ const EventCard = ({
   onReject,
   isProcessing,
   onClick,
+  onEdit,
 }: {
   event: PendingEvent;
   onApprove: (eventId: string) => void;
   onReject: (eventId: string) => void;
   isProcessing: boolean;
   onClick: () => void;
+  onEdit?: (eventId: string) => void;
 }) => {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
@@ -126,9 +130,12 @@ const EventCard = ({
 
         {/* Event Details */}
         <div className="space-y-3 flex-1 min-h-0">
-          <p className="text-sm text-gray-600 line-clamp-3 leading-relaxed">
-            {event.description || "No description available"}
-          </p>
+          <div 
+            className="text-sm text-gray-600 line-clamp-3 leading-relaxed prose prose-sm max-w-none"
+            dangerouslySetInnerHTML={{ 
+              __html: event.description || "No description available" 
+            }}
+          />
 
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-gray-600">
@@ -172,6 +179,17 @@ const EventCard = ({
             className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
+            {event.approvalStatus === "approved" && onEdit && (
+              <Button
+                onClick={() => onEdit(event.id)}
+                variant="outline"
+                className="flex-1"
+                size="sm"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+            )}
             <Button
               onClick={() => onApprove(event.id)}
               disabled={isProcessing || event.approvalStatus === "approved"}
@@ -226,6 +244,7 @@ const EventCard = ({
 export default function EventsPendingPage() {
   const { data: allEvents, isLoading, error } = useAllEvents();
   const updateApproval = useUpdateEventApproval();
+  const router = useRouter();
   const [processingEventId, setProcessingEventId] = useState<string | null>(
     null
   );
@@ -384,6 +403,10 @@ export default function EventsPendingPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedEvent(null);
+  };
+
+  const handleEdit = (eventId: string) => {
+    router.push(`/admin/events/edit?id=${eventId}`);
   };
 
   if (isLoading) {
@@ -571,6 +594,7 @@ export default function EventsPendingPage() {
               onReject={handleReject}
               isProcessing={processingEventId === event.id}
               onClick={() => handleEventClick(event)}
+              onEdit={handleEdit}
             />
           ))}
         </div>

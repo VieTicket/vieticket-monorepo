@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
   DollarSign,
   Calendar,
@@ -8,8 +8,11 @@ import {
   UserCheck,
   TrendingUp,
   TrendingDown,
+  CalendarDays,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -28,6 +31,7 @@ import {
   ChartSkeleton,
   StatsCardSkeleton,
 } from "@/components/ui/loading";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // Register Chart.js components only once
 ChartJS.register(
@@ -85,6 +89,14 @@ const formatCurrency = (amount: number) => {
 };
 
 export default function AdminDashboard() {
+  // Date filter state
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+
+  // Debounce date filters to avoid too many API calls
+  const debouncedStartDate = useDebounce(startDate, 500);
+  const debouncedEndDate = useDebounce(endDate, 500);
+
   // Use React Query hooks for data fetching
   const {
     data: stats,
@@ -94,8 +106,39 @@ export default function AdminDashboard() {
   const {
     data: chartData,
     isLoading: chartLoading,
+    isFetching: chartFetching,
     error: chartError,
-  } = useChartData();
+  } = useChartData(
+    debouncedStartDate || undefined,
+    debouncedEndDate || undefined
+  );
+
+  // Helper function to set date range presets
+  const setDateRange = (days: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setDate(start.getDate() - days);
+    
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  };
+
+  // Helper function to set month range
+  const setMonthRange = (months: number) => {
+    const end = new Date();
+    const start = new Date();
+    start.setMonth(start.getMonth() - months);
+    start.setDate(1); // Start of month
+    
+    setStartDate(start.toISOString().split("T")[0]);
+    setEndDate(end.toISOString().split("T")[0]);
+  };
+
+  // Reset date filter
+  const resetDateFilter = () => {
+    setStartDate("");
+    setEndDate("");
+  };
 
   // Memoized chart data
   const revenueChartData = useMemo(
@@ -135,6 +178,14 @@ export default function AdminDashboard() {
     () => ({
       responsive: true,
       maintainAspectRatio: false,
+      layout: {
+        padding: {
+          top: 10,
+          right: 10,
+          bottom: 10,
+          left: 10,
+        },
+      },
       plugins: {
         legend: {
           display: false,
@@ -146,10 +197,16 @@ export default function AdminDashboard() {
           grid: {
             color: "rgba(0, 0, 0, 0.1)",
           },
+          ticks: {
+            padding: 8,
+          },
         },
         x: {
           grid: {
             display: false,
+          },
+          ticks: {
+            padding: 8,
           },
         },
       },
@@ -157,8 +214,8 @@ export default function AdminDashboard() {
     []
   );
 
-  // Show loading skeleton if either data is loading
-  if (statsLoading || chartLoading) {
+  // Show loading skeleton only for initial stats load
+  if (statsLoading) {
     return <PageSkeleton />;
   }
 
@@ -230,36 +287,164 @@ export default function AdminDashboard() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="space-y-4">
+        {/* Date Filter */}
         <Card>
           <CardHeader>
-            <CardTitle>Revenue Trend</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {chartData ? (
-                <Line data={revenueChartData} options={chartOptions} />
-              ) : (
-                <ChartSkeleton />
-              )}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex items-center gap-2">
+                <CalendarDays className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg">Lọc theo thời gian</CardTitle>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Preset buttons */}
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange(7)}
+                    className="text-xs"
+                  >
+                    7 ngày
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDateRange(30)}
+                    className="text-xs"
+                  >
+                    30 ngày
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMonthRange(3)}
+                    className="text-xs"
+                  >
+                    3 tháng
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMonthRange(6)}
+                    className="text-xs"
+                  >
+                    6 tháng
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMonthRange(12)}
+                    className="text-xs"
+                  >
+                    12 tháng
+                  </Button>
+                </div>
+                
+                {/* Custom date range */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => {
+                      const newStartDate = e.target.value;
+                      setStartDate(newStartDate);
+                      // If endDate is before new startDate, update endDate to startDate
+                      if (endDate && newStartDate && endDate < newStartDate) {
+                        setEndDate(newStartDate);
+                      }
+                    }}
+                    max={endDate || undefined}
+                    className="w-40"
+                    placeholder="Từ ngày"
+                  />
+                  <span className="text-sm text-muted-foreground">đến</span>
+                  <Input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => {
+                      const newEndDate = e.target.value;
+                      setEndDate(newEndDate);
+                      // If startDate is after new endDate, update startDate to endDate
+                      if (startDate && newEndDate && startDate > newEndDate) {
+                        setStartDate(newEndDate);
+                      }
+                    }}
+                    min={startDate || undefined}
+                    max={new Date().toISOString().split("T")[0]}
+                    className="w-40"
+                    placeholder="Đến ngày"
+                  />
+                  {(startDate || endDate) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={resetDateFilter}
+                      className="text-xs"
+                    >
+                      Xóa
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-          </CardContent>
+          </CardHeader>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Events Created</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              {chartData ? (
-                <Bar data={eventsChartData} options={chartOptions} />
-              ) : (
-                <ChartSkeleton />
-              )}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Charts */}
+        <div className="grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Revenue Trend</CardTitle>
+                {chartFetching && (
+                  <div className="text-xs text-muted-foreground animate-pulse">
+                    Đang tải...
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="h-[300px] w-full relative -mx-2">
+                {chartLoading && !chartData ? (
+                  <ChartSkeleton />
+                ) : chartData ? (
+                  <div className={chartFetching ? "opacity-60 transition-opacity w-full h-full" : "w-full h-full"}>
+                    <Line data={revenueChartData} options={chartOptions} />
+                  </div>
+                ) : (
+                  <ChartSkeleton />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <CardTitle>Events Created</CardTitle>
+                {chartFetching && (
+                  <div className="text-xs text-muted-foreground animate-pulse">
+                    Đang tải...
+                  </div>
+                )}
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="h-[300px] w-full relative -mx-2">
+                {chartLoading && !chartData ? (
+                  <ChartSkeleton />
+                ) : chartData ? (
+                  <div className={chartFetching ? "opacity-60 transition-opacity w-full h-full" : "w-full h-full"}>
+                    <Bar data={eventsChartData} options={chartOptions} />
+                  </div>
+                ) : (
+                  <ChartSkeleton />
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

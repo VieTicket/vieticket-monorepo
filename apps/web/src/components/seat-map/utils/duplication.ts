@@ -257,7 +257,6 @@ const duplicateSVG = (original: SVGShape): SVGShape => {
     );
   } catch (error) {
     console.error("Failed to duplicate SVG graphics:", error);
-
     graphics
       .circle(0, 0, 30)
       .fill(0xffffff)
@@ -325,7 +324,6 @@ const duplicateContainer = async (
         containerGraphics.addChild(duplicatedChild.graphics);
       }
     }
-
     containerGraphics.position.set(duplicated.x, duplicated.y);
     containerGraphics.rotation = duplicated.rotation;
     containerGraphics.scale.set(duplicated.scaleX, duplicated.scaleY);
@@ -465,7 +463,6 @@ const duplicateGrid = (
       labelPlacement: originalRow.labelPlacement,
     };
 
-    // ✅ Create label if original had one
     if (originalRow.labelPlacement !== "none") {
       newRow.labelGraphics = createRowLabel(newRow);
       newRowGraphics.addChild(newRow.labelGraphics);
@@ -515,7 +512,6 @@ const duplicateGrid = (
       updateRowLabelPosition(newRow);
     }
 
-    // ✅ Position row graphics correctly
     newRowGraphics.position.set(newRow.x, newRow.y);
     newRowGraphics.rotation = newRow.rotation;
     newRowGraphics.scale.set(newRow.scaleX, newRow.scaleY);
@@ -526,7 +522,6 @@ const duplicateGrid = (
     newGridGraphics.addChild(newRowGraphics);
   });
 
-  // ✅ FIX: Apply grid graphics positioning after all children are added
   newGridGraphics.position.set(newGrid.x, newGrid.y);
   newGridGraphics.rotation = newGrid.rotation;
   newGridGraphics.scale.set(newGrid.scaleX, newGrid.scaleY);
@@ -577,12 +572,11 @@ const duplicateRow = (
     children: [],
     rowName: `${originalRow.rowName} Copy`,
     seatSpacing: originalRow.seatSpacing,
-    gridId: originalGridId, // Add to same grid
+    gridId: originalGridId,
     createdAt: new Date(),
     labelPlacement: originalRow.labelPlacement,
   };
 
-  // ✅ Create label if original had one
   if (originalRow.labelPlacement !== "none") {
     newRow.labelGraphics = createRowLabel(newRow);
     newRowGraphics.addChild(newRow.labelGraphics);
@@ -605,7 +599,7 @@ const duplicateRow = (
 
   sortedSeats.forEach((originalSeat, seatIndex) => {
     const newSeat = createSeat(
-      originalSeat.x, // Keep relative position to row
+      originalSeat.x,
       originalSeat.y,
       newRowId,
       originalGridId,
@@ -617,7 +611,6 @@ const duplicateRow = (
       true
     );
 
-    // Copy all seat properties
     newSeat.radiusX = originalSeat.radiusX;
     newSeat.radiusY = originalSeat.radiusY;
     newSeat.color = originalSeat.color;
@@ -635,12 +628,10 @@ const duplicateRow = (
     newRowGraphics.addChild(newSeat.graphics);
   });
 
-  // Update label position after seats are added
   if (newRow.labelGraphics && newRow.labelPlacement !== "none") {
     updateRowLabelPosition(newRow);
   }
 
-  // Position row graphics
   newRowGraphics.position.set(newRow.x, newRow.y);
   newRowGraphics.rotation = newRow.rotation;
   newRowGraphics.scale.set(newRow.scaleX, newRow.scaleY);
@@ -743,7 +734,6 @@ const duplicateSeatsWithGridRowLogic = (
   const grouping = analyzeSelectedSeats(selectedSeats);
   const allNewSeats: SeatShape[] = [];
 
-  // Handle each grid separately
   grouping.byGrid.forEach((seatsInGrid, gridId) => {
     const allGridSeats = getAllSeatsInGrid(gridId);
     const originalGrid = getGridById(gridId);
@@ -753,13 +743,11 @@ const duplicateSeatsWithGridRowLogic = (
       return;
     }
 
-    // ✅ Check if entire grid is selected
     if (seatsInGrid.length === allGridSeats.length) {
       try {
         console.log(`Duplicating entire grid ${gridId}`);
         const { newGrid, newSeats } = duplicateGrid(gridId, seatsInGrid);
 
-        // Add new grid to area mode container
         areaModeContainer!.children.push(newGrid);
         areaModeContainer!.graphics.addChild(newGrid.graphics);
 
@@ -769,12 +757,10 @@ const duplicateSeatsWithGridRowLogic = (
         );
       } catch (error) {
         console.error(`Failed to duplicate grid ${gridId}:`, error);
-        // Fallback to individual seat duplication
         seatsInGrid.forEach((seat) => {
           const duplicatedSeat = duplicateSeat(seat);
           allNewSeats.push(duplicatedSeat);
 
-          // Add to appropriate row
           const row = findRowShape(gridId, seat.rowId);
           if (row) {
             row.children.push(duplicatedSeat);
@@ -783,7 +769,6 @@ const duplicateSeatsWithGridRowLogic = (
         });
       }
     } else {
-      // ✅ Check for complete rows within this grid
       const seatsByRowInGrid = new Map<string, SeatShape[]>();
       seatsInGrid.forEach((seat) => {
         if (!seatsByRowInGrid.has(seat.rowId)) {
@@ -795,13 +780,11 @@ const duplicateSeatsWithGridRowLogic = (
       seatsByRowInGrid.forEach((seatsInRow, rowId) => {
         const allRowSeats = getAllSeatsInRow(rowId);
 
-        // ✅ Check if entire row is selected
         if (seatsInRow.length === allRowSeats.length) {
           try {
             console.log(`Duplicating entire row ${rowId}`);
             const { newRow, newSeats } = duplicateRow(rowId, seatsInRow);
 
-            // Add new row to the same grid
             originalGrid.children.push(newRow);
             originalGrid.graphics.addChild(newRow.graphics);
 
@@ -811,12 +794,10 @@ const duplicateSeatsWithGridRowLogic = (
             );
           } catch (error) {
             console.error(`Failed to duplicate row ${rowId}:`, error);
-            // Fallback to individual seat duplication
             seatsInRow.forEach((seat) => {
               const duplicatedSeat = duplicateSeat(seat);
               allNewSeats.push(duplicatedSeat);
 
-              // Add to original row
               const row = findRowShape(gridId, rowId);
               if (row) {
                 row.children.push(duplicatedSeat);
@@ -825,15 +806,10 @@ const duplicateSeatsWithGridRowLogic = (
             });
           }
         } else {
-          // ✅ Duplicate individual seats
-          console.log(
-            `Duplicating ${seatsInRow.length} individual seats from row ${rowId}`
-          );
           seatsInRow.forEach((seat) => {
             const duplicatedSeat = duplicateSeat(seat);
             allNewSeats.push(duplicatedSeat);
 
-            // Add to appropriate row
             const row = findRowShape(gridId, rowId);
             if (row) {
               row.children.push(duplicatedSeat);
@@ -853,16 +829,13 @@ const duplicateSeatsWithGridRowLogic = (
  * ✅ Add shape to the appropriate container based on mode
  */
 const addShapeToAppropriateContainer = (shape: CanvasItem): void => {
-  // Handle area mode shapes
   if (shape.type === "container" && "gridName" in shape) {
-    // GridShape - add directly to area mode container
     const gridShape = shape as GridShape;
     if (!areaModeContainer!.children.find((g) => g.id === gridShape.id)) {
       areaModeContainer!.children.push(gridShape);
       areaModeContainer!.graphics.addChild(gridShape.graphics);
     }
   } else if (shape.type === "container" && "rowName" in shape) {
-    // RowShape - find parent grid and add to it
     const rowShape = shape as RowShape;
     const parentGrid = getGridById(rowShape.gridId);
     if (parentGrid) {
@@ -876,7 +849,6 @@ const addShapeToAppropriateContainer = (shape: CanvasItem): void => {
       );
     }
   } else if (shape.type === "ellipse" && "rowId" in shape) {
-    // SeatShape - find parent row and add to it
     const seatShape = shape as SeatShape;
     let addedToRow = false;
 
@@ -898,7 +870,6 @@ const addShapeToAppropriateContainer = (shape: CanvasItem): void => {
       );
     }
   } else {
-    // Regular mode - add to main shapes array and stage
     if (!shapes.find((s) => s.id === shape.id)) {
       shapes.push(shape);
       if (shapeContainer) {
@@ -908,7 +879,6 @@ const addShapeToAppropriateContainer = (shape: CanvasItem): void => {
     }
   }
 
-  // Add shape events if needed
   const eventManager = getEventManager();
   if (eventManager) {
     eventManager.addShapeEvents(shape);
@@ -963,20 +933,16 @@ export const duplicateShape = async (
   try {
     let duplicated: CanvasItem;
 
-    // ✅ Handle special case for seats in area mode with smart duplication
     if (isSeatShape(shape) && isAreaMode && areaModeContainer) {
-      // Use the enhanced seat duplication logic that considers grid/row context
       const seatShapes = [shape as SeatShape];
       const smartDuplicatedSeats = duplicateSeatsWithGridRowLogic(seatShapes);
 
       if (smartDuplicatedSeats.length > 0) {
-        return smartDuplicatedSeats[0]; // Return first seat as it represents the smart duplication
+        return smartDuplicatedSeats[0];
       } else {
-        // Fallback to regular seat duplication
         duplicated = duplicateSeat(shape as SeatShape);
       }
     } else {
-      // ✅ Use existing duplication logic for all other shapes
       switch (shape.type) {
         case "rectangle":
           duplicated = duplicateRectangle(shape as RectangleShape);
@@ -997,21 +963,17 @@ export const duplicateShape = async (
           duplicated = duplicateSVG(shape as SVGShape);
           break;
         case "container":
-          // ✅ Handle container duplication with hierarchy awareness
           if ("gridName" in shape) {
-            // GridShape duplication
             const gridShape = shape as GridShape;
             const allGridSeats = getAllSeatsInGrid(gridShape.id);
             const { newGrid } = duplicateGrid(gridShape.id, allGridSeats);
             duplicated = newGrid;
           } else if ("rowName" in shape) {
-            // RowShape duplication
             const rowShape = shape as RowShape;
             const allRowSeats = getAllSeatsInRow(rowShape.id);
             const { newRow } = duplicateRow(rowShape.id, allRowSeats);
             duplicated = newRow;
           } else {
-            // Regular container duplication
             duplicated = await duplicateContainer(shape as ContainerGroup);
           }
           break;
@@ -1021,7 +983,6 @@ export const duplicateShape = async (
       }
     }
 
-    // ✅ Add event listeners if needed
     const eventManager = getEventManager();
     if (
       eventManager &&
@@ -1053,7 +1014,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
   try {
     const duplicatedShapes: CanvasItem[] = [];
 
-    // ✅ Separate shapes into three categories
     const seatShapes = selectedShapes.filter((shape): shape is SeatShape =>
       isSeatShape(shape)
     );
@@ -1066,17 +1026,14 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
         !isSeatShape(shape) && !isRowShape(shape) && !isGridShape(shape)
     );
 
-    // ✅ Handle seats with smart grid/row logic
     if (seatShapes.length > 0 && isAreaMode && areaModeContainer) {
       console.log(`Duplicating ${seatShapes.length} seats with smart logic`);
 
       const smartDuplicatedSeats = duplicateSeatsWithGridRowLogic(seatShapes);
       duplicatedShapes.push(...smartDuplicatedSeats);
 
-      // Store after state for seat duplication
       const afterAreaModeForSeats = cloneCanvasItem(areaModeContainer);
 
-      // ✅ Save area mode container changes for seat duplications using area-mode-properties pattern
       if (smartDuplicatedSeats.length > 0) {
         const context: ShapeContext = {
           topLevel: [],
@@ -1112,7 +1069,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       }
     }
 
-    // ✅ Handle area mode container shapes (Rows and Grids) with area-mode-properties pattern
     if (areaModeContainerShapes.length > 0) {
       console.log(
         `Duplicating ${areaModeContainerShapes.length} area mode container shapes`
@@ -1126,12 +1082,10 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
         }
       }
 
-      // Store after state for area mode containers
       const afterAreaModeForContainers = cloneCanvasItems(
         areaModeContainerShapes
       );
 
-      // ✅ Save area mode container changes using area-mode-properties pattern
       if (duplicatedShapes.filter((s) => isAreaModeShape(s)).length > 0) {
         const duplicatedAreaModeShapes = duplicatedShapes.filter((s) =>
           isAreaModeShape(s)
@@ -1145,7 +1099,7 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
               type: "container",
               parentId: null,
             },
-            // Include all affected grids
+
             ...duplicatedAreaModeShapes
               .filter((s) => isGridShape(s))
               .map((grid) => ({
@@ -1153,7 +1107,7 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
                 type: "container" as const,
                 parentId: areaModeContainer!.id,
               })),
-            // Include all affected rows
+
             ...duplicatedAreaModeShapes
               .filter((s) => isRowShape(s))
               .map((row) => ({
@@ -1161,7 +1115,7 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
                 type: "container" as const,
                 parentId: (row as RowShape).gridId,
               })),
-            // Include all seats in duplicated containers
+
             ...duplicatedAreaModeShapes
               .filter((s) => isSeatShape(s))
               .map((seat) => ({
@@ -1197,7 +1151,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       }
     }
 
-    // ✅ Handle regular shapes (existing logic)
     if (regularShapes.length > 0) {
       for (const shape of regularShapes) {
         const duplicated = await duplicateShape(shape);
@@ -1207,7 +1160,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
         }
       }
 
-      // ✅ Save to history for regular shapes (existing pattern)
       const regularShapesDuplicated = duplicatedShapes.filter(
         (s) => !isAreaModeShape(s)
       );
@@ -1238,7 +1190,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       }
     }
 
-    // ✅ Handle individual seats that weren't part of smart duplication (non-area mode)
     if (seatShapes.length > 0 && (!isAreaMode || !areaModeContainer)) {
       for (const seat of seatShapes) {
         const duplicated = await duplicateShape(seat);
@@ -1249,10 +1200,8 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       }
     }
 
-    // ✅ Update selection to duplicated shapes
     useSeatMapStore.getState().setSelectedShapes(duplicatedShapes, false);
 
-    // ✅ Update transform selection
     const selectionTransform = getSelectionTransform();
     if (selectionTransform && duplicatedShapes.length > 0) {
       selectedShapes.forEach((shape) => {
@@ -1265,7 +1214,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       selectionTransform.updateSelection(duplicatedShapes);
     }
 
-    // ✅ Update shapes in store
     useSeatMapStore.getState().updateShapes([...shapes], false);
 
     console.log(

@@ -166,7 +166,6 @@ export interface UserInfo {
   cursor?: { x: number; y: number };
   isActive: boolean;
 }
-
 export type CanvasItem =
   | RectangleShape
   | EllipseShape
