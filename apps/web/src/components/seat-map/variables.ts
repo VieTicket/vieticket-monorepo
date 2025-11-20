@@ -239,7 +239,4 @@ export const resetVariables = () => {
   // ✅ Reset area mode variables
   isAreaMode = false;
   areaModeContainer = null;
-
-  // Reset Zustand store
-  useSeatMapStore.getState().updateShapes(shapes, true);
 };

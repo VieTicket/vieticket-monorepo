@@ -624,8 +624,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     updateStore: boolean = false
   ) => {
     const action: UndoRedoAction = get()._saveToHistory(
-      { shapes: beforeShapes },
-      { shapes: afterShapes }
+      { selectedShapes: afterShapes, shapes: beforeShapes },
+      { selectedShapes: afterShapes, shapes: afterShapes }
     );
 
     SeatMapCollaboration.broadcastShapeChange(action);

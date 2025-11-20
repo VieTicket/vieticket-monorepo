@@ -286,11 +286,26 @@ export const calculateShapeBoundsWithWorldTransform = (
       const scaleY = worldTransform.scaleY;
       const rotation = worldTransform.rotation;
 
-      const scaledRadiusX = shape.radiusX * scaleX;
-      const scaledRadiusY = shape.radiusY * scaleY;
+      const scaledRadiusX = shape.radiusX * Math.abs(scaleX);
+      const scaledRadiusY = shape.radiusY * Math.abs(scaleY);
 
+      if (rotation === 0) {
+        // No rotation - simple case
+        return {
+          x: worldTransform.x - scaledRadiusX,
+          y: worldTransform.y - scaledRadiusY,
+          width: scaledRadiusX * 2,
+          height: scaledRadiusY * 2,
+          centerX: worldTransform.x,
+          centerY: worldTransform.y,
+        };
+      }
+
+      // With rotation - calculate rotated ellipse bounds
       const cos = Math.abs(Math.cos(rotation));
       const sin = Math.abs(Math.sin(rotation));
+
+      // Calculate the bounding box of the rotated ellipse
       const boundingWidth = scaledRadiusX * cos + scaledRadiusY * sin;
       const boundingHeight = scaledRadiusX * sin + scaledRadiusY * cos;
 

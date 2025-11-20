@@ -58,7 +58,6 @@ export const LayerList = React.memo(
       dragOverTarget: null,
       dragPosition: null,
     });
-
     const shapes = useSeatMapStore((state) => state.shapes);
     const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
     const setSelectedShapes = useSeatMapStore(
@@ -261,6 +260,7 @@ export const LayerList = React.memo(
 
     const handleDragStart = useCallback(
       (e: React.DragEvent, itemId: string) => {
+        console.log("Drag started for item:", itemId);
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", itemId);
 
@@ -634,7 +634,7 @@ export const LayerList = React.memo(
                   : "hover:bg-gray-700 text-gray-300"
               } ${isDraggedItem ? "opacity-50" : ""} ${getDragIndicatorClasses(item.id)} cursor-pointer text-xs`}
               style={{ paddingLeft: `${paddingLeft}px` }}
-              draggable={!item.interactive}
+              draggable={item.interactive}
               onDragStart={(e) => handleDragStart(e, item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDragLeave={handleDragLeave}

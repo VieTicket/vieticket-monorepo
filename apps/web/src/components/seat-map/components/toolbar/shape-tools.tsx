@@ -11,7 +11,7 @@ const tools = [
   { id: "rectangle", icon: Square, label: "Rectangle" },
   { id: "ellipse", icon: Circle, label: "Ellipse" },
   { id: "polygon", icon: FaDrawPolygon, label: "Polygon" },
-  { id: "freeshape", icon: PiPolygonFill, label: "Free Shape" },
+  // { id: "freeshape", icon: PiPolygonFill, label: "Free Shape" },
   { id: "text", icon: Type, label: "Text" },
 ] as const;
 

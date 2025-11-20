@@ -34,11 +34,9 @@ export async function createEmptySeatMapAction(name?: string) {
     }
 
     // Create empty seat map with no shapes
-    const defaultName =
-      name || `Untitled Seat Map ${new Date().toLocaleString()}`;
+    const defaultName = name || `New Seat Map`;
     const emptyShapes: CanvasItem[] = [];
-    const placeholderImageUrl =
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='200' y='150' text-anchor='middle' dominant-baseline='middle' fill='%23666' font-family='Arial' font-size='18'%3EEmpty Canvas%3C/text%3E%3C/svg%3E";
+    const placeholderImageUrl = "https://placehold.co/600x400";
 
     const savedSeatMap = await saveSeatMap(
       emptyShapes,
