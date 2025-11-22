@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import crypto from 'crypto';
 
 export interface UserBehavior {
   searchQueries: string[];
@@ -22,6 +23,12 @@ export interface UserBehavior {
     categories: string[];
     priceRange: { min: number; max: number };
     locations: string[];
+    // Timestamps to track when each filter was last applied (for recency-based prioritization)
+    filterTimestamps?: {
+      price?: number;      // Last time price filter was applied
+      location?: number;   // Last time location filter was applied
+      category?: number;   // Last time category filter was applied
+    };
   };
 }
 
@@ -44,6 +51,10 @@ export interface RecommendationResult {
 
 export class AIPersonalizationService {
   private openai: OpenAI | null = null;
+  // Simple in-memory cache for generated user profiles
+  private profileCache: Map<string, { profile: string; expiresAt: number }> = new Map();
+  private defaultProfileTtlSeconds = Number(process.env.PROFILE_CACHE_TTL_SECONDS || '3600'); // 1 hour default
+  private defaultUseGptProfile = process.env.USE_GPT_PROFILE !== 'false';
 
   constructor() {
     if (process.env.OPENAI_API_KEY) {
@@ -58,7 +69,8 @@ export class AIPersonalizationService {
    */
   async getPersonalizedRecommendations(
     userBehavior: UserBehavior,
-    availableEvents: EventForRecommendation[]
+    availableEvents: EventForRecommendation[],
+    options?: { useGptProfile?: boolean; forceProfileRefresh?: boolean }
   ): Promise<RecommendationResult[]> {
     console.log('🤖 AI Personalization: Starting recommendation generation');
     console.log('📊 User Behavior:', {
@@ -78,9 +90,16 @@ export class AIPersonalizationService {
 
       console.log('✅ OpenAI configured, using AI-powered analysis');
 
-      // Analyze user preferences using AI
-      const userProfile = await this.generateUserProfile(userBehavior);
-      console.log('👤 Generated User Profile:', userProfile);
+      // Optionally analyze user preferences using AI (GPT profile)
+      const useGpt = options?.useGptProfile ?? this.defaultUseGptProfile;
+      let userProfile = '';
+      if (useGpt && this.openai) {
+        const forceRefresh = options?.forceProfileRefresh ?? false;
+        userProfile = await this.generateUserProfile(userBehavior, { forceRefresh });
+        console.log('👤 Generated User Profile:', userProfile);
+      } else {
+        console.log('ℹ️ Skipping GPT profile generation (useGptProfile=false or OpenAI not configured)');
+      }
       
       // Score events based on user profile
       const recommendations = await Promise.all(
@@ -120,12 +139,30 @@ export class AIPersonalizationService {
   /**
    * Generate user profile using AI analysis
    */
-  private async generateUserProfile(userBehavior: UserBehavior): Promise<string> {
+  private async generateUserProfile(
+    userBehavior: UserBehavior,
+    opts?: { forceRefresh?: boolean }
+  ): Promise<string> {
     if (!this.openai) return '';
 
     const behaviorText = this.formatUserBehaviorForAI(userBehavior);
     console.log('🔍 Analyzing user behavior text:', behaviorText.substring(0, 200) + '...');
-    
+
+    // Use a hash of the behaviorText as cache key
+    const key = this.hashString(behaviorText);
+    const now = Date.now();
+    const ttl = this.defaultProfileTtlSeconds * 1000;
+
+    if (!opts?.forceRefresh) {
+      const cached = this.profileCache.get(key);
+      if (cached && cached.expiresAt > now) {
+        console.log('⚡ Profile cache hit');
+        return cached.profile;
+      }
+    } else {
+      console.log('♻️ Force refresh requested for profile');
+    }
+
     try {
       const response = await this.openai.chat.completions.create({
         model: "gpt-3.5-turbo",
@@ -145,11 +182,30 @@ export class AIPersonalizationService {
 
       const profile = response.choices[0]?.message?.content || '';
       console.log('🧠 AI Generated Profile:', profile);
+
+      // store in cache
+      try {
+        this.profileCache.set(key, { profile, expiresAt: now + ttl });
+        // clean up small portion of expired entries occasionally
+        if (this.profileCache.size > 5000) {
+          for (const [k, v] of this.profileCache) {
+            if (v.expiresAt <= now) this.profileCache.delete(k);
+          }
+        }
+      } catch (e) {
+        // cache failures should not break recommendation flow
+        console.warn('⚠️ Failed to write profile cache:', e);
+      }
+
       return profile;
     } catch (error) {
       console.error('❌ Error generating user profile:', error);
       return '';
     }
+  }
+
+  private hashString(text: string): string {
+    return crypto.createHash('sha256').update(text).digest('hex');
   }
 
   /**
@@ -174,24 +230,34 @@ export class AIPersonalizationService {
 
         // Calculate cosine similarity
         const similarity = this.cosineSimilarity(userEmbedding, eventEmbedding);
-        score += similarity * 0.6; // 60% weight for AI similarity
+        score += similarity * 0.6; // 60% weight for AI similarity (INCREASED for academic requirements)
         console.log(`🎯 AI similarity score: ${(similarity * 100).toFixed(1)}%`);
       }
 
       // Add category preference score
       const categoryScore = this.calculateCategoryScore(event, userBehavior);
-      score += categoryScore * 0.2; // 20% weight
+      score += categoryScore * 0.15; // 15% weight (Reduced to prioritize AI)
       console.log(`📂 Category score: ${(categoryScore * 100).toFixed(1)}%`);
 
       // Add location preference score
-      const locationScore = this.calculateLocationScore(event, userBehavior);
-      score += locationScore * 0.1; // 10% weight
-      console.log(`📍 Location score: ${(locationScore * 100).toFixed(1)}%`);
+      const locationScoreResult = this.calculateLocationScore(event, userBehavior);
+      score += locationScoreResult.score * 0.1; // 10% weight (Reduced to prioritize AI)
+      console.log(`📍 Location score: ${(locationScoreResult.score * 100).toFixed(1)}% (explicit: ${locationScoreResult.isExplicit})`);
 
       // Add price preference score
-      const priceScore = this.calculatePriceScore(event, userBehavior);
-      score += priceScore * 0.1; // 10% weight
-      console.log(`💰 Price score: ${(priceScore * 100).toFixed(1)}%`);
+      const priceScoreResult = this.calculatePriceScore(event, userBehavior);
+      score += priceScoreResult.score * 0.15; // 15% weight (Keep price important for user experience)
+      console.log(`💰 Price score: ${(priceScoreResult.score * 100).toFixed(1)}% (explicit: ${priceScoreResult.isExplicit})`);
+      
+      // Apply recency-based bonus for explicit filter matches
+      // More recent filters get higher priority
+      const recencyBonus = this.calculateRecencyBonus(
+        locationScoreResult,
+        priceScoreResult,
+        userBehavior
+      );
+      score += recencyBonus;
+      console.log(`⏰ Recency bonus: +${(recencyBonus * 100).toFixed(1)}%`);
 
     } catch (error) {
       console.error('❌ Error calculating event score:', error);
@@ -242,11 +308,28 @@ export class AIPersonalizationService {
    */
   private formatUserBehaviorForAI(userBehavior: UserBehavior): string {
     const searchQueries = userBehavior.searchQueries.slice(-10).join(', ');
+    
+    // Calculate category frequency to show accumulated interest
+    const categoryCounts: Record<string, number> = {};
+    [...userBehavior.viewedEvents, ...userBehavior.clickedEvents].forEach(e => {
+      if (e.category) {
+        const cat = e.category;
+        categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+      }
+    });
+    
+    const topInterests = Object.entries(categoryCounts)
+      .sort(([,a], [,b]) => b - a)
+      .slice(0, 5)
+      .map(([cat, count]) => `${cat} (${count}x)`)
+      .join(', ');
+
     const viewedEvents = userBehavior.viewedEvents.slice(-5).map(e => `${e.title} (${e.category})`).join(', ');
     const clickedEvents = userBehavior.clickedEvents.slice(-5).map(e => `${e.title} (${e.category})`).join(', ');
     
     return `
 Search queries: ${searchQueries}
+Top Interests (Frequency): ${topInterests}
 Viewed events: ${viewedEvents}
 Clicked events: ${clickedEvents}
 Preferred categories: ${userBehavior.preferences.categories.join(', ')}
@@ -257,49 +340,190 @@ Preferred locations: ${userBehavior.preferences.locations.join(', ')}
 
   /**
    * Format event for embedding
+   * Includes price to ensure AI considers budget constraints
    */
   private formatEventForEmbedding(event: EventForRecommendation): string {
-    return `${event.title} ${event.description || ''} ${event.category || ''} ${event.location || ''}`.trim();
+    const priceText = event.price !== undefined ? `Price: ${event.price} VND` : 'Free event';
+    return `${event.title} ${event.description || ''} ${event.category || ''} ${event.location || ''} ${priceText}`.trim();
   }
 
   /**
    * Calculate category preference score
+   * Uses both explicit preferences (filters) and implicit behavior (views/clicks)
    */
   private calculateCategoryScore(event: EventForRecommendation, userBehavior: UserBehavior): number {
     if (!event.category) return 0;
     
-    const categoryCount = userBehavior.preferences.categories.filter(
-      cat => cat.toLowerCase() === event.category?.toLowerCase()
-    ).length;
+    const targetCategory = event.category.toLowerCase();
     
-    return Math.min(1, categoryCount / Math.max(1, userBehavior.preferences.categories.length));
+    // 1. Explicit Preference Score (from current filters/preferences)
+    // If the user has explicitly selected this category in filters, give it a solid base score.
+    const isExplicitlyPreferred = userBehavior.preferences.categories.some(
+      cat => cat.toLowerCase() === targetCategory
+    );
+    
+    // 2. Implicit Interest Score (from historical behavior)
+    // Calculate how often the user interacts with this category relative to others.
+    const viewedCount = userBehavior.viewedEvents.filter(e => e.category?.toLowerCase() === targetCategory).length;
+    const clickedCount = userBehavior.clickedEvents.filter(e => e.category?.toLowerCase() === targetCategory).length;
+    
+    // We consider the last 20 interactions to keep it recent but accumulated
+    const totalInteractions = Math.min(20, userBehavior.viewedEvents.length + userBehavior.clickedEvents.length);
+    
+    let interactionScore = 0;
+    if (totalInteractions > 0) {
+      // Clicks are weighted double compared to views
+      const weightedCount = viewedCount + (clickedCount * 2);
+      // Normalize against total interactions (with a dampening factor to avoid 100% on first view)
+      interactionScore = weightedCount / (totalInteractions + 2); 
+    }
+
+    // Combine: 
+    // - If explicitly preferred: Start at 0.8 (Strong signal)
+    // - Add interaction score (up to 0.2)
+    
+    let score = isExplicitlyPreferred ? 0.8 : 0;
+    score += Math.min(0.2, interactionScore); 
+    
+    return Math.min(1, score);
   }
 
   /**
    * Calculate location preference score
+   * Considers both explicit filter and historical interest
    */
-  private calculateLocationScore(event: EventForRecommendation, userBehavior: UserBehavior): number {
-    if (!event.location) return 0;
+  private calculateLocationScore(event: EventForRecommendation, userBehavior: UserBehavior): { score: number; isExplicit: boolean } {
+    if (!event.location) return { score: 0, isExplicit: false };
     
+    // 1. Explicit Preference
     const locationMatch = userBehavior.preferences.locations.some(
       loc => event.location?.toLowerCase().includes(loc.toLowerCase())
     );
+    if (locationMatch) return { score: 1, isExplicit: true };
     
-    return locationMatch ? 1 : 0;
+    // 2. Implicit History
+    // If no explicit match, check if user frequently views this location
+    const locationCounts: Record<string, number> = {};
+    userBehavior.viewedEvents.forEach(e => {
+        if (e.location) {
+            const loc = e.location.toLowerCase();
+            locationCounts[loc] = (locationCounts[loc] || 0) + 1;
+        }
+    });
+    
+    // Check if event location matches any historical location
+    const eventLoc = event.location.toLowerCase();
+    let maxHistoryScore = 0;
+    
+    Object.entries(locationCounts).forEach(([loc, count]) => {
+        // Check for partial matches (e.g. "Da Nang" in "Da Nang, Vietnam")
+        if (eventLoc.includes(loc) || loc.includes(eventLoc)) {
+            // Score based on frequency. 3+ visits = high score (0.75)
+            const score = Math.min(0.8, count * 0.25);
+            if (score > maxHistoryScore) maxHistoryScore = score;
+        }
+    });
+    
+    return { score: maxHistoryScore, isExplicit: false };
   }
 
   /**
    * Calculate price preference score
+   * Considers both explicit filter and historical average price
    */
-  private calculatePriceScore(event: EventForRecommendation, userBehavior: UserBehavior): number {
-    if (!event.price) return 0.5; // Neutral score for free events
+  private calculatePriceScore(event: EventForRecommendation, userBehavior: UserBehavior): { score: number; isExplicit: boolean } {
+    if (event.price === undefined || event.price === null) return { score: 0.5, isExplicit: false }; // Neutral score for unknown price
+    if (event.price === 0) return { score: 0.8, isExplicit: false }; // Good score for free events unless user hates them
     
     const { min, max } = userBehavior.preferences.priceRange;
-    if (event.price >= min && event.price <= max) return 1;
-    if (event.price < min) return Math.max(0, 1 - (min - event.price) / min);
-    if (event.price > max) return Math.max(0, 1 - (event.price - max) / event.price);
     
-    return 0;
+    // Check if the current filter is the "default" wide range (effectively no filter)
+    // Assuming default is 0 to 10,000,000+
+    const isDefaultRange = min === 0 && max >= 10000000;
+    
+    // 1. Explicit Filter Score
+    // If user has a specific filter active, strict adherence is important
+    if (!isDefaultRange) {
+      if (event.price >= min && event.price <= max) return { score: 1, isExplicit: true };
+      // Decay score for items outside range
+      if (event.price < min) return { score: Math.max(0, 1 - (min - event.price) / min), isExplicit: false };
+      if (event.price > max) return { score: Math.max(0, 1 - (event.price - max) / event.price), isExplicit: false };
+    }
+    
+    // 2. Implicit History Score (only if no strict filter or to boost matches)
+    // Calculate average price of events the user has shown interest in
+    // Note: We primarily use viewedEvents as they contain price info
+    const interactions = userBehavior.viewedEvents;
+    const validPrices = interactions
+      .map(e => e.price)
+      .filter((p): p is number => p !== undefined && p !== null);
+      
+    if (validPrices.length > 0) {
+      const avgPrice = validPrices.reduce((a, b) => a + b, 0) / validPrices.length;
+      
+      // Calculate proximity to average price
+      // We allow a wider variance for price (e.g. 50% deviation is still okay)
+      const diff = Math.abs(event.price - avgPrice);
+      const percentDiff = diff / Math.max(1, avgPrice);
+      
+      // Score: 1.0 at exact match, decaying to 0 at >100% difference
+      const historyScore = Math.max(0, 1 - percentDiff);
+      
+      // If we are in default range, use history score
+      if (isDefaultRange) return { score: historyScore, isExplicit: false };
+    }
+    
+    // Default fallback if no history and no specific filter
+    return { score: 0.5, isExplicit: false };
+  }
+
+  /**
+   * Calculate recency bonus based on filter timestamps
+   * More recent filters get higher priority
+   * Events matching ANY recent filter get bonus based on filter recency
+   */
+  private calculateRecencyBonus(
+    locationResult: { score: number; isExplicit: boolean },
+    priceResult: { score: number; isExplicit: boolean },
+    userBehavior: UserBehavior
+  ): number {
+    const timestamps = userBehavior.preferences.filterTimestamps;
+    if (!timestamps) return 0;
+
+    const now = Date.now();
+    
+    // Calculate bonus for EACH matching filter independently
+    // This ensures events matching older filters still get some bonus
+    let totalBonus = 0;
+    
+    // Price filter bonus
+    if (priceResult.isExplicit && timestamps.price) {
+      const priceAgeMinutes = (now - timestamps.price) / (1000 * 60);
+      // Decay over 2 hours (120 min) to minimum 10% (was 1 hour / 50%)
+      const priceDecay = Math.max(0.1, Math.min(1, 1 - (priceAgeMinutes / 120)));
+      const priceBonus = 0.20 * priceDecay; // Base 20% for price match
+      totalBonus += priceBonus;
+      console.log(`  💰 Price filter match: ${priceAgeMinutes.toFixed(1)} min ago, decay: ${(priceDecay * 100).toFixed(0)}%, bonus: +${(priceBonus * 100).toFixed(1)}%`);
+    }
+    
+    // Location filter bonus
+    if (locationResult.isExplicit && timestamps.location) {
+      const locationAgeMinutes = (now - timestamps.location) / (1000 * 60);
+      // Decay over 2 hours (120 min) to minimum 10% (was 1 hour / 50%)
+      const locationDecay = Math.max(0.1, Math.min(1, 1 - (locationAgeMinutes / 120)));
+      const locationBonus = 0.20 * locationDecay; // Base 20% for location match
+      totalBonus += locationBonus;
+      console.log(`  📍 Location filter match: ${locationAgeMinutes.toFixed(1)} min ago, decay: ${(locationDecay * 100).toFixed(0)}%, bonus: +${(locationBonus * 100).toFixed(1)}%`);
+    }
+    
+    // Extra bonus if matching BOTH filters (compound effect)
+    if (priceResult.isExplicit && locationResult.isExplicit && timestamps.price && timestamps.location) {
+      const compoundBonus = 0.15; // Additional 15% for matching both
+      totalBonus += compoundBonus;
+      console.log(`  🎁 Compound bonus (matches both filters): +${(compoundBonus * 100).toFixed(1)}%`);
+    }
+
+    return totalBonus;
   }
 
   /**

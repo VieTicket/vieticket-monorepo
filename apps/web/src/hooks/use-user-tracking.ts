@@ -39,6 +39,12 @@ export interface UserBehavior {
     priceRange: { min: number; max: number };
     locations: string[];
     dateRanges: string[]; // Track preferred date ranges like "today", "this-week", "this-month"
+    // Timestamps to track when each filter was last applied (for recency-based prioritization)
+    filterTimestamps?: {
+      price?: number;      // Last time price filter was applied
+      location?: number;   // Last time location filter was applied
+      category?: number;   // Last time category filter was applied
+    };
   };
 }
 
@@ -372,48 +378,116 @@ export function useUserTracking() {
     date?: string;
   }) => {
     setUserBehavior((prev: UserBehavior) => {
-      // IMPORTANT: Start with clean preferences and only add active filters
-      // This ensures that cleared filters are actually removed from preferences
-      const updatedPreferences = {
-        categories: [] as string[],
-        priceRange: { min: 0, max: 10000000 },
-        locations: [] as string[],
-        dateRanges: [] as string[]
-      };
+      // IMPORTANT: Merge with existing preferences to retain history
+      // Instead of resetting, we accumulate interests
+      const updatedPreferences = { ...prev.preferences };
+      
+      // Track if any actual changes were made
+      let hasChanges = false;
+      
+      // Initialize filterTimestamps if not exists
+      if (!updatedPreferences.filterTimestamps) {
+        updatedPreferences.filterTimestamps = {};
+      }
+      
+      const now = Date.now();
       
       // Only add preferences for active filters
       if (filters.location && filters.location !== 'all') {
-        updatedPreferences.locations = updatePreferenceArray([] as string[], filters.location);
+        const newLocations = updatePreferenceArray(updatedPreferences.locations, filters.location);
+        if (newLocations.length !== updatedPreferences.locations.length) hasChanges = true;
+        updatedPreferences.locations = newLocations;
+        updatedPreferences.filterTimestamps.location = now;
+        console.log('📍 Location filter timestamp updated:', new Date(now).toISOString());
+      } else if (filters.location === 'all' && updatedPreferences.filterTimestamps.location) {
+        // Clear timestamp when filter is removed
+        delete updatedPreferences.filterTimestamps.location;
+        hasChanges = true;
+        console.log('📍 Location filter timestamp cleared (removed filter)');
       }
       
       if (filters.category && filters.category !== 'all') {
-        updatedPreferences.categories = updatePreferenceArray([] as string[], filters.category);
+        const newCategories = updatePreferenceArray(updatedPreferences.categories, filters.category);
+        if (newCategories.length !== updatedPreferences.categories.length) hasChanges = true;
+        updatedPreferences.categories = newCategories;
+        updatedPreferences.filterTimestamps.category = now;
+        console.log('🏷️ Category filter timestamp updated:', new Date(now).toISOString());
+      } else if (filters.category === 'all' && updatedPreferences.filterTimestamps.category) {
+        // Clear timestamp when filter is removed
+        delete updatedPreferences.filterTimestamps.category;
+        hasChanges = true;
+        console.log('🏷️ Category filter timestamp cleared (removed filter)');
       }
       
       if (filters.price && filters.price !== 'all') {
         const [min, max] = filters.price.split('-').map(Number);
-        if (min && max) {
-          updatedPreferences.priceRange = { min, max };
+        if (min !== undefined && max !== undefined) {
+          // If current range is default (0-10M), overwrite it with specific range
+          // Otherwise expand range to include new filter
+          const isDefault = updatedPreferences.priceRange.min === 0 && updatedPreferences.priceRange.max === 10000000;
+          
+          if (isDefault) {
+            updatedPreferences.priceRange = { min, max };
+            hasChanges = true;
+          } else {
+            const newMin = Math.min(updatedPreferences.priceRange.min, min);
+            const newMax = Math.max(updatedPreferences.priceRange.max, max);
+            if (newMin !== updatedPreferences.priceRange.min || newMax !== updatedPreferences.priceRange.max) {
+              hasChanges = true;
+            }
+            updatedPreferences.priceRange = { min: newMin, max: newMax };
+          }
+          updatedPreferences.filterTimestamps.price = now;
+          console.log('💰 Price filter timestamp updated:', new Date(now).toISOString());
         }
+      } else if (filters.price === 'all' && updatedPreferences.filterTimestamps.price) {
+        // Clear timestamp when filter is removed
+        delete updatedPreferences.filterTimestamps.price;
+        hasChanges = true;
+        console.log('💰 Price filter timestamp cleared (removed filter)');
       }
       
       if (filters.date && filters.date !== 'all') {
-        updatedPreferences.dateRanges = updatePreferenceArray([] as string[], filters.date);
+        const newDateRanges = updatePreferenceArray(updatedPreferences.dateRanges || [], filters.date);
+        if (newDateRanges.length !== (updatedPreferences.dateRanges || []).length) hasChanges = true;
+        updatedPreferences.dateRanges = newDateRanges;
       }
       
-      console.log('🎯 Tracked complete filter state:', {
-        filters: filters,
-        updatedPreferences: updatedPreferences,
-        prevPreferences: prev.preferences,
-        isClearing: !filters.location && !filters.category && !filters.price && !filters.date
-      });
+      // CRITICAL: Only invalidate cache if filters were ADDED or REMOVED (not just timestamp updates)
+      // This allows recency bonus to work without forcing full AI recalculation every time
+      const filterCountChanged = (
+        updatedPreferences.locations.length !== prev.preferences.locations.length ||
+        updatedPreferences.categories.length !== prev.preferences.categories.length ||
+        updatedPreferences.priceRange.min !== prev.preferences.priceRange.min ||
+        updatedPreferences.priceRange.max !== prev.preferences.priceRange.max
+      );
+      
+      if (hasChanges && filterCountChanged && typeof window !== 'undefined') {
+        try {
+          const keys = getUserStorageKeys(userId);
+          localStorage.removeItem(keys.RECOMMENDATIONS);
+          localStorage.removeItem(keys.BEHAVIOR_HASH);
+          console.log('🗑️ Cache invalidated due to filter addition/removal');
+          console.log('✅ Updated preferences:', JSON.stringify({
+            categories: updatedPreferences.categories,
+            locations: updatedPreferences.locations,
+            priceRange: updatedPreferences.priceRange,
+            dateRanges: updatedPreferences.dateRanges,
+            timestamps: updatedPreferences.filterTimestamps
+          }, null, 2));
+        } catch (e) {
+          console.warn('Failed to invalidate cache:', e);
+        }
+      } else if (hasChanges) {
+        console.log('⏰ Filter timestamps updated (cache preserved for performance)');
+      }
       
       return {
         ...prev,
         preferences: updatedPreferences
       };
     });
-  }, []); // Empty dependencies to make it stable
+  }, [userId]); // Add userId dependency
 
   const clearBehavior = useCallback(() => {
     setUserBehavior(getDefaultBehavior());
@@ -513,26 +587,43 @@ export function useAIRecommendations() {
       const cachedRecommendations = localStorage.getItem(currentUserStorageKeys.RECOMMENDATIONS);
       
       // Get current behavior hash để detect significant changes (not time-based)
+      // IMPORTANT: Use sorted arrays to ensure consistent hashing
+      // CRITICAL: Include count of each preference type to detect when new items are added
       const currentBehaviorHash = JSON.stringify({
         searches: userBehavior.searchQueries,
-        categories: userBehavior.preferences?.categories || [],
-        locations: userBehavior.preferences?.locations || [],
-        priceRange: userBehavior.preferences?.priceRange || { min: 0, max: 10000000 }, // Include price preferences!
-        dateRanges: userBehavior.preferences?.dateRanges || [], // Include date preferences!
-        viewedEvents: userBehavior.viewedEvents.slice(-10), // Only track recent 10 for hash
-        clickedEvents: userBehavior.clickedEvents.slice(-10)
+        categories: [...(userBehavior.preferences?.categories || [])].sort(), // Sort for consistency
+        categoriesCount: (userBehavior.preferences?.categories || []).length, // Track count to detect additions
+        locations: [...(userBehavior.preferences?.locations || [])].sort(), // Sort for consistency
+        locationsCount: (userBehavior.preferences?.locations || []).length, // Track count to detect additions
+        priceRange: userBehavior.preferences?.priceRange || { min: 0, max: 10000000 },
+        dateRanges: [...(userBehavior.preferences?.dateRanges || [])].sort(), // Sort for consistency
+        viewedEvents: userBehavior.viewedEvents.slice(-10).map((e: any) => e.id), // Track IDs only for hash
+        viewedCount: userBehavior.viewedEvents.length, // Track total count
+        clickedEvents: userBehavior.clickedEvents.slice(-10).map((e: any) => e.id), // Track IDs only for hash
+        clickedCount: userBehavior.clickedEvents.length, // Track total count
+        filterTimestamps: userBehavior.preferences?.filterTimestamps || {} // Include timestamps to detect recency changes
       });
       const lastBehaviorHash = localStorage.getItem(currentUserStorageKeys.BEHAVIOR_HASH) || '';
       
       const behaviorChanged = currentBehaviorHash !== lastBehaviorHash;
       const shouldUseCached = cachedRecommendations && !behaviorChanged; // No time restriction - permanent cache
 
-      // Debug: Log behavior hash comparison
+      // Debug: Log behavior hash comparison with detailed breakdown
       console.log('🔍 Behavior hash comparison:', {
         behaviorChanged,
-        currentPreferences: userBehavior.preferences,
         hashChanged: currentBehaviorHash !== lastBehaviorHash,
-        willUseCached: shouldUseCached
+        willUseCached: shouldUseCached,
+        preferences: {
+          categories: userBehavior.preferences?.categories || [],
+          locations: userBehavior.preferences?.locations || [],
+          priceRange: userBehavior.preferences?.priceRange,
+          views: userBehavior.viewedEvents.length,
+          clicks: userBehavior.clickedEvents.length
+        },
+        hashPreview: {
+          current: currentBehaviorHash.substring(0, 100) + '...',
+          last: lastBehaviorHash.substring(0, 100) + '...'
+        }
       });
 
       if (shouldUseCached) {
@@ -635,7 +726,8 @@ function getDefaultBehavior(): UserBehavior {
       categories: [],
       priceRange: { min: 0, max: 10000000 }, // 10M VND default max
       locations: [],
-      dateRanges: [] // Add default empty date ranges
+      dateRanges: [], // Add default empty date ranges
+      filterTimestamps: {} // Initialize empty timestamps
     }
   };
 }
