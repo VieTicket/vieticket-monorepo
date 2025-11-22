@@ -7,22 +7,22 @@ export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const t = useTranslations("home.carousel");
   const videos = [
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360508/banner1.mp4",
-    title: t("slide1.title"),
-    subtitle: t("slide1.subtitle"),
-  },
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360111/banner2.mp4",
-    title: t("slide2.title"),
-    subtitle: t("slide2.subtitle"),
-  },
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360106/banner3.mp4",
-    title: t("slide3.title"),
-    subtitle: t("slide3.subtitle"),
-  },
-];
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360508/banner1.mp4",
+      title: t("slide1.title"),
+      subtitle: t("slide1.subtitle"),
+    },
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360111/banner2.mp4",
+      title: t("slide2.title"),
+      subtitle: t("slide2.subtitle"),
+    },
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360106/banner3.mp4",
+      title: t("slide3.title"),
+      subtitle: t("slide3.subtitle"),
+    },
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {

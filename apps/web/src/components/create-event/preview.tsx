@@ -1,6 +1,7 @@
 "use client"; // Why
 
 import React, { useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   Ticket,
   MapPin,
@@ -58,6 +59,7 @@ type Props = {
 };
 
 export function PreviewEvent({ data }: Props) {
+  const t = useTranslations("event.details");
   const [selectedShowing, setSelectedShowing] = useState(0);
   const [showingDropdownOpen, setShowingDropdownOpen] = useState(false);
 
@@ -95,19 +97,19 @@ export function PreviewEvent({ data }: Props) {
 
             <div className="space-y-2 text-sm text-gray-700">
               <div>
-                <strong className="text-[#2a273f]">Start Date:</strong>{" "}
-                {eventStartDate ? formatDateVi(eventStartDate) : "No showing"}
+                <strong className="text-[#2a273f]">{t("startDate")}</strong>{" "}
+                {eventStartDate ? formatDateVi(eventStartDate) : t("noShowing")}
               </div>
               <div>
-                <strong className="text-[#2a273f]">End Date:</strong>{" "}
-                {eventEndDate ? formatDateVi(eventEndDate) : "No showing"}
+                <strong className="text-[#2a273f]">{t("endDate")}</strong>{" "}
+                {eventEndDate ? formatDateVi(eventEndDate) : t("noShowing")}
               </div>
             </div>
           </div>
 
           <div className="mt-6 pt-4 border-t border-gray-200 space-y-4">
             <p className="text-lg font-semibold text-[#2a273f]">
-              Just{" "}
+              {t("from")}{" "}
               <span className="text-[#ffdf20]">
                 {data.areas?.length > 0
                   ? formatCurrencyVND(
@@ -150,7 +152,7 @@ export function PreviewEvent({ data }: Props) {
       <section className="border-t pt-6 space-y-3 mt-5">
         <div className="flex items-center gap-2 text-sm text-gray-700">
           <Ticket className="w-5 h-5 text-[#2a273f]" />
-          <span>Ticket Sale:</span>
+          <span>{t("ticketSale")}:</span>
           <span>
             {new Date(data.ticketSaleStart).toLocaleString("vi-VN", {
               year: "numeric",
@@ -177,7 +179,7 @@ export function PreviewEvent({ data }: Props) {
           <div className="relative">
             <div className="flex items-center gap-2 text-sm text-gray-700 mb-2">
               <Clock className="w-5 h-5 text-[#2a273f]" />
-              <span>Available Showings:</span>
+              <span>{t("showings")}:</span>
             </div>
             <div className="relative">
               <button
@@ -246,7 +248,7 @@ export function PreviewEvent({ data }: Props) {
         {data.showings.length === 1 && (
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Clock className="w-5 h-5 text-[#2a273f]" />
-            <span>Showing:</span>
+            <span>{t("showings")}:</span>
             <span className="font-medium">
               {currentShowing.name} -{" "}
               {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
@@ -256,7 +258,7 @@ export function PreviewEvent({ data }: Props) {
                 hour: "2-digit",
                 minute: "2-digit",
               })}{" "}
-              to{" "}
+              ~{" "}
               {new Date(currentShowing.endTime).toLocaleString("vi-VN", {
                 year: "numeric",
                 month: "2-digit",
@@ -271,7 +273,7 @@ export function PreviewEvent({ data }: Props) {
         <div className="mt-6 w-full md:flex md:flex-row gap-4">
           {/* Description bên trái */}
           <div className="w-full md:w-2/3 p-4 max-h-[800px] overflow-y-auto">
-            <h3 className="text-[#2a273f] font-semibold mb-2">Description</h3>
+            <h3 className="text-[#2a273f] font-semibold mb-2">{t("description")}</h3>
             <div
               className="prose max-w-none text-gray-700"
               dangerouslySetInnerHTML={{ __html: data.description }}
@@ -318,7 +320,7 @@ export function PreviewEvent({ data }: Props) {
       <section className="border-t pt-6 space-y-4 mt-8">
         <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
           <Building2 className="w-6 h-6 text-[#2a273f]" />
-          Organizer Information
+          {t("organizerInformation")}
         </h2>
 
         {data.organizer ? (
@@ -333,7 +335,7 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-1 text-gray-700">
               <p className="flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-[#2a273f]" />
-                <strong>Name:</strong> {data.organizer.name}
+                <strong>{t("name")}</strong> {data.organizer.name}
               </p>
               {data.organizer.rating && data.organizer.rating.count > 0 && (
                 <div className="flex items-center gap-2">
@@ -352,7 +354,7 @@ export function PreviewEvent({ data }: Props) {
               {data.organizer.website && (
                 <p className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-[#2a273f]" />
-                  <strong>Website:</strong>{" "}
+                  <strong>{t("website")}</strong>{" "}
                   <a
                     href={data.organizer.website}
                     target="_blank"
@@ -366,13 +368,13 @@ export function PreviewEvent({ data }: Props) {
               {data.organizer.address && (
                 <p className="flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-[#2a273f]" />
-                  <strong>Address:</strong> {data.organizer.address}
+                  <strong>{t("address")}</strong> {data.organizer.address}
                 </p>
               )}
               {data.organizer.organizerType && (
                 <p className="flex items-center gap-2">
                   <Building2 className="w-4 h-4 text-[#2a273f]" />
-                  <strong>Type:</strong> {data.organizer.organizerType}
+                  <strong>{t("type")}</strong> {data.organizer.organizerType}
                 </p>
               )}
             </div>
@@ -388,12 +390,12 @@ export function PreviewEvent({ data }: Props) {
             <div className="space-y-1 text-gray-700">
               <p className="flex items-center gap-2">
                 <Landmark className="w-4 h-4 text-[#2a273f]" />
-                <strong>Name:</strong> Your Name
+                <strong>{t("name")}</strong> Your Name
               </p>
 
               <p className="flex items-center gap-2">
                 <Globe className="w-4 h-4 text-[#2a273f]" />
-                <strong>Website:</strong>{" "}
+                <strong>{t("website")}</strong>{" "}
                 <a
                   href=""
                   target="_blank"
@@ -406,12 +408,12 @@ export function PreviewEvent({ data }: Props) {
 
               <p className="flex items-center gap-2">
                 <MapPin className="w-4 h-4 text-[#2a273f]" />
-                <strong>Address:</strong> Your Address
+                <strong>{t("address")}</strong> Your Address
               </p>
 
               <p className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-[#2a273f]" />
-                <strong>Type:</strong> Your Type
+                <strong>{t("type")}</strong> Your Type
               </p>
             </div>
           </div>
