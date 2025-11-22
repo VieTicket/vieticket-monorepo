@@ -16,17 +16,222 @@ import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
 import { SeatMapGridData } from "@/types/event-types";
 
+/**
+ * Validation functions cho event creation/update
+ */
+function validateEventName(name: string): void {
+  if (!name || name.trim().length === 0) {
+    throw new Error("Event name is required");
+  }
+  if (name.trim().length > 255) {
+    throw new Error("Event name must be 255 characters or less");
+  }
+}
+
+function validateEventDescription(description: string | null): void {
+  if (description && description.length > 2000) {
+    throw new Error("Description must be 2000 characters or less");
+  }
+}
+
+function validateEventLocation(location: string | null): void {
+  if (location && location.length > 500) {
+    throw new Error("Location must be 500 characters or less");
+  }
+}
+
+function validateMaxTicketsByOrder(maxTickets: number | null): void {
+  if (maxTickets !== null) {
+    if (!Number.isInteger(maxTickets) || maxTickets <= 0) {
+      throw new Error("Max tickets by order must be a positive integer");
+    }
+    if (maxTickets > 100) {
+      throw new Error("Max tickets by order cannot exceed 100");
+    }
+  }
+}
+
+function validateUrl(url: string | null, fieldName: string): void {
+  if (url && url.trim().length > 0) {
+    try {
+      const urlObj = new URL(url);
+      if (!["http:", "https:"].includes(urlObj.protocol)) {
+        throw new Error(`${fieldName} must use HTTP or HTTPS protocol`);
+      }
+    } catch {
+      throw new Error(`${fieldName} must be a valid URL`);
+    }
+  }
+}
+
+function validateDateLogic(
+  startTime: Date,
+  endTime: Date,
+  fieldContext: string = ""
+): void {
+  if (startTime >= endTime) {
+    throw new Error(`${fieldContext} End time must be after start time`);
+  }
+}
+
+function validateSeatMapData(seatMapData: string): void {
+  try {
+    const parsed = JSON.parse(seatMapData);
+    if (!parsed.grids || !Array.isArray(parsed.grids)) {
+      throw new Error("Invalid seat map data: missing grids array");
+    }
+    if (parsed.grids.length === 0) {
+      throw new Error("Seat map must have at least one seating area");
+    }
+
+    // Validate each grid
+    parsed.grids.forEach((grid: any, index: number) => {
+      if (
+        !grid.rows ||
+        !Number.isInteger(grid.rows) ||
+        grid.rows <= 0 ||
+        grid.rows > 1000
+      ) {
+        throw new Error(`Grid ${index + 1}: rows must be between 1 and 1000`);
+      }
+      if (
+        !grid.seatsPerRow ||
+        !Number.isInteger(grid.seatsPerRow) ||
+        grid.seatsPerRow <= 0 ||
+        grid.seatsPerRow > 1000
+      ) {
+        throw new Error(
+          `Grid ${index + 1}: seats per row must be between 1 and 1000`
+        );
+      }
+      if (grid.ticketPrice !== undefined) {
+        validateTicketPrice(grid.ticketPrice, `Grid ${index + 1}`);
+      }
+    });
+  } catch (error: any) {
+    if (error.message.includes("Grid")) {
+      throw error;
+    }
+    throw new Error("Invalid seat map data: malformed JSON");
+  }
+}
+
+function validateAreaData(
+  areas: Array<{ name: string; seatCount: number; ticketPrice: number }>
+): void {
+  if (!areas || areas.length === 0) {
+    throw new Error("At least one area is required");
+  }
+
+  areas.forEach((area, index) => {
+    // Area name validation
+    if (!area.name || area.name.trim().length === 0) {
+      throw new Error(`Area ${index + 1}: name is required`);
+    }
+    if (area.name.trim().length > 50) {
+      throw new Error(`Area ${index + 1}: name must be 50 characters or less`);
+    }
+
+    // Seat count validation
+    if (!Number.isInteger(area.seatCount) || area.seatCount <= 0) {
+      throw new Error(
+        `Area ${index + 1}: seat count must be a positive integer`
+      );
+    }
+    if (area.seatCount > 50000) {
+      throw new Error(`Area ${index + 1}: seat count cannot exceed 50,000`);
+    }
+
+    // Ticket price validation
+    validateTicketPrice(area.ticketPrice, `Area ${index + 1}`);
+  });
+}
+
+function validateTicketPrice(price: number, context: string = "Ticket"): void {
+  if (!Number.isInteger(price) || price < 0) {
+    throw new Error(`${context}: price must be a non-negative integer`);
+  }
+  if (price > 100000000) {
+    throw new Error(`${context}: price cannot exceed 100,000,000 VND`);
+  }
+}
+
+function validateShowings(
+  showings: Array<{ name: string; startTime: Date; endTime: Date }>
+): void {
+  if (!showings || showings.length === 0) {
+    throw new Error("At least one showing is required");
+  }
+
+  showings.forEach((showing, index) => {
+    // Showing name validation
+    if (!showing.name || showing.name.trim().length === 0) {
+      throw new Error(`Showing ${index + 1}: name is required`);
+    }
+    if (showing.name.trim().length > 100) {
+      throw new Error(
+        `Showing ${index + 1}: name must be 100 characters or less`
+      );
+    }
+
+    // Date validation
+    if (
+      !(showing.startTime instanceof Date) ||
+      isNaN(showing.startTime.getTime())
+    ) {
+      throw new Error(`Showing ${index + 1}: invalid start time`);
+    }
+    if (
+      !(showing.endTime instanceof Date) ||
+      isNaN(showing.endTime.getTime())
+    ) {
+      throw new Error(`Showing ${index + 1}: invalid end time`);
+    }
+
+    validateDateLogic(
+      showing.startTime,
+      showing.endTime,
+      `Showing ${index + 1}: `
+    );
+  });
+}
+
 export async function handleCreateEvent(
   formData: FormData
 ): Promise<{ eventId?: string } | void> {
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
+  // Extract và validate basic fields first
   const eventName = formData.get("name") as string;
+  const description = formData.get("description") as string;
+  const location = formData.get("location") as string;
+  const posterUrl = formData.get("posterUrl") as string;
+  const bannerUrl = formData.get("bannerUrl") as string;
+  const maxTicketsByOrderStr = formData.get("maxTicketsByOrder") as string;
+
+  // Validate basic fields
+  validateEventName(eventName);
+  validateEventDescription(description);
+  validateEventLocation(location);
+  validateUrl(posterUrl, "Poster URL");
+  validateUrl(bannerUrl, "Banner URL");
+
+  const maxTicketsByOrder = maxTicketsByOrderStr
+    ? Number(maxTicketsByOrderStr)
+    : null;
+  validateMaxTicketsByOrder(maxTicketsByOrder);
+
   const slug = slugify(eventName, true);
   const ticketingMode = formData.get("ticketingMode") as string;
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
+
+  // Validate seat map data nếu có
+  if (ticketingMode === "seatmap" && seatMapData) {
+    validateSeatMapData(seatMapData);
+  }
+
   console.log(formData);
   console.log("📥 Creating event:", {
     eventName,
@@ -63,9 +268,8 @@ export async function handleCreateEvent(
 
   console.log(`📋 Parsed ${showings.length} showings`);
 
-  if (showings.length === 0) {
-    throw new Error("At least one showing is required");
-  }
+  // Validate showings
+  validateShowings(showings);
 
   // For compatibility, use first showing's times as event start/end
   const eventStartTime = showings[0].startTime;
@@ -207,25 +411,19 @@ export async function handleCreateEvent(
     showingIndex++;
   }
 
-  if (showings.length === 0) {
-    throw new Error("At least one showing is required");
-  }
-
   const eventPayload = {
     name: eventName,
     slug,
-    description: (formData.get("description") as string) || null,
+    description: description || null,
     startTime: eventStartTime,
     endTime: eventEndTime,
-    location: (formData.get("location") as string) || null,
+    location: location || null,
     type: (formData.get("type") as string) || null,
-    maxTicketsByOrder: formData.get("maxTicketsByOrder")
-      ? Number(formData.get("maxTicketsByOrder"))
-      : null,
+    maxTicketsByOrder: maxTicketsByOrder,
     ticketSaleStart: eventTicketSaleStart,
     ticketSaleEnd: eventTicketSaleEnd,
-    posterUrl: (formData.get("posterUrl") as string) || null,
-    bannerUrl: (formData.get("bannerUrl") as string) || null,
+    posterUrl: posterUrl || null,
+    bannerUrl: bannerUrl || null,
     seatMapId: seatMapId || null,
     organizerId,
     approvalStatus: "pending" as const,
@@ -319,9 +517,7 @@ export async function handleCreateEvent(
         areaIndex++;
       }
 
-      if (areas.length === 0) {
-        throw new Error("At least one area is required for simple ticketing");
-      }
+      validateAreaData(areas);
 
       result = await createEventWithShowingsAndAreas(
         eventPayload,
@@ -372,7 +568,8 @@ export async function handleCreateEvent(
             `Showing ${showingIdx + 1} must have at least one area`
           );
         }
-
+        // Validate areas for this showing
+        validateAreaData(areas);
         showingAreaConfigs.push(areas);
       }
 
@@ -394,10 +591,35 @@ export async function handleUpdateEvent(formData: FormData) {
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
+  // Extract và validate basic fields first
   const eventId = formData.get("eventId") as string;
+  const eventName = formData.get("name") as string;
+  const description = formData.get("description") as string;
+  const location = formData.get("location") as string;
+  const posterUrl = formData.get("posterUrl") as string;
+  const bannerUrl = formData.get("bannerUrl") as string;
+  const maxTicketsByOrderStr = formData.get("maxTicketsByOrder") as string;
+
+  // Validate basic fields
+  validateEventName(eventName);
+  validateEventDescription(description);
+  validateEventLocation(location);
+  validateUrl(posterUrl, "Poster URL");
+  validateUrl(bannerUrl, "Banner URL");
+
+  const maxTicketsByOrder = maxTicketsByOrderStr
+    ? Number(maxTicketsByOrderStr)
+    : null;
+  validateMaxTicketsByOrder(maxTicketsByOrder);
+
   const ticketingMode = formData.get("ticketingMode") as string;
   const seatMapId = formData.get("seatMapId") as string;
   const seatMapData = formData.get("seatMapData") as string;
+
+  // Validate seat map data nếu có
+  if (ticketingMode === "seatmap" && seatMapData) {
+    validateSeatMapData(seatMapData);
+  }
 
   console.log("📝 Updating event:", {
     eventId,
