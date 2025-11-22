@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
 interface ModalProps {
@@ -11,17 +12,30 @@ interface ModalProps {
 }
 
 export function Modal({ isOpen, onClose, children, title }: ModalProps) {
-  // Close modal on escape key
+  const portalElRef = useRef<HTMLDivElement | null>(null);
+
+  // create a container for portal once on client
+  if (!portalElRef.current && typeof document !== "undefined") {
+    portalElRef.current = document.createElement("div");
+  }
+
+  useEffect(() => {
+    const el = portalElRef.current!;
+    if (!el) return;
+    document.body.appendChild(el);
+    return () => {
+      if (document.body.contains(el)) document.body.removeChild(el);
+    };
+  }, []);
+
+  // Close modal on escape key & prevent body scroll when open
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
-      // Prevent body scroll when modal is open
       document.body.style.overflow = "hidden";
     }
 
@@ -31,15 +45,20 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
     };
   }, [isOpen, onClose]);
 
-  if (!isOpen) return null;
+  if (!isOpen || !portalElRef.current) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
+  const modalContent = (
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop (lower than modal but higher than page) */}
       <div
-        className="absolute inset-0 bg-black/30 backdrop-blur-md transition-opacity will-change-auto"
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
         onClick={onClose}
         style={{
+          // ensure GPU compositing to avoid weird painting issues
           transform: "translateZ(0)",
           backfaceVisibility: "hidden",
         }}
@@ -47,7 +66,8 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
 
       {/* Modal */}
       <div
-        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden transform-gpu"
+        className="relative bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden transform-gpu focus:outline-none focus-visible:outline-none"
+        tabIndex={-1}
         style={{
           transform: "translateZ(0)",
           backfaceVisibility: "hidden",
@@ -60,6 +80,7 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
             <button
               onClick={onClose}
               className="text-gray-400 hover:text-gray-600 transition-colors"
+              aria-label="Close modal"
             >
               <X className="h-6 w-6" />
             </button>
@@ -79,4 +100,6 @@ export function Modal({ isOpen, onClose, children, title }: ModalProps) {
       </div>
     </div>
   );
+
+  return createPortal(modalContent, portalElRef.current);
 }

@@ -15,9 +15,15 @@ import {
 import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
 import { headers as headersFn } from "next/headers";
 import { User } from "@vieticket/db/pg/models/users";
-import { AreaModeContainer } from "@/components/seat-map/types";
+import {
+  AreaModeContainer,
+  GridShape,
+  RowShape,
+  SeatShape,
+  FreeShape,
+} from "@/components/seat-map/types";
 
-// ✅ New action to create empty seat map
+// ✅ Enhanced action to create empty seat map with area mode support
 export async function createEmptySeatMapAction(name?: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -28,11 +34,9 @@ export async function createEmptySeatMapAction(name?: string) {
     }
 
     // Create empty seat map with no shapes
-    const defaultName =
-      name || `Untitled Seat Map ${new Date().toLocaleString()}`;
+    const defaultName = name || `New Seat Map`;
     const emptyShapes: CanvasItem[] = [];
-    const placeholderImageUrl =
-      "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='300' viewBox='0 0 400 300'%3E%3Crect width='400' height='300' fill='%23f8f9fa'/%3E%3Ctext x='200' y='150' text-anchor='middle' dominant-baseline='middle' fill='%23666' font-family='Arial' font-size='18'%3EEmpty Canvas%3C/text%3E%3C/svg%3E";
+    const placeholderImageUrl = "https://placehold.co/600x400";
 
     const savedSeatMap = await saveSeatMap(
       emptyShapes,
@@ -52,7 +56,7 @@ export async function createEmptySeatMapAction(name?: string) {
   }
 }
 
-// ... rest of existing actions remain unchanged
+// ✅ Enhanced save action with hierarchical validation
 export async function saveSeatMapAction(
   shapes: CanvasItem[],
   name: string,
@@ -66,6 +70,95 @@ export async function saveSeatMapAction(
       throw new Error("Unauthenticated: Please sign in to save seat maps.");
     }
 
+    // ✅ Enhanced client-side validation for new shape types
+    const validShapes = shapes.every((shape) => {
+      // Basic validation
+      if (!shape.id || !shape.type || !shape.name) {
+        console.error("Invalid shape: missing required properties", shape);
+        return false;
+      }
+
+      // ✅ Validate freeshape if present
+      if (shape.type === "freeshape") {
+        const freeShape = shape as FreeShape;
+        if (!Array.isArray(freeShape.points) || freeShape.points.length < 2) {
+          console.error("Invalid freeshape: insufficient points", freeShape);
+          return false;
+        }
+
+        const validPoints = freeShape.points.every(
+          (point) =>
+            typeof point.x === "number" &&
+            typeof point.y === "number" &&
+            ["move", "curve", "line"].includes(point.type)
+        );
+
+        if (!validPoints) {
+          console.error("Invalid freeshape: invalid points", freeShape.points);
+          return false;
+        }
+      }
+
+      // ✅ Validate area mode container if present
+      if (shape.id === "area-mode-container-id" && shape.type === "container") {
+        const areaModeContainer = shape as AreaModeContainer;
+
+        if (!areaModeContainer.defaultSeatSettings) {
+          console.error(
+            "Invalid area mode container: missing default settings"
+          );
+          return false;
+        }
+
+        // Validate grid children
+        const validGrids = areaModeContainer.children.every(
+          (grid: GridShape) => {
+            if (!grid.gridName || !grid.seatSettings) {
+              console.error("Invalid grid: missing properties", grid);
+              return false;
+            }
+
+            // Validate row children
+            const validRows = grid.children.every((row: RowShape) => {
+              if (!row.rowName || !row.gridId) {
+                console.error("Invalid row: missing properties", row);
+                return false;
+              }
+
+              // Validate seat children
+              const validSeats = row.children.every((seat: SeatShape) => {
+                if (!seat.rowId || !seat.gridId) {
+                  console.error(
+                    "Invalid seat: missing hierarchy properties",
+                    seat
+                  );
+                  return false;
+                }
+                return true;
+              });
+
+              return validSeats;
+            });
+
+            return validRows;
+          }
+        );
+
+        if (!validGrids) {
+          console.error("Invalid area mode container: invalid hierarchy");
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (!validShapes) {
+      throw new Error(
+        "Invalid shapes detected. Please check your seat map data."
+      );
+    }
+
     const savedSeatMap = await saveSeatMap(
       shapes,
       name,
@@ -73,17 +166,19 @@ export async function saveSeatMapAction(
       user as User
     );
 
-    // Force the object to be plain and serializable before sending to the client.
+    // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(savedSeatMap));
 
     return { success: true, data: plainData };
   } catch (error) {
+    console.error("Error in saveSeatMapAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
   }
 }
 
+// ✅ Enhanced update action with hierarchical validation
 export async function updateSeatMapAction(
   seatMapId: string,
   shapes: CanvasItem[],
@@ -96,6 +191,59 @@ export async function updateSeatMapAction(
 
     if (!user) {
       throw new Error("Unauthenticated: Please sign in to update seat maps.");
+    }
+
+    // ✅ Enhanced validation for hierarchical updates
+    const validShapes = shapes.every((shape) => {
+      if (!shape.id || !shape.type || !shape.name) {
+        console.error("Invalid shape: missing required properties", shape);
+        return false;
+      }
+
+      // ✅ Validate freeshape updates
+      if (shape.type === "freeshape") {
+        const freeShape = shape as FreeShape;
+        if (!Array.isArray(freeShape.points) || freeShape.points.length < 2) {
+          console.error("Invalid freeshape: insufficient points", freeShape);
+          return false;
+        }
+      }
+
+      // ✅ Validate area mode updates
+      if (shape.id === "area-mode-container-id" && shape.type === "container") {
+        const areaModeContainer = shape as AreaModeContainer;
+
+        if (!areaModeContainer.defaultSeatSettings) {
+          console.error(
+            "Invalid area mode container: missing default settings"
+          );
+          return false;
+        }
+
+        // Check hierarchy integrity
+        const hasValidHierarchy = areaModeContainer.children.every(
+          (grid: GridShape) =>
+            grid.children.every((row: RowShape) =>
+              row.children.every(
+                (seat: SeatShape) =>
+                  seat.rowId === row.id && seat.gridId === grid.id
+              )
+            )
+        );
+
+        if (!hasValidHierarchy) {
+          console.error("Invalid area mode container: broken hierarchy");
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    if (!validShapes) {
+      throw new Error(
+        "Invalid shapes detected. Please check your seat map data."
+      );
     }
 
     const updatedSeatMap = await updateSeatMap(
@@ -111,6 +259,7 @@ export async function updateSeatMapAction(
 
     return { success: true, data: plainData };
   } catch (error) {
+    console.error("Error in updateSeatMapAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };
@@ -140,7 +289,7 @@ export async function getUserSeatMapsAction() {
   }
 }
 
-// Add this new action
+// ✅ Enhanced getSeatMapGridDataAction with better area mode handling
 export async function getSeatMapGridDataAction(seatMapId: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -178,8 +327,8 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
       };
     }
 
-    // ✅ Extract grids and default settings
-    const grids = areaModeContainer.grids || [];
+    // ✅ Enhanced grid data extraction
+    const grids = areaModeContainer.children || [];
     const defaultSeatSettings = areaModeContainer.defaultSeatSettings || {
       seatSpacing: 25,
       rowSpacing: 40,
@@ -190,18 +339,21 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
       price: 0,
     };
 
-    // ✅ Calculate statistics for preview
+    // ✅ Calculate statistics with enhanced validation
     let totalSeats = 0;
     let totalRevenue = 0;
     const areas = grids
       .filter(
-        (grid: any) =>
-          grid.rows &&
-          grid.rows.some((row: any) => row.seats && row.seats.length > 0)
+        (grid: GridShape) =>
+          Array.isArray(grid.children) &&
+          grid.children.some(
+            (row: RowShape) =>
+              Array.isArray(row.children) && row.children.length > 0
+          )
       )
-      .map((grid: any) => {
-        const gridSeats = grid.rows.reduce(
-          (acc: number, row: any) => acc + (row.seats?.length || 0),
+      .map((grid: GridShape) => {
+        const gridSeats = grid.children.reduce(
+          (acc: number, row: RowShape) => acc + (row.children?.length || 0),
           0
         );
         const gridPrice = grid.seatSettings?.price || defaultSeatSettings.price;
@@ -212,14 +364,15 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
 
         return {
           id: grid.id,
-          name: grid.name,
-          rows: grid.rows.map((row: any) => ({
+          name: grid.gridName,
+          rows: grid.children.map((row: RowShape) => ({
             id: row.id,
-            name: row.name,
-            seats: row.seats || [],
-            bend: row.bend,
+            name: row.rowName,
+            seats: row.children || [],
             seatSpacing: row.seatSpacing,
+            labelPlacement: row.labelPlacement,
           })),
+          seatSettings: grid.seatSettings,
           price: gridPrice,
           seatCount: gridSeats,
         };
@@ -238,11 +391,12 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
       },
     };
 
-    console.log("✅ Extracted seat map grid data:", {
+    console.log("✅ Enhanced seat map grid data extraction:", {
       seatMapId,
       gridCount: grids.length,
       totalSeats,
       totalRevenue,
+      hasValidHierarchy: areas.length > 0,
     });
 
     return { success: true, data: plainData };

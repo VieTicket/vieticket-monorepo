@@ -1,7 +1,5 @@
 import type { User } from "better-auth";
-import {
-  Role,
-} from "@vieticket/db/pg/schema";
+import { Role } from "@vieticket/db/pg/schema";
 import { Session } from "better-auth/types";
 import auth from "@vieticket/auth";
 export { auth };

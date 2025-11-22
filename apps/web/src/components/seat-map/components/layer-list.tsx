@@ -27,10 +27,10 @@ import {
 } from "../utils/grouping";
 import { getSelectionTransform } from "../events/transform-events";
 import {
-  findShapeInContainer,
   findParentContainer,
   findShapeById,
   getWorldCoordinates,
+  findShapeInContainerRecursive,
 } from "../shapes/index";
 
 interface DragState {
@@ -58,7 +58,6 @@ export const LayerList = React.memo(
       dragOverTarget: null,
       dragPosition: null,
     });
-
     const shapes = useSeatMapStore((state) => state.shapes);
     const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
     const setSelectedShapes = useSeatMapStore(
@@ -261,6 +260,7 @@ export const LayerList = React.memo(
 
     const handleDragStart = useCallback(
       (e: React.DragEvent, itemId: string) => {
+        console.log("Drag started for item:", itemId);
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", itemId);
 
@@ -399,8 +399,14 @@ export const LayerList = React.memo(
           for (const mainShape of shapes) {
             if (mainShape.type === "container") {
               const containerGroup = mainShape as ContainerGroup;
-              shape = findShapeInContainer(containerGroup, shapeId);
-              if (shape) break;
+              let found = findShapeInContainerRecursive(
+                containerGroup,
+                shapeId
+              );
+              if (found) {
+                shape = found.shape;
+                break;
+              }
             }
           }
         }
@@ -446,8 +452,14 @@ export const LayerList = React.memo(
           for (const mainShape of shapes) {
             if (mainShape.type === "container") {
               const containerGroup = mainShape as ContainerGroup;
-              shape = findShapeInContainer(containerGroup, shapeId);
-              if (shape) break;
+              let found = findShapeInContainerRecursive(
+                containerGroup,
+                shapeId
+              );
+              if (found) {
+                shape = found.shape;
+                break;
+              }
             }
           }
         }
@@ -622,7 +634,7 @@ export const LayerList = React.memo(
                   : "hover:bg-gray-700 text-gray-300"
               } ${isDraggedItem ? "opacity-50" : ""} ${getDragIndicatorClasses(item.id)} cursor-pointer text-xs`}
               style={{ paddingLeft: `${paddingLeft}px` }}
-              draggable={!item.interactive}
+              draggable={item.interactive}
               onDragStart={(e) => handleDragStart(e, item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDragLeave={handleDragLeave}

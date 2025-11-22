@@ -1,8 +1,10 @@
 import * as PIXI from "pixi.js";
 import {
   CanvasItem,
+  FreeShape,
+  GridShape,
   PolygonShape,
-  RowData,
+  RowShape,
   SeatShape,
   SVGShape,
 } from "../types";
@@ -23,11 +25,22 @@ import {
   updatePolygonGraphics,
 } from "../shapes";
 import { updateSVGGraphics } from "../shapes/svg-shape";
-import { checkDomainOfScale } from "recharts/types/util/ChartUtils";
-import { getRowByIdFromAllGrids } from "../shapes/seats";
+import {
+  updateMultipleSeatLabelsRotation,
+  updateSeatLabelRotation,
+} from "../shapes/seat-shape";
+import {
+  getGridByRowId,
+  getRowByIdFromAllGrids,
+  getSeatsInRow,
+  updateMultipleRowLabelRotations,
+  updateRowLabelPosition,
+  updateRowLabelRotation,
+} from "../shapes/row-shape";
+import { before } from "node:test";
 
 export interface TransformHandle {
-  type: "corner" | "edge" | "rotate" | "bend" | "vertex";
+  type: "corner" | "edge" | "rotate" | "bend" | "vertex" | "control-point";
   position:
     | "top-left"
     | "top-right"
@@ -39,13 +52,30 @@ export interface TransformHandle {
     | "right"
     | "rotate"
     | "bend"
-    | `vertex-${number}`;
+    | `vertex-${number}`
+    | `cp-${number}`;
   graphics: PIXI.Graphics;
+}
+
+interface BendInfo {
+  type: "single-row" | "multi-row" | "grid" | null;
+  rowIds: string[];
+  gridIds: string[];
+  rows: RowShape[];
+  grids: GridShape[];
+  allSeats: SeatShape[];
 }
 
 interface TransformState {
   isTransforming: boolean;
-  transformType: "move" | "scale" | "rotate" | "bend" | "vertex" | null;
+  transformType:
+    | "move"
+    | "scale"
+    | "rotate"
+    | "bend"
+    | "vertex"
+    | "control-point"
+    | null;
   transformStart: { x: number; y: number } | null;
   transformPosition: string;
   originalTransforms: Array<{
@@ -58,10 +88,11 @@ interface TransformState {
   originalPolygonPoints: { x: number; y: number }[];
   accumulatedRotation: number;
   hasReachedThreshold: boolean;
-  originalBendValues: Map<string, number>;
   affectedRowIds: string[];
   bendType: "single-row" | "multi-row" | "grid" | null;
   editingVertexIndex: number;
+  originalSeatPositions: Map<string, { x: number; y: number }>;
+  cachedBendInfo: BendInfo | null;
 }
 
 export class SelectionTransform {
@@ -69,6 +100,7 @@ export class SelectionTransform {
   private boundingBox: BoundingBox | null = null;
   private handles: TransformHandle[] = [];
   private polygonVertexHandles: TransformHandle[] = [];
+  private freeShapeHandles: TransformHandle[] = [];
   private container: PIXI.Container;
   private state: TransformState = {
     isTransforming: false,
@@ -79,10 +111,11 @@ export class SelectionTransform {
     originalPolygonPoints: [],
     accumulatedRotation: 0,
     hasReachedThreshold: false,
-    originalBendValues: new Map(),
+    originalSeatPositions: new Map(),
     affectedRowIds: [],
     bendType: null,
     editingVertexIndex: -1,
+    cachedBendInfo: null,
   };
   private readonly rotationThreshold = Math.PI * 7;
 
@@ -90,6 +123,7 @@ export class SelectionTransform {
     this.container = new PIXI.Container();
     container.addChild(this.container);
     this.createHandles();
+    this.createFreeShapeHandles();
   }
 
   private createHandles() {
@@ -132,6 +166,51 @@ export class SelectionTransform {
     }
   }
 
+  private createFreeShapeHandles() {
+    const maxPoints = 20;
+    const maxControlPoints = maxPoints * 2;
+
+    for (let i = 0; i < maxPoints; i++) {
+      const graphics = this.createHandleGraphics("vertex", "move");
+      graphics.on("pointerdown", (event) =>
+        this.onFreeShapeVertexHandlePointerDown(event, i)
+      );
+
+      this.container.addChild(graphics);
+      this.freeShapeHandles.push({
+        type: "vertex",
+        position: `vertex-${i}`,
+        graphics,
+      });
+    }
+
+    for (let i = 0; i < maxPoints; i++) {
+      const cp1Graphics = this.createHandleGraphics("control-point", "move");
+      cp1Graphics.on("pointerdown", (event) =>
+        this.onFreeShapeControlPointHandlePointerDown(event, i, "cp1")
+      );
+
+      this.container.addChild(cp1Graphics);
+      this.freeShapeHandles.push({
+        type: "control-point",
+        position: `cp-${i}`,
+        graphics: cp1Graphics,
+      });
+
+      const cp2Graphics = this.createHandleGraphics("control-point", "move");
+      cp2Graphics.on("pointerdown", (event) =>
+        this.onFreeShapeControlPointHandlePointerDown(event, i, "cp2")
+      );
+
+      this.container.addChild(cp2Graphics);
+      this.freeShapeHandles.push({
+        type: "control-point",
+        position: `cp-${i}`,
+        graphics: cp2Graphics,
+      });
+    }
+  }
+
   private createHandleGraphics(type: string, cursor: string): PIXI.Graphics {
     const graphics = new PIXI.Graphics();
     const handleSize = 8;
@@ -146,6 +225,11 @@ export class SelectionTransform {
         .circle(0, 0, handleSize / 1.5)
         .fill(0xffaa00)
         .stroke({ width: 2, color: 0x008800 });
+    } else if (type === "control-point") {
+      graphics
+        .circle(0, 0, handleSize / 2.5)
+        .fill(0xff6b6b)
+        .stroke({ width: 1, color: 0xcc0000 });
     } else if (type === "bend") {
       const bendInfo = this.getBendInfo();
       let fillColor = 0xff9500;
@@ -181,77 +265,200 @@ export class SelectionTransform {
     return graphics;
   }
 
-  private getBendInfo(): {
-    type: "single-row" | "multi-row" | "grid" | null;
-    rowIds: string[];
-    gridIds: string[];
-  } {
-    if (!isAreaMode || this.selectedShapes.length < 2) {
-      return { type: null, rowIds: [], gridIds: [] };
+  private getBendInfo(): BendInfo {
+    if (this.state.cachedBendInfo) {
+      return this.state.cachedBendInfo;
+    }
+
+    if (!isAreaMode || this.selectedShapes.length === 0 || !areaModeContainer) {
+      const emptyInfo: BendInfo = {
+        type: null,
+        rowIds: [],
+        gridIds: [],
+        rows: [],
+        grids: [],
+        allSeats: [],
+      };
+      this.state.cachedBendInfo = emptyInfo;
+      return emptyInfo;
+    }
+
+    const rows: RowShape[] = [];
+    const grids: GridShape[] = [];
+    const allSeats: SeatShape[] = [];
+    const rowIds: string[] = [];
+    const gridIds: string[] = [];
+
+    const containerShapes = this.selectedShapes.filter(
+      (shape) => shape.type === "container"
+    );
+
+    if (containerShapes.length > 0) {
+      const gridShapes = containerShapes.filter(
+        (shape) => "gridName" in shape
+      ) as GridShape[];
+
+      gridShapes.forEach((grid) => {
+        grids.push(grid);
+        gridIds.push(grid.id);
+        rows.push(...grid.children);
+        rowIds.push(...grid.children.map((row) => row.id));
+
+        grid.children.forEach((row) => {
+          allSeats.push(...row.children);
+        });
+      });
+
+      const rowShapes = containerShapes.filter(
+        (shape) => "rowName" in shape && "gridId" in shape
+      ) as RowShape[];
+
+      rowShapes.forEach((row) => {
+        rows.push(row);
+        rowIds.push(row.id);
+
+        if (!gridIds.includes(row.gridId)) {
+          const grid = areaModeContainer!.children.find(
+            (g) => g.id === row.gridId
+          );
+          if (grid) {
+            grids.push(grid);
+            gridIds.push(grid.id);
+          }
+        }
+
+        allSeats.push(...row.children);
+      });
+
+      let bendType: "single-row" | "multi-row" | "grid" | null;
+
+      if (gridShapes.length > 0) {
+        bendType = "grid";
+      } else if (rowShapes.length === 1) {
+        bendType = "single-row";
+      } else {
+        bendType = "multi-row";
+      }
+
+      const bendInfo: BendInfo = {
+        type: bendType,
+        rowIds,
+        gridIds,
+        rows,
+        grids,
+        allSeats,
+      };
+
+      this.state.cachedBendInfo = bendInfo;
+      return bendInfo;
     }
 
     const seatShapes = this.selectedShapes.filter(
       (shape): shape is SeatShape =>
         shape.type === "ellipse" && "rowId" in shape && "gridId" in shape
-    ) as SeatShape[];
+    );
 
-    if (seatShapes.length !== this.selectedShapes.length) {
-      return { type: null, rowIds: [], gridIds: [] };
+    if (seatShapes.length === 0) {
+      const emptyInfo: BendInfo = {
+        type: null,
+        rowIds: [],
+        gridIds: [],
+        rows: [],
+        grids: [],
+        allSeats: [],
+      };
+      this.state.cachedBendInfo = emptyInfo;
+      return emptyInfo;
     }
 
     const uniqueRowIds = [...new Set(seatShapes.map((seat) => seat.rowId))];
     const uniqueGridIds = [...new Set(seatShapes.map((seat) => seat.gridId))];
 
+    const rowsMap = new Map<string, RowShape>();
+    const gridsMap = new Map<string, GridShape>();
+
+    uniqueGridIds.forEach((gridId) => {
+      const grid = areaModeContainer!.children.find((g) => g.id === gridId);
+      if (grid) {
+        grids.push(grid);
+        gridIds.push(grid.id);
+        gridsMap.set(grid.id, grid);
+
+        uniqueRowIds.forEach((rowId) => {
+          const row = grid.children.find((r) => r.id === rowId);
+          if (row && !rowsMap.has(row.id)) {
+            rows.push(row);
+            rowIds.push(row.id);
+            rowsMap.set(row.id, row);
+          }
+        });
+      }
+    });
+
+    allSeats.push(...seatShapes);
+
+    let bendType: "single-row" | "multi-row" | "grid" | null;
+
     if (uniqueRowIds.length === 1) {
-      return {
-        type: "single-row",
-        rowIds: uniqueRowIds,
-        gridIds: uniqueGridIds,
-      };
-    } else if (uniqueGridIds.length === 1) {
-      const grid = areaModeContainer?.grids.find(
-        (g) => g.id === uniqueGridIds[0]
-      );
-      if (grid && uniqueRowIds.length === grid.rows.length) {
-        return { type: "grid", rowIds: uniqueRowIds, gridIds: uniqueGridIds };
+      const rowId = uniqueRowIds[0];
+      const row = rowsMap.get(rowId);
+
+      if (row && seatShapes.length === row.children.length) {
+        bendType = "single-row";
       } else {
-        return {
-          type: "multi-row",
-          rowIds: uniqueRowIds,
-          gridIds: uniqueGridIds,
-        };
+        bendType = "single-row";
+      }
+    } else if (uniqueGridIds.length === 1) {
+      const grid = gridsMap.get(uniqueGridIds[0]);
+
+      if (grid) {
+        const totalSeatsInGrid = grid.children.reduce(
+          (total, row) => total + row.children.length,
+          0
+        );
+
+        if (
+          seatShapes.length === totalSeatsInGrid &&
+          uniqueRowIds.length === grid.children.length
+        ) {
+          bendType = "grid";
+        } else {
+          bendType = "multi-row";
+        }
+      } else {
+        bendType = "multi-row";
       }
     } else {
-      return {
-        type: "multi-row",
-        rowIds: uniqueRowIds,
-        gridIds: uniqueGridIds,
-      };
+      bendType = "multi-row";
     }
+
+    const bendInfo: BendInfo = {
+      type: bendType,
+      rowIds,
+      gridIds,
+      rows,
+      grids,
+      allSeats,
+    };
+
+    this.state.cachedBendInfo = bendInfo;
+    return bendInfo;
+  }
+
+  private clearBendInfoCache() {
+    this.state.cachedBendInfo = null;
   }
 
   private shouldShowBendHandle(): boolean {
     const bendInfo = this.getBendInfo();
-    return bendInfo.type !== null;
-  }
 
-  private getAffectedRowsData(): RowData[] {
-    if (!areaModeContainer) return [];
-
-    const bendInfo = this.getBendInfo();
-    const rowsData: RowData[] = [];
-
-    for (const rowId of bendInfo.rowIds) {
-      for (const grid of areaModeContainer.grids) {
-        const row = grid.rows.find((r) => r.id === rowId);
-        if (row) {
-          rowsData.push(row);
-          break;
-        }
-      }
-    }
-
-    return rowsData;
+    return (
+      bendInfo.type !== null &&
+      ((bendInfo.type === "single-row" && this.selectedShapes.length >= 2) ||
+        bendInfo.type === "multi-row" ||
+        bendInfo.type === "grid" ||
+        this.selectedShapes.some((shape) => shape.type === "container"))
+    );
   }
 
   private updatePolygonVertexHandles() {
@@ -274,13 +481,207 @@ export class SelectionTransform {
       const handle = this.polygonVertexHandles[i];
       const point = polygon.points[i];
 
-      const worldX = polygon.x + point.x;
-      const worldY = polygon.y + point.y;
+      // ✅ Apply polygon transformations to the point
+      const transformedPoint = this.transformPointWithPolygon(point, polygon);
+
       handle.graphics.visible = true;
-      handle.graphics.x = worldX;
-      handle.graphics.y = worldY;
+      handle.graphics.x = transformedPoint.x;
+      handle.graphics.y = transformedPoint.y;
       handle.graphics.scale.set(1 / zoom);
     }
+  }
+
+  /**
+   * ✅ Transform a local polygon point to world coordinates considering all transformations
+   */
+  private transformPointWithPolygon(
+    localPoint: { x: number; y: number },
+    polygon: PolygonShape
+  ): { x: number; y: number } {
+    // Start with the local point relative to polygon center
+    let transformedX = localPoint.x;
+    let transformedY = localPoint.y;
+
+    // Apply polygon scale
+    const scaleX = polygon.scaleX || 1;
+    const scaleY = polygon.scaleY || 1;
+    transformedX *= scaleX;
+    transformedY *= scaleY;
+
+    // Apply polygon rotation
+    const rotation = polygon.rotation || 0;
+    if (rotation !== 0) {
+      const cos = Math.cos(rotation);
+      const sin = Math.sin(rotation);
+      const rotatedX = transformedX * cos - transformedY * sin;
+      const rotatedY = transformedX * sin + transformedY * cos;
+      transformedX = rotatedX;
+      transformedY = rotatedY;
+    }
+
+    // Add polygon position to get world position
+    let worldX = polygon.x + transformedX;
+    let worldY = polygon.y + transformedY;
+
+    // ✅ Check if polygon is inside a parent container and apply parent transformations
+    const parentContainer = findParentContainer(polygon);
+    if (parentContainer) {
+      // Get world coordinates of the parent container
+      const parentWorldCoords = getWorldCoordinates(parentContainer);
+
+      // The polygon's position is relative to its parent, so we need to transform it
+      // First, get the polygon's position relative to parent
+      const relativeToParentX = polygon.x;
+      const relativeToParentY = polygon.y;
+
+      // Apply parent transformations to the relative position
+      let parentTransformedX = relativeToParentX + transformedX;
+      let parentTransformedY = relativeToParentY + transformedY;
+
+      // Apply parent scale
+      const parentScaleX = parentContainer.scaleX || 1;
+      const parentScaleY = parentContainer.scaleY || 1;
+      parentTransformedX *= parentScaleX;
+      parentTransformedY *= parentScaleY;
+
+      // Apply parent rotation
+      const parentRotation = parentContainer.rotation || 0;
+      if (parentRotation !== 0) {
+        const cos = Math.cos(parentRotation);
+        const sin = Math.sin(parentRotation);
+        const rotatedX = parentTransformedX * cos - parentTransformedY * sin;
+        const rotatedY = parentTransformedX * sin + parentTransformedY * cos;
+        parentTransformedX = rotatedX;
+        parentTransformedY = rotatedY;
+      }
+
+      // Add parent world position
+      worldX = parentWorldCoords.x + parentTransformedX;
+      worldY = parentWorldCoords.y + parentTransformedY;
+    }
+
+    return { x: worldX, y: worldY };
+  }
+
+  /**
+   * ✅ Updated handleVertexMove to work with transformed coordinates
+   */
+  private handleVertexMove(deltaX: number, deltaY: number) {
+    if (
+      this.state.transformType !== "vertex" ||
+      this.selectedShapes.length !== 1
+    )
+      return;
+
+    const polygon = this.selectedShapes[0] as PolygonShape;
+    if (polygon.type !== "polygon") return;
+
+    const vertexIndex = this.state.editingVertexIndex;
+    if (vertexIndex < 0 || vertexIndex >= polygon.points.length) return;
+
+    // ✅ Transform delta from world space to local polygon space
+    const localDelta = this.worldToLocalDelta(deltaX, deltaY, polygon);
+
+    const originalPoint = this.state.originalPolygonPoints[vertexIndex];
+    polygon.points[vertexIndex] = {
+      ...originalPoint,
+      x: originalPoint.x + localDelta.x,
+      y: originalPoint.y + localDelta.y,
+    };
+
+    updatePolygonGraphics(polygon);
+
+    // ✅ Update handle position using the new transformed coordinates
+    const handle = this.polygonVertexHandles[vertexIndex];
+    if (handle) {
+      const worldPoint = this.transformPointWithPolygon(
+        polygon.points[vertexIndex],
+        polygon
+      );
+      handle.graphics.x = worldPoint.x;
+      handle.graphics.y = worldPoint.y;
+    }
+
+    this.updateSelection(this.selectedShapes);
+  }
+
+  /**
+   * ✅ Convert world space delta to local polygon space delta
+   */
+  private worldToLocalDelta(
+    worldDeltaX: number,
+    worldDeltaY: number,
+    polygon: PolygonShape
+  ): { x: number; y: number } {
+    let localDeltaX = worldDeltaX;
+    let localDeltaY = worldDeltaY;
+
+    // Reverse parent container transformations if polygon is nested
+    const parentContainer = findParentContainer(polygon);
+    if (parentContainer) {
+      // Reverse parent rotation
+      const parentRotation = -(parentContainer.rotation || 0);
+      if (parentRotation !== 0) {
+        const cos = Math.cos(parentRotation);
+        const sin = Math.sin(parentRotation);
+        const rotatedX = localDeltaX * cos - localDeltaY * sin;
+        const rotatedY = localDeltaX * sin + localDeltaY * cos;
+        localDeltaX = rotatedX;
+        localDeltaY = rotatedY;
+      }
+
+      // Reverse parent scale
+      const parentScaleX = parentContainer.scaleX || 1;
+      const parentScaleY = parentContainer.scaleY || 1;
+      if (parentScaleX !== 0) localDeltaX /= parentScaleX;
+      if (parentScaleY !== 0) localDeltaY /= parentScaleY;
+    }
+
+    // Reverse polygon rotation
+    const polygonRotation = -(polygon.rotation || 0);
+    if (polygonRotation !== 0) {
+      const cos = Math.cos(polygonRotation);
+      const sin = Math.sin(polygonRotation);
+      const rotatedX = localDeltaX * cos - localDeltaY * sin;
+      const rotatedY = localDeltaX * sin + localDeltaY * cos;
+      localDeltaX = rotatedX;
+      localDeltaY = rotatedY;
+    }
+
+    // Reverse polygon scale
+    const polygonScaleX = polygon.scaleX || 1;
+    const polygonScaleY = polygon.scaleY || 1;
+    if (polygonScaleX !== 0) localDeltaX /= polygonScaleX;
+    if (polygonScaleY !== 0) localDeltaY /= polygonScaleY;
+
+    return { x: localDeltaX, y: localDeltaY };
+  }
+
+  /**
+   * ✅ Matrix-based approach for delta conversion (more accurate)
+   */
+  private worldToLocalDeltaMatrix(
+    worldDeltaX: number,
+    worldDeltaY: number,
+    polygon: PolygonShape
+  ): { x: number; y: number } {
+    // Get the inverse of the polygon's world transform matrix
+    const worldTransform = polygon.graphics.worldTransform;
+    const inverseMatrix = worldTransform.clone().invert();
+
+    // Transform the delta vector
+    const deltaPoint = new PIXI.Point(worldDeltaX, worldDeltaY);
+    const origin = new PIXI.Point(0, 0);
+
+    // Apply inverse transform to both points
+    const transformedDelta = inverseMatrix.apply(deltaPoint);
+    const transformedOrigin = inverseMatrix.apply(origin);
+
+    // Get the local delta
+    return {
+      x: transformedDelta.x - transformedOrigin.x,
+      y: transformedDelta.y - transformedOrigin.y,
+    };
   }
 
   private onVertexHandlePointerDown(
@@ -305,37 +706,72 @@ export class SelectionTransform {
     };
   }
 
-  private handleVertexMove(deltaX: number, deltaY: number) {
-    if (
-      this.state.transformType !== "vertex" ||
-      this.selectedShapes.length !== 1
-    )
-      return;
+  private onFreeShapeVertexHandlePointerDown(
+    event: PIXI.FederatedPointerEvent,
+    pointIndex: number
+  ) {
+    event.stopPropagation();
+    if (!stage || this.selectedShapes.length !== 1) return;
 
-    const polygon = this.selectedShapes[0] as PolygonShape;
-    if (polygon.type !== "polygon") return;
+    const freeShape = this.selectedShapes[0] as FreeShape;
+    if (freeShape.type !== "freeshape") return;
 
-    const vertexIndex = this.state.editingVertexIndex;
-    if (vertexIndex < 0 || vertexIndex >= polygon.points.length) return;
+    const localPoint = event.getLocalPosition(stage);
 
-    const originalPoint = this.state.originalPolygonPoints[vertexIndex];
-    polygon.points[vertexIndex] = {
-      ...originalPoint,
-      x: originalPoint.x + deltaX,
-      y: originalPoint.y + deltaY,
+    this.state = {
+      ...this.state,
+      isTransforming: true,
+      editingVertexIndex: pointIndex,
+      transformType: "vertex",
+      transformStart: { x: localPoint.x, y: localPoint.y },
+      originalPolygonPoints: freeShape.points.map((p) => ({ x: p.x, y: p.y })),
     };
-
-    updatePolygonGraphics(polygon);
-
-    const handle = this.polygonVertexHandles[vertexIndex];
-    if (handle) {
-      const worldX = polygon.x + polygon.points[vertexIndex].x;
-      const worldY = polygon.y + polygon.points[vertexIndex].y;
-      handle.graphics.x = worldX;
-      handle.graphics.y = worldY;
-    }
-    this.updateSelection(this.selectedShapes);
   }
+
+  private onFreeShapeControlPointHandlePointerDown(
+    event: PIXI.FederatedPointerEvent,
+    pointIndex: number,
+    controlPointType: "cp1" | "cp2"
+  ) {
+    event.stopPropagation();
+    if (!stage || this.selectedShapes.length !== 1) return;
+
+    const freeShape = this.selectedShapes[0] as FreeShape;
+    if (freeShape.type !== "freeshape") return;
+
+    const localPoint = event.getLocalPosition(stage);
+
+    this.state = {
+      ...this.state,
+      isTransforming: true,
+      editingVertexIndex: pointIndex,
+      transformType: "control-point",
+      transformStart: { x: localPoint.x, y: localPoint.y },
+      originalPolygonPoints: freeShape.points.map((p) => ({
+        x: p.x,
+        y: p.y,
+        cp1x: p.cp1x,
+        cp1y: p.cp1y,
+        cp2x: p.cp2x,
+        cp2y: p.cp2y,
+      })),
+    };
+  }
+
+  private drawControlPointLine(x1: number, y1: number, x2: number, y2: number) {
+    const line = new PIXI.Graphics();
+    line
+      .moveTo(x1, y1)
+      .lineTo(x2, y2)
+      .stroke({
+        width: 1 / zoom,
+        color: 0x666666,
+        alpha: 0.6,
+      });
+
+    this.container.addChildAt(line, 0);
+  }
+
   private onHandlePointerDown(
     event: PIXI.FederatedPointerEvent,
     type: string,
@@ -345,14 +781,16 @@ export class SelectionTransform {
     if (!stage) return;
 
     const localPoint = event.getLocalPosition(stage);
-
+    this.clearBendInfoCache();
     const bendInfo = this.getBendInfo();
-    const affectedRows = this.getAffectedRowsData();
-    const originalBendValues = new Map<string, number>();
 
-    affectedRows.forEach((row) => {
-      originalBendValues.set(row.id, row.bend || 0);
-    });
+    const originalSeatPositions = new Map<string, { x: number; y: number }>();
+
+    if (type === "bend") {
+      bendInfo.allSeats.forEach((seat) => {
+        originalSeatPositions.set(seat.id, { x: seat.x, y: seat.y });
+      });
+    }
 
     this.state = {
       ...this.state,
@@ -363,9 +801,9 @@ export class SelectionTransform {
         type === "rotate" ? "rotate" : type === "bend" ? "bend" : "scale",
       accumulatedRotation: 0,
       hasReachedThreshold: false,
-      originalBendValues,
       affectedRowIds: bendInfo.rowIds,
       bendType: bendInfo.type,
+      originalSeatPositions,
       originalTransforms: this.selectedShapes.map((shape) => ({
         scaleX: shape.scaleX || 1,
         scaleY: shape.scaleY || 1,
@@ -396,76 +834,50 @@ export class SelectionTransform {
   }
 
   private handleBend(deltaY: number) {
-    if (!this.boundingBox || this.state.affectedRowIds.length === 0) return;
-
-    const bendSensitivity = 0.001;
-
-    this.state.affectedRowIds.forEach((rowId) => {
-      const originalBendValue = this.state.originalBendValues.get(rowId) || 0;
-      const bendValue = originalBendValue + deltaY * bendSensitivity;
-
-      const clampedBendValue = Math.max(-0.5, Math.min(0.5, bendValue));
-
-      this.updateRowBendValue(rowId, clampedBendValue);
-    });
-
-    this.applyBendToMultipleRows();
-  }
-
-  private updateRowBendValue(rowId: string, bendValue: number) {
-    if (!areaModeContainer) return;
-
-    for (const grid of areaModeContainer.grids) {
-      const row = grid.rows.find((r) => r.id === rowId);
-      if (row) {
-        row.bend = bendValue;
-        break;
-      }
-    }
-  }
-
-  private applyBendToMultipleRows() {
     if (!this.boundingBox) return;
 
-    const seatShapes = this.selectedShapes as SeatShape[];
+    const bendInfo = this.getBendInfo();
 
-    const seatsByRow = new Map<string, SeatShape[]>();
-    seatShapes.forEach((seat) => {
-      if (!seatsByRow.has(seat.rowId)) {
-        seatsByRow.set(seat.rowId, []);
-      }
-      seatsByRow.get(seat.rowId)!.push(seat);
+    if (bendInfo.type === null || bendInfo.rows.length === 0) return;
+
+    let bendSensitivity = 0.001;
+
+    if (bendInfo.type === "grid") {
+      bendSensitivity = 0.0005;
+    } else if (bendInfo.type === "multi-row") {
+      bendSensitivity = 0.0007;
+    }
+
+    const currentBendValue = deltaY * bendSensitivity;
+    const clampedBendValue = Math.max(-0.5, Math.min(0.5, currentBendValue));
+
+    bendInfo.rows.forEach((row) => {
+      this.applyBendToRowIncremental(row, clampedBendValue);
     });
 
-    seatsByRow.forEach((rowSeats, rowId) => {
-      const rowBendValue = this.getCurrentRowBendValue(rowId);
-      this.applyBendToRow(rowSeats, rowId, rowBendValue);
-    });
+    updateMultipleRowLabelRotations(bendInfo.rows);
 
     this.updateSelection(this.selectedShapes);
   }
-
-  private applyBendToRow(
-    rowSeats: SeatShape[],
-    rowId: string,
-    bendValue: number
-  ) {
+  private applyBendToRowIncremental(row: RowShape, bendValue: number) {
+    const rowSeats = row.children;
     if (rowSeats.length < 2) return;
 
     const sortedSeats = [...rowSeats].sort((a, b) => a.x - b.x);
 
+    // Get original positions from transform start
     const originalPositions = sortedSeats
-      .map((seat) => {
-        const originalIndex = this.selectedShapes.findIndex(
-          (s) => s.id === seat.id
-        );
-        return this.state.originalTransforms[originalIndex];
-      })
-      .filter(Boolean);
+      .map((seat) => ({
+        seat,
+        original: this.state.originalSeatPositions.get(seat.id),
+      }))
+      .filter((item) => item.original !== undefined);
 
-    if (originalPositions.length !== sortedSeats.length) return;
+    if (originalPositions.length === 0) return;
 
-    const originalXPositions = originalPositions.map((pos) => pos.x);
+    const originalXPositions = originalPositions.map(
+      (item) => item.original!.x
+    );
     const minX = Math.min(...originalXPositions);
     const maxX = Math.max(...originalXPositions);
     const rowCenterX = (minX + maxX) / 2;
@@ -473,49 +885,81 @@ export class SelectionTransform {
 
     if (rowWidth === 0) return;
 
-    sortedSeats.forEach((seat, index) => {
-      const original = originalPositions[index];
+    // ✅ Calculate the existing bend state from original positions
+    const calculateExistingBend = (): number => {
+      if (originalPositions.length < 3) return 0;
+
+      // Find the seat closest to center
+      let centerSeat = originalPositions[0];
+      let minDistanceToCenter = Math.abs(
+        originalPositions[0].original!.x - rowCenterX
+      );
+
+      originalPositions.forEach((item) => {
+        const distance = Math.abs(item.original!.x - rowCenterX);
+        if (distance < minDistanceToCenter) {
+          minDistanceToCenter = distance;
+          centerSeat = item;
+        }
+      });
+
+      // Calculate baseline from edge seats
+      const leftEdge = originalPositions.find(
+        (item) => item.original!.x === minX
+      );
+      const rightEdge = originalPositions.find(
+        (item) => item.original!.x === maxX
+      );
+
+      if (!leftEdge || !rightEdge) return 0;
+
+      const edgeBaseline = (leftEdge.original!.y + rightEdge.original!.y) / 2;
+      const centerOffset = centerSeat.original!.y - edgeBaseline;
+
+      // Convert back to bend value
+      const maxPossibleOffset = rowWidth * 0.5;
+      return maxPossibleOffset > 0 ? centerOffset / maxPossibleOffset : 0;
+    };
+
+    const existingBendValue = calculateExistingBend();
+    const totalBendValue = existingBendValue + bendValue;
+    const clampedTotalBend = Math.max(-0.5, Math.min(0.5, totalBendValue));
+
+    // Calculate baseline Y (average of edge seats)
+    const leftEdgeY =
+      originalPositions.find((item) => item.original!.x === minX)?.original!
+        .y || originalPositions[0].original!.y;
+    const rightEdgeY =
+      originalPositions.find((item) => item.original!.x === maxX)?.original!
+        .y || originalPositions[originalPositions.length - 1].original!.y;
+    const baselineY = (leftEdgeY + rightEdgeY) / 2;
+
+    // ✅ Apply total bend from baseline
+    originalPositions.forEach(({ seat, original }) => {
       if (!original) return;
 
       const normalizedX = (original.x - rowCenterX) / (rowWidth / 2);
-
-      const bendOffset =
-        bendValue * rowWidth * 0.5 * (1 - normalizedX * normalizedX);
+      const totalBendOffset =
+        clampedTotalBend * rowWidth * 0.5 * (1 - normalizedX * normalizedX);
 
       seat.x = original.x;
-      seat.y = original.y + bendOffset;
-
+      seat.y = baselineY + totalBendOffset;
       seat.graphics.position.set(seat.x, seat.y);
     });
-  }
 
-  private getCurrentRowBendValue(rowId: string): number {
-    if (!areaModeContainer) return 0;
-
-    for (const grid of areaModeContainer.grids) {
-      const row = grid.rows.find((r) => r.id === rowId);
-      if (row) {
-        return row.bend || 0;
-      }
-    }
-
-    return 0;
+    updateRowLabelPosition(row);
   }
 
   public onTransformPointerUp() {
     if (!this.state.isTransforming) return;
 
-    // ✅ Capture state before resetting it
     const transformType = this.state.transformType;
     const editingVertexIndex = this.state.editingVertexIndex;
     const originalPolygonPoints = [...this.state.originalPolygonPoints];
 
-    // ✅ Handle different transformation types BEFORE resetting state
     if (transformType === "vertex" && editingVertexIndex !== null) {
-      // Handle vertex editing completion
       const beforeState = cloneCanvasItems(this.selectedShapes);
 
-      // Restore original points for "before" state
       if (
         this.selectedShapes.length === 1 &&
         this.selectedShapes[0].type === "polygon"
@@ -524,9 +968,8 @@ export class SelectionTransform {
         polygon.points = [...originalPolygonPoints];
       }
 
-      const afterState = this.selectedShapes;
+      const afterState = cloneCanvasItems(this.selectedShapes);
 
-      // Save to history only if vertex actually moved
       const hasChanged = this.hasVertexChangedWithData(
         editingVertexIndex,
         originalPolygonPoints
@@ -536,37 +979,83 @@ export class SelectionTransform {
         useSeatMapStore.getState().updateShapes([...shapes], false);
         useSeatMapStore.getState().saveDirectHistory(beforeState, afterState);
       }
+    } else if (transformType === "bend") {
+      let beforeState = cloneCanvasItems(this.selectedShapes);
+      let before: CanvasItem[] = [];
+      let afterState = cloneCanvasItems(this.selectedShapes);
+      let after: CanvasItem[] = [];
+      if ("gridName" in beforeState[0]) {
+        (beforeState as GridShape[]).forEach((grid) => {
+          (grid as GridShape).children.forEach((row) => {
+            (row as RowShape).children.forEach((seat) => {
+              Object.assign(
+                seat,
+                this.state.originalSeatPositions.get(seat.id)!
+              );
+            });
+            before = [...before, ...row.children];
+          });
+        });
+        (afterState as GridShape[]).forEach((grid) => {
+          (grid as GridShape).children.forEach((row) => {
+            after = [...after, ...row.children];
+          });
+        });
+      } else if ("rowName" in beforeState[0]) {
+        (beforeState as RowShape[]).forEach((row) => {
+          (row as RowShape).children.forEach((seat) => {
+            Object.assign(seat, this.state.originalSeatPositions.get(seat.id)!);
+          });
+          before = [...before, ...row.children];
+        });
+        (afterState as RowShape[]).forEach((row) => {
+          after = [...after, ...row.children];
+        });
+      } else {
+        before = beforeState;
+        this.state.originalTransforms.forEach((originalTransform, index) => {
+          if (before[index]) {
+            Object.assign(before[index], originalTransform);
+          }
+        });
+        after = afterState;
+      }
+
+      setShapes([...shapes]);
+      useSeatMapStore.getState().updateShapes(
+        [...shapes],
+        false,
+        {
+          topLevel: [],
+          nested: [],
+          operation: "modify",
+        },
+        false
+      );
+      useSeatMapStore.getState().saveDirectHistory(before, after);
     } else if (
-      transformType === "bend" ||
       transformType === "scale" ||
       transformType === "rotate" ||
       transformType === "move"
     ) {
-      // Handle regular transformations
       const beforeState = cloneCanvasItems(this.selectedShapes);
 
-      // Apply original transforms to before state
       this.state.originalTransforms.forEach((originalTransform, index) => {
         if (beforeState[index]) {
           Object.assign(beforeState[index], originalTransform);
         }
       });
-
-      const afterState = this.selectedShapes;
-
-      // Save regular transformation to history
+      const afterState = cloneCanvasItems(this.selectedShapes);
       setShapes([...shapes]);
       useSeatMapStore.getState().updateShapes([...shapes], false);
       useSeatMapStore.getState().saveDirectHistory(beforeState, afterState);
     }
 
-    // ✅ Reset state AFTER handling all transformation completions
     this.resetState();
     this.resetRotationHandleAppearance();
     setWasTransformed(true);
   }
 
-  // ✅ Helper method to check vertex changes with captured data
   private hasVertexChangedWithData(
     editingVertexIndex: number,
     originalPolygonPoints: Array<{ x: number; y: number; radius?: number }>
@@ -677,7 +1166,16 @@ export class SelectionTransform {
         );
       }
     });
+    if (rotationDelta !== null && this.selectedShapes.length > 1) {
+      const seatShapes = this.selectedShapes.filter(
+        (shape): shape is SeatShape =>
+          shape.type === "ellipse" && "rowId" in shape && "gridId" in shape
+      );
 
+      if (seatShapes.length > 0) {
+        updateMultipleSeatLabelsRotation(seatShapes);
+      }
+    }
     this.updateSelection(this.selectedShapes);
   }
 
@@ -699,7 +1197,6 @@ export class SelectionTransform {
     if (rotationDelta !== null) {
       shape.rotation = original.rotation + rotationDelta;
     }
-
     if (shape.type === "image") {
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.position.set(shape.x, shape.y);
@@ -714,6 +1211,56 @@ export class SelectionTransform {
       shape.graphics.position.set(shape.x, shape.y);
       shape.graphics.rotation = shape.rotation || 0;
       updatePolygonGraphics(polygon);
+    } else if (
+      shape.type === "ellipse" &&
+      "rowId" in shape &&
+      "gridId" in shape
+    ) {
+      const seat = shape as SeatShape;
+
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+      const row = getRowByIdFromAllGrids(seat.rowId);
+      const grid = getGridByRowId(seat.rowId);
+      updateSeatLabelRotation(seat, row, grid);
+    } else if (shape.type === "container" && "gridName" in shape) {
+      const grid = shape as GridShape;
+
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+
+      const bendInfo = this.state.cachedBendInfo;
+      if (bendInfo && bendInfo.grids.some((g) => g.id === grid.id)) {
+        updateMultipleRowLabelRotations(grid.children);
+
+        grid.children.forEach((row) => {
+          row.children.forEach((seat) => {
+            updateSeatLabelRotation(seat, row, grid);
+          });
+        });
+      } else {
+        updateMultipleRowLabelRotations(grid.children);
+
+        grid.children.forEach((row) => {
+          row.children.forEach((seat) => {
+            updateSeatLabelRotation(seat, row, grid);
+          });
+        });
+      }
+    } else if (shape.type === "container" && "rowName" in shape) {
+      const row = shape as RowShape;
+
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+
+      updateRowLabelRotation(row);
+      const grid = getGridByRowId(row.id);
+      row.children.forEach((seat) => {
+        updateSeatLabelRotation(seat, row, grid);
+      });
     } else {
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
       shape.graphics.position.set(shape.x, shape.y);
@@ -784,6 +1331,21 @@ export class SelectionTransform {
       shape.graphics.rotation = shape.rotation || 0;
 
       updatePolygonGraphics(polygon);
+    } else if (
+      shape.type === "ellipse" &&
+      "rowId" in shape &&
+      "gridId" in shape
+    ) {
+      const seat = shape as SeatShape;
+
+      shape.graphics.pivot.set(0, 0);
+      shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
+      shape.graphics.position.set(shape.x, shape.y);
+      shape.graphics.rotation = shape.rotation || 0;
+
+      const row = getRowByIdFromAllGrids(seat.rowId);
+      const grid = getGridByRowId(seat.rowId);
+      updateSeatLabelRotation(seat, row, grid);
     } else {
       shape.graphics.pivot.set(0, 0);
       shape.graphics.scale.set(shape.scaleX || 1, shape.scaleY || 1);
@@ -919,11 +1481,12 @@ export class SelectionTransform {
       originalTransforms: [],
       accumulatedRotation: 0,
       hasReachedThreshold: false,
-      originalBendValues: new Map(),
       affectedRowIds: [],
       bendType: null,
       editingVertexIndex: -1,
       originalPolygonPoints: [],
+      originalSeatPositions: new Map(),
+      cachedBendInfo: null,
     };
   }
 
@@ -931,6 +1494,7 @@ export class SelectionTransform {
     this.selectedShapes = shapes;
     this.boundingBox = this.calculateBoundingBox(shapes);
 
+    this.clearBendInfoCache();
     if (this.boundingBox && shapes.length > 0) {
       this.drawSelectionBox();
       this.updateHandlePositions();

@@ -1,5 +1,5 @@
 import { InferInsertModel } from "drizzle-orm";
-import { createDb } from "../postgres/connection";
+import { configureDb } from "../postgres/connection";
 import {
   events,
   areas,
@@ -19,7 +19,7 @@ if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL environment variable is not set");
 }
 
-const db = createDb(process.env.DATABASE_URL);
+const db = configureDb(process.env.DATABASE_URL);
 
 async function seed() {
   console.log("🌱 Starting database seeding...");

@@ -14,9 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
 import { cn } from "@/lib/utils";
-import {
-  ErrorContext
-} from "better-auth/react";
+import { ErrorContext } from "better-auth/react";
 import { Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

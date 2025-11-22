@@ -50,7 +50,23 @@ export let polygonDrawingState: {
 export let selectionContainer: PIXI.Container | null = null;
 export let isAreaMode = false;
 export let areaModeContainer: AreaModeContainer | null = null;
+export interface FreeShapeDrawingState {
+  isDrawing: boolean;
+  points: Array<{ x: number; y: number }>;
+  previewPoints: Array<{ x: number; y: number }>;
+  closed: boolean;
+}
 
+export let freeShapeDrawingState: FreeShapeDrawingState = {
+  isDrawing: false,
+  points: [],
+  previewPoints: [],
+  closed: false,
+};
+
+export const setFreeShapeDrawingState = (state: FreeShapeDrawingState) => {
+  freeShapeDrawingState = state;
+};
 // Setters for variables that need to be modified from other modules
 export const setPixiApp = (app: PIXI.Application | null) => {
   pixiApp = app;
@@ -150,7 +166,12 @@ export const initializeAreaModeContainer = (): AreaModeContainer => {
   if (areaModeContainer) {
     return areaModeContainer;
   }
-  console.log("areamodecontainer runs");
+
+  const container = new PIXI.Container();
+  container.eventMode = "static";
+  container.interactive = true;
+  container.interactiveChildren = true;
+
   areaModeContainer = {
     ...createContainer(
       [],
@@ -158,7 +179,7 @@ export const initializeAreaModeContainer = (): AreaModeContainer => {
       false, // Don't add shape events initially
       "area-mode-container-id"
     ),
-    grids: [],
+    children: [],
     defaultSeatSettings: {
       seatSpacing: 25,
       rowSpacing: 30,
@@ -169,16 +190,11 @@ export const initializeAreaModeContainer = (): AreaModeContainer => {
       price: 100000,
     },
   };
-  areaModeContainer.interactive = false;
-  areaModeContainer.visible = false;
-  areaModeContainer.graphics.interactive = false;
-  areaModeContainer.graphics.visible = false;
-  areaModeContainer.graphics.alpha = 0;
+  areaModeContainer.graphics.zIndex = 100;
+  areaModeContainer.graphics.alpha = 0.3;
 
-  // ✅ Add to shapes array so it can use all existing functionality
   shapes.push(areaModeContainer);
 
-  // ✅ Add to stage
   if (shapeContainer) {
     shapeContainer.addChild(areaModeContainer.graphics);
   }
@@ -223,7 +239,4 @@ export const resetVariables = () => {
   // ✅ Reset area mode variables
   isAreaMode = false;
   areaModeContainer = null;
-
-  // Reset Zustand store
-  useSeatMapStore.getState().updateShapes(shapes, true);
 };

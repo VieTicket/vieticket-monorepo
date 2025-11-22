@@ -208,57 +208,74 @@ export default function AdminPaymentRequestsPage() {
             <tbody>
               {requests.map((request) => (
                 <tr key={request.id} className="border-b">
-                  <td className="p-2">{request.event?.name || "N/A"}</td>
-                  <td className="p-2">{request.requestedAmount.toLocaleString("vi-VN")} VND</td>
+                  <td className="p-2 min-w-0 max-w-xs">
+                    <div className="truncate" title={request.event?.name || "N/A"}>
+                      {request.event?.name || "N/A"}
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <span className="whitespace-nowrap">
+                      {request.requestedAmount.toLocaleString("vi-VN")} VND
+                    </span>
+                  </td>
                     <td className="p-2">
-                    <input
-                      type="number"
-                      min={0}
-                      value={agreedAmountEdits[request.id] ?? request.agreedAmount ?? ""}
-                      onChange={e => handleAgreedAmountEdit(request.id, e.target.value)}
-                      className="border p-1 w-24"
-                      placeholder={t("placeholders.agreedAmount")}
-                    />
-                    {agreedAmountEdits[request.id] !== undefined &&
-                      agreedAmountEdits[request.id] !== request.agreedAmount && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <input
+                        type="number"
+                        min={0}
+                        value={agreedAmountEdits[request.id] ?? request.agreedAmount ?? ""}
+                        onChange={e => handleAgreedAmountEdit(request.id, e.target.value)}
+                        className="border p-1 w-24"
+                        placeholder={t("placeholders.agreedAmount")}
+                      />
+                      {agreedAmountEdits[request.id] !== undefined &&
+                        agreedAmountEdits[request.id] !== request.agreedAmount && (
+                          <button
+                            className="px-2 py-1 bg-green-500 text-white rounded whitespace-nowrap"
+                            onClick={() => handleAgreedAmountSave(request.id)}
+                          >
+                            {t("buttons.save")}
+                          </button>
+                        )
+                      }
+                    </div>
+                  </td>
+                  <td className="p-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <select
+                        value={statusEdits[request.id] ?? request.status}
+                        onChange={(e) => handleStatusEdit(request.id, e.target.value)}
+                        className="border p-1"
+                      >
+                        {STATUS_OPTIONS.map((status) => (
+                          <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
+                        ))}
+                      </select>
+                      {statusEdits[request.id] && statusEdits[request.id] !== request.status && (
                         <button
-                          className="ml-2 px-2 py-1 bg-green-500 text-white rounded"
-                          onClick={() => handleAgreedAmountSave(request.id)}
+                          className="px-2 py-1 bg-blue-500 text-white rounded whitespace-nowrap"
+                          onClick={() => handleStatusSave(request.id)}
                         >
                           {t("buttons.save")}
                         </button>
-                      )
-                    }
+                      )}
+                    </div>
                   </td>
-                  <td className="p-2">
-                    <select
-                      value={statusEdits[request.id] ?? request.status}
-                      onChange={(e) => handleStatusEdit(request.id, e.target.value)}
-                      className="border p-1"
-                    >
-                      {STATUS_OPTIONS.map((status) => (
-                        <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
-                      ))}
-                    </select>
-                    {statusEdits[request.id] && statusEdits[request.id] !== request.status && (
-                      <button
-                        className="ml-2 px-2 py-1 bg-blue-500 text-white rounded"
-                        onClick={() => handleStatusSave(request.id)}
-                      >
-                        {t("buttons.save")}
-                      </button>
-                    )}
+                  <td className="p-2 whitespace-nowrap">
+                    {new Date(request.requestDate).toLocaleDateString("vi-VN")}
                   </td>
-                  <td className="p-2">{new Date(request.requestDate).toLocaleDateString("vi-VN")}</td>
-                  <td className="p-2">{request.completionDate ? new Date(request.completionDate).toLocaleDateString("vi-VN") : "N/A"}</td>
-                    <td className="p-2 space-y-2">
+                  <td className="p-2 whitespace-nowrap">
+                    {request.completionDate ? new Date(request.completionDate).toLocaleDateString("vi-VN") : "N/A"}
+                  </td>
+                    <td className="p-2 space-y-2 min-w-0 max-w-xs">
                     {/* Show preview if already uploaded */}
                     {request.proofDocumentUrl && (
                       <a
                         href={request.proofDocumentUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="block mb-2 text-blue-600 underline"
+                        className="block mb-2 text-blue-600 underline truncate"
+                        title={request.proofDocumentUrl}
                       >
                         {t("table.viewEvidence")}
                       </a>

@@ -131,7 +131,7 @@ const getFullContainerPath = (
  */
 export const createContainerGroup = (
   items: CanvasItem[],
-  name?: string
+  id: string | null = null
 ): ContainerGroup => {
   if (items.length === 0) {
     throw new Error("Cannot create container from empty items array");
@@ -145,8 +145,8 @@ export const createContainerGroup = (
   pixiContainer.interactiveChildren = true;
 
   const containerGroup: ContainerGroup = {
-    id: generateShapeId(),
-    name: name || `Group ${items.length} items`,
+    id: id || generateShapeId(),
+    name: `Group`,
     type: "container",
     visible: true,
     interactive: true,
@@ -169,14 +169,22 @@ export const createContainerGroup = (
 export const groupItemsForCanvas = (
   items: CanvasItem[]
 ): ContainerGroup | null => {
+  // Capture state before grouping
+
   const container = groupItems(items);
+  console.log("Grouped Container:", container);
   if (!container) {
     return null;
   }
+
   setShapes([...shapes]);
+
+  useSeatMapStore.getState().saveDirectHistory(items, [container], false);
+  useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
+
   container.selected = true;
   useSeatMapStore.getState().setSelectedShapes([container]);
-  useSeatMapStore.getState().updateShapes([...shapes], true);
+
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
     selectionTransform.updateSelection([container]);
@@ -187,13 +195,23 @@ export const groupItemsForCanvas = (
 export const ungroupContainerForCanvas = (
   container: ContainerGroup
 ): CanvasItem[] => {
+  // Capture state before ungrouping
   const ungroupedItems = ungroupContainer(container);
+  console.log("Ungrouped Items:", ungroupedItems);
   setShapes([...shapes]);
-  useSeatMapStore.getState().updateShapes([...shapes], true, {
-    topLevel: [],
-    nested: [],
-    operation: "ungroup",
-  });
+
+  // Save directly to history
+  useSeatMapStore.getState()._saveToHistory(
+    {
+      shapes: [container],
+      selectedShapes: [container],
+    },
+    {
+      shapes: ungroupedItems,
+      selectedShapes: [container],
+    }
+  );
+  useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
   useSeatMapStore.getState().setSelectedShapes(ungroupedItems);
 
   return ungroupedItems;
@@ -203,12 +221,14 @@ export const removeFromGroupForCanvas = (
   container: ContainerGroup,
   items: CanvasItem[]
 ): void => {
+  // Capture state before removing from group
+  const beforeShapes = container.children.map((shape) => ({ ...shape }));
+
   removeFromGroup(container, items);
-  useSeatMapStore.getState().updateShapes([...shapes], true, {
-    topLevel: [],
-    nested: [],
-    operation: "move",
-  });
+
+  // Save directly to history
+  useSeatMapStore.getState().saveDirectHistory(beforeShapes, [container], true);
+
   useSeatMapStore.getState().setSelectedShapes([]);
 };
 
@@ -216,19 +236,24 @@ export const addToGroupForCanvas = (
   container: ContainerGroup,
   items: CanvasItem[]
 ): void => {
+  // Capture state before adding to group
+  const beforeShapes = container.children.map((shape) => ({ ...shape }));
+
   addToGroup(container, items);
-  useSeatMapStore.getState().updateShapes([...shapes], true, {
-    topLevel: [],
-    nested: [],
-    operation: "move",
-  });
+
+  // Save directly to history
+  useSeatMapStore.getState().saveDirectHistory(beforeShapes, [container], true);
+
   useSeatMapStore.getState().setSelectedShapes([container]);
 };
 
 /**
  * Groups items that are within the same container
  */
-export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
+export const groupItems = (
+  items: CanvasItem[],
+  id: string | null = null
+): ContainerGroup | null => {
   if (!canGroupInSameContainer(items)) {
     console.warn("Items are not in the same container");
     return null;
@@ -263,7 +288,7 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
   const groupCenterX = (minX + maxX) / 2;
   const groupCenterY = (minY + maxY) / 2;
 
-  const container = createContainerGroup(items);
+  const container = createContainerGroup(items, id);
 
   // ✅ Set container position relative to parent container (not stage)
   container.x = groupCenterX;
@@ -323,6 +348,13 @@ export const groupItems = (items: CanvasItem[]): ContainerGroup | null => {
   const shouldAddEvents =
     !isInContainerContext() ||
     (parentContainer && getCurrentContainerContext() === parentContainer);
+  console.log(
+    "Should Add Events to Container:",
+    !isInContainerContext(),
+    selectedContainer,
+    parentContainer && getCurrentContainerContext() === parentContainer,
+    shouldAddEvents
+  );
 
   if (shouldAddEvents) {
     safelyAddShapeEvents(container);

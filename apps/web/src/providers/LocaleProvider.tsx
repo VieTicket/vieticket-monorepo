@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from "react";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, Locale } from "@/lib/i18n";
 
+const timezone = "Asia/Ho_Chi_Minh";
 interface LocaleContextType {
   locale: Locale;
   setLocale: (locale: Locale) => void;
@@ -34,7 +35,11 @@ export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
-      <NextIntlClientProvider messages={messages} locale={locale}>
+      <NextIntlClientProvider
+        messages={messages}
+        locale={locale}
+        timeZone={timezone}
+      >
         {children}
       </NextIntlClientProvider>
     </LocaleContext.Provider>

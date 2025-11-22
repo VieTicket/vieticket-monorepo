@@ -32,6 +32,7 @@ const publicRoutes = [
   "/event/*",
   "/auth/*",
   "/api/auth/*",
+  "/api/events/*",
   "/error",
   "/error/*", // Add error routes as public
   "/about",

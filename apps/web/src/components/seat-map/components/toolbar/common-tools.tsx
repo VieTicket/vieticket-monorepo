@@ -115,19 +115,19 @@ export const CommonTools: React.FC = () => {
   };
 
   const handleAlignLeft = () => {
-    if (isAreaMode && selectedShapes.length > 1) {
+    if (isAreaMode) {
       alignSeats("left");
     }
   };
 
   const handleAlignCenter = () => {
-    if (isAreaMode && selectedShapes.length > 1) {
+    if (isAreaMode) {
       alignSeats("center");
     }
   };
 
   const handleAlignRight = () => {
-    if (isAreaMode && selectedShapes.length > 1) {
+    if (isAreaMode) {
       alignSeats("right");
     }
   };

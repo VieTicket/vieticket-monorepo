@@ -46,6 +46,12 @@ export const DebouncedTextarea = React.memo(
       const selectedItems = useSeatMapStore.getState().selectedShapes;
       const currentShape = selectedItems.length === 1 ? selectedItems[0] : null;
 
+      console.log(
+        !previouslyClickedShape,
+        currentShape &&
+          previouslyClickedShape &&
+          previouslyClickedShape.id === currentShape.id
+      );
       if (
         !previouslyClickedShape ||
         (currentShape && previouslyClickedShape.id === currentShape.id)

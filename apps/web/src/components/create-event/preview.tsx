@@ -10,9 +10,11 @@ import {
   Landmark,
   ChevronDown,
   Clock,
+  Star,
 } from "lucide-react";
 import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 import { BuyTicketButton } from "../checkout/buy-ticket-button";
+import { RatingStars } from "../ui/rating-stars";
 
 export type EventPreviewData = {
   bannerUrl: string;
@@ -32,6 +34,10 @@ export type EventPreviewData = {
     website?: string | null;
     address?: string | null;
     organizerType?: string | null;
+    rating?: {
+      average: number;
+      count: number;
+    };
   } | null;
   areas: {
     id: string;
@@ -331,6 +337,20 @@ export function PreviewEvent({ data }: Props) {
                 <Landmark className="w-4 h-4 text-[#2a273f]" />
                 <strong>{t("name")}</strong> {data.organizer.name}
               </p>
+              {data.organizer.rating && data.organizer.rating.count > 0 && (
+                <div className="flex items-center gap-2">
+                <Star className="w-4 h-4 text-[#2a273f]" />
+                  <strong>Rating:</strong>
+                  <RatingStars 
+                    rating={data.organizer.rating.average} 
+                    size="sm"
+                    showNumber={true}
+                  />
+                  <span className="text-sm text-gray-500">
+                    ({data.organizer.rating.count} đánh giá)
+                  </span>
+                </div>
+              )}
               {data.organizer.website && (
                 <p className="flex items-center gap-2">
                   <Globe className="w-4 h-4 text-[#2a273f]" />

@@ -9,6 +9,9 @@ import {
   ContainerGroup,
   SeatShape,
   AreaModeContainer,
+  GridShape,
+  RowShape,
+  SeatGridSettings,
 } from "../types";
 import {
   useSeatMapStore,
@@ -24,6 +27,7 @@ import {
   selectedContainer,
   areaModeContainer,
   initializeAreaModeContainer,
+  setSelectedContainer,
 } from "../variables";
 import { getSelectionTransform } from "../events/transform-events";
 import { updateContainerGraphics } from "../shapes/container-shape";
@@ -38,10 +42,39 @@ import { createPolygon } from "../shapes/polygon-shape";
 import { createContainer } from "../shapes/container-shape";
 import { createSVG } from "../shapes/svg-shape";
 import * as PIXI from "pixi.js";
-import { findParentContainer, findShapeRecursively } from "../shapes";
-import { addToGroup, removeFromGroup, ungroupContainer } from "./grouping";
-import { recreateSeat, removeSeatFromGrid } from "../shapes/seats";
+import {
+  findContainerRecursively,
+  findParentContainer,
+  findShapeAndParentRecursively,
+  findShapeInContainerRecursive,
+  findShapeRecursively,
+} from "../shapes";
+import {
+  addToGroup,
+  groupItems,
+  removeFromGroup,
+  ungroupContainer,
+} from "./grouping";
 import { setRecreateShapeReference } from "../collaboration/seatmap-socket-client";
+import {
+  createNewGridFromSelection,
+  extractToNewGrid,
+  getGridById,
+  recreateGridShape,
+  removeSeatFromGrid,
+  updateGridGraphics,
+} from "../shapes/grid-shape";
+import {
+  createRowLabel,
+  createRowShape,
+  recreateRowShape,
+  updateMultipleRowLabelRotations,
+  updateRowGraphics,
+  updateRowLabelPosition,
+  updateRowLabelRotation,
+  updateSeatLabelNumberingInRow,
+} from "../shapes/row-shape";
+import { createPixiTextStyle, recreateSeat } from "../shapes/seat-shape";
 
 const applyDeltaRestore = async (
   action: UndoRedoAction,
@@ -51,7 +84,6 @@ const applyDeltaRestore = async (
 ) => {
   const store = useSeatMapStore.getState();
   const currentShapes = store.shapes;
-  console.log("currentShapes:", currentShapes, shapes);
   const eventManager = getEventManager();
 
   let updatedShapes = [...currentShapes];
@@ -63,17 +95,16 @@ const applyDeltaRestore = async (
   let stateToApply = getStateToApply(action, isUndo, operationType);
 
   const affectedIds = stateToApply.affectedIds || [];
-
-  console.log(
-    `🔄 Applying ${operationType} operation (isUndo: ${isUndo}, updateHistory: ${updateHistory})`
-  );
+  console.log("------------------------------");
+  console.log("currentShapes:", currentShapes);
+  console.log("Operation Type:", operationType, null, 2);
+  console.log("Action: ", action, null, 2);
+  console.log("State to Apply:", stateToApply, null, 2);
 
   switch (operationType) {
     case "CREATE":
       const shapesToRecreate = stateToApply.shapes || [];
       const creationContext = stateToApply.context;
-
-      console.log("Creation context:", stateToApply);
 
       if (creationContext?.nested.length || creationContext?.topLevel.length) {
         for (const topLevelItem of creationContext.topLevel) {
@@ -82,11 +113,7 @@ const applyDeltaRestore = async (
           );
           if (shapeData) {
             try {
-              const recreatedShape = await recreateShape(
-                shapeData,
-                true,
-                false
-              );
+              const recreatedShape = await recreateShape(shapeData, true);
               shapeContainer!.addChild(recreatedShape.graphics);
               addShape(recreatedShape);
               updatedShapes.push(recreatedShape);
@@ -95,23 +122,28 @@ const applyDeltaRestore = async (
             }
           }
         }
-
+        let affectedRows = new Set<RowShape>();
         for (const nestedItem of creationContext.nested) {
-          const shapeData = shapesToRecreate.find(
-            (s) => s.id === nestedItem.id
-          );
-
-          const parentContainer = findShapeRecursively(
-            updatedShapes,
-            nestedItem.parentId!
-          ) as ContainerGroup;
-
-          if (
-            shapeData &&
-            parentContainer &&
-            parentContainer.type === "container"
-          ) {
-            try {
+          try {
+            const shapeData =
+              nestedItem.parentId === "area-mode-container-id" &&
+              creationContext.operation === "create-seat-grid"
+                ? (shapesToRecreate[0] as ContainerGroup).children.find(
+                    (s) => s.id === nestedItem.id
+                  )
+                : shapesToRecreate.find((s) => s.id === nestedItem.id);
+            const parentContainer = findShapeRecursively(
+              updatedShapes,
+              nestedItem.parentId!
+            ) as ContainerGroup;
+            if (parentContainer && "rowName" in parentContainer) {
+              affectedRows.add(parentContainer as RowShape);
+            }
+            if (
+              shapeData &&
+              parentContainer &&
+              parentContainer.type === "container"
+            ) {
               const recreatedShape = await recreateShape(
                 shapeData,
                 false,
@@ -123,10 +155,17 @@ const applyDeltaRestore = async (
               if (parentContainer.graphics instanceof PIXI.Container) {
                 parentContainer.graphics.addChild(recreatedShape.graphics);
               }
-            } catch (error) {
-              console.error("Failed to recreate nested shape:", error);
             }
+          } catch (error) {
+            console.error("Failed to recreate nested shape:", error);
           }
+        }
+        if (affectedRows.size > 0) {
+          affectedRows.forEach((row) => {
+            updateRowLabelPosition(row);
+            updateRowLabelRotation(row);
+            updateSeatLabelNumberingInRow(row, "numerical");
+          });
         }
       } else {
         for (const shapeData of shapesToRecreate) {
@@ -167,10 +206,6 @@ const applyDeltaRestore = async (
         });
       }
 
-      console.log(
-        "DELETE operation - removing shapes with context:",
-        stateToApply
-      );
       if (context?.nested.length || context?.topLevel.length) {
         context.nested.forEach((nestedItem) => {
           const findAndRemoveFromParent = (
@@ -265,20 +300,32 @@ const applyDeltaRestore = async (
           moveContext.moveContext;
 
         const itemToMove = findShapeRecursively(updatedShapes, itemId);
-        if (!itemToMove) break;
+        if (!itemToMove) {
+          break;
+        }
 
-        console.log("MOVE operation:", {
-          itemId,
-          fromParentId,
-          toParentId,
-          originalPosition,
-          currentPosition: { x: itemToMove.x, y: itemToMove.y },
-        });
+        const eventManager = getEventManager();
+        if (eventManager) {
+          eventManager.removeShapeEvents(itemToMove);
+
+          if (itemToMove.graphics) {
+            itemToMove.graphics.removeAllListeners();
+
+            itemToMove.graphics.eventMode = "static";
+            itemToMove.graphics.cursor = "pointer";
+          }
+        }
 
         const currentParent = findParentContainer(itemToMove);
 
         if (currentParent) {
-          removeFromGroup(currentParent, [itemToMove]);
+          const childIndex = currentParent.children.findIndex(
+            (child) => child.id === itemId
+          );
+          if (childIndex !== -1) {
+            currentParent.children.splice(childIndex, 1);
+            currentParent.graphics.removeChild(itemToMove.graphics);
+          }
         } else {
           const rootIndex = updatedShapes.findIndex(
             (shape) => shape.id === itemId
@@ -319,153 +366,219 @@ const applyDeltaRestore = async (
           }
           updatedShapes.push(itemToMove);
 
-          const eventManager = getEventManager();
-          if (eventManager) {
-            const isInContainerContext = () => selectedContainer.length > 0;
-            if (!isInContainerContext()) {
-              eventManager.addShapeEvents(itemToMove);
+          const isInContainerContext = () => selectedContainer.length > 0;
+          if (eventManager && !isInContainerContext()) {
+            itemToMove.graphics.eventMode = "static";
+            itemToMove.graphics.interactive = itemToMove.interactive;
+            itemToMove.graphics.cursor = "pointer";
+
+            eventManager.addShapeEvents(itemToMove);
+          }
+        }
+      }
+      break;
+
+    case "GRID_EXTRACT":
+      if (isUndo) {
+        const extractedGridData = stateToApply.shapes?.[1];
+        const originalGridData = stateToApply.shapes?.[0];
+        if (extractedGridData && originalGridData) {
+          const extractedGrid = findShapeRecursively(
+            updatedShapes,
+            extractedGridData.id
+          ) as GridShape;
+          const originalGrid = findShapeRecursively(
+            updatedShapes,
+            originalGridData.id
+          ) as GridShape;
+
+          if (extractedGrid && originalGrid) {
+            const seatsToMergeBack: SeatShape[] = [];
+
+            extractedGrid.children.forEach((extractedRow) => {
+              let targetRow = originalGrid.children.find(
+                (row) => row.rowName === extractedRow.rowName
+              );
+
+              if (!targetRow) {
+                targetRow = createRowShape(
+                  originalGrid.id,
+                  extractedRow.rowName,
+                  extractedRow.seatSpacing
+                );
+
+                const extractedRowWorldX = extractedGrid.x + extractedRow.x;
+                const extractedRowWorldY = extractedGrid.y + extractedRow.y;
+                targetRow.x = extractedRowWorldX - originalGrid.x;
+                targetRow.y = extractedRowWorldY - originalGrid.y;
+
+                targetRow.rotation = extractedRow.rotation;
+                targetRow.scaleX = extractedRow.scaleX;
+                targetRow.scaleY = extractedRow.scaleY;
+                targetRow.opacity = extractedRow.opacity;
+                targetRow.visible = extractedRow.visible;
+                targetRow.interactive = extractedRow.interactive;
+                targetRow.expanded = extractedRow.expanded;
+                targetRow.seatSpacing = extractedRow.seatSpacing;
+                targetRow.labelPlacement = extractedRow.labelPlacement;
+
+                targetRow.graphics.position.set(targetRow.x, targetRow.y);
+                targetRow.graphics.rotation = targetRow.rotation;
+                targetRow.graphics.scale.set(
+                  targetRow.scaleX,
+                  targetRow.scaleY
+                );
+                targetRow.graphics.alpha = targetRow.opacity;
+                targetRow.graphics.visible = targetRow.visible;
+
+                originalGrid.children.push(targetRow);
+                originalGrid.graphics.addChild(targetRow.graphics);
+              }
+
+              extractedRow.children.forEach((seat) => {
+                if (seat.graphics.parent) {
+                  seat.graphics.parent.removeChild(seat.graphics);
+                }
+
+                const seatWorldX = extractedGrid.x + extractedRow.x + seat.x;
+                const seatWorldY = extractedGrid.y + extractedRow.y + seat.y;
+                const newSeatX = seatWorldX - originalGrid.x - targetRow.x;
+                const newSeatY = seatWorldY - originalGrid.y - targetRow.y;
+
+                seat.gridId = originalGrid.id;
+                seat.rowId = targetRow.id;
+                seat.x = newSeatX;
+                seat.y = newSeatY;
+                seat.graphics.position.set(seat.x, seat.y);
+
+                targetRow.children.push(seat);
+                targetRow.graphics.addChild(seat.graphics);
+                seatsToMergeBack.push(seat);
+              });
+
+              if (targetRow.labelPlacement !== "none") {
+                if (!targetRow.labelGraphics) {
+                  targetRow.labelGraphics = createRowLabel(targetRow);
+                  targetRow.graphics.addChild(targetRow.labelGraphics);
+                }
+                updateRowLabelPosition(targetRow);
+              }
+              updateSeatLabelNumberingInRow(targetRow, "numerical");
+            });
+
+            const extractedGridIndex = areaModeContainer!.children.findIndex(
+              (g) => g.id === extractedGrid.id
+            );
+            if (extractedGridIndex !== -1) {
+              areaModeContainer!.children.splice(extractedGridIndex, 1);
+            }
+
+            if (extractedGrid.graphics.parent) {
+              extractedGrid.graphics.parent.removeChild(extractedGrid.graphics);
+            }
+
+            originalGrid.children.forEach((row) => {
+              updateRowGraphics(row, originalGrid, false);
+            });
+
+            useSeatMapStore.getState().setSelectedShapes(seatsToMergeBack);
+            const selectionTransform = getSelectionTransform();
+            if (selectionTransform) {
+              selectionTransform.updateSelection(seatsToMergeBack);
             }
           }
         }
+        return;
+      } else {
+        const originalGridData = stateToApply.shapes?.[0];
+        const grid = getGridById(originalGridData?.id || "");
+        const gridId = action.data.after.shapes?.filter(
+          (shape) => shape.id !== originalGridData?.id
+        )[0]?.id;
+        if (grid) {
+          const seatsToExtractData =
+            (stateToApply.selectedShapes?.filter(
+              (shape) =>
+                shape.type === "ellipse" &&
+                (shape as any).rowId &&
+                (shape as any).gridId
+            ) as SeatShape[]) || [];
 
-        setShapes([...shapes]);
+          if (seatsToExtractData.length > 0) {
+            const actualSeatsToExtract: SeatShape[] = [];
+
+            const findSeatsInGrid = (
+              container: GridShape,
+              seatIds: string[]
+            ): SeatShape[] => {
+              const foundSeats: SeatShape[] = [];
+
+              container.children.forEach((row) => {
+                row.children.forEach((seat) => {
+                  if (seatIds.includes(seat.id)) {
+                    foundSeats.push(seat as SeatShape);
+                  }
+                });
+              });
+
+              return foundSeats;
+            };
+
+            const seatIdsToExtract = seatsToExtractData.map((seat) => seat.id);
+
+            const foundSeats = findSeatsInGrid(grid, seatIdsToExtract);
+            actualSeatsToExtract.push(...foundSeats);
+
+            if (actualSeatsToExtract.length > 0) {
+              extractToNewGrid(actualSeatsToExtract, grid, gridId);
+            } else {
+              console.warn("No actual seats found to extract during redo");
+            }
+          }
+        } else {
+          console.warn("Grid not found for re-extraction");
+        }
       }
       break;
 
     case "GROUP":
-      console.log("group action:", action);
-      const shapesToRemove = stateToApply.shapes || [];
-
-      const removeShapeRecursively = (shape: CanvasItem) => {
-        const shapeToRemove = updatedShapes.find((s) => s.id === shape.id);
-        if (shapeToRemove) {
-          eventManager?.removeShapeEvents(shapeToRemove);
-          if (shapeToRemove.graphics && shapeToRemove.graphics.parent) {
-            shapeToRemove.graphics.parent.removeChild(shapeToRemove.graphics);
-          }
-        }
-
-        if (shape.type === "container" && shape.children) {
-          shape.children.forEach(removeShapeRecursively);
-        }
-      };
-
-      shapesToRemove.forEach(removeShapeRecursively);
-      updatedShapes = updatedShapes.filter(
-        (shape) =>
-          !shapesToRemove.some(
-            (removedShape: CanvasItem) => removedShape.id === shape.id
-          )
+      const shapesToRemove =
+        action.data.after.shapes?.length! > 1
+          ? action.data.after.shapes || []
+          : action.data.before.shapes || [];
+      const items = shapesToRemove.map((shape) =>
+        findShapeRecursively(updatedShapes, shape.id)
       );
-      const containerCreationData = getStateToApply(action, isUndo, "UNGROUP")
-        .shapes?.[0];
-      if (containerCreationData && containerCreationData.type === "container") {
-        try {
-          const recreatedContainer = await recreateShape(
-            containerCreationData,
-            true,
-            isUndo && stateToApply.context?.operation === "ungroup"
-          );
-          shapeContainer!.addChild(recreatedContainer.graphics);
-          addShape(recreatedContainer);
-          updatedShapes.push(recreatedContainer);
-        } catch (error) {
-          console.error("Failed to recreate container:", error);
+      if (stateToApply.selectedShapes) {
+        const parentContainer = findParentContainer(items[0] as CanvasItem);
+        console.log("Parent Container for Grouping:", parentContainer);
+        if (parentContainer) {
+          setSelectedContainer([parentContainer]);
         }
+        groupItems(items as CanvasItem[], stateToApply.selectedShapes?.[0].id);
+        store.updateShapes(shapes, false, undefined, false);
+        return;
       }
       break;
 
     case "UNGROUP":
-      console.log("ungroup action:", action);
-      const containerData = stateToApply.shapes?.[0];
+      const containerData = stateToApply.selectedShapes?.[0];
       if (containerData && containerData.type === "container") {
-        const findContainerRecursively = (
-          searchShapes: CanvasItem[],
-          targetId: string
-        ): ContainerGroup | null => {
-          for (const shape of searchShapes) {
-            if (shape.id === targetId && shape.type === "container") {
-              return shape as ContainerGroup;
-            }
-            if (shape.type === "container") {
-              const found = findContainerRecursively(
-                (shape as ContainerGroup).children,
-                targetId
-              );
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-
         const existingContainer = findContainerRecursively(
           updatedShapes,
           containerData.id
         );
 
         if (existingContainer) {
-          console.log(
-            "Found existing container to ungroup:",
-            existingContainer
-          );
-          const ungroupedShapes = ungroupContainer(existingContainer);
-
-          const removeContainerFromParent = (
-            targetId: string,
-            shapeList: CanvasItem[]
-          ): CanvasItem[] => {
-            return shapeList.filter((shape) => {
-              if (shape.id === targetId) {
-                return false;
-              }
-              if (shape.type === "container") {
-                (shape as ContainerGroup).children = removeContainerFromParent(
-                  targetId,
-                  (shape as ContainerGroup).children
-                );
-              }
-              return true;
-            });
-          };
-
-          updatedShapes = removeContainerFromParent(
-            existingContainer.id,
-            updatedShapes
-          );
-
-          const addUngroupedShapesToParent = (
-            ungroupedShapes: CanvasItem[]
-          ) => {
-            const parentContainer = findParentContainer(existingContainer);
-
-            if (parentContainer) {
-              parentContainer.children.push(...ungroupedShapes);
-            } else {
-              updatedShapes.push(...ungroupedShapes);
-            }
-          };
-
-          addUngroupedShapesToParent(ungroupedShapes);
-        } else {
-          try {
-            const recreatedContainer = await recreateShape(
-              containerData,
-              true,
-              true
-            );
-            shapeContainer!.addChild(recreatedContainer.graphics);
-            addShape(recreatedContainer);
-            updatedShapes.push(recreatedContainer);
-          } catch (error) {
-            console.error("Failed to recreate container for UNGROUP:", error);
-          }
+          ungroupContainer(existingContainer);
+          store.updateShapes(shapes, false, undefined, false);
+          return;
         }
       }
       break;
 
     case "MODIFY":
     default:
-      console.log("modify action:", action);
       const applyChangesToShape = (
         shapeToApply: CanvasItem,
         searchShapes: CanvasItem[]
@@ -504,7 +617,13 @@ const applyDeltaRestore = async (
                   updateSVGGraphics(existingShape as SVGShape);
                   break;
                 case "container":
-                  updateContainerGraphics(existingShape as ContainerGroup);
+                  if ("gridName" in (existingShape as GridShape)) {
+                    updateGridGraphics(existingShape as GridShape);
+                  } else if ("rowName" in (existingShape as RowShape)) {
+                    updateRowGraphics(existingShape as RowShape);
+                  } else {
+                    updateContainerGraphics(existingShape as ContainerGroup);
+                  }
                   break;
               }
             }
@@ -529,13 +648,12 @@ const applyDeltaRestore = async (
   }
 
   setShapes(updatedShapes);
-
+  console.log(updatedShapes);
   if (!updateHistory) {
     store.updateShapes(updatedShapes, false, undefined, false);
   } else {
     store.updateShapes(updatedShapes, false, undefined, true);
   }
-
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
     selectionTransform.updateSelection([]);
@@ -576,7 +694,24 @@ export const recreateShape = async (
       const ellipseData = shapeData as EllipseShape | SeatShape;
 
       if ((ellipseData as any).rowId && (ellipseData as any).gridId) {
-        recreatedShape = recreateSeat(ellipseData as SeatShape, addShapeEvents);
+        const seatData = ellipseData as SeatShape;
+        let currentSeatSettings: SeatGridSettings | undefined;
+        if (areaModeContainer) {
+          const grid = getGridById(seatData.gridId);
+          if (grid) {
+            currentSeatSettings = grid.seatSettings;
+          }
+        }
+        recreatedShape = recreateSeat(
+          seatData,
+          true,
+          false,
+          currentSeatSettings
+        );
+
+        const recreatedSeat = recreatedShape as SeatShape;
+        recreatedSeat.showLabel = seatData.showLabel;
+        recreatedSeat.labelStyle = seatData.labelStyle;
       } else {
         recreatedShape = createEllipse(
           ellipseData.x,
@@ -674,14 +809,13 @@ export const recreateShape = async (
     }
 
     case "container": {
-      const containerData = shapeData as ContainerGroup | AreaModeContainer;
+      const containerData = shapeData as
+        | ContainerGroup
+        | AreaModeContainer
+        | GridShape
+        | RowShape;
 
-      const isAreaModeContainer =
-        containerData.id === "area-mode-container-id" &&
-        "grids" in containerData &&
-        "defaultSeatSettings" in containerData;
-
-      if (isAreaModeContainer) {
+      if (containerData.id === "area-mode-container-id") {
         const areaModeData = containerData as AreaModeContainer;
 
         let container = areaModeContainer;
@@ -696,8 +830,6 @@ export const recreateShape = async (
         container.scaleX = areaModeData.scaleX || 1;
         container.scaleY = areaModeData.scaleY || 1;
         container.opacity = areaModeData.opacity || 1;
-
-        container.grids = areaModeData.grids || [];
         container.defaultSeatSettings =
           areaModeData.defaultSeatSettings || container.defaultSeatSettings;
 
@@ -707,30 +839,16 @@ export const recreateShape = async (
         container.children = [];
 
         if (areaModeData.children && areaModeData.children.length > 0) {
-          console.log(
-            `🎨 Recreating ${areaModeData.children.length} seats for area mode container...`
-          );
-
-          for (const childData of areaModeData.children) {
+          for (const gridData of areaModeData.children) {
             try {
-              if (
-                childData.type === "ellipse" &&
-                (childData as any).rowId &&
-                (childData as any).gridId
-              ) {
-                const recreatedSeat = recreateSeat(
-                  childData as SeatShape,
-                  addShapeEvents
-                );
-
-                container.children.push(recreatedSeat);
-                if (container.graphics instanceof PIXI.Container) {
-                  container.graphics.addChild(recreatedSeat.graphics);
-                }
+              const recreatedGrid = await recreateGridShape(gridData);
+              container.children.push(recreatedGrid);
+              if (container.graphics instanceof PIXI.Container) {
+                container.graphics.addChild(recreatedGrid.graphics);
               }
             } catch (error) {
               console.error(
-                `❌ Failed to recreate child in area mode container:`,
+                `❌ Failed to recreate grid in area mode container:`,
                 error
               );
             }
@@ -741,15 +859,26 @@ export const recreateShape = async (
           container.graphics.position.set(container.x, container.y);
           container.graphics.rotation = container.rotation;
           container.graphics.scale.set(container.scaleX, container.scaleY);
-          container.interactive = false;
           container.graphics.visible = true;
-          container.graphics.interactiveChildren = false;
-          container.graphics.interactive = false;
           container.graphics.alpha = 0.3;
         }
 
         recreatedShape = container;
         return recreatedShape;
+      } else if ((containerData as GridShape).gridName !== undefined) {
+        recreatedShape = await recreateGridShape(containerData as GridShape);
+      } else if ((containerData as RowShape).rowName !== undefined) {
+        const rowData = containerData as RowShape;
+
+        let currentSeatSettings: SeatGridSettings | undefined;
+        if (areaModeContainer) {
+          const grid = getGridById(rowData.gridId);
+          if (grid) {
+            currentSeatSettings = grid.seatSettings;
+          }
+        }
+
+        recreatedShape = await recreateRowShape(rowData, currentSeatSettings);
       } else {
         recreatedShape = createContainer(
           [],
@@ -772,7 +901,6 @@ export const recreateShape = async (
           recreatedChildren.forEach((child, index) => {
             if (recreatedShape.graphics instanceof PIXI.Container) {
               const originalChild = containerData.children![index];
-              console.log("useRelativePositioning:", useRelativePositioning);
               if (useRelativePositioning) {
                 const relativeX = originalChild.x - containerData.x;
                 const relativeY = originalChild.y - containerData.y;
@@ -829,19 +957,38 @@ const getOperationType = (before: any, after: any) => {
   const beforeShapes = before.shapes || [];
   const afterShapes = after.shapes || [];
 
-  if (beforeShapes.length === 0 && afterShapes.length > 0) {
-    return "CREATE";
-  }
-
-  if (beforeShapes.length > 0 && afterShapes.length === 0) {
-    return "DELETE";
-  }
-
   if (
     before.context?.operation === "move" ||
     after.context?.operation === "move"
   ) {
     return "MOVE";
+  }
+
+  if (
+    before.context?.operation === "grid-extract" ||
+    after.context?.operation === "grid-extract"
+  ) {
+    return "GRID_EXTRACT";
+  }
+
+  if (
+    (beforeShapes.length === 0 && afterShapes.length > 0) ||
+    (beforeShapes[0].id === "area-mode-container-id" &&
+      before.context !== undefined &&
+      before.context.operation === "create-seat-grid" &&
+      beforeShapes[0].children.length < afterShapes[0].children.length)
+  ) {
+    return "CREATE";
+  }
+
+  if (
+    (beforeShapes.length > 0 && afterShapes.length === 0) ||
+    (beforeShapes[0].id === "area-mode-container-id" &&
+      before.context !== undefined &&
+      before.context.operation === "create-seat-grid" &&
+      beforeShapes[0].children.length > afterShapes[0].children.length)
+  ) {
+    return "DELETE";
   }
 
   if (beforeShapes.length > 1 && afterShapes.length === 1) {
@@ -879,14 +1026,6 @@ const getOperationType = (before: any, after: any) => {
     return "MODIFY";
   }
 
-  if (
-    !before.shapes &&
-    !after.shapes &&
-    (before.selectedShapes || after.selectedShapes)
-  ) {
-    return "SELECT";
-  }
-
   return "MODIFY";
 };
 
@@ -911,6 +1050,9 @@ const getStateToApply = (
       break;
     case "MOVE":
       stateToApply = isUndo ? action.data.before : action.data.after;
+      break;
+    case "GRID_EXTRACT":
+      stateToApply = isUndo ? action.data.after : action.data.before;
       break;
     case "GROUP":
       stateToApply =
@@ -974,7 +1116,56 @@ export const canUndo = (): boolean => {
 export const canRedo = (): boolean => {
   return useSeatMapStore.getState().canRedo();
 };
+export const handleRemoteUndoRedo = async (
+  actionId: string,
+  operation: "undo" | "redo",
+  fromUserId: string
+): Promise<boolean> => {
+  const store = useSeatMapStore.getState();
+  const historyStack = store.historyStack;
 
+  const actionIndex = historyStack.findIndex(
+    (action) => action.id === actionId
+  );
+
+  if (actionIndex === -1) {
+    console.log(
+      `⚠️ Remote ${operation} action ${actionId} not found in local history`
+    );
+    return false;
+  }
+
+  const action = historyStack[actionIndex];
+
+  await applyDeltaRestore(action, operation === "undo", false, false);
+
+  const newHistoryStack = [...historyStack];
+  newHistoryStack.splice(actionIndex, 1);
+
+  let newCurrentIndex = store.currentHistoryIndex;
+  if (actionIndex <= newCurrentIndex) {
+    newCurrentIndex = Math.max(-1, newCurrentIndex - 1);
+  }
+
+  useSeatMapStore.setState({
+    historyStack: newHistoryStack,
+    currentHistoryIndex: newCurrentIndex,
+  });
+
+  console.log(
+    `✅ Applied remote ${operation} from user ${fromUserId} for action: ${actionId}`
+  );
+
+  return true;
+};
+
+export const syncHistoryWithServer = (): void => {
+  const store = useSeatMapStore.getState();
+
+  if (store.collaboration.isConnected) {
+    store.syncWithServerPendingChanges();
+  }
+};
 /**
  * Clear undo/redo history
  */

@@ -173,20 +173,21 @@ export default function OrganizerDashboardModern({
     [fromDate, toDate]
   );
 
-  // Filter data by date range
+  // Filter data by date range - memoized for performance
   const filteredRevenue = useMemo(() => {
     const { from, to } = getDateRange(dateFilter);
 
     if (!from && !to) return revenueOverTime;
 
+    // Pre-calculate time values for better performance
+    const fromTime = from ? new Date(from).getTime() : -Infinity;
+    const toTime = to ? new Date(to).getTime() : Infinity;
+
     return revenueOverTime.filter((item) => {
       const current = new Date(item.date).getTime();
-      const fromTime = from ? new Date(from).getTime() : -Infinity;
-      const toTime = to ? new Date(to).getTime() : Infinity;
-
       return current >= fromTime && current <= toTime;
     });
-  }, [revenueOverTime, dateFilter, fromDate, toDate]);
+  }, [revenueOverTime, dateFilter, fromDate, toDate, getDateRange]);
   const dynamicColors = generateColors(revenueDistribution.length);
   return (
     <div className="flex min-h-screen w-full flex-col">

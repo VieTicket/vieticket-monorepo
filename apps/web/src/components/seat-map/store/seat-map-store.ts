@@ -140,11 +140,6 @@ interface SeatMapStore {
 
   setSeatMap: (seatMap: SeatMapInfo | null) => void;
   setLoading: (loading: boolean) => void;
-  loadSeatMapFromServer: (seatMapData: {
-    seatMap: SeatMapInfo;
-    userInfo: UserInfo;
-    roomUsers: UserInfo[];
-  }) => void;
 
   updateShapes: (
     newShapes: CanvasItem[],
@@ -183,7 +178,7 @@ interface SeatMapStore {
     afterShapes: CanvasItem[],
     updateStore?: boolean
   ) => void;
-
+  syncWithServerPendingChanges: () => void;
   _saveToHistory: (
     beforeState: Partial<{
       shapes: CanvasItem[];
@@ -194,7 +189,8 @@ interface SeatMapStore {
       shapes: CanvasItem[];
       selectedShapes: CanvasItem[];
       context: ShapeContext;
-    }>
+    }>,
+    existingAction?: UndoRedoAction
   ) => UndoRedoAction;
   _findAffectedShapes: (
     oldShapes: CanvasItem[],
@@ -231,42 +227,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     set({ isLoading: loading });
   },
 
-  loadSeatMapFromServer: (seatMapData: {
-    seatMap: SeatMapInfo;
-    userInfo: UserInfo;
-    roomUsers: UserInfo[];
-  }) => {
-    const currentState = get();
-
-    if (currentState.seatMap?.id === seatMapData.seatMap.id) {
-      return;
-    }
-
-    set({
-      seatMap: {
-        id: seatMapData.seatMap.id,
-        name: seatMapData.seatMap.name,
-        image: seatMapData.seatMap.image,
-        createdBy: seatMapData.seatMap.createdBy,
-        publicity: seatMapData.seatMap.publicity,
-        createdAt: seatMapData.seatMap.createdAt,
-        updatedAt: seatMapData.seatMap.updatedAt,
-        draftedFrom: seatMapData.seatMap.draftedFrom,
-        originalCreator: seatMapData.seatMap.originalCreator,
-      },
-      shapes: seatMapData.seatMap.shapes || [],
-      selectedShapes: [],
-      isLoading: false,
-      historyStack: [],
-      currentHistoryIndex: -1,
-      collaboration: {
-        ...currentState.collaboration,
-        roomUsers: seatMapData.roomUsers,
-        isConnected: true,
-      },
-    });
-  },
-
   updateShapes: (
     newShapes: CanvasItem[],
     saveHistory: boolean = true,
@@ -278,7 +238,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     broadcastToOthers: boolean = true
   ) => {
     const currentShapes = get().shapes;
-    const currentSelected = get().selectedShapes;
+    const currentSelected = cloneCanvasItems(get().selectedShapes);
 
     let action: UndoRedoAction | null = null;
 
@@ -310,7 +270,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       if (saveHistory) {
         get()._saveToHistory(
           { shapes: before, selectedShapes: currentSelected, context },
-          { shapes: after, selectedShapes: currentSelected, context }
+          { shapes: after, selectedShapes: currentSelected, context },
+          action
         );
       }
     }
@@ -446,7 +407,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       }
     });
 
-    get()._saveToHistory(
+    const action = get()._saveToHistory(
       {
         shapes: shapesToDelete,
         selectedShapes: currentSelected,
@@ -458,6 +419,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
         context: { topLevel: [], nested: [] },
       }
     );
+    SeatMapCollaboration.broadcastShapeChange(action);
 
     if (
       (context.nested[0] !== undefined &&
@@ -518,6 +480,9 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     const newIndex = currentHistoryIndex - 1;
 
     set({ currentHistoryIndex: newIndex });
+    if (get().collaboration.isConnected) {
+      SeatMapCollaboration.broadcastUndoAction(actionToUndo.id);
+    }
     return actionToUndo;
   },
 
@@ -532,9 +497,16 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     const actionToRedo = historyStack[newIndex];
 
     set({ currentHistoryIndex: newIndex });
+    if (get().collaboration.isConnected) {
+      SeatMapCollaboration.broadcastRedoAction(actionToRedo.id);
+    }
     return actionToRedo;
   },
-
+  syncWithServerPendingChanges: () => {
+    if (get().collaboration.isConnected) {
+      SeatMapCollaboration.requestPendingChanges();
+    }
+  },
   canUndo: () => {
     const { currentHistoryIndex } = get();
     return currentHistoryIndex >= 0;
@@ -652,8 +624,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     updateStore: boolean = false
   ) => {
     const action: UndoRedoAction = get()._saveToHistory(
-      { shapes: beforeShapes },
-      { shapes: afterShapes }
+      { selectedShapes: afterShapes, shapes: beforeShapes },
+      { selectedShapes: afterShapes, shapes: afterShapes }
     );
 
     SeatMapCollaboration.broadcastShapeChange(action);
@@ -672,7 +644,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       shapes: CanvasItem[];
       selectedShapes: CanvasItem[];
       context?: ShapeContext;
-    }>
+    }>,
+    existingAction?: UndoRedoAction
   ): UndoRedoAction => {
     const {
       shapes: currentShapes,
@@ -687,7 +660,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       selectedShapes: currentSelected,
     };
 
-    const newAction: UndoRedoAction = {
+    const newAction: UndoRedoAction = existingAction || {
       id: crypto.randomUUID(),
       timestamp: Date.now(),
       data: {
@@ -760,6 +733,10 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       }
     });
 
-    return { before, after, affectedIds };
+    return {
+      before: cloneCanvasItems(before),
+      after: cloneCanvasItems(after),
+      affectedIds: affectedIds,
+    };
   },
 }));

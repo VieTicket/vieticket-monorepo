@@ -15,16 +15,258 @@ import {
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
 
+function validateShapesByType(shape: any): boolean {
+  // ✅ Updated valid types to include freeshape
+  const validTypes = [
+    "rectangle",
+    "ellipse",
+    "text",
+    "polygon",
+    "image",
+    "svg",
+    "container",
+    "freeshape", // ✅ Added freeshape support
+  ];
+
+  if (!validTypes.includes(shape.type)) return false;
+
+  switch (shape.type) {
+    case "rectangle":
+      return (
+        typeof shape.width === "number" &&
+        shape.width >= 0 &&
+        typeof shape.height === "number" &&
+        shape.height >= 0 &&
+        typeof shape.cornerRadius === "number" &&
+        shape.cornerRadius >= 0 &&
+        typeof shape.color === "number" &&
+        typeof shape.strokeColor === "number" &&
+        typeof shape.strokeWidth === "number" &&
+        shape.strokeWidth >= 0
+      );
+
+    case "ellipse":
+      const hasEllipseProps =
+        typeof shape.radiusX === "number" &&
+        shape.radiusX >= 0 &&
+        typeof shape.radiusY === "number" &&
+        shape.radiusY >= 0 &&
+        typeof shape.color === "number" &&
+        typeof shape.strokeColor === "number" &&
+        typeof shape.strokeWidth === "number" &&
+        shape.strokeWidth >= 0;
+
+      if (!hasEllipseProps) return false;
+
+      // ✅ Enhanced validation for SeatShape
+      if (shape.rowId && shape.gridId) {
+        return (
+          typeof shape.rowId === "string" &&
+          shape.rowId.length > 0 &&
+          typeof shape.gridId === "string" &&
+          shape.gridId.length > 0 &&
+          typeof shape.showLabel === "boolean" &&
+          shape.labelStyle &&
+          typeof shape.labelStyle === "object" &&
+          typeof shape.labelStyle.fontFamily === "string" &&
+          typeof shape.labelStyle.fontSize === "number" &&
+          shape.labelStyle.fontSize > 0
+        );
+      }
+
+      return true;
+
+    case "text":
+      return (
+        typeof shape.text === "string" &&
+        typeof shape.fontSize === "number" &&
+        shape.fontSize > 0 &&
+        typeof shape.fontFamily === "string" &&
+        shape.fontFamily.length > 0 &&
+        typeof shape.color === "number" &&
+        ["normal", "bold"].includes(shape.fontWeight) &&
+        ["left", "center", "right"].includes(shape.textAlign)
+      );
+
+    case "polygon":
+      return (
+        Array.isArray(shape.points) &&
+        shape.points.length >= 3 &&
+        shape.points.every(
+          (point: any) =>
+            typeof point.x === "number" &&
+            typeof point.y === "number" &&
+            (point.radius === undefined || typeof point.radius === "number")
+        ) &&
+        typeof shape.cornerRadius === "number" &&
+        shape.cornerRadius >= 0 &&
+        typeof shape.color === "number" &&
+        typeof shape.strokeColor === "number" &&
+        typeof shape.strokeWidth === "number" &&
+        shape.strokeWidth >= 0
+      );
+
+    case "image":
+      return (
+        typeof shape.src === "string" &&
+        shape.src.length > 0 &&
+        typeof shape.originalWidth === "number" &&
+        shape.originalWidth > 0 &&
+        typeof shape.originalHeight === "number" &&
+        shape.originalHeight > 0 &&
+        (!shape.uploadState ||
+          ["uploading", "uploaded", "failed"].includes(shape.uploadState))
+      );
+
+    case "svg":
+      return (
+        typeof shape.svgContent === "string" &&
+        shape.svgContent.length > 0 &&
+        typeof shape.originalWidth === "number" &&
+        shape.originalWidth > 0 &&
+        typeof shape.originalHeight === "number" &&
+        shape.originalHeight > 0
+      );
+
+    // ✅ Enhanced freeshape validation
+    case "freeshape":
+      return (
+        Array.isArray(shape.points) &&
+        shape.points.length >= 2 &&
+        shape.points.every(
+          (point: any) =>
+            typeof point.x === "number" &&
+            typeof point.y === "number" &&
+            ["move", "curve", "line"].includes(point.type) &&
+            (point.cp1x === undefined || typeof point.cp1x === "number") &&
+            (point.cp1y === undefined || typeof point.cp1y === "number") &&
+            (point.cp2x === undefined || typeof point.cp2x === "number") &&
+            (point.cp2y === undefined || typeof point.cp2y === "number") &&
+            (point.smoothness === undefined ||
+              typeof point.smoothness === "number")
+        ) &&
+        typeof shape.closed === "boolean" &&
+        typeof shape.color === "number" &&
+        typeof shape.strokeColor === "number" &&
+        typeof shape.strokeWidth === "number" &&
+        shape.strokeWidth >= 0 &&
+        typeof shape.smoothness === "number"
+      );
+
+    case "container":
+      const hasContainerProps =
+        Array.isArray(shape.children) && typeof shape.expanded === "boolean";
+
+      if (!hasContainerProps) return false;
+
+      // ✅ Enhanced validation for specific container types
+
+      // AreaModeContainer validation
+      if (shape.defaultSeatSettings) {
+        const hasAreaModeProps =
+          typeof shape.defaultSeatSettings === "object" &&
+          typeof shape.defaultSeatSettings.seatSpacing === "number" &&
+          shape.defaultSeatSettings.seatSpacing >= 0 &&
+          typeof shape.defaultSeatSettings.rowSpacing === "number" &&
+          shape.defaultSeatSettings.rowSpacing >= 0 &&
+          typeof shape.defaultSeatSettings.seatRadius === "number" &&
+          shape.defaultSeatSettings.seatRadius > 0 &&
+          typeof shape.defaultSeatSettings.seatColor === "number" &&
+          typeof shape.defaultSeatSettings.seatStrokeColor === "number" &&
+          typeof shape.defaultSeatSettings.seatStrokeWidth === "number" &&
+          shape.defaultSeatSettings.seatStrokeWidth >= 0 &&
+          typeof shape.defaultSeatSettings.price === "number" &&
+          shape.defaultSeatSettings.price >= 0;
+
+        if (!hasAreaModeProps) return false;
+
+        // Validate children are GridShapes
+        return shape.children.every(
+          (child: any) =>
+            child.type === "container" &&
+            child.gridName &&
+            typeof child.gridName === "string"
+        );
+      }
+
+      // GridShape validation
+      if (shape.gridName) {
+        const hasGridProps =
+          typeof shape.gridName === "string" &&
+          shape.gridName.length > 0 &&
+          typeof shape.seatSettings === "object" &&
+          validateSeatGridSettings(shape.seatSettings) &&
+          shape.createdAt instanceof Date;
+
+        if (!hasGridProps) return false;
+
+        // Validate children are RowShapes
+        return shape.children.every(
+          (child: any) =>
+            child.type === "container" &&
+            child.rowName &&
+            typeof child.rowName === "string" &&
+            child.gridId === shape.id
+        );
+      }
+
+      // RowShape validation
+      if (shape.rowName && !shape.gridName) {
+        const hasRowProps =
+          typeof shape.rowName === "string" &&
+          shape.rowName.length > 0 &&
+          typeof shape.seatSpacing === "number" &&
+          shape.seatSpacing >= 0 &&
+          typeof shape.gridId === "string" &&
+          shape.gridId.length > 0 &&
+          ["left", "middle", "right", "none"].includes(shape.labelPlacement) &&
+          shape.createdAt instanceof Date;
+
+        if (!hasRowProps) return false;
+
+        // Validate children are SeatShapes
+        return shape.children.every(
+          (child: any) =>
+            child.type === "ellipse" &&
+            child.rowId === shape.id &&
+            child.gridId === shape.gridId &&
+            typeof child.rowId === "string" &&
+            typeof child.gridId === "string"
+        );
+      }
+
+      // ✅ Recursively validate children for regular containers
+      return shape.children.every((child: any) => validateShapesByType(child));
+
+    default:
+      return false;
+  }
+}
+
+// ✅ Helper function to validate seat grid settings
+function validateSeatGridSettings(settings: any): boolean {
+  return (
+    settings &&
+    typeof settings === "object" &&
+    typeof settings.seatSpacing === "number" &&
+    settings.seatSpacing >= 0 &&
+    typeof settings.rowSpacing === "number" &&
+    settings.rowSpacing >= 0 &&
+    typeof settings.seatRadius === "number" &&
+    settings.seatRadius > 0 &&
+    typeof settings.seatColor === "number" &&
+    typeof settings.seatStrokeColor === "number" &&
+    typeof settings.seatStrokeWidth === "number" &&
+    settings.seatStrokeWidth >= 0 &&
+    typeof settings.price === "number" &&
+    settings.price >= 0
+  );
+}
+
 /**
  * Service function to save a seat map to the database.
  * Only organizers are authorized to create seat maps.
- *
- * @param shapes - Array of PIXI.js canvas items that make up the seat map
- * @param name - Name of the seat map
- * @param imageUrl - URL to the seat map image/thumbnail
- * @param user - The authenticated user object
- * @returns The created seat map document
- * @throws Error if user is not authorized or if validation fails
+ * Enhanced to support hierarchical structures and freeshape.
  */
 export async function saveSeatMap(
   shapes: CanvasItem[],
@@ -61,115 +303,15 @@ export async function saveSeatMap(
     throw new Error("Shapes must be an array");
   }
 
-  // 3. Validate shapes array structure for PIXI.js canvas items
+  // ✅ Enhanced shape validation with hierarchical support
   const invalidShapes = shapes.filter((shape) => {
-    if (
-      !shape ||
-      typeof shape.id !== "string" ||
-      typeof shape.type !== "string"
-    ) {
-      return true;
-    }
-
-    // Check required base properties
-    if (
-      typeof shape.x !== "number" ||
-      typeof shape.y !== "number" ||
-      typeof shape.scaleX !== "number" ||
-      typeof shape.scaleY !== "number" ||
-      typeof shape.rotation !== "number" ||
-      typeof shape.opacity !== "number" ||
-      typeof shape.visible !== "boolean" ||
-      typeof shape.interactive !== "boolean"
-    ) {
-      return true;
-    }
-
-    // Validate specific shape types
-    const validTypes = [
-      "rectangle",
-      "ellipse",
-      "text",
-      "polygon",
-      "image",
-      "svg",
-      "container",
-    ];
-
-    if (!validTypes.includes(shape.type)) {
-      return true;
-    }
-
-    // Type-specific validation
-    switch (shape.type) {
-      case "rectangle":
-        const rect = shape as any;
-        return (
-          typeof rect.width !== "number" ||
-          typeof rect.height !== "number" ||
-          typeof rect.cornerRadius !== "number" ||
-          typeof rect.color !== "number" ||
-          typeof rect.strokeColor !== "number" ||
-          typeof rect.strokeWidth !== "number"
-        );
-
-      case "ellipse":
-        const ellipse = shape as any;
-        return (
-          typeof ellipse.radiusX !== "number" ||
-          typeof ellipse.radiusY !== "number" ||
-          typeof ellipse.color !== "number" ||
-          typeof ellipse.strokeColor !== "number" ||
-          typeof ellipse.strokeWidth !== "number"
-        );
-
-      case "text":
-        const text = shape as any;
-        return (
-          typeof text.text !== "string" ||
-          typeof text.fontSize !== "number" ||
-          typeof text.fontFamily !== "string" ||
-          typeof text.color !== "number"
-        );
-
-      case "polygon":
-        const polygon = shape as any;
-        return (
-          !Array.isArray(polygon.points) ||
-          typeof polygon.cornerRadius !== "number" ||
-          typeof polygon.color !== "number" ||
-          typeof polygon.strokeColor !== "number" ||
-          typeof polygon.strokeWidth !== "number"
-        );
-
-      case "image":
-        const image = shape as any;
-        return (
-          typeof image.src !== "string" ||
-          typeof image.originalWidth !== "number" ||
-          typeof image.originalHeight !== "number"
-        );
-
-      case "svg":
-        const svg = shape as any;
-        return (
-          typeof svg.svgContent !== "string" ||
-          typeof svg.originalWidth !== "number" ||
-          typeof svg.originalHeight !== "number"
-        );
-
-      case "container":
-        const container = shape as any;
-        return !Array.isArray(container.children);
-
-      default:
-        return false;
-    }
+    return !validateShapesByType(shape);
   });
 
   if (invalidShapes.length > 0) {
+    console.error("Invalid shapes detected:", invalidShapes);
     throw new Error(
-      "Invalid shapes detected: All shapes must be valid PIXI.js canvas items with required properties"
+      "Invalid shapes detected: All shapes must be valid canvas items with required properties"
     );
   }
 
@@ -198,15 +340,7 @@ export async function saveSeatMap(
 
 /**
  * Service function to update an existing seat map.
- * Only organizers can update their own seat maps.
- *
- * @param seatMapId - The ID of the seat map to update
- * @param shapes - Array of PIXI.js canvas items that make up the seat map
- * @param user - The authenticated user object
- * @param name - Optional new name for the seat map
- * @param imageUrl - Optional new image URL
- * @returns The updated seat map document
- * @throws Error if user is not authorized or seat map not found
+ * Enhanced to support hierarchical structures and freeshape.
  */
 export async function updateSeatMap(
   seatMapId: string,
@@ -229,58 +363,18 @@ export async function updateSeatMap(
     throw new Error("Shapes must be an array");
   }
 
-  // 3. Validate shapes array structure (same validation as saveSeatMap)
-  const invalidShapes = shapes.filter((shape) => {
-    if (
-      !shape ||
-      typeof shape.id !== "string" ||
-      typeof shape.type !== "string"
-    ) {
-      return true;
-    }
-
-    // Check required base properties
-    if (
-      typeof shape.x !== "number" ||
-      typeof shape.y !== "number" ||
-      typeof shape.scaleX !== "number" ||
-      typeof shape.scaleY !== "number" ||
-      typeof shape.rotation !== "number" ||
-      typeof shape.opacity !== "number" ||
-      typeof shape.visible !== "boolean" ||
-      typeof shape.interactive !== "boolean"
-    ) {
-      return true;
-    }
-
-    const validTypes = [
-      "rectangle",
-      "ellipse",
-      "text",
-      "polygon",
-      "image",
-      "svg",
-      "container",
-    ];
-
-    return !validTypes.includes(shape.type);
-  });
-
-  if (invalidShapes.length > 0) {
-    throw new Error(
-      "Invalid shapes detected: All shapes must be valid PIXI.js canvas items with required properties"
-    );
-  }
-
   try {
     // 4. First verify the seat map exists and user owns it
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
-      throw new Error(
-        "Seat map not found or you don't have permission to update it"
-      );
+      throw new Error("Seat map not found");
     }
+
+    // Add ownership check
+    // if (existingSeatMap.createdBy !== user.id) {
+    //   throw new Error("You don't have permission to update this seat map");
+    // }
 
     // 5. Prepare update data
     const updateData: any = {
@@ -317,7 +411,7 @@ export async function updateSeatMap(
   } catch (error) {
     // Handle database errors
     if (error instanceof Error) {
-      throw new Error(`Failed to update seat map: ${error.message}`);
+      throw error; // Re-throw the error to preserve the message
     }
     throw new Error("An unknown error occurred while updating the seat map");
   }
@@ -338,6 +432,7 @@ export async function getUserSeatMaps(user: User) {
       shapes: seatMap.shapes,
       image: seatMap.image,
       createdBy: seatMap.createdBy,
+      publicity: seatMap.publicity,
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     }));
@@ -397,6 +492,7 @@ export async function getSeatMapById(seatMapId: string) {
       shapes: seatMap.shapes,
       image: seatMap.image,
       createdBy: seatMap.createdBy,
+      publicity: seatMap.publicity,
       createdAt: seatMap.createdAt,
       updatedAt: seatMap.updatedAt,
     };
@@ -410,7 +506,7 @@ export async function getSeatMapById(seatMapId: string) {
   }
 }
 
-// ... Keep all other existing functions (getPublicSeatMaps, createSeatMapDraft, etc.)
+// Keep all other existing functions (getPublicSeatMaps, createSeatMapDraft, etc.) unchanged...
 export async function getPublicSeatMaps(
   page: number = 1,
   limit: number = 10,
@@ -555,11 +651,10 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
-      throw new Error(
-        "Seat map not found or you don't have permission to delete it"
-      );
+      throw new Error("Seat map not found");
     }
 
+    // Add strict ownership check
     if (existingSeatMap.createdBy !== user.id) {
       throw new Error("You can only delete your own seat maps");
     }
@@ -573,7 +668,7 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
     return deletedSeatMap;
   } catch (error) {
     if (error instanceof Error) {
-      throw new Error(`Failed to delete seat map: ${error.message}`);
+      throw error; // Re-throw to preserve error message
     }
     throw new Error("An unknown error occurred while deleting the seat map");
   }

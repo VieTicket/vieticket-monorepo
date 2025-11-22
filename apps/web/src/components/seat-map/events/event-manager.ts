@@ -12,6 +12,7 @@ import { getSelectionTransform } from "./transform-events";
 import { onPanStart, onPanMove, onPanEnd } from "./pan-events";
 import { onDrawStart, onDrawMove, onDrawEnd } from "./draw-events";
 import { onPolygonStart, onPolygonMove } from "./polygon-events";
+import { onFreeShapeStart, onFreeShapeMove } from "./free-shape-events";
 import {
   handleShapeDrag,
   isCurrentlyShapeDragging,
@@ -73,11 +74,7 @@ export class EventManager {
         switch (currentTool) {
           case "rectangle":
           case "ellipse":
-          case "text":
             onDrawStart(event);
-            break;
-          case "polygon":
-            onPolygonStart(event);
             break;
           case "select": {
             const result = onShapePointerUp(
@@ -134,6 +131,9 @@ export class EventManager {
       case "text":
         onDrawStart(event);
         break;
+      case "freeshape": // ✅ Add FreeShape support
+        onFreeShapeStart(event);
+        break;
       case "polygon":
         onPolygonStart(event);
         break;
@@ -145,7 +145,7 @@ export class EventManager {
             event,
             areaModeContainer as ContainerGroup
           );
-          if (hitShape) {
+          if (hitShape && "seatGraphics" in hitShape) {
             hitShape!.selected = true;
             const selectionTransform = getSelectionTransform();
             if (selectionTransform) {
@@ -179,12 +179,14 @@ export class EventManager {
         } else if (isCurrentlyShapeDragging()) {
           handleShapeDrag(event);
         } else if (isMultiSelecting()) {
-          // ✅ Handle multi-selection rectangle update
           updateMultiSelection(event);
         }
         break;
       case "pan":
         onPanMove(event);
+        break;
+      case "freeshape":
+        onFreeShapeMove(event);
         break;
       case "rectangle":
       case "ellipse":
