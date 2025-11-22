@@ -60,7 +60,7 @@ export const SeatMapProperties = () => {
 
       // ✅ Validate file type
       if (!file.type.startsWith("image/")) {
-        console.error("❌ Invalid file type:", file.type);
+        console.error("Invalid file type:", file.type);
         toast.error("Please select a valid image file", {
           description: "Only image files (JPG, PNG, WebP) are allowed",
         });
@@ -70,7 +70,7 @@ export const SeatMapProperties = () => {
       // ✅ Validate file size (5MB limit)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        console.error(`❌ File size exceeds limit: ${file.size} bytes`);
+        console.error(`File size exceeds limit: ${file.size} bytes`);
         toast.error("Image size must be less than 5MB", {
           description: `Current size: ${(file.size / (1024 * 1024)).toFixed(2)}MB`,
         });
@@ -106,7 +106,7 @@ export const SeatMapProperties = () => {
           image: uploadResponse.secure_url,
         });
       } catch (error) {
-        console.error("❌ Error uploading image:", error);
+        console.error("Error uploading image:", error);
         const errorMessage =
           error instanceof Error ? error.message : "Unknown error occurred";
         toast.error("Failed to upload image", {

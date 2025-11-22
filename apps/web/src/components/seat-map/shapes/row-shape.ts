@@ -731,7 +731,7 @@ export async function recreateRowShape(
           rowGraphics.addChild(recreatedSeat.graphics);
         }
       } catch (error) {
-        console.error(`❌ Failed to recreate seat in row:`, error);
+        console.error(`Failed to recreate seat in row:`, error);
       }
     }
   }

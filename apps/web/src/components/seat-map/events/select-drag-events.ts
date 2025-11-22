@@ -36,6 +36,7 @@ import { cloneCanvasItems, useSeatMapStore } from "../store/seat-map-store";
 import { getSelectionTransform } from "./transform-events";
 import { onDrawStart } from "./draw-events";
 import { onPolygonStart } from "./polygon-events";
+import { getGuideLines } from "../guide-lines";
 
 export const handleShapeSelection = (
   event: PIXI.FederatedPointerEvent,
@@ -200,14 +201,55 @@ export const startShapeDrag = (
       return [];
     })
   );
+
+  const guideLines = getGuideLines();
+  if (guideLines && stage) {
+    const bounds = stage.getBounds();
+    guideLines.createGrid(bounds.width * 2, bounds.height * 2);
+  }
 };
 
 export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
   if (!isShapeDragging || !shapeDragStart || !stage) return;
 
   const currentPoint = event.getLocalPosition(stage);
-  const deltaX = currentPoint.x - shapeDragStart.x;
-  const deltaY = currentPoint.y - shapeDragStart.y;
+  let deltaX = currentPoint.x - shapeDragStart.x;
+  let deltaY = currentPoint.y - shapeDragStart.y;
+
+  const guideLines = getGuideLines();
+  if (guideLines && draggedShapes.length > 0) {
+    const firstShape = draggedShapes[0];
+    const originalPos = originalPositions[0];
+    const newX = originalPos.x + deltaX;
+    const newY = originalPos.y + deltaY;
+
+    // Get snap points from other shapes (excluding dragged ones)
+    const snapPoints = getSnapPointsExcludingShapes(draggedShapes);
+    const snappedPos = guideLines.snapToPoints(newX, newY, snapPoints);
+    const gridSnappedPos = guideLines.snapToGrid(newX, newY);
+
+    // Use the closest snap
+    const objectDistance = Math.sqrt(
+      Math.pow(snappedPos.x - newX, 2) + Math.pow(snappedPos.y - newY, 2)
+    );
+    const gridDistance = Math.sqrt(
+      Math.pow(gridSnappedPos.x - newX, 2) +
+        Math.pow(gridSnappedPos.y - newY, 2)
+    );
+
+    let finalPos = { x: newX, y: newY };
+    if (objectDistance < gridDistance && objectDistance < 15) {
+      finalPos = snappedPos;
+    } else if (gridDistance < 15) {
+      finalPos = gridSnappedPos;
+    }
+
+    deltaX = finalPos.x - originalPos.x;
+    deltaY = finalPos.y - originalPos.y;
+
+    // Show snap guides
+    guideLines.showSnapGuides(finalPos.x, finalPos.y, snapPoints);
+  }
 
   draggedShapes.forEach((shape, index) => {
     const original = originalPositions[index];
@@ -330,6 +372,10 @@ function worldDeltaToContainerLocal(
 
 export const endShapeDrag = () => {
   if (!isShapeDragging) return;
+  const guideLines = getGuideLines();
+  if (guideLines) {
+    guideLines.clearAll();
+  }
   const afterDragShapes = draggedShapes;
   const beforeDragShapes = cloneCanvasItems(draggedShapes);
 
@@ -377,6 +423,46 @@ export const endShapeDrag = () => {
       .getState()
       .saveDirectHistory(beforeDragShapes, afterDragShapes);
   }
+};
+
+const getSnapPointsExcludingShapes = (
+  excludeShapes: CanvasItem[]
+): Array<{ x: number; y: number }> => {
+  const snapPoints: Array<{ x: number; y: number }> = [];
+  const excludeIds = new Set(excludeShapes.map((s) => s.id));
+
+  shapes.forEach((shape) => {
+    if (excludeIds.has(shape.id) || shape.type === "container") return;
+
+    // Add shape center
+    snapPoints.push({ x: shape.x, y: shape.y });
+
+    // Add shape corners/edges based on type
+    if (shape.type === "rectangle") {
+      const halfWidth = shape.width / 2;
+      const halfHeight = shape.height / 2;
+
+      snapPoints.push(
+        { x: shape.x - halfWidth, y: shape.y - halfHeight },
+        { x: shape.x + halfWidth, y: shape.y - halfHeight },
+        { x: shape.x - halfWidth, y: shape.y + halfHeight },
+        { x: shape.x + halfWidth, y: shape.y + halfHeight },
+        { x: shape.x, y: shape.y - halfHeight },
+        { x: shape.x, y: shape.y + halfHeight },
+        { x: shape.x - halfWidth, y: shape.y },
+        { x: shape.x + halfWidth, y: shape.y }
+      );
+    } else if (shape.type === "ellipse") {
+      snapPoints.push(
+        { x: shape.x - shape.radiusX, y: shape.y },
+        { x: shape.x + shape.radiusX, y: shape.y },
+        { x: shape.x, y: shape.y - shape.radiusY },
+        { x: shape.x, y: shape.y + shape.radiusY }
+      );
+    }
+  });
+
+  return snapPoints;
 };
 
 export const isCurrentlyShapeDragging = (): boolean => {

@@ -460,7 +460,7 @@ function CreateEventPageInner() {
         setPosterPreview(event.posterUrl ?? null);
         setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
-        console.error("❌ Error loading event:", error);
+        console.error("Error loading event:", error);
         toast.error(t("toasts.failedLoadEvent"));
       }
     };
@@ -521,11 +521,11 @@ function CreateEventPageInner() {
           }
         );
       } else {
-        console.error("❌ Failed to load seat map data:", result.error);
+        console.error("Failed to load seat map data:", result.error);
         toast.error(result.error || t("toasts.failedLoadSeatMap"));
       }
     } catch (error) {
-      console.error("❌ Error processing seat map:", error);
+      console.error("Error processing seat map:", error);
       toast.error(t("toasts.seatMapLoadError"));
     }
   };

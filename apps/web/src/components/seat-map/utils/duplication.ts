@@ -998,7 +998,7 @@ export const duplicateShape = async (
 
     return duplicated;
   } catch (error) {
-    console.error(`❌ Failed to duplicate ${shape.type} shape:`, error);
+    console.error(`Failed to duplicate ${shape.type} shape:`, error);
     return null;
   }
 };

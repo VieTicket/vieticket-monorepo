@@ -848,7 +848,7 @@ export const recreateShape = async (
               }
             } catch (error) {
               console.error(
-                `❌ Failed to recreate grid in area mode container:`,
+                `Failed to recreate grid in area mode container:`,
                 error
               );
             }

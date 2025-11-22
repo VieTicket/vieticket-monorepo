@@ -401,7 +401,7 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
 
     return { success: true, data: plainData };
   } catch (error) {
-    console.error("❌ Error in getSeatMapGridDataAction:", error);
+    console.error("Error in getSeatMapGridDataAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };

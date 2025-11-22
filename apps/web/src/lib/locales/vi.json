@@ -326,7 +326,7 @@
           "debug": "Debug:",
           "debugDisabled": "disabled=",
           "footer": {
-            "cancel": "❌ Hủy",
+            "cancel": "Hủy",
             "generating": "🎨 Đang tạo...",
             "generate": "Tạo mô tả siêu hấp dẫn"
           },

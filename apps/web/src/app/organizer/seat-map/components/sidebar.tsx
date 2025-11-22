@@ -35,13 +35,10 @@ export function Sidebar({
     try {
       setIsCreating(true);
 
-      console.log("🆕 Creating new empty seat map...");
-
       const result = await createEmptySeatMapAction();
 
       if (result.success) {
         const newSeatMap = result.data;
-        console.log("✅ Empty seat map created:", newSeatMap);
 
         toast.success(`New seat map "${newSeatMap.name}" created!`);
 
@@ -49,10 +46,10 @@ export function Sidebar({
         router.push(`/seat-map?seatMapId=${newSeatMap.id}`);
       } else {
         toast.error(result.error || "Failed to create new seat map");
-        console.error("❌ Failed to create seat map:", result.error);
+        console.error("Failed to create seat map:", result.error);
       }
     } catch (error) {
-      console.error("❌ Error creating new seat map:", error);
+      console.error("Error creating new seat map:", error);
       toast.error("An unexpected error occurred while creating the seat map");
     } finally {
       setIsCreating(false);

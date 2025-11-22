@@ -5,10 +5,7 @@ import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SmartEventGrid } from "./smart-event-grid";
 import { useUserTracking } from "@/hooks/use-user-tracking";
-import {
-  EventSummary,
-  getFilteredEvents,
-} from "@/lib/queries/events";
+import { EventSummary, getFilteredEvents } from "@/lib/queries/events";
 
 interface AdaptiveEventGridProps {
   initialEvents: EventSummary[];
@@ -16,7 +13,12 @@ interface AdaptiveEventGridProps {
 }
 
 // 🚫 DEBUG COMPONENT HIDDEN FOR PRODUCTION - Clean UI
-function DebugInfo({ events, hasSignificantBehavior, isExpanded, hasMore }: {
+function DebugInfo({
+  events,
+  hasSignificantBehavior,
+  isExpanded,
+  hasMore,
+}: {
   events: EventSummary[];
   hasSignificantBehavior: boolean;
   isExpanded: boolean;
@@ -31,7 +33,10 @@ interface AdaptiveEventGridProps {
   initialHasMore: boolean;
 }
 
-export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEventGridProps) {
+export function AdaptiveEventGrid({
+  initialEvents,
+  initialHasMore,
+}: AdaptiveEventGridProps) {
   const [events, setEvents] = useState<EventSummary[]>(initialEvents);
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
@@ -39,60 +44,73 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
   const t = useTranslations("home");
   const { userBehavior } = useUserTracking();
 
-  console.log('🚀 [AdaptiveGrid] Component rendered with:', {
+  console.log("🚀 [AdaptiveGrid] Component rendered with:", {
     initialEventsCount: initialEvents.length,
     userBehavior: userBehavior,
     isExpanded,
-    hasMore
+    hasMore,
   });
 
   // Check if user has significant behavior data
-  const hasSignificantBehavior = userBehavior ? (
-    userBehavior.searchQueries?.length > 0 || 
-    userBehavior.viewedEvents?.length > 2 || 
-    userBehavior.clickedEvents?.length > 1 ||
-    userBehavior.eventEngagement?.length > 0
-  ) : false;
+  const hasSignificantBehavior = userBehavior
+    ? userBehavior.searchQueries?.length > 0 ||
+      userBehavior.viewedEvents?.length > 2 ||
+      userBehavior.clickedEvents?.length > 1 ||
+      userBehavior.eventEngagement?.length > 0
+    : false;
 
-  console.log('🔍 [AdaptiveGrid] Behavior check:', {
+  console.log("🔍 [AdaptiveGrid] Behavior check:", {
     hasUserBehavior: !!userBehavior,
     hasSignificantBehavior,
     searchQueries: userBehavior?.searchQueries?.length || 0,
     viewedEvents: userBehavior?.viewedEvents?.length || 0,
     clickedEvents: userBehavior?.clickedEvents?.length || 0,
-    eventEngagement: userBehavior?.eventEngagement?.length || 0
+    eventEngagement: userBehavior?.eventEngagement?.length || 0,
   });
 
   // Auto-expand for users with behavior data
   useEffect(() => {
-    console.log('🔄 [AdaptiveGrid] useEffect triggered with:', {
+    console.log("🔄 [AdaptiveGrid] useEffect triggered with:", {
       hasSignificantBehavior,
       isExpanded,
       hasMore,
       eventsLength: events.length,
-      userBehavior: !!userBehavior
+      userBehavior: !!userBehavior,
     });
 
-    if (hasSignificantBehavior && !isExpanded && hasMore && events.length <= 12) {
-      console.log('✅ [AdaptiveGrid] Conditions met! Auto-expanding for user with behavior data');
+    if (
+      hasSignificantBehavior &&
+      !isExpanded &&
+      hasMore &&
+      events.length <= 12
+    ) {
+      console.log(
+        "✅ [AdaptiveGrid] Conditions met! Auto-expanding for user with behavior data"
+      );
       handleExpand();
     } else {
-      console.log('❌ [AdaptiveGrid] Auto-expand conditions not met:', {
+      console.log("[AdaptiveGrid] Auto-expand conditions not met:", {
         hasSignificantBehavior,
         isExpanded,
         hasMore,
-        eventsLength: events.length
+        eventsLength: events.length,
       });
     }
-  }, [hasSignificantBehavior, isExpanded, hasMore, events.length, userBehavior]);
+  }, [
+    hasSignificantBehavior,
+    isExpanded,
+    hasMore,
+    events.length,
+    userBehavior,
+  ]);
 
   const handleExpand = async () => {
     if (isLoading) return;
-    
-    console.log('🔄 [AdaptiveGrid] Expanding event list...');
+
+    console.log("🔄 [AdaptiveGrid] Expanding event list...");
     setIsLoading(true);
     setIsExpanded(true);
-    
+
     try {
       const result = await getFilteredEvents({
         page: 1,
@@ -104,11 +122,13 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
         q: "",
       });
 
-      console.log(`🎯 [AdaptiveGrid] Loaded ${result.events.length} total events`);
+      console.log(
+        `🎯 [AdaptiveGrid] Loaded ${result.events.length} total events`
+      );
       setEvents(result.events);
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error('[AdaptiveGrid] Failed to expand events:', error);
+      console.error("[AdaptiveGrid] Failed to expand events:", error);
       setIsExpanded(false);
     } finally {
       setIsLoading(false);
@@ -117,7 +137,7 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
 
   const handleLoadMore = async () => {
     if (!hasMore || isLoading) return;
-    
+
     setIsLoading(true);
     try {
       const currentPage = Math.floor(events.length / 12) + 1;
@@ -131,15 +151,16 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
         q: "",
       });
 
-      const newEvents = result.events.filter(newEvent => 
-        !events.some(existingEvent => existingEvent.id === newEvent.id)
+      const newEvents = result.events.filter(
+        (newEvent) =>
+          !events.some((existingEvent) => existingEvent.id === newEvent.id)
       );
 
       console.log(`🔄 [AdaptiveGrid] Loaded ${newEvents.length} more events`);
-      setEvents(prev => [...prev, ...newEvents]);
+      setEvents((prev) => [...prev, ...newEvents]);
       setHasMore(result.hasMore);
     } catch (error) {
-      console.error('[AdaptiveGrid] Failed to load more events:', error);
+      console.error("[AdaptiveGrid] Failed to load more events:", error);
     } finally {
       setIsLoading(false);
     }
@@ -147,7 +168,7 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
 
   // Debug logging
   useEffect(() => {
-    console.log('🔍 [AdaptiveGrid] State check:', {
+    console.log("🔍 [AdaptiveGrid] State check:", {
       hasSignificantBehavior,
       isExpanded,
       hasMore,
@@ -157,10 +178,17 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
         searches: userBehavior.searchQueries.length,
         views: userBehavior.viewedEvents.length,
         clicks: userBehavior.clickedEvents.length,
-        engagements: userBehavior.eventEngagement.length
-      }
+        engagements: userBehavior.eventEngagement.length,
+      },
     });
-  }, [hasSignificantBehavior, isExpanded, hasMore, events.length, isLoading, userBehavior]);
+  }, [
+    hasSignificantBehavior,
+    isExpanded,
+    hasMore,
+    events.length,
+    isLoading,
+    userBehavior,
+  ]);
 
   return (
     <section className="px-4 py-12">
@@ -191,7 +219,7 @@ export function AdaptiveEventGrid({ initialEvents, initialHasMore }: AdaptiveEve
         </div>
       )}
 
-      <DebugInfo 
+      <DebugInfo
         events={events}
         hasSignificantBehavior={hasSignificantBehavior}
         isExpanded={isExpanded}
@@ -250,10 +278,10 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
       if (hasSignificant) {
         console.log('✅ Should trigger auto-expansion');
       } else {
-        console.log('❌ Will not trigger auto-expansion');
+        console.log('Will not trigger auto-expansion');
       }
     } else {
-      console.log('❌ No behavior data found');
+      console.log('No behavior data found');
     }
   };
 }

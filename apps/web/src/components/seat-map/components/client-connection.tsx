@@ -45,7 +45,7 @@ function ClientConnection() {
         );
         setShowInitializingModal(false);
       } catch (err) {
-        console.error("❌ Error during collaboration initialization:", err);
+        console.error("Error during collaboration initialization:", err);
         const errorMessage =
           err instanceof Error ? err.message : "Failed to connect to server";
         setConnectionError(errorMessage);

@@ -480,7 +480,7 @@ export async function recreateGridShape(
         recreatedGrid.children.push(recreatedRow);
         gridGraphics.addChild(recreatedRow.graphics);
       } catch (error) {
-        console.error(`❌ Failed to recreate row in grid:`, error);
+        console.error(`Failed to recreate row in grid:`, error);
       }
     }
   }

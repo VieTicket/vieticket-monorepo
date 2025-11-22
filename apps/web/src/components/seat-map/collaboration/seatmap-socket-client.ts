@@ -79,7 +79,7 @@ export class SeatMapCollaboration {
         instance.isConnecting = false;
         resolve();
       } catch (error) {
-        console.error("❌ Failed to initialize collaboration:", error);
+        console.error("Failed to initialize collaboration:", error);
         instance.isConnecting = false;
         instance.connectionPromise = null;
         reject(error);
@@ -134,7 +134,7 @@ export class SeatMapCollaboration {
       };
 
       const errorHandler = (data: any) => {
-        console.error("❌ Seat map boot error:", data);
+        console.error("Seat map boot error:", data);
         cleanup();
         reject(new Error(data.message || "Failed to boot seat map"));
       };
@@ -289,7 +289,7 @@ export class SeatMapCollaboration {
 
       return serialized;
     } catch (error) {
-      console.error("❌ Failed to serialize UndoRedoAction:", error);
+      console.error("Failed to serialize UndoRedoAction:", error);
       return null;
     }
   }
@@ -322,11 +322,11 @@ export class SeatMapCollaboration {
         });
 
         this.socket.once("connect_error", (error) => {
-          console.error("❌ Socket connection error:", error);
+          console.error("Socket connection error:", error);
           reject(error);
         });
       } catch (error) {
-        console.error("❌ Failed to create socket:", error);
+        console.error("Failed to create socket:", error);
         reject(error);
       }
     });
@@ -355,11 +355,11 @@ export class SeatMapCollaboration {
     });
 
     this.socket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error);
+      console.error("Socket connection error:", error);
       this.reconnectAttempts++;
 
       if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-        console.error("❌ Max reconnection attempts reached");
+        console.error("Max reconnection attempts reached");
       }
     });
 
@@ -416,7 +416,7 @@ export class SeatMapCollaboration {
 
     if (data.seatMap.shapes && Array.isArray(data.seatMap.shapes)) {
       if (!recreateShapeRef) {
-        console.error("❌ recreateShape function not initialized");
+        console.error("recreateShape function not initialized");
         return;
       }
 
@@ -437,7 +437,7 @@ export class SeatMapCollaboration {
 
             recreatedShapes.push(recreatedShape);
           } catch (error) {
-            console.error("❌ Failed to recreate shape:", shapeData.id, error);
+            console.error("Failed to recreate shape:", shapeData.id, error);
           }
         }
 
@@ -455,7 +455,7 @@ export class SeatMapCollaboration {
           .getState()
           .updateShapes([...shapes], false, undefined, false);
       } catch (error) {
-        console.error("❌ Failed to recreate shapes:", error);
+        console.error("Failed to recreate shapes:", error);
       }
     }
     if (data.pendingChanges && data.pendingChanges.length > 0) {
@@ -544,7 +544,7 @@ export class SeatMapCollaboration {
 
       console.log(`✅ Applied remote ${operation} action: ${action.id}`);
     } catch (error) {
-      console.error(`❌ Failed to apply remote ${operation} action:`, error);
+      console.error(`Failed to apply remote ${operation} action:`, error);
     }
   }
 
@@ -570,7 +570,7 @@ export class SeatMapCollaboration {
       // ✅ Serialize the full action
       const serializedAction = this.serializeUndoRedoAction(action);
       if (!serializedAction) {
-        console.error(`❌ Failed to serialize action ${actionId}`);
+        console.error(`Failed to serialize action ${actionId}`);
         return;
       }
 
@@ -586,7 +586,7 @@ export class SeatMapCollaboration {
         `📤 Broadcasted ${operation} action with full data: ${actionId}`
       );
     } catch (error) {
-      console.error(`❌ Failed to broadcast ${operation} action:`, error);
+      console.error(`Failed to broadcast ${operation} action:`, error);
     }
   }
 
@@ -624,7 +624,7 @@ export class SeatMapCollaboration {
 
       console.log("📤 Requested pending changes from server");
     } catch (error) {
-      console.error("❌ Failed to request pending changes:", error);
+      console.error("Failed to request pending changes:", error);
     }
   }
 
@@ -677,7 +677,7 @@ export class SeatMapCollaboration {
       try {
         await store.applyRemoteChange(change, fromUserId);
       } catch (error) {
-        console.error(`❌ Failed to apply pending change ${change.id}:`, error);
+        console.error(`Failed to apply pending change ${change.id}:`, error);
       }
     }
   }
@@ -690,7 +690,7 @@ export class SeatMapCollaboration {
 
     const serializedChange = this.serializeUndoRedoAction(change);
     if (!serializedChange) {
-      console.error("❌ Failed to serialize change, skipping broadcast");
+      console.error("Failed to serialize change, skipping broadcast");
       return;
     }
 
@@ -701,7 +701,7 @@ export class SeatMapCollaboration {
         seatMapId: this.seatMapId,
       });
     } catch (error) {
-      console.error("❌ Failed to broadcast shape change:", error);
+      console.error("Failed to broadcast shape change:", error);
     }
   }
 
@@ -717,7 +717,7 @@ export class SeatMapCollaboration {
         seatMapId: this.seatMapId,
       });
     } catch (error) {
-      console.error("❌ Failed to broadcast image upload start:", error);
+      console.error("Failed to broadcast image upload start:", error);
     }
   }
 
@@ -732,7 +732,7 @@ export class SeatMapCollaboration {
         seatMapId: this.seatMapId,
       });
     } catch (error) {
-      console.error("❌ Failed to broadcast image upload complete:", error);
+      console.error("Failed to broadcast image upload complete:", error);
     }
   }
 
@@ -746,7 +746,7 @@ export class SeatMapCollaboration {
         seatMapId: this.seatMapId,
       });
     } catch (error) {
-      console.error("❌ Failed to broadcast image upload failed:", error);
+      console.error("Failed to broadcast image upload failed:", error);
     }
   }
 

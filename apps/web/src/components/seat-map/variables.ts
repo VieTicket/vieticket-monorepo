@@ -2,6 +2,7 @@ import * as PIXI from "pixi.js";
 import { AreaModeContainer, CanvasItem, ContainerGroup, Tool } from "./types";
 import { useSeatMapStore } from "./store/seat-map-store";
 import { createContainer } from "./shapes/container-shape";
+import { destroyGuideLines } from "./guide-lines";
 
 // Global state for performance (outside React)
 export let pixiApp: PIXI.Application | null = null;
@@ -239,4 +240,5 @@ export const resetVariables = () => {
   // ✅ Reset area mode variables
   isAreaMode = false;
   areaModeContainer = null;
+  destroyGuideLines();
 };

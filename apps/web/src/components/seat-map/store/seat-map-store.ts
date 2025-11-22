@@ -595,7 +595,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
         }
       }
     } catch (error) {
-      console.error("❌ Failed to apply remote change:", error);
+      console.error("Failed to apply remote change:", error);
     }
   },
 

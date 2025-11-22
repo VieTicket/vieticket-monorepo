@@ -275,7 +275,7 @@ async function seed() {
     console.log("✅ Created areas, rows, and seats for all events");
     console.log("🎉 Database seeding completed successfully!");
   } catch (error) {
-    console.error("❌ Error seeding database:", error);
+    console.error("Error seeding database:", error);
     throw error;
   }
 }

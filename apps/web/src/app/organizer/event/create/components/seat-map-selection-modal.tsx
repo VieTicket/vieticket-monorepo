@@ -66,11 +66,11 @@ export function SeatMapSelectionModal({
         setSeatMaps(processedSeatMaps);
         setFilteredSeatMaps(processedSeatMaps);
       } else {
-        console.error("❌ Failed to load seat maps:", result.error);
+        console.error("Failed to load seat maps:", result.error);
         toast.error(result.error || "Failed to load seat maps");
       }
     } catch (error) {
-      console.error("❌ Error loading seat maps:", error);
+      console.error("Error loading seat maps:", error);
       toast.error("An unexpected error occurred while loading seat maps");
     } finally {
       setIsLoading(false);
