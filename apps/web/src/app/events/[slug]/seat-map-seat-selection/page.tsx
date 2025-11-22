@@ -2,9 +2,9 @@
 
 import { useTicketData } from "@/hooks/use-ticket-data";
 import { use, useState, useEffect } from "react";
+import { useTranslations } from "next-intl";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrencyVND } from "@/lib/utils";
 import { createOrderAction } from "@/lib/actions/customer/checkout-actions";
@@ -15,7 +15,6 @@ import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import dynamic from "next/dynamic";
 import { StageProvider } from "@/components/seat-map/providers/stage-provider";
 
-// Dynamically import the canvas editor with SSR disabled
 const SeatMapCanvas = dynamic(
   () => import("@/components/seat-map/seat-map-canvas-customer"),
   {
@@ -41,6 +40,7 @@ export default function SeatMapSeatSelectionPage({
   const { slug } = use(params);
   const { eventId } = use(searchParams);
   const router = useRouter();
+  const t = useTranslations("event.seatSelection");
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [seatMapData, setSeatMapData] = useState<any>(null);
@@ -62,11 +62,11 @@ export default function SeatMapSeatSelectionPage({
         if (result.success && result.data) {
           setSeatMapData(result.data);
         } else {
-          toast.error("Failed to load seat map");
+          toast.error(t("failedToLoadSeatMap"));
         }
       } catch (error) {
         console.error("Error loading seat map:", error);
-        toast.error("Error loading seat map");
+        toast.error(t("errorLoadingSeatMap"));
       } finally {
         setLoadingSeatMap(false);
       }
@@ -142,7 +142,7 @@ export default function SeatMapSeatSelectionPage({
 
   const handleProceedToPayment = async () => {
     if (selectedSeats.length === 0) {
-      toast.error("Please select at least one seat");
+      toast.error(t("pleaseSelectAtLeastOneSeat"));
       return;
     }
 
@@ -154,11 +154,11 @@ export default function SeatMapSeatSelectionPage({
         toast.success("Order created successfully! Redirecting to payment...");
         window.location.href = result.data.vnpayURL;
       } else {
-        toast.error(result.error?.message || "Failed to create order");
+        toast.error(result.error?.message || t("failedToCreateOrder"));
       }
     } catch (error) {
       console.error("Error creating order:", error);
-      toast.error("An unexpected error occurred");
+      toast.error(t("unexpectedError"));
     } finally {
       setIsCreatingOrder(false);
     }
@@ -169,7 +169,7 @@ export default function SeatMapSeatSelectionPage({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Loading seat map...</p>
+          <p>{t("loadingSeatMap")}</p>
         </div>
       </div>
     );
@@ -181,9 +181,9 @@ export default function SeatMapSeatSelectionPage({
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <p className="text-red-600 mb-4">
-              Error loading tickets: {error.message}
+              {t("errorLoadingTickets")} {error.message}
             </p>
-            <Button onClick={() => router.back()}>Go Back</Button>
+            <Button onClick={() => router.back()}>{t("goBack")}</Button>
           </CardContent>
         </Card>
       </div>
@@ -195,8 +195,8 @@ export default function SeatMapSeatSelectionPage({
       <div className="flex items-center justify-center min-h-screen">
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
-            <p className="mb-4">No seat map data available</p>
-            <Button onClick={() => router.back()}>Go Back</Button>
+            <p className="mb-4">{t("noSeatMapData")}</p>
+            <Button onClick={() => router.back()}>{t("goBack")}</Button>
           </CardContent>
         </Card>
       </div>
@@ -222,7 +222,7 @@ export default function SeatMapSeatSelectionPage({
 
             <div>
               <h1 className="text-xl font-bold text-gray-900">
-                Select Your Seats
+                {t("selectYourSeats")}
               </h1>
               <div className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4" />
@@ -237,8 +237,8 @@ export default function SeatMapSeatSelectionPage({
           <div className="flex items-center gap-4">
             <div className="text-right">
               <div className="text-sm text-gray-600">
-                {selectedSeats.length} seat
-                {selectedSeats.length !== 1 ? "s" : ""} selected
+                {selectedSeats.length} {t("seats")}
+                {selectedSeats.length === 1 ? t("seatSelected") : t("seatsSelected")}
               </div>
               <div className="font-semibold">
                 {formatCurrencyVND(calculateTotal())}
@@ -253,10 +253,10 @@ export default function SeatMapSeatSelectionPage({
               {isCreatingOrder ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Creating...
+                  {t("creating")}
                 </>
               ) : (
-                "Proceed to Payment"
+                t("proceedToCheckout")
               )}
             </Button>
           </div>
@@ -284,24 +284,24 @@ export default function SeatMapSeatSelectionPage({
             {/* Legend */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Legend</CardTitle>
+                <CardTitle className="text-lg">{t("legend")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 bg-green-500 rounded-full"></div>
-                  <span className="text-sm">Available</span>
+                  <span className="text-sm">{t("available")}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 bg-blue-500 rounded-full"></div>
-                  <span className="text-sm">Selected</span>
+                  <span className="text-sm">{t("selected")}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm">On Hold</span>
+                  <span className="text-sm">{t("onHold")}</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-4 h-4 bg-red-500 rounded-full"></div>
-                  <span className="text-sm">Sold</span>
+                  <span className="text-sm">{t("sold")}</span>
                 </div>
               </CardContent>
             </Card>
@@ -311,14 +311,14 @@ export default function SeatMapSeatSelectionPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5" />
-                  Order Summary
+                  {t("orderSummary")}
                 </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 {selectedSeats.length === 0 ? (
                   <p className="text-gray-500 text-center py-8">
-                    Click on available seats to select them
+                    {t("clickOnAvailableSeats")}
                   </p>
                 ) : (
                   <>
@@ -340,7 +340,7 @@ export default function SeatMapSeatSelectionPage({
                     <Separator />
 
                     <div className="flex justify-between font-semibold text-lg">
-                      <span>Total ({selectedSeats.length} seats)</span>
+                      <span>{t("total")} ({selectedSeats.length} {t("seats")})</span>
                       <span className="text-green-600">
                         {formatCurrencyVND(calculateTotal())}
                       </span>
@@ -360,10 +360,10 @@ export default function SeatMapSeatSelectionPage({
                 {isCreatingOrder ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                    Creating Order...
+                    {t("creatingOrder")}
                   </>
                 ) : (
-                  "Proceed to Payment"
+                  t("proceedToCheckout")
                 )}
               </Button>
             )}

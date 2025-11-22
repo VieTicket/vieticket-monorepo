@@ -2,24 +2,21 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+
+// UI Components
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { 
-  Phone, 
-  Mail, 
-  MapPin, 
+
+// Icons
+import {
+  Phone,
+  Mail,
+  MapPin,
   Clock,
   MessageSquare,
-  Send,
-  CheckCircle,
-  AlertCircle,
   Headphones,
   Users,
   Building,
-  Globe
+  Globe,
 } from "lucide-react";
 
 export default function ContactPage() {
@@ -31,29 +28,35 @@ export default function ContactPage() {
       title: t("contactInfo.phone.title"),
       details: [t("contactInfo.phone.details.0")],
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-50",
     },
     {
       icon: Mail,
       title: t("contactInfo.email.title"),
-      details: [t("contactInfo.email.details.0"), t("contactInfo.email.details.1")],
-      color: "text-[#2A273F]", 
-      bgColor: "bg-yellow-50"
+      details: [
+        t("contactInfo.email.details.0"),
+        t("contactInfo.email.details.1"),
+      ],
+      color: "text-[#2A273F]",
+      bgColor: "bg-yellow-50",
     },
     {
       icon: MapPin,
       title: t("contactInfo.address.title"),
       details: [t("contactInfo.address.details.0")],
       color: "text-red-500",
-      bgColor: "bg-red-50"
+      bgColor: "bg-red-50",
     },
     {
       icon: Clock,
       title: t("contactInfo.hours.title"),
-      details: [t("contactInfo.hours.details.0"), t("contactInfo.hours.details.1")],
+      details: [
+        t("contactInfo.hours.details.0"),
+        t("contactInfo.hours.details.1"),
+      ],
       color: "text-[#3A3555]",
-      bgColor: "bg-blue-50"
-    }
+      bgColor: "bg-blue-50",
+    },
   ];
 
   const supportCategories = [
@@ -61,41 +64,41 @@ export default function ContactPage() {
       icon: Headphones,
       title: t("support.categories.customer.title"),
       description: t("support.categories.customer.description"),
-      response: t("support.categories.customer.response")
+      response: t("support.categories.customer.response"),
     },
     {
       icon: Building,
       title: t("support.categories.business.title"),
       description: t("support.categories.business.description"),
-      response: t("support.categories.business.response")
+      response: t("support.categories.business.response"),
     },
     {
       icon: Users,
       title: t("support.categories.partnership.title"),
       description: t("support.categories.partnership.description"),
-      response: t("support.categories.partnership.response")
+      response: t("support.categories.partnership.response"),
     },
     {
       icon: Globe,
       title: t("support.categories.media.title"),
       description: t("support.categories.media.description"),
-      response: t("support.categories.media.response")
-    }
+      response: t("support.categories.media.response"),
+    },
   ];
 
   const faqItems = [
     {
       question: t("faq.items.booking.question"),
-      answer: t("faq.items.booking.answer")
+      answer: t("faq.items.booking.answer"),
     },
     {
       question: t("faq.items.cancellation.question"),
-      answer: t("faq.items.cancellation.answer")
+      answer: t("faq.items.cancellation.answer"),
     },
     {
       question: t("faq.items.eticket.question"),
-      answer: t("faq.items.eticket.answer")
-    }
+      answer: t("faq.items.eticket.answer"),
+    },
   ];
 
   return (
