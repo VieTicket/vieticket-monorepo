@@ -14,7 +14,7 @@ import { ensureMongoConnection } from "@vieticket/db/mongo";
 export async function findSeatMapById(id: string): Promise<SeatMap | null> {
   await ensureMongoConnection();
   const doc = await SeatMapModel.findById(id).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -29,7 +29,7 @@ export async function findSeatMapsByCreator(
   const docs = await SeatMapModel.find({ createdBy })
     .sort({ createdAt: -1 })
     .exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -68,7 +68,7 @@ export async function findSeatMapsWithPagination(
     SeatMapModel.countDocuments(filter).exec(),
   ]);
 
-  const seatMaps = docs.map((doc) => doc.toObject());
+  const seatMaps = docs.map((doc) => doc.toObject() as SeatMap);
 
   return {
     seatMaps,
@@ -92,8 +92,10 @@ export async function createSeatMap(
   data: CreateSeatMapInput
 ): Promise<SeatMap> {
   await ensureMongoConnection();
-  const doc = await SeatMapModel.create(data);
-  return doc.toObject();
+
+  const seatmap = await SeatMapModel.create(data);
+
+  return seatmap.toObject() as SeatMap;
 }
 
 /**
@@ -109,7 +111,8 @@ export async function updateSeatMapById(
   await ensureMongoConnection();
   // The `timestamps: true` option in the schema will automatically handle `updatedAt`.
   const doc = await SeatMapModel.findByIdAndUpdate(id, updates).exec();
-  return doc ? doc.toObject() : null;
+
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -120,7 +123,7 @@ export async function updateSeatMapById(
 export async function deleteSeatMapById(id: string): Promise<SeatMap | null> {
   await ensureMongoConnection();
   const doc = await SeatMapModel.findByIdAndDelete(id).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -155,7 +158,7 @@ export async function findSeatMapsByName(
   }
 
   const docs = await SeatMapModel.find(filter).sort({ createdAt: -1 }).exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -187,7 +190,7 @@ export async function findRecentSeatMaps(
     .sort({ createdAt: -1 })
     .limit(limit)
     .exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -200,7 +203,7 @@ export async function createMultipleSeatMaps(
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
   const docs = await SeatMapModel.insertMany(seatMaps, { ordered: false });
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -229,7 +232,7 @@ export async function findSeatMapWithShapesById(
   const filter: any = { _id: id };
 
   const doc = await SeatMapModel.findOne(filter).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -272,7 +275,7 @@ export async function findPublicSeatMaps(
     SeatMapModel.countDocuments(filter).exec(),
   ]);
 
-  const seatMaps = docs.map((doc) => doc.toObject());
+  const seatMaps = docs.map((doc) => doc.toObject() as SeatMap);
 
   return {
     seatMaps,
@@ -322,7 +325,7 @@ export async function createDraftFromSeatMap(
   };
 
   const doc = await SeatMapModel.create(draftInput);
-  return doc.toObject();
+  return doc.toObject() as SeatMap;
 }
 
 /**
@@ -359,12 +362,12 @@ export async function getSeatMapDraftChain(seatMapId: string): Promise<{
     const parentDoc = await SeatMapModel.findById(
       currentSeatMap.draftedFrom
     ).exec();
-    parent = parentDoc ? parentDoc.toObject() : undefined;
+    parent = parentDoc ? (parentDoc.toObject() as SeatMap) : undefined;
   }
 
   return {
     parent,
-    children: children.map((doc) => doc.toObject()),
+    children: children.map((doc) => doc.toObject() as SeatMap),
     draftCount: children.length,
   };
 }
@@ -389,5 +392,5 @@ export async function updateSeatMapPublicity(
     { new: true, runValidators: true }
   ).exec();
 
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }

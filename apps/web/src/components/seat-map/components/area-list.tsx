@@ -162,10 +162,15 @@ export const AreaList = () => {
                     <span>{grid.rowCount} rows</span>
                   </div>
                 </div>
+                <hr className="my-1 border-t border-gray-700" />
                 <div className="text-xs text-gray-400">
                   <div className="flex items-center justify-between">
-                    <span>Price: ${grid.price}</span>
-                    <span>Revenue: ${grid.seatCount * grid.price}</span>
+                    <span>Price</span>
+                    <span>{grid.price} VND</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span>Total</span>
+                    <span>{grid.seatCount * grid.price} VND</span>
                   </div>
                 </div>
               </div>

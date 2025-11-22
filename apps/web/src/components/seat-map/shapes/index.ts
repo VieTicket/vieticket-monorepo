@@ -151,6 +151,27 @@ export const findShapeRecursively = (
   return null;
 };
 
+export const findShapeAndParentRecursively = (
+  shapes: CanvasItem[],
+  targetId: string,
+  parent: ContainerGroup | null = null
+): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
+  for (const shape of shapes) {
+    if (shape.id === targetId) {
+      return { shape, parent };
+    }
+    if (shape.type === "container") {
+      const found = findShapeAndParentRecursively(
+        (shape as ContainerGroup).children,
+        targetId,
+        shape as ContainerGroup
+      );
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
 export const findContainerRecursively = (
   searchShapes: CanvasItem[],
   targetId: string

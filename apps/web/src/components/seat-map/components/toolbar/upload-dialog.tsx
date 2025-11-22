@@ -11,7 +11,13 @@ import { updateSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import { useRouter } from "next/navigation";
 import { useSeatMapStore } from "../../store/seat-map-store";
 import { areaModeContainer } from "../../variables";
-import { GridData, CanvasItem } from "../../types";
+import {
+  GridShape,
+  RowShape,
+  SeatShape,
+  AreaModeContainer,
+  CanvasItem,
+} from "../../types";
 
 export const UploadDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -49,12 +55,15 @@ export const UploadDialog: React.FC = () => {
         key === "filters" ||
         key === "hitArea" ||
         key === "cursor" ||
+        key === "seatGraphics" || // ✅ Added seat-specific graphics
+        key === "labelGraphics" || // ✅ Added label graphics
         (typeof value === "object" &&
           value !== null &&
           (value.constructor?.name?.includes("PIXI") ||
             value.constructor?.name?.includes("Graphics") ||
             value.constructor?.name?.includes("Container") ||
-            value.constructor?.name?.includes("Sprite")))
+            value.constructor?.name?.includes("Sprite") ||
+            value.constructor?.name?.includes("Text"))) // ✅ Added Text
       ) {
         continue;
       }
@@ -88,9 +97,23 @@ export const UploadDialog: React.FC = () => {
     return serialized;
   };
 
-  // Calculate statistics
+  // ✅ Helper function to count seats in a grid
+  const countSeatsInGrid = (grid: GridShape): number => {
+    return grid.children.reduce((total, row) => {
+      return total + row.children.length;
+    }, 0);
+  };
+
+  // ✅ Helper function to calculate revenue for a grid
+  const calculateGridRevenue = (grid: GridShape): number => {
+    const seatCount = countSeatsInGrid(grid);
+    const seatPrice = grid.seatSettings?.price || 0;
+    return seatCount * seatPrice;
+  };
+
+  // Calculate statistics using new types
   const statistics = useMemo(() => {
-    if (!areaModeContainer?.grids) {
+    if (!areaModeContainer) {
       return {
         totalGrids: 0,
         totalSeats: 0,
@@ -107,40 +130,38 @@ export const UploadDialog: React.FC = () => {
       revenue: number;
     }> = [];
 
-    areaModeContainer.grids
-      .filter((grid: GridData) => grid.rows.some((row) => row.seats.length > 0))
-      .forEach((grid: GridData) => {
-        let gridSeats = 0;
-        let gridRevenue = 0;
+    // ✅ Filter and process GridShape children from AreaModeContainer
+    const grids = areaModeContainer.children.filter(
+      (child): child is GridShape =>
+        child.type === "container" &&
+        "gridName" in child &&
+        "seatSettings" in child
+    );
 
-        grid.rows.forEach((row) => {
-          gridSeats += row.seats.length;
-          gridRevenue +=
-            row.seats.length *
-            (grid.seatSettings.price ||
-              areaModeContainer!.defaultSeatSettings.price ||
-              0);
-        });
+    // ✅ Process each grid that has seats
+    grids
+      .filter((grid) => countSeatsInGrid(grid) > 0)
+      .forEach((grid) => {
+        const gridSeatCount = countSeatsInGrid(grid);
+        const gridRevenue = calculateGridRevenue(grid);
 
-        totalSeats += gridSeats;
+        totalSeats += gridSeatCount;
         totalRevenue += gridRevenue;
 
         gridBreakdown.push({
-          name: grid.name || `Grid ${grid.id.slice(0, 8)}`,
-          seatCount: gridSeats,
+          name: grid.gridName || grid.name || `Grid ${grid.id.slice(0, 8)}`,
+          seatCount: gridSeatCount,
           revenue: gridRevenue,
         });
       });
 
     return {
-      totalGrids: areaModeContainer.grids.filter((grid: GridData) =>
-        grid.rows.some((row) => row.seats.length > 0)
-      ).length,
+      totalGrids: grids.filter((grid) => countSeatsInGrid(grid) > 0).length,
       totalSeats,
       totalRevenue,
       gridBreakdown,
     };
-  }, [areaModeContainer?.grids]);
+  }, [shapes]);
 
   const handleUpload = async () => {
     if (!seatMap || !seatMap.id) {
@@ -234,7 +255,7 @@ export const UploadDialog: React.FC = () => {
             </div>
           )}
 
-          {/* Area Mode Statistics */}
+          {/* ✅ Updated Area Mode Statistics using new types */}
           {areaModeContainer && statistics.totalGrids > 0 ? (
             <div className="rounded-lg border border-gray-200 p-4 space-y-3">
               <h3 className="font-semibold text-sm">Seat Statistics</h3>

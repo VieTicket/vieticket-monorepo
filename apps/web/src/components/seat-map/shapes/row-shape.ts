@@ -7,8 +7,13 @@ import {
   SeatGridSettings,
 } from "../types";
 import { generateShapeId } from "../utils/stageTransform";
-import { areaModeContainer } from "../variables";
-import { useSeatMapStore } from "../store/seat-map-store";
+import { areaModeContainer, shapes } from "../variables";
+import {
+  cloneCanvasItem,
+  cloneCanvasItems,
+  ShapeContext,
+  useSeatMapStore,
+} from "../store/seat-map-store";
 import { getSelectionTransform } from "../events/transform-events";
 import {
   updateSeatGraphics,
@@ -19,6 +24,7 @@ import {
   DEFAULT_LABEL_STYLE,
   updateSeatLabelRotation,
 } from "./seat-shape";
+import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 
 /**
  * Get seats by row ID (updated for new structure)
@@ -139,7 +145,8 @@ export const updateRowLabelStyle = (
  */
 export const updateRowGraphics = (
   row: RowShape,
-  gridByRow?: GridShape
+  gridByRow?: GridShape,
+  updateRowLabel: boolean = true
 ): void => {
   const grid = gridByRow || getGridByRowId(row.id);
 
@@ -170,7 +177,9 @@ export const updateRowGraphics = (
     updateSeatLabelRotation(seat, row, grid);
   });
 
-  updateRowLabelPosition(row);
+  if (updateRowLabel) {
+    updateRowLabelPosition(row);
+  }
 };
 
 export const getCorrectSeatSpacing = (grid: GridShape): number => {
@@ -254,6 +263,7 @@ export const updateRowLabelPosition = (row: RowShape): void => {
     }
     return;
   }
+  row.labelGraphics.text = row.rowName || row.name;
   row.labelGraphics.visible = true;
   const seats = row.children;
   const sortedSeats = [...seats].sort((a, b) => a.x - b.x);
@@ -456,15 +466,132 @@ export const applyBendToRow = (
 };
 
 /**
+ * ✅ Handle label placement change for all rows in a grid with history saving
+ */
+export const handleRowsLabelPlacementChange = (
+  grid: GridShape,
+  placement: "left" | "middle" | "right" | "none"
+): void => {
+  if (!areaModeContainer) return;
+
+  // ✅ Store original values for before state
+  const beforeRows = cloneCanvasItems(grid.children);
+
+  // Apply the label placement change to all rows
+  grid.children.forEach((row) => {
+    setRowLabelPlacement(row, placement);
+  });
+  // Update shapes without automatic history saving
+  useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
+
+  // ✅ Context-based history saving for MODIFY operation
+  const context: ShapeContext = {
+    topLevel: [],
+    nested: [
+      // Include the grid
+      {
+        id: grid.id,
+        type: "container",
+        parentId: areaModeContainer.id,
+      },
+      // Include all affected rows
+      ...grid.children.map((row) => ({
+        id: row.id,
+        type: "container",
+        parentId: grid.id,
+      })),
+    ],
+    operation: "modify",
+    containerPositions: {
+      [areaModeContainer.id]: {
+        x: areaModeContainer.x,
+        y: areaModeContainer.y,
+      },
+    },
+  };
+  console.log(beforeRows, grid.children);
+  const action = useSeatMapStore.getState()._saveToHistory(
+    {
+      shapes: beforeRows,
+      selectedShapes: grid.children,
+      context,
+    },
+    {
+      shapes: grid.children,
+      selectedShapes: grid.children,
+      context,
+    }
+  );
+
+  // Broadcast to collaborators
+  SeatMapCollaboration.broadcastShapeChange(action);
+};
+
+export const handleRowLabelPlacementChange = (
+  row: RowShape,
+  placement: "left" | "middle" | "right" | "none"
+): void => {
+  if (!areaModeContainer) return;
+
+  // Find the grid that contains this row
+  const grid = getGridByRowId(row.id);
+  if (!grid) {
+    console.warn(`Grid not found for row ${row.id}`);
+    return;
+  }
+
+  // ✅ Store original values for before state
+  const beforeRow = cloneCanvasItem(row);
+
+  // Apply the label placement change
+  setRowLabelPlacement(row, placement);
+
+  // Update shapes without automatic history saving
+  useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
+
+  // ✅ Context-based history saving for MODIFY operation
+  const context: ShapeContext = {
+    topLevel: [],
+    nested: [
+      {
+        id: row.id,
+        type: "container",
+        parentId: grid.id,
+      },
+    ],
+    operation: "modify",
+    containerPositions: {
+      [areaModeContainer.id]: {
+        x: areaModeContainer.x,
+        y: areaModeContainer.y,
+      },
+    },
+  };
+  console.log(beforeRow, row);
+  const action = useSeatMapStore.getState()._saveToHistory(
+    {
+      shapes: [beforeRow],
+      selectedShapes: [row],
+      context,
+    },
+    {
+      shapes: [row],
+      selectedShapes: [row],
+      context,
+    }
+  );
+
+  // Broadcast to collaborators
+  SeatMapCollaboration.broadcastShapeChange(action);
+};
+
+/**
  * ✅ Set row label placement
  */
 export const setRowLabelPlacement = (
-  rowId: string,
+  row: RowShape,
   placement: "left" | "middle" | "right" | "none"
 ): void => {
-  const row = getRowByIdFromAllGrids(rowId);
-  if (!row) return;
-
   row.labelPlacement = placement;
 
   if (placement === "none") {

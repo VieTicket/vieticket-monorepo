@@ -74,7 +74,6 @@ export class EventManager {
         switch (currentTool) {
           case "rectangle":
           case "ellipse":
-          case "text":
             onDrawStart(event);
             break;
           case "select": {

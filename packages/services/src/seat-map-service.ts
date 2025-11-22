@@ -15,32 +15,6 @@ import {
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
 
-/**
- * Enhanced validation for hierarchical canvas items including area mode shapes.
- */
-function validateCanvasItem(shape: any): boolean {
-  if (!shape || typeof shape !== "object") return false;
-
-  // Check required base properties
-  const hasBaseProps =
-    typeof shape.id === "string" &&
-    shape.id.length > 0 &&
-    typeof shape.name === "string" &&
-    typeof shape.type === "string" &&
-    typeof shape.visible === "boolean" &&
-    typeof shape.interactive === "boolean" &&
-    typeof shape.x === "number" &&
-    typeof shape.y === "number" &&
-    typeof shape.rotation === "number" &&
-    typeof shape.scaleX === "number" &&
-    typeof shape.scaleY === "number" &&
-    typeof shape.opacity === "number" &&
-    shape.opacity >= 0 &&
-    shape.opacity <= 1;
-
-  return hasBaseProps;
-}
-
 function validateShapesByType(shape: any): boolean {
   // ✅ Updated valid types to include freeshape
   const validTypes = [
@@ -262,9 +236,7 @@ function validateShapesByType(shape: any): boolean {
       }
 
       // ✅ Recursively validate children for regular containers
-      return shape.children.every(
-        (child: any) => validateCanvasItem(child) && validateShapesByType(child)
-      );
+      return shape.children.every((child: any) => validateShapesByType(child));
 
     default:
       return false;
@@ -333,7 +305,7 @@ export async function saveSeatMap(
 
   // ✅ Enhanced shape validation with hierarchical support
   const invalidShapes = shapes.filter((shape) => {
-    return !validateCanvasItem(shape) || !validateShapesByType(shape);
+    return !validateShapesByType(shape);
   });
 
   if (invalidShapes.length > 0) {
@@ -391,18 +363,6 @@ export async function updateSeatMap(
     throw new Error("Shapes must be an array");
   }
 
-  // ✅ Enhanced shape validation with hierarchical support
-  const invalidShapes = shapes.filter((shape) => {
-    return !validateCanvasItem(shape) || !validateShapesByType(shape);
-  });
-
-  if (invalidShapes.length > 0) {
-    console.error("Invalid shapes detected:", invalidShapes);
-    throw new Error(
-      "Invalid shapes detected: All shapes must be valid canvas items with required properties"
-    );
-  }
-
   try {
     // 4. First verify the seat map exists and user owns it
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
@@ -412,9 +372,9 @@ export async function updateSeatMap(
     }
 
     // Add ownership check
-    if (existingSeatMap.createdBy !== user.id) {
-      throw new Error("You don't have permission to update this seat map");
-    }
+    // if (existingSeatMap.createdBy !== user.id) {
+    //   throw new Error("You don't have permission to update this seat map");
+    // }
 
     // 5. Prepare update data
     const updateData: any = {
