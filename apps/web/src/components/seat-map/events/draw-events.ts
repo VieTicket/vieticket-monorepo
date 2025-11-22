@@ -33,29 +33,15 @@ export const onDrawStart = (event: PIXI.FederatedPointerEvent) => {
   let snapPoint = { x: localPoint.x, y: localPoint.y };
 
   if (guideLines) {
-    snapPoint = guideLines.snapToGrid(localPoint.x, localPoint.y);
-
-    // Get existing shape snap points
     const snapPoints = getExistingShapeSnapPoints();
-    const objectSnapPoint = guideLines.snapToPoints(
+
+    // Apply enhanced guide line snapping
+    snapPoint = applyEnhancedSnapping(
       localPoint.x,
       localPoint.y,
-      snapPoints
+      snapPoints,
+      guideLines
     );
-
-    // Use object snap if closer than grid snap
-    const gridDistance = Math.sqrt(
-      Math.pow(snapPoint.x - localPoint.x, 2) +
-        Math.pow(snapPoint.y - localPoint.y, 2)
-    );
-    const objectDistance = Math.sqrt(
-      Math.pow(objectSnapPoint.x - localPoint.x, 2) +
-        Math.pow(objectSnapPoint.y - localPoint.y, 2)
-    );
-
-    if (objectDistance < gridDistance) {
-      snapPoint = objectSnapPoint;
-    }
   }
   setDragStart({ x: localPoint.x, y: localPoint.y });
   setIsDrawing(true);
@@ -90,22 +76,14 @@ export const onDrawMove = (event: PIXI.FederatedPointerEvent) => {
   let snapPoint = { x: localPoint.x, y: localPoint.y };
 
   if (guideLines) {
-    snapPoint = guideLines.snapToGrid(localPoint.x, localPoint.y);
-
-    // Get snap points and show guides
     const snapPoints = getExistingShapeSnapPoints();
-    const objectSnapPoint = guideLines.snapToPoints(
+
+    snapPoint = applyEnhancedSnapping(
       localPoint.x,
       localPoint.y,
-      snapPoints
+      snapPoints,
+      guideLines
     );
-
-    if (
-      objectSnapPoint.x !== localPoint.x ||
-      objectSnapPoint.y !== localPoint.y
-    ) {
-      snapPoint = objectSnapPoint;
-    }
 
     // Show snap guides
     guideLines.showSnapGuides(snapPoint.x, snapPoint.y, snapPoints);
@@ -130,29 +108,17 @@ export const onDrawEnd = (event: PIXI.FederatedPointerEvent) => {
   let snapPoint = { x: localPoint.x, y: localPoint.y };
 
   if (guideLines) {
-    snapPoint = guideLines.snapToGrid(localPoint.x, localPoint.y);
-
     const snapPoints = getExistingShapeSnapPoints();
-    const objectSnapPoint = guideLines.snapToPoints(
+
+    // Apply enhanced guide line snapping
+    snapPoint = applyEnhancedSnapping(
       localPoint.x,
       localPoint.y,
-      snapPoints
+      snapPoints,
+      guideLines
     );
 
-    const gridDistance = Math.sqrt(
-      Math.pow(snapPoint.x - localPoint.x, 2) +
-        Math.pow(snapPoint.y - localPoint.y, 2)
-    );
-    const objectDistance = Math.sqrt(
-      Math.pow(objectSnapPoint.x - localPoint.x, 2) +
-        Math.pow(objectSnapPoint.y - localPoint.y, 2)
-    );
-
-    if (objectDistance < gridDistance) {
-      snapPoint = objectSnapPoint;
-    }
-
-    // ✅ Clear guides after drawing
+    // Clear guides after drawing
     guideLines.clearAll();
   }
 
@@ -187,6 +153,63 @@ export const onDrawEnd = (event: PIXI.FederatedPointerEvent) => {
   if (shapeCreated) {
     useSeatMapStore.getState().updateShapes(shapes, true);
   }
+};
+
+const applyEnhancedSnapping = (
+  x: number,
+  y: number,
+  snapPoints: Array<{ x: number; y: number }>,
+  guideLines: any
+): { x: number; y: number } => {
+  const GUIDE_LINE_SNAP_THRESHOLD = 5; // 3-5px threshold for guide line snapping
+
+  let finalX = x;
+  let finalY = y;
+
+  // First apply grid snapping
+  const gridSnap = guideLines.snapToGrid(x, y);
+
+  // Then apply object snapping
+  const objectSnap = guideLines.snapToPoints(x, y, snapPoints);
+
+  // Check for guide line alignment (vertical and horizontal lines through snap points)
+  let alignedToVerticalGuide = false;
+  let alignedToHorizontalGuide = false;
+
+  // Check if current position is near any vertical guide lines
+  for (const point of snapPoints) {
+    const distanceToVerticalLine = Math.abs(x - point.x);
+    if (distanceToVerticalLine <= GUIDE_LINE_SNAP_THRESHOLD) {
+      finalX = point.x; // Snap to the vertical guide line
+      alignedToVerticalGuide = true;
+      break;
+    }
+  }
+
+  // Check if current position is near any horizontal guide lines
+  for (const point of snapPoints) {
+    const distanceToHorizontalLine = Math.abs(y - point.y);
+    if (distanceToHorizontalLine <= GUIDE_LINE_SNAP_THRESHOLD) {
+      finalY = point.y; // Snap to the horizontal guide line
+      alignedToHorizontalGuide = true;
+      break;
+    }
+  }
+
+  // If not aligned to guide lines, use standard snapping priority
+  if (!alignedToVerticalGuide) {
+    const gridDistanceX = Math.abs(gridSnap.x - x);
+    const objectDistanceX = Math.abs(objectSnap.x - x);
+    finalX = objectDistanceX < gridDistanceX ? objectSnap.x : gridSnap.x;
+  }
+
+  if (!alignedToHorizontalGuide) {
+    const gridDistanceY = Math.abs(gridSnap.y - y);
+    const objectDistanceY = Math.abs(objectSnap.y - y);
+    finalY = objectDistanceY < gridDistanceY ? objectSnap.y : gridSnap.y;
+  }
+
+  return { x: finalX, y: finalY };
 };
 
 const getExistingShapeSnapPoints = (): Array<{ x: number; y: number }> => {
