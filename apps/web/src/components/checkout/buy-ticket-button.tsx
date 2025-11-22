@@ -2,6 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Ticket } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ export function BuyTicketButton({
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const queryClient = useQueryClient();
+  const t = useTranslations("event.details");
 
   const fetchTicketsMutation = useMutation({
     mutationFn: async (eventId: string) => {
@@ -80,7 +82,7 @@ export function BuyTicketButton({
     }
 
     if (!eventId) {
-      toast.error("Event ID is required to purchase tickets");
+      toast.error(t("eventIdRequired"));
       return;
     }
 
@@ -96,10 +98,10 @@ export function BuyTicketButton({
     >
       <Ticket className="w-5 h-5" />
       {fetchTicketsMutation.isPending
-        ? "Loading..."
+        ? t("loading")
         : isPreview
-          ? "Buy Tickets (Preview)"
-          : "Buy Tickets"}
+          ? t("buyTicketsPreview")
+          : t("buyTickets")}
     </Button>
   );
 }

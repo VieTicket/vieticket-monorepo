@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { useTicketData, useShowingTicketData } from "@/hooks/use-ticket-data";
 import { use, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,6 +35,7 @@ interface SeatSelectionPageProps {
 export default function SeatSelectionPage({
   searchParams,
 }: SeatSelectionPageProps) {
+  const t = useTranslations("event.seatSelection");
   const { eventId, showingId } = use(searchParams);
   const router = useRouter();
   const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
@@ -224,7 +226,7 @@ export default function SeatSelectionPage({
     }
 
     if (!selectedShowingId && showings.length > 0) {
-      toast.error("Please select a showing first");
+      toast.error(t("selectShowingFirst"));
       return;
     }
 
@@ -256,7 +258,7 @@ export default function SeatSelectionPage({
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4" />
-          <p>Loading ticket information...</p>
+          <p>{t("loading")}</p>
         </div>
       </div>
     );
@@ -268,9 +270,9 @@ export default function SeatSelectionPage({
         <Card className="max-w-md">
           <CardContent className="p-6 text-center">
             <p className="text-red-600 mb-4">
-              Error loading tickets: {error.message}
+              {t("errorLoadingTickets")} {error.message}
             </p>
-            <Button onClick={() => router.back()}>Go Back</Button>
+            <Button onClick={() => router.back()}>{t("goBack")}</Button>
           </CardContent>
         </Card>
       </div>
@@ -329,7 +331,7 @@ export default function SeatSelectionPage({
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Select Your Seats
+          {t("title")}
         </h1>
         <div className="flex items-center gap-2 text-gray-600 mb-4">
           <MapPin className="w-4 h-4" />
@@ -353,7 +355,7 @@ export default function SeatSelectionPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calendar className="w-5 h-5" />
-              Select Showing
+              {t("selectShowing")}
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -362,7 +364,7 @@ export default function SeatSelectionPage({
               onValueChange={handleShowingChange}
             >
               <SelectTrigger className="w-full">
-                <SelectValue placeholder="Choose a showing time" />
+                <SelectValue placeholder={t("selectShowing")} />
               </SelectTrigger>
               <SelectContent>
                 {showings.map((showing: any) => {
@@ -511,18 +513,18 @@ export default function SeatSelectionPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  Seating Chart
+                  {t("seatMap")}
                 </CardTitle>
 
                 {/* Legend */}
                 <div className="flex flex-wrap gap-4 text-sm">
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                    <span>Available</span>
+                    <span>{t("available")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                    <span>Selected</span>
+                    <span>{t("selected")}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-yellow-500 rounded"></div>
@@ -530,7 +532,7 @@ export default function SeatSelectionPage({
                   </div>
                   <div className="flex items-center gap-2">
                     <div className="w-4 h-4 bg-red-500 rounded"></div>
-                    <span>Sold</span>
+                    <span>{t("occupied")}</span>
                   </div>
                 </div>
               </CardHeader>
@@ -596,21 +598,21 @@ export default function SeatSelectionPage({
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CreditCard className="w-5 h-5" />
-                  Order Summary
+                  {t("orderSummary")}
                 </CardTitle>
               </CardHeader>
 
               <CardContent className="space-y-4">
                 {maxTicketsByOrder && (
                   <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                    Selected: {selectedSeats.length} / {maxTicketsByOrder}{" "}
-                    tickets
+                    {t("selected")}: {selectedSeats.length} / {maxTicketsByOrder}{" "}
+                    {t("tickets")}
                   </div>
                 )}
 
                 {selectedSeats.length === 0 ? (
                   <p className="text-gray-500 text-center py-4">
-                    No seats selected
+                    {t("noSeatsSelected")}
                   </p>
                 ) : (
                   <>
@@ -621,7 +623,7 @@ export default function SeatSelectionPage({
                           className="flex justify-between text-sm"
                         >
                           <span>
-                            {seat.areaName} - {seat.rowName} - Seat{" "}
+                            {seat.areaName} - {seat.rowName} - {t("seat")}{" "}
                             {seat.seatNumber}
                           </span>
                           <span>{formatCurrencyVND(seat.price)}</span>
@@ -632,7 +634,7 @@ export default function SeatSelectionPage({
                     <Separator />
 
                     <div className="flex justify-between font-semibold">
-                      <span>Total ({selectedSeats.length} seats)</span>
+                      <span>{t("totalAmount")} ({selectedSeats.length} seats)</span>
                       <span>{formatCurrencyVND(calculateTotal())}</span>
                     </div>
                   </>
@@ -655,10 +657,10 @@ export default function SeatSelectionPage({
               {isCreatingOrder ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  Creating Order...
+                  {t("creatingOrder")}
                 </>
               ) : (
-                "Proceed to Payment"
+                t("proceedToCheckout")
               )}
             </Button>
           </div>
@@ -671,10 +673,10 @@ export default function SeatSelectionPage({
           <CardContent className="p-8 text-center">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              Select a Showing
+              {t("selectShowing")}
             </h3>
             <p className="text-gray-600">
-              Please choose a showing time above to view available seats.
+              {t("selectShowingFirst")}
             </p>
           </CardContent>
         </Card>
