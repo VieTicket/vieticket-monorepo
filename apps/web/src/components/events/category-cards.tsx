@@ -1,10 +1,10 @@
 "use client";
-import { useTranslations } from "next-intl";
+
+import React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import React from "react";
+import { useTranslations } from "next-intl";
 
-// Reusable Category Card component
 interface CategoryCardProps {
   title: string;
   imageUrl: string;

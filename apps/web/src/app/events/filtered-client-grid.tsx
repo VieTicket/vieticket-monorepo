@@ -122,25 +122,9 @@ export default function FilteredClientGrid() {
     // Reset to first page when filters change
     setCurrentPage(1);
     
-    // Track filter selection for AI learning
-    if (key === 'location' && value !== 'all') {
-      console.log('📍 User filtering by location:', value);
-      trackFilterSelection('location', value);
-    } else if (key === 'category' && value !== 'all') {
-      console.log('🏷️ User filtering by category:', value);
-      trackFilterSelection('category', value);
-    } else if (key === 'price' && value !== 'all') {
-      // Parse price range from filter value (assuming format like "100000-500000")
-      const [min, max] = value.split('-').map(Number);
-      if (min && max) {
-        console.log('💰 User filtering by price:', { min, max });
-        trackFilterSelection('price', { min, max });
-      }
-    } else if (key === 'date' && value !== 'all') {
-      console.log('📅 User filtering by date:', value);
-      trackFilterSelection('date', value);
-    }
-  }, [router, trackFilterSelection]); // Keep trackFilterSelection for immediate tracking
+    // Note: trackCurrentFilters in useEffect will handle tracking to avoid double-tracking
+    console.log('🔄 Filter changed:', key, '=', value);
+  }, [router]); // Removed trackFilterSelection to prevent double tracking
 
   // All events loaded from server
   const allEvents = useMemo(() => {
@@ -188,6 +172,7 @@ export default function FilteredClientGrid() {
                 aiPool={allEvents}
                 renderLimit={eventsToShow}
                 showAIRecommendations={false}
+                waitForAI={hasSignificantBehavior}
               />
               
               {hasMore && (
