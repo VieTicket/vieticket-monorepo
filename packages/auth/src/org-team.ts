@@ -2,6 +2,7 @@ import { organizationClient } from "better-auth/client/plugins";
 import { organization, type UserWithRole } from "better-auth/plugins";
 import { createAccessControl } from "better-auth/plugins/access";
 import { defaultStatements, memberAc } from "better-auth/plugins/organization/access";
+import { sendOrganizationInvitationEmail } from "./emails/org-invitation";
 
 const statement = {
     ...defaultStatements,
@@ -64,6 +65,7 @@ const org_team = organization({
         },
     },
     allowUserToCreateOrganization,
+    sendInvitationEmail: sendOrganizationInvitationEmail,
     requireEmailVerificationOnInvitation: true,
 });
 
