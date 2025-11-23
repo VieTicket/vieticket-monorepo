@@ -29,6 +29,7 @@
     "resend": "^6.4.2"
   },
   "catalog": {
+    "better-auth": "^1.4.1",
     "drizzle-orm": "^0.44.7",
     "typescript": "5.9.3"
   }

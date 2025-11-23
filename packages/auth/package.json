@@ -10,7 +10,7 @@
   "dependencies": {
     "@vieticket/db": "workspace:",
     "@vieticket/utils": "workspace:",
-    "better-auth": "^1.3.34"
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "latest"

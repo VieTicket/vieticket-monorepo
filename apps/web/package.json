@@ -46,7 +46,7 @@
     "@yudiel/react-qr-scanner": "^2.3.1",
     "ai": "^5.0.68",
     "axios": "^1.10.0",
-    "better-auth": "^1.2.8",
+    "better-auth": "catalog:",
     "canvas": "^3.0.0-rc3",
     "chart.js": "^4.5.0",
     "class-variance-authority": "^0.7.1",

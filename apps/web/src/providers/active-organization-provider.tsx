@@ -71,10 +71,9 @@ export function ActiveOrganizationProvider({
  *
  * Use this hook when you need to switch the active organization or check which ID is currently active.
  *
- * @returns {ActiveOrgContextValue} The context value containing `activeOrganizationId` and `setActiveOrganizationId`.
  * @throws {Error} If used outside of an `ActiveOrganizationProvider`.
  */
-export function useActiveOrganizationId() {
+export function useActiveOrganizationId(): ActiveOrgContextValue {
   const context = useContext(ActiveOrgContext);
   if (context === undefined) {
     throw new Error(

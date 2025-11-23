@@ -1,7 +1,7 @@
 import { db } from "@vieticket/db/pg/direct";
 import { member } from "@vieticket/db/pg/schemas/users";
 import { and, eq } from "drizzle-orm";
-import { acAndRole } from "../org-team";
+import { acAndRole } from "../org-team/config";
 
 /**
  * Checks if a user is a member of a specific organization.
