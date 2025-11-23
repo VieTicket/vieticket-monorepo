@@ -17,6 +17,39 @@
  */
 
 import { beforeEach, describe, expect, mock, test } from "bun:test";
+
+// Mock VNPay completely before any import
+mock.module("@vieticket/utils/vnpay", () => {
+  const mockVNPayInstance = {
+    createPaymentUrl: mock().mockReturnValue(
+      "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    ),
+    verifySignature: mock().mockReturnValue(true),
+  };
+
+  return {
+    vnpay: mockVNPayInstance,
+    configureVNPay: mock().mockReturnValue(mockVNPayInstance),
+    createVNPayInstance: mock().mockReturnValue(mockVNPayInstance),
+    getConfigFromEnv: mock().mockReturnValue({
+      tmnCode: "test-tmncode",
+      secureSecret: "test-secret",
+      vnpayHost: "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html",
+      enableSandbox: true,
+    }),
+  };
+});
+
+// Mock vnpay library directly
+mock.module("vnpay/vnpay", () => ({
+  VNPay: mock(() => ({
+    createPaymentUrl: mock().mockReturnValue(
+      "https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
+    ),
+    verifySignature: mock().mockReturnValue(true),
+  })),
+}));
+
 import { User } from "@vieticket/db/pg/schema";
 
 // Mock dependencies
