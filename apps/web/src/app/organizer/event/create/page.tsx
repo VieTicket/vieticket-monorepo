@@ -365,7 +365,6 @@ function CreateEventPageInner() {
         });
 
         if (event.seatMapId) {
-          console.log("📥 Loading existing seat map:", event.seatMapId);
           const gridDataResult = await getSeatMapGridDataAction(
             event.seatMapId
           );
@@ -493,8 +492,6 @@ function CreateEventPageInner() {
 
   // ✅ Corrected seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
-    console.log("📥 Processing seat map selection:", seatMap.name);
-
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 
@@ -757,6 +754,7 @@ function CreateEventPageInner() {
     });
 
     if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
+      console.log(selectedSeatMap);
       form.set("seatMapId", selectedSeatMap);
       form.set(
         "seatMapData",

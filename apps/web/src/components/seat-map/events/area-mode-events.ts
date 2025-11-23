@@ -130,7 +130,6 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
     const seatRadius = areaModeContainer.defaultSeatSettings.seatRadius;
     const gridName = `Grid ${areaModeContainer.children.length + 1}`;
 
-    // ✅ Updated: createSeatGrid now returns SeatShape[] but we need to get the created grid
     const seats = createSeatGrid(
       startX + seatRadius,
       startY + seatRadius,
@@ -141,22 +140,18 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
       gridName
     );
 
-    // ✅ Get the newly created grid (last one added to areaModeContainer)
     const newGrid =
       areaModeContainer.children[areaModeContainer.children.length - 1];
 
-    // ✅ Ensure the grid graphics is added to the area mode container graphics
     if (!areaModeContainer.graphics.children.includes(newGrid.graphics)) {
       areaModeContainer.graphics.addChild(newGrid.graphics);
     }
 
     const afterAreaModeContainer = cloneCanvasItem(areaModeContainer);
 
-    // ✅ Updated context: Now we track the grid and all its nested content
     const creationContext: ShapeContext = {
       topLevel: [],
       nested: [
-        // ✅ Add the grid itself as a nested item
         {
           id: newGrid.id,
           type: newGrid.type,
@@ -196,7 +191,6 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
   setDragStart(null);
 
   if (gridCreated) {
-    // ✅ Update shapes with the entire shapes array (not just areaModeContainer.children)
     useSeatMapStore.getState().updateShapes([...shapes], false);
   }
 };
@@ -208,11 +202,9 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
 
   selectedShapes.forEach((shape) => {
     if (shape.type === "ellipse" && "gridId" in shape && "rowId" in shape) {
-      // Direct seat selection
       const seat = shape as SeatShape;
       seats.push(seat);
     } else if (shape.type === "container" && "gridName" in shape) {
-      // Grid selection - add all seats from all rows
       const grid = shape as GridShape;
       grid.children.forEach((row: RowShape) => {
         seats.push(...row.children);
@@ -222,7 +214,6 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
       "rowName" in shape &&
       "gridId" in shape
     ) {
-      // Row selection - add all seats from this row
       const row = shape as RowShape;
       seats.push(...row.children);
     }
@@ -233,10 +224,9 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
     return;
   }
 
-  // ✅ Simplified: Just clone the affected seats before making changes
   const beforeSeats = seats.map((seat) => ({
     ...seat,
-    graphics: seat.graphics, // Keep reference to graphics
+    graphics: seat.graphics,
   }));
 
   const seatsByRow: Record<string, SeatShape[]> = {};
@@ -342,7 +332,6 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
     });
   });
 
-  // ✅ Update affected row labels
   const affectedRowIds = new Set<string>();
   seats.forEach((seat) => affectedRowIds.add(seat.rowId));
 
@@ -357,13 +346,11 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
 
   updateMultipleRowLabelRotations(affectedRows);
 
-  // ✅ Simplified: Just clone the affected seats after making changes
   const afterSeats = seats.map((seat) => ({
     ...seat,
-    graphics: seat.graphics, // Keep reference to graphics
+    graphics: seat.graphics,
   }));
 
-  // ✅ Update shapes with the entire shapes array
   const shapes = useSeatMapStore.getState().shapes;
   useSeatMapStore.getState().updateShapes([...shapes], false);
 
@@ -372,7 +359,6 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
     selectionTransform.updateSelection(selectedShapes);
   }
 
-  // ✅ Simplified history saving - just use standard modify operation
   const action = useSeatMapStore.getState()._saveToHistory(
     {
       shapes: beforeSeats,

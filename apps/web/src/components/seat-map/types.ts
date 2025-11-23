@@ -46,10 +46,16 @@ export interface SeatLabelStyle {
   strokeWidth?: number;
 }
 
+export interface SeatStatus {
+  name: "available" | "reserved" | "sold" | "blocked";
+  color: number;
+}
+
 export interface SeatShape extends Omit<EllipseShape, "graphics"> {
   graphics: PIXI.Container;
   rowId: string;
   gridId: string;
+  status: SeatStatus;
   seatGraphics: PIXI.Graphics;
   labelGraphics: PIXI.Text;
   showLabel: boolean;

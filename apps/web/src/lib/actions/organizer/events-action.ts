@@ -11,6 +11,7 @@ import {
   updateEventWithShowingsAndAreas,
   updateEventWithShowingsAndAreasIndividual,
 } from "@/lib/services/eventService";
+import { duplicateSeatMapForEvent } from "@vieticket/services/seat-map"; // ✅ Import the duplication function
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
@@ -87,25 +88,14 @@ function validateSeatMapData(seatMapData: string): void {
     // Validate each grid
     parsed.grids.forEach((grid: any, index: number) => {
       if (
-        !grid.rows ||
-        !Number.isInteger(grid.rows) ||
-        grid.rows <= 0 ||
-        grid.rows > 1000
+        !grid.children ||
+        grid.children.length <= 0 ||
+        grid.children.length > 1000
       ) {
         throw new Error(`Grid ${index + 1}: rows must be between 1 and 1000`);
       }
-      if (
-        !grid.seatsPerRow ||
-        !Number.isInteger(grid.seatsPerRow) ||
-        grid.seatsPerRow <= 0 ||
-        grid.seatsPerRow > 1000
-      ) {
-        throw new Error(
-          `Grid ${index + 1}: seats per row must be between 1 and 1000`
-        );
-      }
-      if (grid.ticketPrice !== undefined) {
-        validateTicketPrice(grid.ticketPrice, `Grid ${index + 1}`);
+      if (grid.seatSettings.price !== undefined) {
+        validateTicketPrice(grid.seatSettings.price, `Grid ${index + 1}`);
       }
     });
   } catch (error: any) {
@@ -224,21 +214,13 @@ export async function handleCreateEvent(
 
   const slug = slugify(eventName, true);
   const ticketingMode = formData.get("ticketingMode") as string;
-  const seatMapId = formData.get("seatMapId") as string;
+  const originalSeatMapId = formData.get("seatMapId") as string; // ✅ Renamed to be clear
   const seatMapData = formData.get("seatMapData") as string;
 
   // Validate seat map data nếu có
   if (ticketingMode === "seatmap" && seatMapData) {
     validateSeatMapData(seatMapData);
   }
-
-  console.log(formData);
-  console.log("📥 Creating event:", {
-    eventName,
-    ticketingMode,
-    seatMapId: seatMapId || "none",
-    hasSeatMapData: !!seatMapData,
-  });
 
   let showingIndex = 0;
   const showings: {
@@ -260,13 +242,11 @@ export async function handleCreateEvent(
       name: name.toString(),
       startTime: new Date(startTime.toString()),
       endTime: new Date(endTime.toString()),
-      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+      // ✅ Don't set seatMapId yet - we'll update it after duplication
     });
 
     showingIndex++;
   }
-
-  console.log(`📋 Parsed ${showings.length} showings`);
 
   // Validate showings
   validateShowings(showings);
@@ -295,6 +275,7 @@ export async function handleCreateEvent(
       })()
     : null;
 
+  // ✅ Continue parsing showings with ticket sale times
   while (true) {
     const name = formData.get(`showings[${showingIndex}].name`);
     const startTime = formData.get(`showings[${showingIndex}].startTime`);
@@ -345,7 +326,7 @@ export async function handleCreateEvent(
       endTime: endDate,
       ticketSaleStart: ticketSaleStartDate,
       ticketSaleEnd: ticketSaleEndDate,
-      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+      // ✅ Don't set seatMapId yet - we'll update it after duplication
     });
 
     showingIndex++;
@@ -355,60 +336,27 @@ export async function handleCreateEvent(
     throw new Error("At least one showing is required");
   }
 
-  while (true) {
-    const name = formData.get(`showings[${showingIndex}].name`);
-    const startTime = formData.get(`showings[${showingIndex}].startTime`);
-    const endTime = formData.get(`showings[${showingIndex}].endTime`);
-    const ticketSaleStart = formData.get(
-      `showings[${showingIndex}].ticketSaleStart`
-    );
-    const ticketSaleEnd = formData.get(
-      `showings[${showingIndex}].ticketSaleEnd`
+  // ✅ Duplicate seat map if in seatmap mode
+  let duplicatedSeatMapId: string | null = null;
+  if (ticketingMode === "seatmap" && originalSeatMapId && seatMapData) {
+    const duplicationResult = await duplicateSeatMapForEvent(
+      originalSeatMapId,
+      eventName,
+      organizerId
     );
 
-    if (!name || !startTime || !endTime) break;
-
-    const startDate = new Date(startTime.toString());
-    const endDate = new Date(endTime.toString());
-
-    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
-      throw new Error(`Invalid date format in showing: ${name}`);
+    if (!duplicationResult.success) {
+      throw new Error(
+        `Seat map duplication failed: ${duplicationResult.error}`
+      );
     }
 
-    const ticketSaleStartDate =
-      ticketSaleStart && ticketSaleStart.toString().trim() !== ""
-        ? (() => {
-            const date = new Date(ticketSaleStart.toString());
-            return isNaN(date.getTime()) ? null : date;
-          })()
-        : (() => {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() - 7);
-            return date;
-          })();
+    duplicatedSeatMapId = duplicationResult.seatMapId!;
 
-    const ticketSaleEndDate =
-      ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
-        ? (() => {
-            const date = new Date(ticketSaleEnd.toString());
-            return isNaN(date.getTime()) ? null : date;
-          })()
-        : (() => {
-            const date = new Date(startDate);
-            date.setHours(date.getHours() - 1);
-            return date;
-          })();
-
-    showings.push({
-      name: name.toString(),
-      startTime: startDate,
-      endTime: endDate,
-      ticketSaleStart: ticketSaleStartDate,
-      ticketSaleEnd: ticketSaleEndDate,
-      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+    // ✅ Update all showings to use the duplicated seat map
+    showings.forEach((showing) => {
+      showing.seatMapId = duplicatedSeatMapId!;
     });
-
-    showingIndex++;
   }
 
   const eventPayload = {
@@ -424,7 +372,7 @@ export async function handleCreateEvent(
     ticketSaleEnd: eventTicketSaleEnd,
     posterUrl: posterUrl || null,
     bannerUrl: bannerUrl || null,
-    seatMapId: seatMapId || null,
+    seatMapId: duplicatedSeatMapId || null, // ✅ Use duplicated seat map ID
     organizerId,
     approvalStatus: "pending" as const,
     views: 0,
@@ -434,7 +382,7 @@ export async function handleCreateEvent(
 
   let result;
 
-  if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
+  if (ticketingMode === "seatmap" && duplicatedSeatMapId && seatMapData) {
     const parsedSeatMapData = JSON.parse(seatMapData);
     const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
     const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
@@ -497,14 +445,7 @@ export async function handleCreateEvent(
           `showingConfigs[0].areas[${areaIndex}].ticketPrice`
         );
 
-        console.log(`🔍 Copy mode area ${areaIndex}:`, {
-          name,
-          seatCount,
-          ticketPrice,
-        });
-
         if (!name || !seatCount || !ticketPrice) {
-          console.log(`🔍 Breaking at area ${areaIndex} due to missing data`);
           break;
         }
 
@@ -581,7 +522,6 @@ export async function handleCreateEvent(
     }
   }
 
-  console.log("✅ Event created successfully:", result?.eventId);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   return result ? { eventId: result.eventId } : undefined;
@@ -613,20 +553,13 @@ export async function handleUpdateEvent(formData: FormData) {
   validateMaxTicketsByOrder(maxTicketsByOrder);
 
   const ticketingMode = formData.get("ticketingMode") as string;
-  const seatMapId = formData.get("seatMapId") as string;
+  const originalSeatMapId = formData.get("seatMapId") as string; // ✅ Renamed to be clear
   const seatMapData = formData.get("seatMapData") as string;
 
   // Validate seat map data nếu có
   if (ticketingMode === "seatmap" && seatMapData) {
     validateSeatMapData(seatMapData);
   }
-
-  console.log("📝 Updating event:", {
-    eventId,
-    ticketingMode,
-    seatMapId: seatMapId || "none",
-    hasSeatMapData: !!seatMapData,
-  });
 
   const existingEvent = await getEventById(eventId);
   if (!existingEvent) {
@@ -693,10 +626,38 @@ export async function handleUpdateEvent(formData: FormData) {
       endTime: endDate,
       ticketSaleStart: ticketSaleStartDate,
       ticketSaleEnd: ticketSaleEndDate,
-      seatMapId: ticketingMode === "seatmap" ? seatMapId : undefined,
+      // ✅ Don't set seatMapId yet - we'll handle it after duplication check
     });
 
     showingIndex++;
+  }
+
+  // ✅ Check if seat map needs to be duplicated for updates
+  let finalSeatMapId: string | null = existingEvent.seatMapId;
+
+  if (ticketingMode === "seatmap" && originalSeatMapId && seatMapData) {
+    // ✅ Check if the seat map has changed
+    if (originalSeatMapId !== existingEvent.seatMapId) {
+      const duplicationResult = await duplicateSeatMapForEvent(
+        originalSeatMapId,
+        eventName,
+        organizerId
+      );
+
+      if (!duplicationResult.success) {
+        throw new Error(
+          `Seat map duplication failed: ${duplicationResult.error}`
+        );
+      }
+
+      finalSeatMapId = duplicationResult.seatMapId!;
+    } else {
+    }
+
+    // ✅ Update all showings to use the final seat map ID
+    showings.forEach((showing) => {
+      showing.seatMapId = finalSeatMapId!;
+    });
   }
 
   const eventStartTime =
@@ -761,7 +722,7 @@ export async function handleUpdateEvent(formData: FormData) {
       : null,
     posterUrl: (formData.get("posterUrl") as string) || null,
     bannerUrl: (formData.get("bannerUrl") as string) || null,
-    seatMapId: seatMapId || null,
+    seatMapId: finalSeatMapId, // ✅ Use the final seat map ID (existing or newly duplicated)
     updatedAt: new Date(),
     organizerId,
     createdAt: existingEvent.createdAt
@@ -773,7 +734,7 @@ export async function handleUpdateEvent(formData: FormData) {
 
   let result;
 
-  if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
+  if (ticketingMode === "seatmap" && finalSeatMapId && seatMapData) {
     const parsedSeatMapData = JSON.parse(seatMapData);
     const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
     const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
@@ -908,7 +869,6 @@ export async function handleUpdateEvent(formData: FormData) {
     }
   }
 
-  console.log("✅ Event updated successfully:", eventId);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   revalidatePath(`/event/${existingEvent.slug}`);

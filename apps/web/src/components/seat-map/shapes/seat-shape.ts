@@ -90,6 +90,7 @@ export const createSeat = (
     graphics: container,
     seatGraphics,
     labelGraphics,
+    status: { name: "available", color: seatSettings.seatColor },
     x, // Store relative position
     y, // Store relative position
     radiusX: seatSettings.seatRadius,
@@ -179,7 +180,7 @@ export const recreateSeat = (
     labelGraphics,
     x: seatData.x,
     y: seatData.y,
-    // ✅ Apply settings from grid or use original data
+    status: seatData.status,
     radiusX: effectiveSettings.seatRadius,
     radiusY: effectiveSettings.seatRadius,
     color: effectiveSettings.seatColor,

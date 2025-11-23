@@ -19,7 +19,7 @@ import {
   incrementEventView,
   updateEventById,
   updateEventWithShowingsIndividualOptimized,
-  updateEventWithShowingsOptimized
+  updateEventWithShowingsOptimized,
 } from "../queries/events-mutation";
 import { createEventInputSchema } from "../validaters/validateEvent";
 
@@ -157,7 +157,6 @@ export async function createEventWithShowingsAndSeatMap(
   await db.transaction(async () => {
     const [createdEvent] = await createEvent(validEvent);
     createdEventId = createdEvent.id;
-    console.log("✅ Event created:", createdEventId);
 
     const createdShowings = [];
     for (const showing of showings) {
@@ -171,12 +170,9 @@ export async function createEventWithShowingsAndSeatMap(
         seatMapId: showing.seatMapId || null,
       });
       createdShowings.push(createdShowing);
-      console.log(`✅ Showing created: ${createdShowing.name}`);
     }
 
     for (const showing of createdShowings) {
-      console.log(`📊 Processing ${grids.length} grids for: ${showing.name}`);
-
       for (const grid of grids) {
         const gridPrice =
           grid.seatSettings?.price || defaultSeatSettings?.price || 0;
@@ -207,7 +203,6 @@ export async function createEventWithShowingsAndSeatMap(
           }
         }
       }
-      console.log(`  ✅ Created ${grids.length} grids for: ${showing.name}`);
     }
   });
 
@@ -246,7 +241,6 @@ export async function createEventWithShowingsAndSeatMapIndividual(
   await db.transaction(async () => {
     const [createdEvent] = await createEvent(validEvent);
     createdEventId = createdEvent.id;
-    console.log("✅ Event created:", createdEventId);
 
     for (let i = 0; i < showings.length; i++) {
       const showing = showings[i];
@@ -261,8 +255,6 @@ export async function createEventWithShowingsAndSeatMapIndividual(
         ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
-      console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
-      console.log(`📊 Processing ${grids.length} grids for showing ${i + 1}`);
 
       for (const grid of grids) {
         const gridPrice =
@@ -277,8 +269,6 @@ export async function createEventWithShowingsAndSeatMapIndividual(
           name: grid.name,
           price: gridPrice,
         });
-
-        console.log(`    ✅ Area created: ${grid.name} (${uniqueGridId})`);
 
         for (const row of grid.rows) {
           const uniqueRowId = uuidv4();
@@ -298,11 +288,8 @@ export async function createEventWithShowingsAndSeatMapIndividual(
           if (seatValues.length > 0) {
             await createSeatsWithIds(seatValues);
           }
-
-          console.log(`      ✅ Row ${row.name}: ${seatValues.length} seats`);
         }
       }
-      console.log(`  ✅ Created ${grids.length} grids for showing ${i + 1}`);
     }
   });
 
@@ -410,11 +397,9 @@ export async function updateEventWithShowingsAndSeatMap(
 
   await db.transaction(async () => {
     await updateEventById(event.id, validEvent);
-    console.log("✅ Event updated:", event.id);
 
     await deleteAreasByEventId(event.id);
     await deleteShowingsByEventId(event.id);
-    console.log("🗑️ Old showings and areas deleted");
 
     const createdShowings = [];
     for (const showing of showings) {
@@ -428,12 +413,9 @@ export async function updateEventWithShowingsAndSeatMap(
         seatMapId: showing.seatMapId || null,
       });
       createdShowings.push(createdShowing);
-      console.log(`✅ Showing created: ${createdShowing.name}`);
     }
 
     for (const showing of createdShowings) {
-      console.log(`📊 Processing ${grids.length} grids for: ${showing.name}`);
-
       for (const grid of grids) {
         const gridPrice =
           grid.seatSettings?.price || defaultSeatSettings?.price || 0;
@@ -446,17 +428,17 @@ export async function updateEventWithShowingsAndSeatMap(
           price: gridPrice,
         });
 
-        for (const row of grid.rows) {
+        for (const row of grid.children) {
           await createRowWithId({
             id: row.id,
             areaId: grid.id,
             rowName: row.name,
           });
 
-          const seatValues = row.seats.map((seatId) => ({
-            id: seatId,
+          const seatValues = row.children.map((seat) => ({
+            id: seat.id,
             rowId: row.id,
-            seatNumber: seatId.split("-").pop() || seatId,
+            seatNumber: seat.id.split("-").pop() || seat.id,
           }));
 
           if (seatValues.length > 0) {
@@ -464,7 +446,6 @@ export async function updateEventWithShowingsAndSeatMap(
           }
         }
       }
-      console.log(`  ✅ Created ${grids.length} grids for: ${showing.name}`);
     }
   });
 }
@@ -498,11 +479,9 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
 
   await db.transaction(async () => {
     await updateEventById(event.id, validEvent);
-    console.log("✅ Event updated:", event.id);
 
     await deleteAreasByEventId(event.id);
     await deleteShowingsByEventId(event.id);
-    console.log("🗑️ Old showings and areas deleted");
 
     for (let i = 0; i < showings.length; i++) {
       const showing = showings[i];
@@ -517,8 +496,6 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
         ticketSaleEnd: showing.ticketSaleEnd || null,
         seatMapId: showing.seatMapId || null,
       });
-      console.log(`✅ Showing ${i + 1} created: ${createdShowing.name}`);
-      console.log(`📊 Processing ${grids.length} grids for showing ${i + 1}`);
 
       for (const grid of grids) {
         const gridPrice =
@@ -554,7 +531,6 @@ export async function updateEventWithShowingsAndSeatMapIndividual(
           }
         }
       }
-      console.log(`  ✅ Created ${grids.length} grids for showing ${i + 1}`);
     }
   });
 }
