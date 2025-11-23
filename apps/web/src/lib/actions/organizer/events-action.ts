@@ -588,8 +588,9 @@ export async function handleCreateEvent(
 }
 
 export async function handleUpdateEvent(formData: FormData) {
-  const session = await authorise("organizer");
-  const organizerId = session.user.id;
+  try {
+    const session = await authorise("organizer");
+    const organizerId = session.user.id;
 
   // Extract và validate basic fields first
   const eventId = formData.get("eventId") as string;
@@ -630,7 +631,7 @@ export async function handleUpdateEvent(formData: FormData) {
 
   const existingEvent = await getEventById(eventId);
   if (!existingEvent) {
-    throw new Error("Event not found");
+    return { success: false, error: "Event not found" };
   }
 
   const showings: {
@@ -912,9 +913,26 @@ export async function handleUpdateEvent(formData: FormData) {
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   revalidatePath(`/event/${existingEvent.slug}`);
-  return result;
+  return { success: true, data: result };
+  } catch (error) {
+    console.error("Error updating event:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
 }
 
 export const fetchEventById = async (id: string) => {
-  return await getEventById(id);
+  try {
+    const event = await getEventById(id);
+    
+    if (!event) {
+      return { success: false, error: "Event not found" };
+    }
+    
+    return { success: true, data: event };
+  } catch (error) {
+    console.error("Error in fetchEventById:", error);
+    const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
 };
