@@ -7,7 +7,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Wallet, Ticket, DollarSign } from "lucide-react";
+import { Wallet, Ticket, DollarSign, Star } from "lucide-react";
+import Link from "next/link";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -43,10 +44,12 @@ type RecentTransaction = {
 };
 
 type Props = {
+  eventId: string;
   revenueOverTime: RevenueOverTimeItem[];
   ticketTypeRevenue: TicketTypeRevenue[];
   totalAvailableTickets: number; // Total available tickets for the event
   recentTransactions: RecentTransaction[];
+  ratingSummary: { average: number; count: number };
 };
 type AreaTooltipProps = {
   active?: boolean;
@@ -127,10 +130,12 @@ const CustomPieTooltip = ({ active, payload }: PieTooltipProps) => {
 };
 
 export function DashboardOverview({
+  eventId,
   revenueOverTime: initialRevenueOverTime,
   ticketTypeRevenue: initialTicketTypeRevenue,
   totalAvailableTickets: initialTotalAvailableTickets,
   recentTransactions: initialRecentTransactions,
+  ratingSummary,
 }: Props) {
   // Use the actual data from props
   const revenueOverTime = initialRevenueOverTime || [];
@@ -255,7 +260,7 @@ export function DashboardOverview({
       </h1>
 
       {/* Overview metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 mb-8">
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -334,6 +339,27 @@ export function DashboardOverview({
             </p>
           </CardContent>
         </Card>
+
+        <Link href={`/organizer/general/create/ratings?id=${eventId}`} className="block h-full">
+          <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Average Rating
+              </CardTitle>
+              <Star className="h-5 w-5 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+                {ratingSummary.average > 0 ? ratingSummary.average.toFixed(1) : "0.0"}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {ratingSummary.count > 0 
+                  ? `${ratingSummary.count} ${ratingSummary.count === 1 ? 'review' : 'reviews'}`
+                  : 'No reviews yet'}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Revenue fluctuation chart */}
