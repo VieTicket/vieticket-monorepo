@@ -318,21 +318,6 @@ export async function saveSeatMap(
   }
 }
 
-export async function duplicateSeatMap(
-  seatMapId: string,
-  event: Event,
-  user: User
-): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
-  if (user.role !== "organizer") {
-    throw new Error("Unauthorized: Only organizers can duplicate seat maps");
-  }
-  const duplicatedSeatMap = await duplicateSeatMapForEvent(
-    seatMapId,
-    "Duplicated",
-    user.id
-  );
-}
-
 /**
  * Service function to update an existing seat map.
  * Enhanced to support hierarchical structures and freeshape.

@@ -22,6 +22,11 @@ const seatMapSchema = new mongoose.Schema(
       type: String,
       required: [true, "Image is required"],
     },
+    usedByEvent: {
+      type: Boolean,
+      default: false,
+      required: [true, "usedByEvent is required"],
+    },
     createdBy: {
       type: String,
       required: [true, "CreatedBy is required"],

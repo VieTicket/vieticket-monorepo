@@ -3,6 +3,11 @@ import {
   SeatMap,
   CreateSeatMapInput,
   UpdateSeatMapInput,
+  CanvasItem,
+  GridShape,
+  AreaModeContainer,
+  RowShape,
+  SeatShape,
 } from "@vieticket/db/mongo/models/seat-map";
 import { ensureMongoConnection } from "@vieticket/db/mongo";
 import { v4 as uuidv4 } from "uuid";
@@ -27,7 +32,7 @@ export async function findSeatMapsByCreator(
   createdBy: string
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  const docs = await SeatMapModel.find({ createdBy })
+  const docs = await SeatMapModel.find({ createdBy, usedByEvent: false })
     .sort({ createdAt: -1 })
     .exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
@@ -235,23 +240,12 @@ export async function duplicateSeatMapForEvent(
       image: originalSeatMap.image,
       createdBy: userId,
       publicity: "private",
+      usedByEvent: true,
       draftedFrom: originalSeatMap._id,
       originalCreator: originalSeatMap.createdBy,
     });
 
     const savedSeatMap = await duplicatedSeatMap.save();
-
-    const totalGrids = processedGrids.length;
-    const totalRows = processedGrids.reduce(
-      (sum, grid) => sum + grid.children.length,
-      0
-    );
-    const totalSeats = processedGrids.reduce(
-      (sum, grid) =>
-        sum +
-        grid.children.reduce((rowSum, row) => rowSum + row.children.length, 0),
-      0
-    );
 
     return {
       success: true,
@@ -376,6 +370,22 @@ export async function findSeatMapWithShapesById(
 
   const doc = await SeatMapModel.findOne(filter).exec();
   return doc ? (doc.toObject() as SeatMap) : null;
+}
+
+export async function findSeatMapsUsedByEvents(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: true })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+export async function findSeatMapTemplates(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: false })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**

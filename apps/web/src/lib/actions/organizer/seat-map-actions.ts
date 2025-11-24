@@ -24,7 +24,6 @@ import {
   SeatGridSettings,
 } from "@/components/seat-map/types";
 
-// ✅ Enhanced action to create empty seat map with area mode support
 export async function createEmptySeatMapAction(name?: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -34,7 +33,6 @@ export async function createEmptySeatMapAction(name?: string) {
       throw new Error("Unauthenticated: Please sign in to create seat maps.");
     }
 
-    // Create empty seat map with no shapes
     const defaultName = name || `New Seat Map`;
     const emptyShapes: CanvasItem[] = [];
     const placeholderImageUrl = "https://placehold.co/600x400";
@@ -46,7 +44,6 @@ export async function createEmptySeatMapAction(name?: string) {
       user as User
     );
 
-    // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(savedSeatMap));
 
     return { success: true, data: plainData };
@@ -57,7 +54,6 @@ export async function createEmptySeatMapAction(name?: string) {
   }
 }
 
-// ✅ Enhanced save action with hierarchical validation
 export async function saveSeatMapAction(
   shapes: CanvasItem[],
   name: string,
@@ -71,15 +67,12 @@ export async function saveSeatMapAction(
       throw new Error("Unauthenticated: Please sign in to save seat maps.");
     }
 
-    // ✅ Enhanced client-side validation for new shape types
     const validShapes = shapes.every((shape) => {
-      // Basic validation
       if (!shape.id || !shape.type || !shape.name) {
         console.error("Invalid shape: missing required properties", shape);
         return false;
       }
 
-      // ✅ Enhanced validation for area mode container
       if (shape.id === "area-mode-container-id" && shape.type === "container") {
         const areaModeContainer = shape as AreaModeContainer;
 
@@ -90,7 +83,6 @@ export async function saveSeatMapAction(
           return false;
         }
 
-        // Validate grid children
         const validGrids = areaModeContainer.children.every(
           (grid: GridShape) => {
             if (
@@ -105,7 +97,6 @@ export async function saveSeatMapAction(
               return false;
             }
 
-            // Validate row children
             const validRows = grid.children.every((row: RowShape) => {
               if (!row.rowName || !row.gridId || row.type !== "container") {
                 console.error(
@@ -115,7 +106,6 @@ export async function saveSeatMapAction(
                 return false;
               }
 
-              // Validate seat children
               const validSeats = row.children.every((seat: SeatShape) => {
                 if (!seat.rowId || !seat.gridId || seat.type !== "ellipse") {
                   console.error(
@@ -156,7 +146,6 @@ export async function saveSeatMapAction(
       user as User
     );
 
-    // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(savedSeatMap));
 
     return { success: true, data: plainData };
@@ -168,7 +157,6 @@ export async function saveSeatMapAction(
   }
 }
 
-// ✅ Enhanced update action with hierarchical validation
 export async function updateSeatMapAction(
   seatMapId: string,
   shapes: CanvasItem[],
@@ -183,14 +171,12 @@ export async function updateSeatMapAction(
       throw new Error("Unauthenticated: Please sign in to update seat maps.");
     }
 
-    // ✅ Enhanced validation for hierarchical updates
     const validShapes = shapes.every((shape) => {
       if (!shape.id || !shape.type || !shape.name) {
         console.error("Invalid shape: missing required properties", shape);
         return false;
       }
 
-      // ✅ Validate freeshape updates
       if (shape.type === "freeshape") {
         const freeShape = shape as FreeShape;
         if (!Array.isArray(freeShape.points) || freeShape.points.length < 2) {
@@ -199,7 +185,6 @@ export async function updateSeatMapAction(
         }
       }
 
-      // ✅ Enhanced validation for area mode updates
       if (shape.id === "area-mode-container-id" && shape.type === "container") {
         const areaModeContainer = shape as AreaModeContainer;
 
@@ -210,7 +195,6 @@ export async function updateSeatMapAction(
           return false;
         }
 
-        // Check hierarchy integrity with proper type checking
         const hasValidHierarchy = areaModeContainer.children.every(
           (grid: GridShape) => {
             if (
@@ -263,7 +247,6 @@ export async function updateSeatMapAction(
       imageUrl
     );
 
-    // Force the object to be plain and serializable
     const plainData = JSON.parse(JSON.stringify(updatedSeatMap));
 
     return { success: true, data: plainData };
@@ -275,7 +258,6 @@ export async function updateSeatMapAction(
   }
 }
 
-// ✅ Keep existing getUserSeatMapsAction unchanged
 export async function getUserSeatMapsAction() {
   try {
     const session = await getAuthSession(await headersFn());
@@ -298,7 +280,6 @@ export async function getUserSeatMapsAction() {
   }
 }
 
-// ✅ Completely rewritten getSeatMapGridDataAction based on new types
 export async function getSeatMapGridDataAction(seatMapId: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -314,12 +295,11 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
       throw new Error("Seat map not found");
     }
 
-    // ✅ Find area mode container using new type structure
     const areaModeContainer = seatMap.shapes?.find(
       (shape: any) =>
         shape.id === "area-mode-container-id" &&
         shape.type === "container" &&
-        shape.defaultSeatSettings // This identifies it as an AreaModeContainer
+        shape.defaultSeatSettings
     ) as AreaModeContainer | undefined;
 
     if (!areaModeContainer) {
@@ -338,17 +318,17 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
       };
     }
 
-    // ✅ Extract grids with proper type checking
     const grids: GridShape[] =
       areaModeContainer.children?.filter(
         (child): child is GridShape =>
           child.type === "container" &&
           "gridName" in child &&
           "seatSettings" in child &&
-          Array.isArray(child.children)
+          Array.isArray(child.children) &&
+          typeof child.gridName === "string" &&
+          typeof child.seatSettings === "object"
       ) || [];
 
-    // ✅ Use proper default seat settings structure
     const defaultSeatSettings: SeatGridSettings =
       areaModeContainer.defaultSeatSettings || {
         seatSpacing: 25,
@@ -357,15 +337,13 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
         seatColor: 0x4caf50,
         seatStrokeColor: 0x2e7d32,
         seatStrokeWidth: 1,
-        price: 100000, // Default price in VND
+        price: 100000,
       };
 
-    // ✅ Calculate statistics with proper type handling
     let totalSeats = 0;
     let totalRevenue = 0;
     const areas = grids
       .filter((grid: GridShape) => {
-        // Only include grids that have valid rows with seats
         return (
           Array.isArray(grid.children) &&
           grid.children.some(
@@ -378,7 +356,6 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
         );
       })
       .map((grid: GridShape) => {
-        // ✅ Count seats with proper type checking
         const gridSeats = grid.children.reduce((acc: number, row: RowShape) => {
           if (row.type === "container" && Array.isArray(row.children)) {
             const validSeats = row.children.filter(
@@ -401,10 +378,9 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
           rows: grid.children.map((row: RowShape) => ({
             id: row.id,
             name: row.rowName,
-            seats:
-              row.children.filter(
-                (seat: SeatShape) => seat.type === "ellipse"
-              ) || [],
+            seats: row.children
+              .filter((seat: SeatShape) => seat.type === "ellipse")
+              .map((seat: SeatShape) => seat.id),
             seatSpacing: row.seatSpacing || defaultSeatSettings.seatSpacing,
             labelPlacement: row.labelPlacement || "left",
           })),
@@ -426,6 +402,7 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
         totalRevenue,
       },
     };
+    console.log("Seat map grid data retrieved:", grids);
 
     return { success: true, data: plainData };
   } catch (error) {
@@ -436,7 +413,6 @@ export async function getSeatMapGridDataAction(seatMapId: string) {
   }
 }
 
-// ✅ Helper function to validate seat map structure
 const validateSeatMapStructure = (
   shapes: CanvasItem[]
 ): {
@@ -459,7 +435,6 @@ const validateSeatMapStructure = (
     seats: 0,
   };
 
-  // Find area mode containers
   const areaContainers = shapes.filter(
     (shape) => shape.type === "container" && "defaultSeatSettings" in shape
   ) as AreaModeContainer[];
@@ -470,7 +445,6 @@ const validateSeatMapStructure = (
     errors.push("Multiple area mode containers found. Only one is allowed.");
   }
 
-  // Validate each area container
   areaContainers.forEach((container, containerIndex) => {
     if (!container.defaultSeatSettings) {
       errors.push(
@@ -479,7 +453,6 @@ const validateSeatMapStructure = (
       return;
     }
 
-    // Validate grids
     container.children?.forEach((grid, gridIndex) => {
       if (grid.type !== "container" || !("gridName" in grid)) {
         errors.push(`Grid ${gridIndex}: Invalid grid structure`);
@@ -495,7 +468,6 @@ const validateSeatMapStructure = (
         );
       }
 
-      // Validate rows
       gridShape.children?.forEach((row, rowIndex) => {
         if (row.type !== "container" || !("rowName" in row)) {
           errors.push(
@@ -513,7 +485,6 @@ const validateSeatMapStructure = (
           );
         }
 
-        // Validate seats
         rowShape.children?.forEach((seat, seatIndex) => {
           if (seat.type !== "ellipse") {
             errors.push(
@@ -548,7 +519,6 @@ const validateSeatMapStructure = (
   };
 };
 
-// ✅ Enhanced seat map validation action
 export async function validateSeatMapAction(seatMapId: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -583,7 +553,6 @@ export async function validateSeatMapAction(seatMapId: string) {
   }
 }
 
-// ✅ Keep all other existing actions unchanged
 export async function searchSeatMapsAction(searchQuery: string) {
   try {
     const session = await getAuthSession(await headersFn());

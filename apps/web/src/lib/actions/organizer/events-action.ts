@@ -11,11 +11,11 @@ import {
   updateEventWithShowingsAndAreas,
   updateEventWithShowingsAndAreasIndividual,
 } from "@/lib/services/eventService";
-import { duplicateSeatMapForEvent } from "@vieticket/services/seat-map"; // ✅ Import the duplication function
+import { duplicateSeatMapForEvent } from "@vieticket/repos/seat-map"; // ✅ Import the duplication function
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
-import { SeatMapGridData } from "@/types/event-types";
+import { GridShape } from "@/components/seat-map/types";
 
 /**
  * Validation functions cho event creation/update
@@ -384,7 +384,7 @@ export async function handleCreateEvent(
 
   if (ticketingMode === "seatmap" && duplicatedSeatMapId && seatMapData) {
     const parsedSeatMapData = JSON.parse(seatMapData);
-    const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
+    const grids: GridShape[] = parsedSeatMapData.grids || [];
     const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
 
     if (grids.length === 0) {
@@ -401,7 +401,7 @@ export async function handleCreateEvent(
         defaultSeatSettings
       );
     } else {
-      const showingSeatMapConfigs: SeatMapGridData[][] = [];
+      const showingSeatMapConfigs: GridShape[][] = [];
 
       for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
         const showingConfigData = formData.get(
@@ -736,7 +736,7 @@ export async function handleUpdateEvent(formData: FormData) {
 
   if (ticketingMode === "seatmap" && finalSeatMapId && seatMapData) {
     const parsedSeatMapData = JSON.parse(seatMapData);
-    const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
+    const grids: GridShape[] = parsedSeatMapData.grids || [];
     const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
 
     if (grids.length === 0) {
@@ -753,7 +753,7 @@ export async function handleUpdateEvent(formData: FormData) {
         defaultSeatSettings
       );
     } else {
-      const showingSeatMapConfigs: SeatMapGridData[][] = [];
+      const showingSeatMapConfigs: GridShape[][] = [];
 
       for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
         const showingConfigData = formData.get(
