@@ -346,7 +346,7 @@ export default function OrganizerDashboardModern({
                   <XAxis
                     dataKey="date"
                     stroke="#888888"
-                    fontSize={12}
+                    fontSize={9}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value: string) => {
@@ -361,7 +361,7 @@ export default function OrganizerDashboardModern({
 
                   <YAxis
                     stroke="#888888"
-                    fontSize={12}
+                    fontSize={9}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `${Number(value) / 1000000}M`}
