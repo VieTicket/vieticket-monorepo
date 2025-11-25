@@ -879,5 +879,201 @@
       "loadingSeatMap": "Loading seat map...",
       "noSeatMapData": "No seat map data available"
     }
+  },
+  "terms": {
+    "hero": {
+      "badge": "Terms & Conditions",
+      "title": "Terms & Conditions",
+      "subtitle": "VieTicket Terms of Use",
+      "lastUpdated": "Last updated: November 24, 2025"
+    },
+    "intro": "Welcome to VIETICKET. By accessing the website/application and conducting transactions, you agree to comply with the terms below.",
+    "tabs": {
+      "general": "General Terms",
+      "customers": "Users",
+      "organizers": "Organizers"
+    },
+    "general": {
+      "title": "GENERAL TERMS & DISPUTE RESOLUTION",
+      "intellectualProperty": {
+        "title": "Platform Intellectual Property Rights",
+        "content": "All source code, interface, logo and database of VIETICKET are owned by us. Any copying or use of automated tools (bots) to scrape data is strictly prohibited."
+      },
+      "governingLaw": {
+        "title": "Governing Law",
+        "content": "These terms are governed by Vietnamese law."
+      },
+      "disputeResolution": {
+        "title": "Dispute Resolution",
+        "content": "All arising disputes will be prioritized for resolution through negotiation. If no agreement is reached after 30 days, the dispute will be brought to a competent court in Da Nang for resolution."
+      },
+      "privacy": {
+        "title": "Security and Privacy",
+        "content": "VIETICKET is committed to protecting users' personal information according to the following regulations:",
+        "points": [
+          "Information is encrypted and secured according to international standards",
+          "No data sharing with third parties without consent",
+          "Compliance with Decree 13/2023/ND-CP on personal data protection",
+          "Right to request deletion of personal data when not using the service"
+        ]
+      },
+      "termModification": {
+        "title": "Term Modification",
+        "content": "VIETICKET has the right to update and modify these terms over time. Notifications about changes will be sent via registered email or displayed on the website at least 7 days before taking effect."
+      },
+      "effectiveness": {
+        "title": "Term Effectiveness",
+        "content": "These terms and conditions are effective from the date of publication and apply to all users when accessing and using VIETICKET services. Continued use of the service after term changes means acceptance of the new terms."
+      }
+    },
+    "customers": {
+      "title": "FOR TICKET BUYERS (CUSTOMERS)",
+      "definitions": {
+        "title": "1. Definitions",
+        "labels": {
+          "platform": "Platform:",
+          "organizer": "Organizer:",
+          "validTicket": "Valid ticket:",
+          "ticketPrice": "Ticket price:",
+          "serviceFee": "Service fee:"
+        },
+        "platform": "VIETICKET (including website and mobile application).",
+        "organizer": "Organization/Individual directly organizing the event, responsible for content, legality and quality of the event.",
+        "validTicket": "Electronic ticket (E-ticket) with QR/Barcode issued from VIETICKET system, not yet used (not checked-in).",
+        "ticketPrice": "Original face value of the ticket determined by Organizer.",
+        "serviceFee": "Fee that buyers pay for using VIETICKET platform (including transaction processing fee, payment gateway fee)."
+      },
+      "purchase": {
+        "title": "2. Ticket Purchase & Payment Regulations",
+        "infoResponsibility": {
+          "title": "Information provision responsibility:",
+          "content": "Buyers must provide accurate Email and Phone number. VIETICKET is not responsible if tickets are lost due to buyer's input errors."
+        },
+        "holdTime": {
+          "title": "Ticket hold time:",
+          "content": "Pending orders will be automatically cancelled if payment is not completed within 15 minutes."
+        },
+        "orderConfirmation": {
+          "title": "Order confirmation:",
+          "content": "Transaction is considered complete when you receive confirmation Email with ticket code. In case the account has been charged but no ticket received after 30 minutes, please contact Hotline for support verification."
+        }
+      },
+      "usage": {
+        "title": "3. Usage & Ticket Security Policy",
+        "firstCheckIn": {
+          "title": "'First check-in' rule:",
+          "content": "Ticket codes are unique. In case a ticket code is copied and multiple people use it for check-in, the system only accepts the first person to check-in. VIETICKET and Organizer have no responsibility to resolve disputes at the ticket gate."
+        },
+        "security": {
+          "title": "Security:",
+          "content": "Customers are responsible for securing their ticket codes. Do not share QR code images on social media to avoid being exploited by fraudsters."
+        },
+        "refusalRight": {
+          "title": "Right to refuse service:",
+          "content": "Organizer has the right to refuse participants who violate security regulations, age restrictions (if the event has 18+ restrictions), or bring prohibited items. In this case, tickets will not be refunded."
+        }
+      },
+      "refund": {
+        "title": "4. Refund, Cancellation and Exchange Policy",
+        "intro": "To ensure customer rights and flexibility, VIETICKET applies the following ticket refund policy:",
+        "customerRequest": {
+          "title": "4.1. Ticket refund upon Customer request (Personal reasons)",
+          "intro": "Applies to events participating in VIETICKET's 'Flexible refund' program:",
+          "before7Days": "Request before 07 days (calculated to event start time): Refund **80%** of total order value.",
+          "before5Days": "Request before 05 days (calculated to event start time): Refund **60%** of total order value.",
+          "note": "Note: Refund time is 15-30 business days depending on the card issuing bank."
+        },
+        "organizerIssue": {
+          "title": "4.2. Refund due to Organizer issues (Event Cancelled/Postponed)",
+          "eventCancelled": {
+            "title": "If event is cancelled by organizer:",
+            "fullRefund": "Refund **100%** ticket face value."
+          },
+          "eventPostponed": {
+            "title": "If event is postponed to another date:",
+            "keepTicket": "Keep ticket for new date (tickets remain valid).",
+            "requestRefund": "Or request refund: Refund amount is **90%** ticket value (**10%** remaining is system operation cost and payment gateway fees already executed)."
+          }
+        },
+        "antiScam": {
+          "title": "4.3. Buyer protection mechanism (Anti-Scam)",
+          "content": "If an event is widely complained about or VIETICKET detects signs of fraud (non-existent event), the Platform will immediately freeze Organizer's revenue. After verifying violations, VIETICKET will refund **100%** to customers."
+        }
+      },
+      "disclaimer": {
+        "title": "5. Disclaimer",
+        "content": "VIETICKET is an intermediary ticket distribution unit, not responsible for:",
+        "points": [
+          "Artistic content, performer changes, sound and lighting quality or physical incidents occurring at the venue.",
+          "VIETICKET refuses to support tickets purchased from black market (ticket passing) without going through the system's official transfer feature."
+        ]
+      }
+    },
+    "organizers": {
+      "title": "TERMS FOR ORGANIZERS (PARTNERS)",
+      "cooperation": {
+        "title": "1. Cooperation Scope & Commitments",
+        "points": [
+          "VIETICKET provides ticket sales solutions, order management and event Check-in applications.",
+          "Organizers are fully responsible for operations, obtaining performance permits and paying taxes according to legal regulations."
+        ]
+      },
+      "rightsObligations": {
+        "title": "2. Organizer Rights and Obligations",
+        "legality": {
+          "title": "Legality:",
+          "content": "Commit that the event has been licensed by competent authorities (Department of Culture, etc.). Organizer must provide permits to VIETICKET at least 24h before opening sales."
+        },
+        "intellectualProperty": {
+          "title": "Intellectual Property:",
+          "content": "Organizer commits to take **100%** responsibility for copyrights of images, music used in events and on ticket sales pages. VIETICKET is exempt from all copyright-related lawsuits from Organizer."
+        },
+        "refundCommitment": {
+          "title": "Refund commitment:",
+          "content": "By cooperating with VIETICKET, Organizer agrees to participate in the flexible ticket refund policy (**80%** - **60%**) stated in Section 4 (Part 1). The number of refunded tickets will be put back on sale in the system."
+        }
+      },
+      "fees": {
+        "title": "3. Fee & Settlement Policy (Payment)",
+        "serviceFee": {
+          "title": "Service fee:",
+          "content": "VIETICKET charges **5%** on total ticket sales revenue (including payment gateway fees, excluding VAT)."
+        },
+        "settlement": {
+          "title": "Settlement cycle:",
+          "content": "Revenue settlement is conducted weekly (every Friday) for events that ended in the previous week."
+        },
+        "invoice": {
+          "title": "Invoice responsibility:",
+          "content": "Organizer is responsible for issuing VAT invoices (for ticket price portion) when customers request. VIETICKET only issues invoices for the **5%** service fee portion."
+        }
+      },
+      "cancellation": {
+        "title": "4. Event Cancellation or Postponement Regulations",
+        "intro": "In case of event cancellation (due to Organizer's subjective fault or failure to obtain permits):",
+        "obligations": [
+          "Organizer is obligated to refund **100%** ticket money to customers.",
+          "Pay penalties and compensation costs for damages caused to VIETICKET (if any).",
+          "Immediately notify customers about cancellation and refund process."
+        ]
+      },
+      "dataProtection": {
+        "title": "5. Personal Data Protection (Compliance with Decree 13/2023/ND-CP)",
+        "dataUsage": {
+          "title": "Customer data usage:",
+          "content": "Customer information (name, phone, email) provided during ticket purchase belongs to both VIETICKET and Organizer. Both parties commit to using data only for event-related purposes and customer care."
+        },
+        "dataSharing": {
+          "title": "Prohibition of data sharing:",
+          "content": "Organizer is not allowed to share customer data to third parties for commercial purposes without written consent from VIETICKET and customers."
+        }
+      }
+    },
+    "contact": {
+      "title": "Need additional support?",
+      "description": "If you have questions about the terms and conditions, please contact us.",
+      "supportButton": "Contact support",
+      "emailButton": "Send email"
+    }
   }
 }
