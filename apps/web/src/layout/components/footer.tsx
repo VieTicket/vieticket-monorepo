@@ -42,7 +42,7 @@ export default function Footer() {
                 <li key={i} className="flex items-center gap-2">
                   {section.icons && section.icons[i]}
                   <div className="cursor-pointer">
-                    {link === "Điều Khoản & Điều Kiện Mua Vé" ? (
+                    {(link === "Điều Khoản & Điều Kiện Mua Vé" || link === "Ticket Purchase Terms & Conditions") ? (
                       <a href="/terms" className="hover:text-yellow-400 transition-colors">
                         {link}
                       </a>
