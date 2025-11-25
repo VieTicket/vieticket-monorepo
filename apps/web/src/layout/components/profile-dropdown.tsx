@@ -24,7 +24,7 @@ export function ProfileDropdown() {
     >
       <DropdownMenu open={open} onOpenChange={setOpen}>
         <DropdownMenuTrigger asChild>
-          <div className="flex flex-col items-center space-x-1 cursor-pointer">
+          <div className="flex cursor-pointer gap-2 md:items-center">
             <UserIcon className="w-5 h-5" />
             <span>Profile</span>
           </div>
