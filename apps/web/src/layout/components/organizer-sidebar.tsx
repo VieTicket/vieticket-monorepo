@@ -24,35 +24,54 @@ export default function Sidebar() {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const t = useTranslations("organizer-dashboard");
 
   const navItems = [
-  { label: t("General.general"), href: "/organizer/general", icon: Home },
-  { label: t("CreateEvent.createEvent"), href: "/organizer/event/create", icon: NotebookPen },
-  { label: t("SeatMap.seatMap"), href: "/organizer/seat-map", icon: Map },
-  { label: t("ListEvent.listEvent"), href: "/organizer", icon: Calendar },
-  { label: t("Rating.rating"), href: "/organizer/rating", icon: Star },
-  {
-    label: t("RequestPayout.requestPayout"),
-    href: "/organizer/payouts",
-    icon: Wallet,
-  },
-  {
-    label: t("InspectTicket.inspectTicket"),
-    href: "/inspector",
-    icon: TicketCheck,
-  },
-  {
-    label: t("ChatWithAdmin.chatWithAdmin"),
-    href: "/organizer/chat?recipientId=admin",
-    icon: MessageCircle,
-  },
-  { label: t("Profile.profile"), href: "/profile/edit", icon: User },
-  { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
-];
+    { label: t("General.general"), href: "/organizer/general", icon: Home },
+    {
+      label: t("CreateEvent.createEvent"),
+      href: "/organizer/event/create",
+      icon: NotebookPen,
+    },
+    {
+      label: t("SeatMap.seatMap"),
+      href: "/organizer/seat-map",
+      icon: Map,
+      hideOnMobile: true,
+    },
+    { label: t("ListEvent.listEvent"), href: "/organizer", icon: Calendar },
+    { label: t("Rating.rating"), href: "/organizer/rating", icon: Star },
+    {
+      label: t("RequestPayout.requestPayout"),
+      href: "/organizer/payouts",
+      icon: Wallet,
+    },
+    {
+      label: t("InspectTicket.inspectTicket"),
+      href: "/inspector",
+      icon: TicketCheck,
+    },
+    {
+      label: t("ChatWithAdmin.chatWithAdmin"),
+      href: "/organizer/chat?recipientId=admin",
+      icon: MessageCircle,
+    },
+    { label: t("Profile.profile"), href: "/profile/edit", icon: User },
+    { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
+  ];
 
   useEffect(() => {
     setHasMounted(true);
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   if (!hasMounted) return null;
@@ -86,36 +105,38 @@ export default function Sidebar() {
           {isOpen ? "" : ""}
         </div>
         <nav className="flex flex-col gap-2">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "group flex items-center transition-all duration-200 rounded-2xl font-medium",
-                  isOpen ? "gap-4 px-4 py-3" : "px-[5px] py-3 justify-center",
-                  isActive
-                    ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
-                    : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
-                )}
-                onClick={() => {
-                  if (window.innerWidth < 768) setIsOpen(false);
-                }}
-              >
-                <Icon
-                  size={22}
+          {navItems
+            .filter((item) => !(isMobile && item.hideOnMobile))
+            .map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
                   className={cn(
-                    "transition-all duration-200",
+                    "group flex items-center transition-all duration-200 rounded-2xl font-medium",
+                    isOpen ? "gap-4 px-4 py-3" : "px-[5px] py-3 justify-center",
                     isActive
-                      ? "text-[#2a273f]"
-                      : "text-yellow-300 group-hover:text-yellow-200"
+                      ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
+                      : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
                   )}
-                />
-                {isOpen && <span className="truncate">{label}</span>}
-              </Link>
-            );
-          })}
+                  onClick={() => {
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                >
+                  <Icon
+                    size={22}
+                    className={cn(
+                      "transition-all duration-200",
+                      isActive
+                        ? "text-[#2a273f]"
+                        : "text-yellow-300 group-hover:text-yellow-200"
+                    )}
+                  />
+                  {isOpen && <span className="truncate">{label}</span>}
+                </Link>
+              );
+            })}
         </nav>
       </aside>
       {/* Overlay mobile */}
