@@ -41,7 +41,14 @@ export default function Footer() {
               {section.links.map((link, i) => (
                 <li key={i} className="flex items-center gap-2">
                   {section.icons && section.icons[i]}
-                  <div className=" cursor-pointer">{link}
+                  <div className="cursor-pointer">
+                    {link === "Điều Khoản Dịch Vụ" ? (
+                      <a href="/terms" className="hover:text-yellow-400 transition-colors">
+                        {link}
+                      </a>
+                    ) : (
+                      link
+                    )}
                   </div>
                 </li>
               ))}
