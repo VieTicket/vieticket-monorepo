@@ -16,6 +16,7 @@ import {
   TicketCheck,
   LogOut,
   User,
+  Globe,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
@@ -73,9 +74,9 @@ export default function Sidebar() {
   return (
     <>
       {/* Mobile Header Bar - sticky at top */}
-      <div className="md:hidden fixed top-0 left-0 right-0 z-50 bg-[#1f1c33] text-white border-b border-[#3a3755] px-4 py-3 flex items-center justify-end h-16">
+      <div className="md:hidden fixed top-0 left-0 right-0 z-50 professional-header text-white border-b border-violet-400/30 px-4 py-3 flex items-center justify-end h-16">
         <button
-          className="p-2 rounded-lg text-yellow-400"
+          className="p-2 rounded-lg professional-layout-button btn-enhanced text-violet-400"
           onClick={() => setIsOpen(!isOpen)}
         >
           <Menu size={24} />
@@ -89,7 +90,7 @@ export default function Sidebar() {
             className="fixed inset-0 bg-black/40 z-30"
             onClick={() => setIsOpen(false)}
           />
-          <div className="fixed top-16 left-0 right-0 z-40 bg-[#1f1c33] border-b border-[#3a3755] shadow-2xl">
+          <div className="fixed top-16 left-0 right-0 z-40 professional-dropdown border-b border-violet-400/30 shadow-2xl animate-slide-down">
             <nav className="flex flex-col">
               {navItems.map(({ href, label, icon: Icon }) => {
                 const isActive = pathname === href;
@@ -98,22 +99,21 @@ export default function Sidebar() {
                     key={href}
                     href={href}
                     className={cn(
-                      "group flex items-center gap-4 px-4 py-4 transition-all duration-200 font-medium border-b border-[#3a3755]/50",
+                      "nav-item-enhanced group flex items-center gap-4 px-4 py-4 transition-all duration-300 font-medium border-b border-slate-700/50",
                       isActive
-                        ? "bg-yellow-400 text-[#2a273f]"
-                        : "hover:bg-[#2f2b47] text-white/80"
+                        ? "professional-layout-card text-violet-400 glow-text-layout animate-glow"
+                        : "text-white hover:text-violet-400 hover:scale-105"
                     )}
                     onClick={() => setIsOpen(false)}
                   >
-                    <Icon
-                      size={22}
-                      className={cn(
-                        "transition-all duration-200",
-                        isActive
-                          ? "text-[#2a273f]"
-                          : "text-yellow-300"
-                      )}
-                    />
+                    <div className={cn(
+                      "p-1.5 rounded-lg transition-all duration-300",
+                      isActive
+                        ? "bg-violet-400/20 text-violet-400"
+                        : "group-hover:bg-white/10 group-hover:scale-110"
+                    )}>
+                      <Icon size={22} />
+                    </div>
                     <span>{label}</span>
                   </Link>
                 );
@@ -129,25 +129,40 @@ export default function Sidebar() {
           "hidden md:block",
           // Desktop sticky
           "sticky top-0 h-screen self-start",
-          "bg-[#1f1c33] text-white shadow-2xl border-r border-[#3a3755] overflow-y-auto transition-all duration-300",
+          "professional-sidebar text-white shadow-2xl border-r border-violet-400/30 overflow-y-auto transition-all duration-300 animate-slide-in-left",
           isOpen ? "w-64 px-6" : "w-16 px-2"
         )}
       >
         <button
-          className="p-3 pt-6 rounded-lg text-yellow-400"
+          className="p-3 pt-6 rounded-lg professional-layout-button btn-enhanced text-violet-400"
           onClick={() => setIsOpen(!isOpen)}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
-        {/* Logo */}
-        <div
-          className={cn(
-            "text-2xl font-extrabold tracking-tight text-yellow-400 flex items-center transition-all duration-300",
-            !isOpen && "justify-center"
+        
+        {/* Header */}
+        <div className="mb-8">
+          {isOpen ? (
+            <div className="flex items-center gap-3">
+              <div className="p-2 professional-layout-card rounded-xl animate-glow">
+                <Globe className="w-6 h-6 text-violet-400" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-white glow-text-layout">
+                  Nhà tổ chức
+                </h2>
+                <p className="text-xs text-slate-400">Quản lý sự kiện</p>
+              </div>
+            </div>
+          ) : (
+            <div className="flex justify-center">
+              <div className="p-2 professional-layout-card rounded-xl animate-glow">
+                <Globe className="w-6 h-6 text-violet-400" />
+              </div>
+            </div>
           )}
-        >
-          {isOpen ? "" : ""}
         </div>
+        
         <nav className="flex flex-col gap-2">
           {navItems.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
@@ -156,27 +171,59 @@ export default function Sidebar() {
                 key={href}
                 href={href}
                 className={cn(
-                  "group flex items-center transition-all duration-200 rounded-2xl font-medium",
+                  "nav-item-enhanced group flex items-center transition-all duration-300 rounded-2xl font-medium relative",
                   isOpen ? "gap-4 px-4 py-3" : "px-[5px] py-3 justify-center",
                   isActive
-                    ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
-                    : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
+                    ? "professional-layout-card text-violet-400 glow-text-layout animate-glow"
+                    : "text-white hover:text-violet-400 hover:scale-105"
                 )}
               >
-                <Icon
-                  size={22}
-                  className={cn(
-                    "transition-all duration-200",
-                    isActive
-                      ? "text-[#2a273f]"
-                      : "text-yellow-300 group-hover:text-yellow-200"
-                  )}
-                />
-                {isOpen && <span className="truncate">{label}</span>}
+                <div className={cn(
+                  "p-1.5 rounded-lg transition-all duration-300",
+                  isActive
+                    ? "bg-violet-400/20 text-violet-400"
+                    : "group-hover:bg-white/10 group-hover:scale-110"
+                )}>
+                  <Icon size={22} />
+                </div>
+                {isOpen && (
+                  <div className="flex-1">
+                    <p className="font-medium">{label}</p>
+                    <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-300">
+                      {isActive ? "Đang xem" : "Nhấp để xem"}
+                    </p>
+                  </div>
+                )}
+                
+                {/* Active Indicator */}
+                {isActive && (
+                  <div className="absolute right-0 top-1/2 transform -translate-y-1/2 w-1 h-8 bg-violet-400 rounded-l-full animate-pulse"></div>
+                )}
               </Link>
             );
           })}
         </nav>
+
+        {/* User Info at Bottom */}
+        {isOpen && (
+          <div className="mt-8 p-3 professional-layout-card rounded-lg">
+            <div className="flex items-center gap-3">
+              <img
+                src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face"
+                alt="Organizer"
+                className="w-10 h-10 rounded-full object-cover border-2 border-violet-400/30"
+              />
+              <div className="flex-1">
+                <p className="text-sm font-medium text-white">
+                  Tổ chức ABC
+                </p>
+                <p className="text-xs text-slate-400">
+                  Premium Plan
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </aside>
     </>
   );

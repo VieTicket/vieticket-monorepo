@@ -42,18 +42,22 @@ export default function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <div className="flex items-center gap-2 font-normal justify-center p-0 shadow-sm hover:text-yellow-400 transition">
+        <div className="flex items-center gap-2 font-normal justify-center p-0 shadow-sm hover:text-yellow-400 transition cursor-pointer">
           <Globe className="w-5 h-5" />
           <span className="hidden sm:inline">{currentLang?.label}</span>
         </div>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="rounded-lg shadow-md">
+      <DropdownMenuContent 
+        align="end" 
+        className="language-switcher-dropdown rounded-lg shadow-md bg-white border border-gray-200"
+        style={{ zIndex: 99999 }}
+      >
         {locales.map((item) => (
           <DropdownMenuItem
             key={item.code}
             onClick={() => handleLocaleChange(item.code as "vi" | "en")}
-            className={`relative z-[1000] flex items-center gap-2 cursor-pointer ${
-              locale === item.code ? "font-semibold text-blue-600" : ""
+            className={`flex items-center gap-2 cursor-pointer hover:bg-gray-100 ${
+              locale === item.code ? "font-semibold text-blue-600 bg-blue-50" : ""
             }`}
           >
             <span>{item.label}</span>

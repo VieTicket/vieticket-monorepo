@@ -1,0 +1,4 @@
+/* Import animation styles from preview component */
+@import url("../../components/create-event/preview-animations.css");
+
+/* Additional layout-specific styles if needed */

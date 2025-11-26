@@ -12,6 +12,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import "./index.css";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
@@ -49,21 +50,21 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between relative z-50">
+      <header className="professional-header sticky top-0 z-50 text-white px-6 py-4 flex items-center justify-between relative animate-slide-down">
         {/* Mobile Menu Button */}
         <Button
           variant="ghost"
           size="sm"
-          className="md:hidden p-2 hover:bg-gray-700"
+          className="md:hidden p-2 professional-layout-button btn-enhanced"
           onClick={toggleMobileMenu}
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </Button>
 
         {/* Logo & Brand */}
-        <Link className="flex" href="/">
-          <IoTicket size={32} color="yellow" />
-          <h1 className="text-2xl text-yellow-300 font-bold ml-2">VieTicket</h1>
+        <Link className="flex items-center gap-3 group" href="/">
+          <IoTicket size={32} color="yellow" className="transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+          <h1 className="text-2xl text-yellow-300 font-bold ml-2 transition-all duration-300 group-hover:text-yellow-400">VieTicket</h1>
         </Link>
 
         {/* Desktop Navigation */}
@@ -75,13 +76,13 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  "relative hover:text-yellow-400 transition",
-                  isActive ? "text-yellow-400 font-semibold" : "text-white"
+                  "nav-item-enhanced relative px-4 py-2 rounded-lg transition-all duration-300 hover:scale-105 font-medium",
+                  isActive ? "text-violet-400 font-semibold glow-text-layout" : "text-white hover:text-violet-400"
                 )}
               >
                 {item.label}
                 {isActive && (
-                  <div className="h-1 bg-yellow-400 w-full absolute bottom-[-12px] left-0" />
+                  <div className="h-1 bg-violet-400 w-full absolute bottom-[-12px] left-0 animate-pulse" />
                 )}
               </Link>
             );
@@ -93,10 +94,10 @@ export default function Header() {
           {!session?.user ? (
             <div className="flex items-center gap-4">
               <LanguageSwitcher />
-              <Link href="/auth/sign-in">{t("logIn")}</Link>
+              <Link href="/auth/sign-in" className="nav-item-enhanced text-white hover:text-violet-400 transition-colors duration-300">{t("logIn")}</Link>
               <Button
                 variant="outline"
-                className="bg-yellow-400 text-black hover:bg-yellow-300"
+                className="professional-layout-button text-white font-medium btn-enhanced hover:scale-105 transition-all duration-300"
                 asChild
               >
                 <Link href="/auth/sign-up">{t("signUp")}</Link>
@@ -107,16 +108,16 @@ export default function Header() {
               <LanguageSwitcher />
               <Link
                 href="/tickets"
-                className="flex gap-2 items-center hover:text-yellow-400 transition cursor-pointer"
+                className="flex gap-2 items-center text-white hover:text-violet-400 transition-all duration-300 nav-item-enhanced cursor-pointer"
               >
                 <Ticket className="w-5 h-5" />
                 <span>Tickets</span>
               </Link>
-              <div className="flex gap-2 items-center hover:text-yellow-400 transition cursor-pointer">
+              <div className="flex gap-2 items-center text-white hover:text-violet-400 transition-all duration-300 nav-item-enhanced cursor-pointer">
                 <Star className="w-5 h-5" />
                 <span>Interested</span>
               </div>
-              <div className="flex gap-2 group items-center relative cursor-pointer hover:text-yellow-400 transition">
+              <div className="flex gap-2 group items-center relative cursor-pointer text-white hover:text-violet-400 transition-all duration-300">
                 <ProfileDropdown />
               </div>
             </div>
@@ -140,23 +141,23 @@ export default function Header() {
       {/* Mobile Drawer */}
       <div
         className={clsx(
-          "fixed top-0 left-0 h-full w-80 bg-[#2A273F] text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden",
+          "fixed top-0 left-0 h-full w-80 professional-sidebar text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden animate-slide-in-left",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-600">
-            <div className="flex items-center">
-              <IoTicket size={32} color="yellow" />
-              <h1 className="text-2xl text-yellow-300 font-bold ml-2">
+          <div className="flex items-center justify-between p-6 border-b border-slate-600/50">
+            <div className="flex items-center gap-3 group">
+              <IoTicket size={32} color="yellow" className="transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+              <h1 className="text-2xl text-yellow-300 font-bold ml-2 transition-all duration-300 group-hover:text-yellow-400">
                 VieTicket
               </h1>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 hover:bg-gray-700"
+              className="p-2 professional-layout-button btn-enhanced"
               onClick={toggleMobileMenu}
             >
               <X size={24} />
@@ -172,10 +173,10 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "py-3 px-4 rounded-lg transition text-lg",
+                    "nav-item-enhanced py-3 px-4 rounded-lg transition-all duration-300 text-lg font-medium",
                     isActive
-                      ? "bg-yellow-400 text-black font-semibold"
-                      : "text-white hover:bg-gray-700"
+                      ? "professional-layout-card text-violet-400 glow-text-layout animate-glow"
+                      : "text-white hover:text-violet-400 hover:scale-105"
                   )}
                   onClick={toggleMobileMenu}
                 >
@@ -186,15 +187,15 @@ export default function Header() {
           </nav>
 
           {/* Mobile Auth Section */}
-          <div className="mt-auto p-6 border-t border-gray-600">
+          <div className="mt-auto p-6 border-t border-slate-600/50">
             {!session?.user ? (
               <div className="space-y-4">
-                <Link href="/auth/sign-in" onClick={toggleMobileMenu}>
+                <Link href="/auth/sign-in" onClick={toggleMobileMenu} className="nav-item-enhanced text-white hover:text-violet-400 transition-colors duration-300">
                   {t("logIn")}
                 </Link>
                 <Button
                   variant="outline"
-                  className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
+                  className="w-full professional-layout-button text-white font-medium btn-enhanced"
                   asChild
                 >
                   <Link href="/auth/sign-up" onClick={toggleMobileMenu}>
@@ -206,17 +207,17 @@ export default function Header() {
               <div className="space-y-4">
                 <Link
                   href="/tickets"
-                  className="flex items-center gap-3 py-3 px-4 rounded-lg hover:text-yellow-400 transition"
+                  className="flex items-center gap-3 py-3 px-4 rounded-lg text-white hover:text-violet-400 transition-all duration-300 nav-item-enhanced"
                   onClick={toggleMobileMenu}
                 >
                   <Ticket className="w-5 h-5" />
                   <span>Tickets</span>
                 </Link>
-                <div className="flex items-center gap-3 py-3 px-4 rounded-lg hover:text-yellow-400 transition cursor-pointer">
+                <div className="flex items-center gap-3 py-3 px-4 rounded-lg text-white hover:text-violet-400 transition-all duration-300 nav-item-enhanced cursor-pointer">
                   <Star className="w-5 h-5" />
                   <span>Interested</span>
                 </div>
-                <div className="py-3 px-4 hover:text-yellow-400 transition cursor-pointer">
+                <div className="py-3 px-4 text-white hover:text-violet-400 transition-all duration-300 nav-item-enhanced cursor-pointer">
                   <ProfileDropdown />
                 </div>
               </div>
