@@ -101,10 +101,10 @@ export default async function EventPage({
               isPreview: false,
             }}
           />
-          <div className="mt-8 space-y-6">
+          {/* <div className="mt-8 space-y-6">
             <RatingWidget eventId={raw.id} />
             <RatingList eventId={raw.id} />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

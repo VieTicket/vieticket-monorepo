@@ -32,7 +32,8 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="bg-[#2C293C] text-white py-12 px-6 md:px-20">
+    // THAY ĐỔI Ở ĐÂY: Thêm 'relative' và 'z-[9999]'
+    <footer className="relative z-[999] bg-[#2C293C] text-white py-12 px-6 md:px-20">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
         {sections.slice(0, 4).map((section, index) => (
           <div key={index}>
@@ -56,7 +57,7 @@ export default function Footer() {
           </div>
           
         ))}
-        <div className="grid grid-cols-2 md:grid-cols-2 gap-8">
+        <div className="relative z-[1000] grid grid-cols-2 md:grid-cols-2 gap-8">
           <LanguageSwitcher />
         </div>
       </div>
