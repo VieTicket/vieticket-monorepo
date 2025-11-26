@@ -14,15 +14,71 @@ export function SimpleTicketingMode({
   areas,
   setAreas,
 }: SimpleTicketingModeProps) {
+  // Format number with dots for VND currency
+  const formatVNDPrice = (value: string): string => {
+    // Remove all non-digit characters
+    const numericValue = value.replace(/\D/g, "");
+
+    // If empty, return empty string
+    if (!numericValue) return "";
+
+    // Format with dots as thousand separators
+    return numericValue.replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+  };
+
+  // Parse formatted VND price back to number
+  const parseVNDPrice = (formattedValue: string): string => {
+    return formattedValue.replace(/\./g, "");
+  };
+
+  // Validate and handle seat count input
+  const handleSeatCountChange = (index: number, value: string) => {
+    // Only allow positive numbers
+    const numericValue = value.replace(/\D/g, "");
+    const parsedValue = parseInt(numericValue);
+
+    // Don't allow 0 or negative numbers
+    if (numericValue === "" || parsedValue <= 0) {
+      setAreas((prev) =>
+        prev.map((a, i) => (i === index ? { ...a, seatCount: "" } : a))
+      );
+      return;
+    }
+
+    setAreas((prev) =>
+      prev.map((a, i) => (i === index ? { ...a, seatCount: numericValue } : a))
+    );
+  };
+
+  // Validate and handle ticket price input
+  const handleTicketPriceChange = (index: number, value: string) => {
+    const numericValue = parseVNDPrice(value);
+    const parsedValue = parseInt(numericValue);
+
+    // Don't allow negative numbers
+    if (numericValue === "" || parsedValue < 0) {
+      setAreas((prev) =>
+        prev.map((a, i) => (i === index ? { ...a, ticketPrice: "" } : a))
+      );
+      return;
+    }
+
+    // Store the raw numeric value but display formatted
+    setAreas((prev) =>
+      prev.map((a, i) =>
+        i === index ? { ...a, ticketPrice: numericValue } : a
+      )
+    );
+  };
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <h3 className="text-lg font-medium">Ticket Areas</h3>
       {areas.map((area, index) => (
         <div
           key={index}
-          className="grid grid-cols-3 gap-4 items-end border p-4 rounded-lg relative"
+          className="grid grid-cols-3 gap-4 items-start border p-4 pb-8 rounded-lg relative"
         >
-          <div className="space-y-1">
+          <div className="space-y-1 relative">
             <Label htmlFor={`area-name-${index}`}>Area Name</Label>
             <Input
               id={`area-name-${index}`}
@@ -41,47 +97,54 @@ export function SimpleTicketingMode({
             />
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 relative">
             <Label htmlFor={`area-seatCount-${index}`}>Seat Count</Label>
             <Input
               id={`area-seatCount-${index}`}
-              type="number"
+              type="text"
               name={`areas[${index}][seatCount]`}
               placeholder="e.g. 100"
               value={area.seatCount}
-              min={1}
-              onChange={(e) =>
-                setAreas((prev) =>
-                  prev.map((a, i) =>
-                    i === index ? { ...a, seatCount: e.target.value } : a
-                  )
-                )
-              }
+              onChange={(e) => handleSeatCountChange(index, e.target.value)}
               required
+              className={!area.seatCount ? "border-red-300" : ""}
+              title={
+                !area.seatCount
+                  ? "Seat count is required and must be greater than 0"
+                  : ""
+              }
             />
+            {!area.seatCount && (
+              <div className="absolute -bottom-5 left-0 text-xs text-red-500 whitespace-nowrap">
+                Required, must be &gt; 0
+              </div>
+            )}
           </div>
 
-          <div className="space-y-1">
+          <div className="space-y-1 relative">
             <Label htmlFor={`area-ticketPrice-${index}`}>
               Ticket Price (VND)
             </Label>
             <Input
               id={`area-ticketPrice-${index}`}
-              type="number"
+              type="text"
               name={`areas[${index}][ticketPrice]`}
-              placeholder="e.g. 50000"
-              step="10000"
-              min={0}
-              value={area.ticketPrice}
-              onChange={(e) =>
-                setAreas((prev) =>
-                  prev.map((a, i) =>
-                    i === index ? { ...a, ticketPrice: e.target.value } : a
-                  )
-                )
-              }
+              placeholder="e.g. 50.000"
+              value={formatVNDPrice(area.ticketPrice)}
+              onChange={(e) => handleTicketPriceChange(index, e.target.value)}
               required
+              className={!area.ticketPrice ? "border-red-300" : ""}
+              title={
+                !area.ticketPrice
+                  ? "Ticket price is required and must be greater than or equal to 0"
+                  : ""
+              }
             />
+            {!area.ticketPrice && (
+              <div className="absolute -bottom-5 left-0 text-xs text-red-500 whitespace-nowrap">
+                Required, must be ≥ 0
+              </div>
+            )}
           </div>
 
           {/* Remove area button */}

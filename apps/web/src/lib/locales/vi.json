@@ -879,5 +879,201 @@
       "loadingSeatMap": "Đang tải sơ đồ chỗ ngồi...",
       "noSeatMapData": "Không có dữ liệu sơ đồ chỗ ngồi"
     }
+  },
+  "terms": {
+    "hero": {
+      "badge": "Điều khoản và Điều kiện",
+      "title": "Điều Khoản & Điều Kiện",
+      "subtitle": "Điều khoản sử dụng VieTicket",
+      "lastUpdated": "Cập nhật lần cuối: 24 tháng 11 năm 2025"
+    },
+    "intro": "Chào mừng bạn đến với VIETICKET. Khi truy cập website/ứng dụng và thực hiện giao dịch, bạn đồng ý tuân thủ các điều khoản dưới đây.",
+    "tabs": {
+      "general": "Điều khoản chung",
+      "customers": "Người dùng",
+      "organizers": "Nhà tổ chức"
+    },
+    "general": {
+      "title": "ĐIỀU KHOẢN CHUNG & GIẢI QUYẾT TRANH CHẤP",
+      "intellectualProperty": {
+        "title": "Quyền sở hữu trí tuệ của Sàn",
+        "content": "Mọi mã nguồn, giao diện, logo và cơ sở dữ liệu của VIETICKET thuộc quyền sở hữu của chúng tôi. Nghiêm cấm mọi hành vi sao chép hoặc sử dụng công cụ tự động (bot) để cào dữ liệu."
+      },
+      "governingLaw": {
+        "title": "Luật điều chỉnh",
+        "content": "Các điều khoản này được điều chỉnh bởi pháp luật Việt Nam."
+      },
+      "disputeResolution": {
+        "title": "Giải quyết tranh chấp",
+        "content": "Mọi tranh chấp phát sinh sẽ được ưu tiên giải quyết qua thương lượng. Nếu không đạt được thỏa thuận sau 30 ngày, tranh chấp sẽ được đưa ra Tòa án có thẩm quyền tại Đà Nẵng để giải quyết."
+      },
+      "privacy": {
+        "title": "Bảo mật và quyền riêng tư",
+        "content": "VIETICKET cam kết bảo vệ thông tin cá nhân của người dùng theo các quy định sau:",
+        "points": [
+          "Thông tin được mã hóa và bảo mật theo tiêu chuẩn quốc tế",
+          "Không chia sẻ dữ liệu với bên thứ ba mà không có sự đồng ý",
+          "Tuân thủ Nghị định 13/2023/NĐ-CP về bảo vệ dữ liệu cá nhân",
+          "Quyền yêu cầu xóa dữ liệu cá nhân khi không sử dụng dịch vụ"
+        ]
+      },
+      "termModification": {
+        "title": "Điều khoản sửa đổi",
+        "content": "VIETICKET có quyền cập nhật và sửa đổi các điều khoản này theo thời gian. Thông báo về các thay đổi sẽ được gửi qua email đăng ký hoặc hiển thị trên website ít nhất 7 ngày trước khi có hiệu lực."
+      },
+      "effectiveness": {
+        "title": "Hiệu lực điều khoản",
+        "content": "Các điều khoản và điều kiện này có hiệu lực từ ngày công bố và áp dụng cho tất cả người dùng khi truy cập và sử dụng dịch vụ của VIETICKET. Việc tiếp tục sử dụng dịch vụ sau khi có thay đổi điều khoản đồng nghĩa với việc chấp nhận các điều khoản mới."
+      }
+    },
+    "customers": {
+      "title": "DÀNH CHO NGƯỜI MUA VÉ (KHÁCH HÀNG)",
+      "definitions": {
+        "title": "1. Định nghĩa",
+        "labels": {
+          "platform": "Nền tảng:",
+          "organizer": "Ban tổ chức (BTC):",
+          "validTicket": "Vé hợp lệ:",
+          "ticketPrice": "Giá vé:",
+          "serviceFee": "Phí dịch vụ:"
+        },
+        "platform": "VIETICKET (bao gồm website và ứng dụng di động).",
+        "organizer": "Đơn vị/Cá nhân trực tiếp tổ chức sự kiện, chịu trách nhiệm về nội dung, tính pháp lý và chất lượng sự kiện.",
+        "validTicket": "Vé điện tử (E-ticket) có mã QR/Barcode được xuất từ hệ thống VIETICKET, chưa qua sử dụng (chưa check-in).",
+        "ticketPrice": "Mệnh giá gốc của vé do BTC quy định.",
+        "serviceFee": "Khoản phí người mua trả cho việc sử dụng nền tảng VIETICKET (bao gồm phí xử lý giao dịch, phí cổng thanh toán)."
+      },
+      "purchase": {
+        "title": "2. Quy định về Mua vé & Thanh toán",
+        "infoResponsibility": {
+          "title": "Trách nhiệm cung cấp thông tin:",
+          "content": "Người mua phải cung cấp chính xác Email và Số điện thoại. VIETICKET không chịu trách nhiệm nếu vé bị gửi thất lạc do lỗi nhập liệu của người mua."
+        },
+        "holdTime": {
+          "title": "Thời gian giữ vé:",
+          "content": "Đơn hàng đang thực hiện (pending) sẽ tự động hủy nếu không hoàn tất thanh toán trong vòng 15 phút."
+        },
+        "orderConfirmation": {
+          "title": "Xác nhận đơn hàng:",
+          "content": "Giao dịch được xem là hoàn tất khi bạn nhận được Email xác nhận kèm mã vé. Trong trường hợp tài khoản đã bị trừ tiền nhưng chưa nhận được vé sau 30 phút, vui lòng liên hệ Hotline để được hỗ trợ đối soát."
+        }
+      },
+      "usage": {
+        "title": "3. Chính sách Sử dụng & Bảo mật vé",
+        "firstCheckIn": {
+          "title": "Quy tắc 'Check-in đầu tiên':",
+          "content": "Mã vé là duy nhất. Trong trường hợp một mã vé bị sao chép và có nhiều người cùng sử dụng để check-in, hệ thống chỉ chấp nhận người check-in đầu tiên. VIETICKET và BTC không có trách nhiệm giải quyết tranh chấp tại cổng soát vé."
+        },
+        "security": {
+          "title": "Bảo mật:",
+          "content": "Khách hàng có trách nhiệm tự bảo mật mã vé của mình. Không chia sẻ hình ảnh mã QR lên mạng xã hội để tránh bị kẻ gian lợi dụng."
+        },
+        "refusalRight": {
+          "title": "Quyền từ chối phục vụ:",
+          "content": "BTC có quyền từ chối người tham dự nếu vi phạm quy định về an ninh, độ tuổi (nếu sự kiện có giới hạn 18+), hoặc mang theo vật cấm. Trong trường hợp này, vé sẽ không được hoàn tiền."
+        }
+      },
+      "refund": {
+        "title": "4. Chính sách Hoàn, Hủy và Đổi trả (Refund Policy)",
+        "intro": "Nhằm đảm bảo quyền lợi và sự linh hoạt cho khách hàng, VIETICKET áp dụng chính sách hoàn vé như sau:",
+        "customerRequest": {
+          "title": "4.1. Hoàn vé theo yêu cầu của Khách hàng (Lý do cá nhân)",
+          "intro": "Áp dụng cho các sự kiện có tham gia chương trình 'Hoàn vé linh hoạt' của VIETICKET:",
+          "before7Days": "Yêu cầu trước 07 ngày (tính đến giờ bắt đầu sự kiện): Hoàn lại **80%** tổng giá trị đơn hàng.",
+          "before5Days": "Yêu cầu trước 05 ngày (tính đến giờ bắt đầu sự kiện): Hoàn lại **60%** tổng giá trị đơn hàng.",
+          "note": "Lưu ý: Thời gian hoàn tiền từ 15-30 ngày làm việc tùy thuộc vào ngân hàng phát hành thẻ."
+        },
+        "organizerIssue": {
+          "title": "4.2. Hoàn vé do sự cố từ Ban Tổ Chức (Sự kiện bị Hủy/Hoãn)",
+          "eventCancelled": {
+            "title": "Nếu sự kiện bị hủy bởi ban tổ chức:",
+            "fullRefund": "Hoàn tiền **100%** mệnh giá vé."
+          },
+          "eventPostponed": {
+            "title": "Nếu sự kiện bị hoãn sang ngày khác:",
+            "keepTicket": "Giữ vé cho ngày mới (vé vẫn có giá trị sử dụng).",
+            "requestRefund": "Hoặc yêu cầu hoàn tiền: Số tiền hoàn lại là **90%** giá trị vé (**10%** còn lại là chi phí vận hành hệ thống và phí cổng thanh toán đã thực hiện)."
+          }
+        },
+        "antiScam": {
+          "title": "4.3. Cơ chế bảo vệ người mua (Anti-Scam)",
+          "content": "Nếu sự kiện bị khiếu nại diện rộng hoặc VIETICKET phát hiện dấu hiệu lừa đảo (sự kiện không có thật), Sàn sẽ lập tức phong tỏa doanh thu của BTC. Sau khi xác minh vi phạm, VIETICKET sẽ thực hiện hoàn tiền **100%** cho khách hàng."
+        }
+      },
+      "disclaimer": {
+        "title": "5. Miễn trừ trách nhiệm",
+        "content": "VIETICKET là đơn vị trung gian phân phối vé, không chịu trách nhiệm về:",
+        "points": [
+          "Nội dung nghệ thuật, sự thay đổi nghệ sĩ biểu diễn, chất lượng âm thanh ánh sáng hoặc các sự cố vật lý xảy ra tại địa điểm tổ chức.",
+          "VIETICKET từ chối hỗ trợ các vé được mua lại từ thị trường chợ đen (pass vé) mà không thông qua tính năng chuyển nhượng chính thức của hệ thống."
+        ]
+      }
+    },
+    "organizers": {
+      "title": "ĐIỀU KHOẢN DÀNH CHO NHÀ TỔ CHỨC (ĐỐI TÁC)",
+      "cooperation": {
+        "title": "1. Phạm vi hợp tác & Cam kết",
+        "points": [
+          "VIETICKET cung cấp giải pháp bán vé, quản lý đơn hàng và ứng dụng Check-in sự kiện.",
+          "Nhà tổ chức (BTC) chịu trách nhiệm toàn bộ về việc vận hành, xin giấy phép tổ chức biểu diễn và đóng thuế theo quy định pháp luật."
+        ]
+      },
+      "rightsObligations": {
+        "title": "2. Quyền và Nghĩa vụ của Nhà tổ chức",
+        "legality": {
+          "title": "Tính pháp lý:",
+          "content": "Cam kết sự kiện đã được cấp phép bởi cơ quan chức năng (Sở Văn hóa, v.v.). BTC phải cung cấp giấy phép cho VIETICKET trước khi mở bán ít nhất 24h."
+        },
+        "intellectualProperty": {
+          "title": "Sở hữu trí tuệ:",
+          "content": "BTC cam kết chịu trách nhiệm **100%** về bản quyền hình ảnh, âm nhạc sử dụng trong sự kiện và trên trang bán vé. VIETICKET được miễn trừ khỏi mọi khiếu kiện liên quan đến bản quyền của BTC."
+        },
+        "refundCommitment": {
+          "title": "Cam kết hoàn vé:",
+          "content": "Bằng việc hợp tác với VIETICKET, BTC đồng ý tham gia chính sách hoàn vé linh hoạt (**80%** - **60%**) nêu tại Mục 4 (Phần 1). Số lượng vé được hoàn sẽ được mở bán lại trên hệ thống."
+        }
+      },
+      "fees": {
+        "title": "3. Chính sách Phí & Đối soát (Thanh toán)",
+        "serviceFee": {
+          "title": "Phí dịch vụ:",
+          "content": "VIETICKET thu **5%** trên tổng doanh thu bán vé (đã bao gồm phí cổng thanh toán, chưa bao gồm VAT)."
+        },
+        "settlement": {
+          "title": "Chu kỳ đối soát:",
+          "content": "Đối soát doanh thu được thực hiện hàng tuần (mỗi thứ Sáu) cho các sự kiện đã kết thúc trong tuần trước đó."
+        },
+        "invoice": {
+          "title": "Trách nhiệm xuất hóa đơn:",
+          "content": "BTC có trách nhiệm xuất hóa đơn VAT (cho phần giá vé) khi khách hàng yêu cầu. VIETICKET chỉ xuất hóa đơn cho phần phí dịch vụ **5%**."
+        }
+      },
+      "cancellation": {
+        "title": "4. Quy định về Hủy hoặc Hoãn sự kiện",
+        "intro": "Trong trường hợp sự kiện bị hủy (do lỗi chủ quan của BTC hoặc chưa xin được giấy phép):",
+        "obligations": [
+          "BTC có nghĩa vụ hoàn lại **100%** tiền vé cho khách hàng.",
+          "Đóng phạt và chi phí bồi thường thiệt hại gây ra cho VIETICKET (nếu có).",
+          "Thông báo ngay lập tức cho khách hàng về việc hủy sự kiện và quy trình hoàn tiền."
+        ]
+      },
+      "dataProtection": {
+        "title": "5. Bảo vệ dữ liệu cá nhân (Tuân thủ Nghị định 13/2023/NĐ-CP)",
+        "dataUsage": {
+          "title": "Sử dụng dữ liệu khách hàng:",
+          "content": "Thông tin khách hàng (họ tên, điện thoại, email) được cung cấp khi mua vé thuộc về cả VIETICKET và BTC. Cả hai bên cam kết chỉ sử dụng dữ liệu cho mục đích liên quan đến sự kiện và chăm sóc khách hàng."
+        },
+        "dataSharing": {
+          "title": "Cấm chia sẻ dữ liệu:",
+          "content": "BTC không được phép chia sẻ dữ liệu khách hàng cho bên thứ ba vì mục đích thương mại mà không có sự đồng ý bằng văn bản từ VIETICKET và khách hàng."
+        }
+      }
+    },
+    "contact": {
+      "title": "Cần hỗ trợ thêm?",
+      "description": "Nếu bạn có thắc mắc về các điều khoản và điều kiện, hãy liên hệ với chúng tôi.",
+      "supportButton": "Liên hệ hỗ trợ",
+      "emailButton": "Gửi email"
+    }
   }
 }

@@ -341,8 +341,13 @@ function CreateEventPageInner() {
 
     const loadEvent = async () => {
       try {
-        const event = await fetchEventById(eventId);
-        if (!event) return;
+        const result = await fetchEventById(eventId);
+        if (!result.success || !result.data) {
+          toast.error("Event not found");
+          return;
+        }
+        
+        const event = result.data;
 
         setFormData({
           name: event.name ?? "",
@@ -768,8 +773,13 @@ function CreateEventPageInner() {
     startTransition(async () => {
       try {
         if (eventId) {
-          await handleUpdateEvent(form);
-          toast.success(t("toasts.eventUpdated"));
+          const result = await handleUpdateEvent(form);
+          if (result.success) {
+            toast.success(t("toasts.eventUpdated"));
+          } else {
+            toast.error(result.error || "Failed to update event");
+            return;
+          }
         } else {
           const eventResult = await handleCreateEvent(form);
 

@@ -54,6 +54,30 @@ const mockRevalidatePath = mock();
 const mockSlugify = mock().mockReturnValue("test-event-slug");
 
 // Mock modules
+mock.module("@/lib/db", () => ({
+  db: {
+    insert: mock().mockReturnValue({
+      values: mock().mockReturnValue({
+        returning: mock().mockResolvedValue([{ id: "mock-id" }]),
+      }),
+    }),
+    select: mock().mockReturnValue({
+      from: mock().mockReturnValue({
+        where: mock().mockResolvedValue([]),
+      }),
+    }),
+    transaction: mock().mockImplementation(async (fn) => {
+      return await fn({
+        insert: mock().mockReturnValue({
+          values: mock().mockReturnValue({
+            returning: mock().mockResolvedValue([{ id: "mock-id" }]),
+          }),
+        }),
+      });
+    }),
+  },
+}));
+
 mock.module("@/lib/auth/authorise", () => ({
   authorise: mockAuthorise,
 }));

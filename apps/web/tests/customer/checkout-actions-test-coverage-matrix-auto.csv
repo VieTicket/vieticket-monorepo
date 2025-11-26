@@ -1,0 +1,91 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06,TC07,TC08,TC09,TC10,TC11,TC12,TC13,TC14,TC15,TC16,TC17,TC18,TC19,TC20,TC21,TC22,TC23,TC24,TC25,TC26,TC27,TC28,TC29,TC30
+Can connect with server,Precondition,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Precondition,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Precondition,Precondition,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Server Connection,,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Authentication,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Valid user session,,O,O,O,O,O,,,O,O,O,O,O,O,,O,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,Authenticated customer role,,O,O,O,O,O,,,O,O,O,O,O,O,,O,O,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,No session (unauthenticated),,,,,,,O,O,,,,,,,O,,,,,,,,O,,,,,,,,
+,Session without user,,,,,,,O,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Event ID Validation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Valid event ID format,,O,O,O,O,O,O,O,O,O,,,,,,,,O,O,O,O,O,O,O,O,O,O,O,O,O,O
+,Short event ID (1 char),,,,O,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Long event ID (100 chars),,,,,O,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Empty event ID,,,,,,,,,,O,,,,,,,,,,,,,,,,,,,,,
+,Non-existent event,,,,,,,,O,,,,,,,,,,,,,,,,,,,O,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Showing ID Validation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Valid showing ID,,,,,,,,,,,O,O,O,O,O,O,,O,,,,,,,,,,,
+,Non-existent showing,,,,,,,,,,,,,,,O,,,,,,,,,,,,,,,
+,Showing for unapproved event,,,,,,,,,,,,,,,,,,O,,,,,,,,,,,,,,
+,Inactive ticket sale,,,,,,,,,,,,O,,,,,,,,,,,,,,,,,,,
+,Sold out showing,,,,,,,,,,,,,O,,,,,,,,,,,,,,,,,,
+,Active ticket sale,,,,,,,,,,,O,,,O,,,,,,,,,,,,,,,,
+Seat Selection,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Valid seat IDs,,,,,,,,,,,,,,,,,O,O,O,O,O,,O,O,O,O,,O,O,O
+,Single seat selection,,,,,,,,,,,,,,,,,O,O,O,,O,,O,O,O,O,,O,O,O
+,Multiple seats selection,,,,,,,,,,,,,,,,,O,,,,,,,,,,,,,
+,Maximum seats (10),,,,,,,,,,,,,,,,,,,,,O,,,,,,,,,,,
+,Empty seat selection,,,,,,,,,,,,,,,,,,,,,,,O,,,,,,,,,
+,Invalid/malformed seat IDs,,,,,,,,,,,,,,,,,,,,,,,,,,,,O,,,
+,Seats unavailable error,,,,,,,,,,,,,,,,,,,,,,,,,O,,,,,,
+,Exceeds max tickets limit,,,,,,,,,,,,,,,,,,,,,,,,,O,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Order Creation,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Valid order creation,,,,,,,,,,,,,,,,,O,O,O,O,O,,O,O,O,,O,O,O,O
+,Order with showing ID,,,,,,,,,,,,,,,,,,,O,,,,,,,,,,,,
+,Custom IP address handling,,,,,,,,,,,,,,,,,,,,O,,,,,,,,,,,
+,Payment URL generation,,,,,,,,,,,,,,,,,O,O,O,O,O,,,,,,,,O,O
+,Database transaction,,,,,,,,,,,,,,,,,O,O,O,O,O,,O,O,O,O,O,O,O,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Error Handling,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Standard Error objects,,,,,,,,O,,O,,,,,O,O,,,,,,,O,O,O,,O,,O,O
+,Structured errors (with code),,,,,,,,,,,,,,,,,,,,,,,,,O,,,,,,
+,Non-Error exceptions,,,,,,,,O,O,,,,,,,,,,,,,,,,,,,O,,
+,Service layer errors,,,,,,,,O,O,,,,,O,O,,,,,,,O,O,O,O,O,O,O,O
+,Network/timeout errors,,,,,,,,,,,,,,,,,,,,,,,,,,,,,O,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Business Logic,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Event ticket data retrieval,,O,O,O,O,O,,O,O,O,,,,,,,,,,,,,,,,,,,,
+,Showing ticket data retrieval,,,,,,,,,,,O,O,O,O,O,O,,,,,,,,,,,,,,,
+,Multiple showings handling,,,O,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Complex seating structure,,,O,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,Seat status tracking,,O,,O,,,,,,,,,O,,O,,,,,,,,,,,,,,,,,,
+,Payment gateway integration,,,,,,,,,,,,,,,,,O,O,O,O,O,,,,,,,,O,O
+,IP address extraction,,,,,,,,,,,,,,,,,O,O,O,O,O,,,,,,,,,,
+,Order expiration handling,,,,,,,,,,,,,,,,,O,O,O,O,O,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Return,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,200: Success,Confirm,O,O,O,O,O,,,,,,O,O,O,,,,O,O,O,O,O,,,,,,,,,
+,401: Unauthenticated,Confirm,,,,,,O,O,,,,,,,O,,,,,,,,O,,,,,,,,
+,400: Bad Request,Confirm,,,,,,,,,,O,,,,,O,,,,,,,,O,O,O,O,O,,
+,404: Not Found,Confirm,,,,,,,,O,,,,,,,O,,,,,,,,,,,O,,,,
+,500: Server Error,Confirm,,,,,,,,,,,,,,,,,,,,,,,,,,,,,O,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Log message,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+,"""Unauthenticated user (Abnormal)""",,,,,,,O,,,,,,,,,,,,,,,,,,,,,,,,
+,"""Session without user (Abnormal)""",,,,,,,,O,,,,,,,,,,,,,,,,,,,,,,,
+,"""Event not found (Abnormal)""",,,,,,,,,O,,,,,,,,,,,,,,,,,,,,,,
+,"""Service throws unexpected error (Abnormal)""",,,,,,,,,,O,,,,,,,,,,,,,,,,,,,,,
+,"""Empty event ID (Abnormal)""",,,,,,,,,,,O,,,,,,,,,,,,,,,,,,,,
+,"""Unauthenticated user for showing (Abnormal)""",,,,,,,,,,,,,,,O,,,,,,,,,,,,,,,,
+,"""Non-existent showing ID (Abnormal)""",,,,,,,,,,,,,,,,O,,,,,,,,,,,,,,,
+,"""Showing for unapproved event (Abnormal)""",,,,,,,,,,,,,,,,,O,,,,,,,,,,,,,,
+,"""Unauthenticated order creation (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,O,,,,,,,,
+,"""Empty seat selection (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,O,,,,,,,
+,"""Seats unavailable error (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,O,,,,,,
+,"""Exceeds maximum tickets per order (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,O,,,,,
+,"""Non-existent event for order (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,,O,,,,
+,"""Invalid seat IDs (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,,,O,,,
+,"""Service throws non-Error exception (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,,,,O,,
+,"""VNPay payment URL generation failure (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,O,
+,"""Database transaction failure (Abnormal)""",,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,O
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+Result,Type(N : Normal A : Abnormal B : Boundary),,N,N,N,B,B,A,A,A,A,A,N,N,B,A,A,A,N,N,N,B,B,A,A,A,A,A,A,A,A,A
+,Passed/Failed,,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P,P
+,Executed Date,,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23,2025-11-23
+,Defect ID,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
