@@ -20,23 +20,23 @@ export function StepProgressBar({ step }: { step: number }) {
   );
 
   return (
-    <div className="relative w-full max-w-7xl mx-auto mb-8 h-[67px] flex justify-between items-center px-4 font-inter">
+    <div className="relative w-full max-w-[280px] sm:max-w-[320px] md:max-w-[400px] lg:max-w-4xl xl:max-w-6xl mx-auto mb-4 sm:mb-6 lg:mb-8 h-[50px] sm:h-[60px] lg:h-[67px] flex justify-between items-center px-3 sm:px-4 font-inter">
       {/* Background line for the progress bar */}
       <div
-        className="absolute left-0 right-0 h-1 bg-gray-200 rounded-full mx-auto"
+        className="absolute left-0 right-0 h-0.5 sm:h-1 bg-gray-200 rounded-full mx-auto"
         style={{
-          width: `calc(100% - 1rem)`,
-          top: "20px",
+          width: `calc(100% - 0.75rem)`,
+          top: "17px",
         }}
       ></div>
 
       {/* Active progress line, dynamically sized and animated */}
       <div
-        className="absolute left-0 right-0 h-1 rounded-full bg-gradient-to-r from-purple-400 to-purple-700 transition-all duration-700 ease-out mx-auto"
+        className="absolute left-0 right-0 h-0.5 sm:h-1 rounded-full bg-gradient-to-r from-purple-400 to-purple-700 transition-all duration-700 ease-out mx-auto"
         style={{
           width: `calc(${progressPercentage}% )`, // Adjust width based on progress, accounting for padding
           marginLeft: "0rem",
-          top: "20px",
+          top: "17px",
         }}
       ></div>
 
@@ -57,7 +57,7 @@ export function StepProgressBar({ step }: { step: number }) {
             {/* Circle for the step */}
             <div
               className={`
-            relative w-5 h-5 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out
+            relative w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center transition-all duration-300 ease-in-out
         ${isCompleted ? "" : ""}
     ${isActive ? "shadow-lg animate-pulse-slight" : ""}
      ${isPending ? "" : ""}
@@ -65,14 +65,14 @@ export function StepProgressBar({ step }: { step: number }) {
               style={{
                 backgroundColor:
                   isCompleted || isActive ? "rgb(42, 39, 63)" : "#f3f4f6", // bg-gray-100 fallback
-                border: `3px solid ${isActive ? "rgb(42, 39, 63)" : "#d1d5db"}`, // gray-400 fallback
-                borderWidth: isActive ? "5px" : "3px",
+                border: `${isActive ? "3px sm:4px" : "2px sm:3px"} solid ${isActive ? "rgb(42, 39, 63)" : "#d1d5db"}`, // gray-400 fallback
+                borderWidth: isActive ? "3px" : "2px",
               }}
             >
               {isCompleted && (
                 // Checkmark icon for completed steps
                 <svg
-                  className="w-4 h-4 text-white"
+                  className="w-2.5 h-2.5 sm:w-4 sm:h-4 text-white"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -88,14 +88,14 @@ export function StepProgressBar({ step }: { step: number }) {
               )}
               {isActive && (
                 <div
-                  className="w-3 h-3 rounded-full"
+                  className="w-2 h-2 sm:w-3 sm:h-3 rounded-full"
                   style={{ backgroundColor: "rgb(52, 48, 73)" }}
                 ></div>
               )}
             </div>
 
             <span
-              className="mt-2 text-sm text-center font-semibold whitespace-nowrap transition-colors duration-300"
+              className="mt-1.5 sm:mt-2 text-xs sm:text-sm text-center font-medium sm:font-semibold whitespace-nowrap transition-colors duration-300"
               style={{
                 color:
                   isCompleted || isActive

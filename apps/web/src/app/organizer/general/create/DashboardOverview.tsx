@@ -83,24 +83,26 @@ const formatLargeNumber = (value: number) => {
 const CustomAreaTooltip = ({ active, payload, label }: AreaTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="rounded-md border bg-white p-2 shadow-sm">
-        <p className="text-sm font-bold">
-          {label ? new Date(label).toLocaleDateString("vi-VN") : ""}
-        </p>
-        {payload.map(
-          (
-            entry: { color: string; name: string; value: number },
-            index: number
-          ) => (
-            <p
-              key={`item-${index}`}
-              className="text-sm"
-              style={{ color: entry.color }}
-            >
-              {`${entry.name}: ${formatCurrencyVND(entry.value)}`}
-            </p>
-          )
-        )}
+      <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
+        <div className="flex flex-col space-y-1 text-center">
+          <span className="text-[0.65rem] sm:text-[0.70rem] uppercase text-muted-foreground">
+            {label ? new Date(label).toLocaleDateString("vi-VN") : ""}
+          </span>
+          {payload.map(
+            (
+              entry: { color: string; name: string; value: number },
+              index: number
+            ) => (
+              <span
+                key={`item-${index}`}
+                className="text-[0.75rem] sm:text-sm font-bold text-foreground"
+                style={{ color: entry.color }}
+              >
+                {formatCurrencyVND(entry.value)}
+              </span>
+            )
+          )}
+        </div>
       </div>
     );
   }
@@ -112,14 +114,18 @@ const CustomPieTooltip = ({ active, payload }: PieTooltipProps) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="rounded-md border bg-white p-2 shadow-sm">
-        <p className="text-sm font-bold">{data.ticketType}</p>
-        <p className="text-sm text-blue-600">
-          Revenue: {formatCurrencyVND(data.revenue)}
-        </p>
-        <p className="text-sm text-green-600">
-          Tickets sold: {data.ticketsSold.toLocaleString()}
-        </p>
+      <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
+        <div className="flex flex-col space-y-1 text-center">
+          <span className="text-[0.65rem] sm:text-[0.70rem] uppercase text-muted-foreground">
+            {data.ticketType}
+          </span>
+          <span className="text-[0.75rem] sm:text-sm font-bold text-foreground">
+            {formatCurrencyVND(data.revenue)}
+          </span>
+          <span className="text-[0.60rem] text-muted-foreground">
+            {data.ticketsSold.toLocaleString()} tickets
+          </span>
+        </div>
       </div>
     );
   }
@@ -249,22 +255,22 @@ export function DashboardOverview({
   );
 
   return (
-    <div className="container mx-auto px-4 py-8 bg-white-50 dark:bg-gray-900 min-h-screen font-inter">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800 dark:text-gray-100">
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 bg-white-50 dark:bg-gray-900 min-h-screen font-inter">
+      <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold mb-4 sm:mb-8 text-gray-800 dark:text-gray-100">
         Event Overview
       </h1>
 
       {/* Overview metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 mb-8">
+      <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 md:gap-4 lg:gap-6 xl:grid-cols-4 mb-4 sm:mb-8">
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
               Total Revenue
             </CardTitle>
-            <Wallet className="h-5 w-5 text-blue-500 dark:text-blue-400" />
+            <Wallet className="h-4 w-4 sm:h-5 sm:w-5 text-blue-500 dark:text-blue-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          <CardContent className="px-3 sm:px-6">
+            <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-50">
               {formatCurrencyVND(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -275,14 +281,14 @@ export function DashboardOverview({
         </Card>
 
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
               Total Tickets Sold
             </CardTitle>
-            <Ticket className="h-5 w-5 text-green-500 dark:text-green-400" />
+            <Ticket className="h-4 w-4 sm:h-5 sm:w-5 text-green-500 dark:text-green-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          <CardContent className="px-3 sm:px-6">
+            <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-50">
               {totalTicketsSold.toLocaleString()}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -292,14 +298,14 @@ export function DashboardOverview({
         </Card>
 
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
               Ticket Sold Rate
             </CardTitle>
-            <BarChart className="h-5 w-5 text-purple-500 dark:text-purple-400" />
+            <BarChart className="h-4 w-4 sm:h-5 sm:w-5 text-purple-500 dark:text-purple-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          <CardContent className="px-3 sm:px-6">
+            <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-50">
               {ticketSoldPercentage.toFixed(1)}%
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -319,14 +325,14 @@ export function DashboardOverview({
         </Card>
 
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
               Average Ticket Price
             </CardTitle>
-            <DollarSign className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
+            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 dark:text-yellow-400" />
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+          <CardContent className="px-3 sm:px-6">
+            <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-50">
               {formatCurrencyVND(averageTicketPrice)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
@@ -337,20 +343,20 @@ export function DashboardOverview({
       </div>
 
       {/* Revenue fluctuation chart */}
-      <Card className="rounded-xl shadow-lg mb-8">
-        <CardHeader className="p-6">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
+      <Card className="rounded-xl shadow-lg mb-4 sm:mb-8">
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center">
             <div>
-              <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+              <CardTitle className="text-sm sm:text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-100">
                 Revenue Fluctuation
               </CardTitle>
-              <CardDescription className="text-gray-600 dark:text-gray-400">
+              <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
                 Revenue over time
               </CardDescription>
             </div>
-            <div className="flex flex-wrap items-center gap-2 mt-4 md:mt-0">
+            <div className="flex flex-wrap items-center gap-2 mt-3 lg:mt-0 w-full lg:w-auto">
               <button
-                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors duration-200
+                className={`px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-medium transition-colors duration-200 flex-1 sm:flex-none
                                     ${dateFilter === "all" ? "bg-blue-600 text-white shadow-md" : "bg-gray-200 text-gray-700 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"}`}
                 onClick={() => setDateFilter("all")}
               >
@@ -397,9 +403,9 @@ export function DashboardOverview({
             </div>
           </div>
         </CardHeader>
-        <CardContent className="h-[350px] p-0">
-          <ResponsiveContainer width="100%" height="100%">
-            {filteredRevenue && filteredRevenue.length > 0 ? (
+        <CardContent className="h-[200px] sm:h-[250px] lg:h-[350px] p-0">
+          {filteredRevenue && filteredRevenue.length > 0 ? (
+            <ResponsiveContainer width="100%" height="100%">
               <AreaChart
                 data={filteredRevenue}
                 margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
@@ -419,9 +425,12 @@ export function DashboardOverview({
                 <XAxis
                   dataKey="date"
                   stroke="#888888"
-                  fontSize={12}
+                  fontSize={10}
                   tickLine={false}
                   axisLine={false}
+                  angle={-45}
+                  textAnchor="end"
+                  height={60}
                   tickFormatter={(value: string) => {
                     const date = new Date(value);
                     return date.toLocaleDateString("vi-VN", {
@@ -445,30 +454,30 @@ export function DashboardOverview({
                   type="monotone"
                 />
               </AreaChart>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <div className="text-center text-muted-foreground">
-                  <p className="text-lg">No revenue data available</p>
-                  <p className="text-sm">Revenue data will appear here once transactions are made</p>
-                </div>
+            </ResponsiveContainer>
+          ) : (
+            <div className="flex items-center justify-center h-full px-4 py-8">
+              <div className="text-center text-muted-foreground">
+                <p className="text-sm sm:text-base lg:text-lg mb-2">No revenue data available</p>
+                <p className="text-xs sm:text-sm">Revenue data will appear here once transactions are made</p>
               </div>
-            )}
-          </ResponsiveContainer>
+            </div>
+          )}
         </CardContent>
       </Card>
 
       {/* Revenue distribution & Recent transactions */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-8">
+      <div className="grid gap-4 lg:gap-6 grid-cols-1 lg:grid-cols-2 mb-4 sm:mb-8">
         <Card className="rounded-xl shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-sm sm:text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-100">
               Revenue Distribution by Ticket Type
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Revenue ratio and tickets sold for each ticket type
             </CardDescription>
           </CardHeader>
-          <CardContent className="h-[350px] flex flex-col items-center justify-center p-4">
+          <CardContent className="h-[250px] sm:h-[300px] lg:h-[350px] flex flex-col items-center justify-center p-2 sm:p-4">
             {ticketTypeRevenue && ticketTypeRevenue.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -482,8 +491,8 @@ export function DashboardOverview({
                     nameKey="ticketType"
                     paddingAngle={3}
                     labelLine={false}
-                    label={({ percent }) =>
-                      `${((percent ?? 0) * 100).toFixed(0)}%`
+                    label={(props: any) =>
+                      `${(props.percent ? props.percent * 100 : 0).toFixed(0)}%`
                     }
                   >
                     {ticketTypeRevenue.map((entry, index) => (
@@ -519,46 +528,46 @@ export function DashboardOverview({
         </Card>
 
         <Card className="rounded-xl shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-xl font-semibold text-gray-800 dark:text-gray-100">
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-sm sm:text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-100">
               Recent Transactions
             </CardTitle>
-            <CardDescription className="text-gray-600 dark:text-gray-400">
+            <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
               Latest ticket sales transactions
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[300px] overflow-y-auto">
+            <div className="max-h-[250px] sm:max-h-[300px] overflow-y-auto overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
                   <tr>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
-                      Transaction ID
+                      ID
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
                     >
                       Date
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
-                      Ticket Type
+                      Type
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Amount
                     </th>
                     <th
                       scope="col"
-                      className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Status
                     </th>
@@ -571,23 +580,32 @@ export function DashboardOverview({
                         key={index}
                         className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       >
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-50">
-                          <span className="inline-block max-w-[50px] truncate">
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-50">
+                          <span className="inline-block max-w-[40px] sm:max-w-[50px] truncate">
                             {transaction.id}
                           </span>
+                          <div className="text-xs text-gray-500 sm:hidden">
+                            {new Date(transaction.date).toLocaleDateString(
+                              "vi-VN"
+                            )}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                           {new Date(transaction.date).toLocaleDateString(
                             "vi-VN"
                           )}
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                          {transaction.ticketType}
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                          <span className="truncate max-w-[60px] sm:max-w-none inline-block">
+                            {transaction.ticketType}
+                          </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-900 dark:text-gray-50">
-                          {formatCurrencyVND(transaction.amount)}
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-right text-gray-900 dark:text-gray-50">
+                          <div className="truncate">
+                            {formatCurrencyVND(transaction.amount)}
+                          </div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
                           <span
                             className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
                                                                 ${

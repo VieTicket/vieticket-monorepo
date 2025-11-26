@@ -870,15 +870,15 @@ function CreateEventPageInner() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">
+    <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
+      <h1 className="text-2xl sm:text-3xl font-semibold mb-3 sm:mb-4">
         {eventId ? t("editEvent") : t("createEvent")}
       </h1>
 
       <StepProgressBar step={step} />
-      <Separator className="mb-6" />
+      <Separator className="mb-4 sm:mb-6" />
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-4 sm:space-y-6">
         {renderStep()}
 
         {step === 4 && (
@@ -947,7 +947,7 @@ function CreateEventPageInner() {
       </form>
 
       {step < 4 && (
-        <div className="flex justify-end mt-8 space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 mt-4 sm:mt-6 lg:mt-8">
           <Button
             variant="outline"
             onClick={() => {
@@ -955,10 +955,16 @@ function CreateEventPageInner() {
               scrollToTop();
             }}
             disabled={step === 1}
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             {t("goback")}
           </Button>
-          <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
+          <Button 
+            onClick={handleNextStep}
+            className="w-full sm:w-auto order-1 sm:order-2"
+          >
+            {t("saveandcontinue")}
+          </Button>
         </div>
       )}
 

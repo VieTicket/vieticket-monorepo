@@ -71,15 +71,15 @@ export function SimpleTicketingMode({
     );
   };
   return (
-    <div className="space-y-6">
-      <h3 className="text-lg font-medium">Ticket Areas</h3>
+    <div className="space-y-4 sm:space-y-6">
+      <h3 className="text-base sm:text-lg font-medium">Ticket Areas</h3>
       {areas.map((area, index) => (
         <div
           key={index}
-          className="grid grid-cols-3 gap-4 items-start border p-4 pb-8 rounded-lg relative"
+          className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-start border p-3 sm:p-4 pb-6 sm:pb-8 rounded-lg relative"
         >
-          <div className="space-y-1 relative">
-            <Label htmlFor={`area-name-${index}`}>Area Name</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor={`area-name-${index}`} className="text-sm font-medium">Area Name</Label>
             <Input
               id={`area-name-${index}`}
               type="text"
@@ -94,11 +94,12 @@ export function SimpleTicketingMode({
                 )
               }
               required
+              className="h-9 text-sm"
             />
           </div>
 
-          <div className="space-y-1 relative">
-            <Label htmlFor={`area-seatCount-${index}`}>Seat Count</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor={`area-seatCount-${index}`} className="text-sm font-medium">Seat Count</Label>
             <Input
               id={`area-seatCount-${index}`}
               type="text"
@@ -107,7 +108,7 @@ export function SimpleTicketingMode({
               value={area.seatCount}
               onChange={(e) => handleSeatCountChange(index, e.target.value)}
               required
-              className={!area.seatCount ? "border-red-300" : ""}
+              className={`h-9 text-sm ${!area.seatCount ? "border-red-300" : ""}`}
               title={
                 !area.seatCount
                   ? "Seat count is required and must be greater than 0"
@@ -115,14 +116,14 @@ export function SimpleTicketingMode({
               }
             />
             {!area.seatCount && (
-              <div className="absolute -bottom-5 left-0 text-xs text-red-500 whitespace-nowrap">
+              <p className="text-xs text-red-500 mt-1">
                 Required, must be &gt; 0
-              </div>
+              </p>
             )}
           </div>
 
-          <div className="space-y-1 relative">
-            <Label htmlFor={`area-ticketPrice-${index}`}>
+          <div className="space-y-1.5">
+            <Label htmlFor={`area-ticketPrice-${index}`} className="text-sm font-medium">
               Ticket Price (VND)
             </Label>
             <Input
@@ -133,7 +134,7 @@ export function SimpleTicketingMode({
               value={formatVNDPrice(area.ticketPrice)}
               onChange={(e) => handleTicketPriceChange(index, e.target.value)}
               required
-              className={!area.ticketPrice ? "border-red-300" : ""}
+              className={`h-9 text-sm ${!area.ticketPrice ? "border-red-300" : ""}`}
               title={
                 !area.ticketPrice
                   ? "Ticket price is required and must be greater than or equal to 0"
@@ -141,9 +142,9 @@ export function SimpleTicketingMode({
               }
             />
             {!area.ticketPrice && (
-              <div className="absolute -bottom-5 left-0 text-xs text-red-500 whitespace-nowrap">
+              <p className="text-xs text-red-500 mt-1">
                 Required, must be ≥ 0
-              </div>
+              </p>
             )}
           </div>
 
@@ -154,7 +155,7 @@ export function SimpleTicketingMode({
               onClick={() =>
                 setAreas((prev) => prev.filter((_, i) => i !== index))
               }
-              className="absolute top-2 right-2 text-red-500 text-sm"
+              className="absolute top-2 right-2 text-red-500 text-xs sm:text-sm hover:bg-red-50 rounded p-1"
             >
               🗑 Remove
             </button>
@@ -176,6 +177,7 @@ export function SimpleTicketingMode({
             },
           ])
         }
+        className="w-full sm:w-auto"
       >
         + Add Area
       </Button>
