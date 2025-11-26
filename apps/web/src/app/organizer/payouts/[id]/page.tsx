@@ -22,8 +22,8 @@ export default async function PayoutRequestPage({ params }: PayoutRequestPagePro
     }
 
     return (
-        <div className="container mx-auto py-8 px-4">
-            <h1 className="text-2xl font-bold mb-6">Payout Request Details</h1>
+        <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:w-2/3 mx-auto px-3 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-4 sm:py-6 lg:py-8">
+            <h1 className="text-lg sm:text-xl md:text-2xl font-bold mb-4 sm:mb-6">Payout Request Details</h1>
             <PayoutRequestDetails payoutRequest={payoutRequest} />
         </div>
     );
