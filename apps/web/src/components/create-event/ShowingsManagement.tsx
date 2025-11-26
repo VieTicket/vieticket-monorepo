@@ -97,33 +97,34 @@ export default function ShowingsManagement({
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h3 className="text-lg font-semibold flex items-center gap-2">
-            <Clock className="w-5 h-5" />
+          <h3 className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
             {t("showings.title")}
           </h3>
-          <p className="text-sm text-gray-600">{t("showings.description")}</p>
+          <p className="text-xs sm:text-sm text-gray-600 mt-1">{t("showings.description")}</p>
         </div>
         <Button
           type="button"
           onClick={addShowing}
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 w-full sm:w-auto text-sm"
+          size="sm"
         >
           <Plus className="w-4 h-4" />
           {t("showings.add")}
         </Button>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {showings.map((showing, index) => (
           <div
             key={index}
-            className="p-4 border rounded-lg bg-gray-50 space-y-4"
+            className="p-3 sm:p-4 border rounded-lg bg-gray-50 space-y-3 sm:space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h4 className="font-medium">
+              <h4 className="font-medium text-sm sm:text-base">
                 {t("showings.showing", { n: index + 1 })}
               </h4>
               {showings.length > 1 && (
@@ -132,17 +133,17 @@ export default function ShowingsManagement({
                   variant="outline"
                   size="sm"
                   onClick={() => removeShowing(index)}
-                  className="text-red-600 hover:text-red-700"
+                  className="text-red-600 hover:text-red-700 h-8 w-8 p-0"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3 h-3 sm:w-4 sm:h-4" />
                 </Button>
               )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {/* Showing Name */}
-              <div>
-                <Label htmlFor={`showing-name-${index}`}>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor={`showing-name-${index}`} className="text-xs sm:text-sm font-medium">
                   {t("labels.showingName")}
                 </Label>
                 <Input
@@ -150,12 +151,13 @@ export default function ShowingsManagement({
                   value={showing.name}
                   onChange={(e) => updateShowing(index, "name", e.target.value)}
                   placeholder={t("placeholders.showingExample")}
+                  className="h-9 text-sm"
                 />
               </div>
 
               {/* Start Time */}
-              <div>
-                <Label htmlFor={`showing-start-${index}`}>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor={`showing-start-${index}`} className="text-xs sm:text-sm font-medium">
                   {t("labels.startTime")}
                 </Label>
                 <Input
@@ -165,20 +167,20 @@ export default function ShowingsManagement({
                   onChange={(e) =>
                     updateShowing(index, "startTime", e.target.value)
                   }
-                  className={
+                  className={`h-9 text-sm ${
                     errors[`showing-${index}-startTime`] ? "border-red-500" : ""
-                  }
+                  }`}
                 />
                 {errors[`showing-${index}-startTime`] && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
                     {errors[`showing-${index}-startTime`]}
                   </p>
                 )}
               </div>
 
               {/* End Time */}
-              <div>
-                <Label htmlFor={`showing-end-${index}`}>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor={`showing-end-${index}`} className="text-xs sm:text-sm font-medium">
                   {t("labels.endTime")}
                 </Label>
                 <Input
@@ -188,12 +190,12 @@ export default function ShowingsManagement({
                   onChange={(e) =>
                     updateShowing(index, "endTime", e.target.value)
                   }
-                  className={
+                  className={`h-9 text-sm ${
                     errors[`showing-${index}-endTime`] ? "border-red-500" : ""
-                  }
+                  }`}
                 />
                 {errors[`showing-${index}-endTime`] && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
                     {errors[`showing-${index}-endTime`]}
                   </p>
                 )}
@@ -201,10 +203,10 @@ export default function ShowingsManagement({
             </div>
 
             {/* Ticket Sale Times Row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 mt-3 sm:mt-4">
               {/* Ticket Sale Start */}
-              <div>
-                <Label htmlFor={`showing-ticket-start-${index}`}>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor={`showing-ticket-start-${index}`} className="text-xs sm:text-sm font-medium">
                   {t("labels.ticketSaleStart")}
                 </Label>
                 <Input
@@ -214,22 +216,22 @@ export default function ShowingsManagement({
                   onChange={(e) =>
                     updateShowing(index, "ticketSaleStart", e.target.value)
                   }
-                  className={
+                  className={`h-9 text-sm ${
                     errors[`showing-${index}-ticketSaleStart`]
                       ? "border-red-500"
                       : ""
-                  }
+                  }`}
                 />
                 {errors[`showing-${index}-ticketSaleStart`] && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
                     {errors[`showing-${index}-ticketSaleStart`]}
                   </p>
                 )}
               </div>
 
               {/* Ticket Sale End */}
-              <div>
-                <Label htmlFor={`showing-ticket-end-${index}`}>
+              <div className="space-y-1.5 sm:space-y-2">
+                <Label htmlFor={`showing-ticket-end-${index}`} className="text-xs sm:text-sm font-medium">
                   {t("labels.ticketSaleEnd")}
                 </Label>
                 <Input
@@ -239,14 +241,14 @@ export default function ShowingsManagement({
                   onChange={(e) =>
                     updateShowing(index, "ticketSaleEnd", e.target.value)
                   }
-                  className={
+                  className={`h-9 text-sm ${
                     errors[`showing-${index}-ticketSaleEnd`]
                       ? "border-red-500"
                       : ""
-                  }
+                  }`}
                 />
                 {errors[`showing-${index}-ticketSaleEnd`] && (
-                  <p className="text-sm text-red-600 mt-1">
+                  <p className="text-xs sm:text-sm text-red-600 mt-1">
                     {errors[`showing-${index}-ticketSaleEnd`]}
                   </p>
                 )}
