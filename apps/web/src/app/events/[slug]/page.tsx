@@ -87,14 +87,14 @@ export default async function EventPage({
       <ViewCounter eventId={raw.id} />
       <div className="relative">
         {/* Compare button positioned at top right */}
-        <div className="absolute top-4 right-4 z-10">
+        <div className="absolute top-2 right-2 sm:top-4 sm:right-4 z-10">
           <CompareEventButton 
             event={raw} 
             isAuthenticated={isAuthenticated}
           />
         </div>
         
-        <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
+        <div className="bg-white shadow-none rounded-none w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:w-2/3 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12 mx-auto">
           <PreviewEvent
             data={{
               ...event,
