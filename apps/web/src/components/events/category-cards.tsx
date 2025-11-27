@@ -20,12 +20,13 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ title, imageUrl }) => {
       onClick={() =>
         router.push(`/events?category=${handleCategoryParams(title)}`)
       }
-      className="flex flex-col items-center text-center w-28 md:w-32"
+      className="flex flex-col items-center text-center w-28 md:w-32 cursor-pointer group"
     >
-      <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden">
-        <Image src={imageUrl} alt={title} className="object-cover" fill />
+      <div className="relative w-28 h-28 md:w-32 md:h-32 rounded-full overflow-hidden transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl group-hover:shadow-violet-400/30 border-2 border-slate-700/30 group-hover:border-violet-400/50">
+        <Image src={imageUrl} alt={title} className="object-cover transition-transform duration-300 group-hover:scale-105" fill />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
-      <p className="mt-2 text-sm md:text-base font-medium text-gray-800">
+      <p className="mt-3 text-xs md:text-sm font-medium text-white group-hover:text-violet-300 transition-colors duration-300">
         {title}
       </p>
     </div>
@@ -67,9 +68,11 @@ export default function CategoryList() {
   },
 ];
   return (
-    <section className="px-4 py-12">
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-        <div>{t("categories.title")}</div>
+    <section className="px-4 py-12 professional-card rounded-lg mx-4 mb-6 shadow-xl border border-slate-700/30">
+      <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text">
+        <div className="bg-gradient-to-r from-violet-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
+          {t("categories.title")}
+        </div>
       </h2>
       <div className="flex flex-wrap justify-evenly gap-x-6 gap-y-8">
         {categories.map((cat) => (
