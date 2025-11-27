@@ -3,6 +3,8 @@ import { getFilteredEvents } from "@/lib/queries/events";
 import HeroCarousel from "@/components/HeroCarousel";
 import { SmartHomePageGrid } from "@/components/events/smart-homepage-grid";
 import { MouseGlowEffect } from "@/components/effects/mouse-glow";
+import TrendingEventsSlider from "@/components/events/trending-events-slider";
+import NewEventsSlider from "@/components/events/new-events-slider";
 
 export default async function Home() {
   // Load more events initially to provide better AI personalization
@@ -33,6 +35,8 @@ export default async function Home() {
         <HeroCarousel />
         <main className="max-w-7xl mx-auto px-safe-offset-0 mt-5">
           <CategoryList />
+          <TrendingEventsSlider events={eventResult.events} />
+          <NewEventsSlider events={eventResult.events} />
           <SmartHomePageGrid 
             initialEvents={eventResult.events}
             initialHasMore={eventResult.hasMore}

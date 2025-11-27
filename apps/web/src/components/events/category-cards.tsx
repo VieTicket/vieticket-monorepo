@@ -26,7 +26,7 @@ const CategoryCard: React.FC<CategoryCardProps> = ({ title, imageUrl }) => {
         <Image src={imageUrl} alt={title} className="object-cover transition-transform duration-300 group-hover:scale-105" fill />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/50 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
       </div>
-      <p className="mt-3 text-xs md:text-sm font-medium text-white group-hover:text-violet-300 transition-colors duration-300">
+      <p className="mt-3 text-xs md:text-sm font-medium text-white group-hover:text-violet-300 transition-colors duration-300  px-3 py-1   group-hover:border-violet-400/50">
         {title}
       </p>
     </div>
@@ -68,7 +68,7 @@ export default function CategoryList() {
   },
 ];
   return (
-    <section className="px-4 py-12 professional-card rounded-lg mx-4 mb-6 shadow-xl border border-slate-700/30">
+    <section >
       <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text">
         <div className="bg-gradient-to-r from-violet-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
           {t("categories.title")}

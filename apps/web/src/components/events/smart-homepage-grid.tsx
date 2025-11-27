@@ -79,7 +79,7 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
   };
 
   return (
-    <section className="px-4 py-12 professional-card rounded-lg mx-4 mb-6 shadow-xl border border-slate-700/30">
+    <section className="my-5">
       <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text">
         <div className="bg-gradient-to-r from-violet-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
           {t("titlecategories")}
