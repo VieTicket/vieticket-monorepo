@@ -16,7 +16,13 @@ import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 import { BuyTicketButton } from "../checkout/buy-ticket-button";
 
 // RatingList component integrated for preview
-const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: boolean }) => {
+const RatingList = ({
+  eventId,
+  isPreview,
+}: {
+  eventId?: string;
+  isPreview?: boolean;
+}) => {
   const [ratings, setRatings] = useState<any[]>([]);
   const [loading, setLoading] = useState(!isPreview);
 
@@ -75,27 +81,33 @@ const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: bool
     {
       id: "1",
       userName: "Nguyễn Văn A",
-      userImage: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
+      userImage:
+        "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=40&h=40&fit=crop&crop=face",
       stars: 5,
-      comment: "Sự kiện rất tuyệt vời! Tổ chức chuyên nghiệp, âm thanh ánh sáng đỉnh cao. Chắc chắn sẽ tham gia những sự kiện tiếp theo.",
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)
+      comment:
+        "Sự kiện rất tuyệt vời! Tổ chức chuyên nghiệp, âm thanh ánh sáng đỉnh cao. Chắc chắn sẽ tham gia những sự kiện tiếp theo.",
+      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
     },
     {
       id: "2",
       userName: "Trần Thị B",
-      userImage: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face",
+      userImage:
+        "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=40&h=40&fit=crop&crop=face",
       stars: 4,
-      comment: "Sự kiện hay, không gian đẹp. Tuy nhiên mong đợi có thêm nhiều hoạt động tương tác hơn nữa.",
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)
+      comment:
+        "Sự kiện hay, không gian đẹp. Tuy nhiên mong đợi có thêm nhiều hoạt động tương tác hơn nữa.",
+      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
     },
     {
       id: "3",
       userName: "Lê Minh C",
-      userImage: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
+      userImage:
+        "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=40&h=40&fit=crop&crop=face",
       stars: 5,
-      comment: "Xuất sắc! Đội ngũ tổ chức rất chu đáo, địa điểm thuận tiện. Đáng đồng tiền bát gạo.",
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)
-    }
+      comment:
+        "Xuất sắc! Đội ngũ tổ chức rất chu đáo, địa điểm thuận tiện. Đáng đồng tiền bát gạo.",
+      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
+    },
   ];
 
   const displayRatings = isPreview ? mockRatings : ratings;
@@ -136,10 +148,15 @@ const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: bool
       </div>
       <div className="space-y-4">
         {displayRatings.map((rating) => (
-          <div key={rating.id} className="border-b border-slate-700/30 pb-4 last:border-b-0">
+          <div
+            key={rating.id}
+            className="border-b border-slate-700/30 pb-4 last:border-b-0"
+          >
             <div className="flex items-start gap-3">
               <img
-                src={rating.userImage || "https://via.placeholder.com/40x40?text=U"}
+                src={
+                  rating.userImage || "https://via.placeholder.com/40x40?text=U"
+                }
                 alt={rating.userName || "User"}
                 className="w-10 h-10 rounded-full object-cover border border-slate-600"
               />
@@ -170,15 +187,22 @@ const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: bool
 };
 
 // RatingWidget component integrated for preview
-const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: boolean }) => {
+const RatingWidget = ({
+  eventId,
+  isPreview,
+}: {
+  eventId?: string;
+  isPreview?: boolean;
+}) => {
   const [stars, setStars] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState(false);
   const [summaryLoading, setSummaryLoading] = useState(!isPreview);
-  const [summary, setSummary] = useState<{ average: number; count: number } | null>(
-    isPreview ? { average: 4.5, count: 47 } : null
-  );
+  const [summary, setSummary] = useState<{
+    average: number;
+    count: number;
+  } | null>(isPreview ? { average: 4.5, count: 47 } : null);
   const [userRating, setUserRating] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -213,18 +237,21 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
 
   const handleSubmit = async () => {
     if (isPreview) {
-      console.log('Preview mode: Rating submitted', { stars, comment });
+      console.log("Preview mode: Rating submitted", { stars, comment });
       setStars(0);
       setComment("");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
       const res = await fetch(`/api/events/${eventId}/ratings`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         credentials: "include",
         body: JSON.stringify({ stars, comment }),
       });
@@ -233,7 +260,8 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
         throw new Error("Unexpected response from server");
       }
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || "Đã có lỗi xảy ra");
+      if (!res.ok || !data.success)
+        throw new Error(data.error || "Đã có lỗi xảy ra");
       setComment("");
       setStars(0);
       setSummary(data.summary);
@@ -260,8 +288,8 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
                 <span
                   key={i}
                   className={`text-lg transition-colors ${
-                    i < Math.round(summary.average) 
-                      ? "text-yellow-400" 
+                    i < Math.round(summary.average)
+                      ? "text-yellow-400"
                       : "text-slate-600"
                   }`}
                 >
@@ -281,15 +309,15 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
       {userRating ? (
         <div className="mt-3 p-3 professional-card border border-green-500/30 rounded-md">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-green-400">Bạn đã đánh giá:</span>
+            <span className="text-sm font-medium text-green-400">
+              Bạn đã đánh giá:
+            </span>
             <div className="flex items-center gap-1">
               {Array.from({ length: 5 }, (_, i) => (
                 <span
                   key={i}
                   className={`text-lg ${
-                    i < userRating.stars 
-                      ? "text-yellow-400" 
-                      : "text-slate-600"
+                    i < userRating.stars ? "text-yellow-400" : "text-slate-600"
                   }`}
                 >
                   ★
@@ -298,12 +326,11 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
             </div>
           </div>
           {userRating.comment && (
-            <div className="text-sm text-green-300">
-              "{userRating.comment}"
-            </div>
+            <div className="text-sm text-green-300">"{userRating.comment}"</div>
           )}
           <div className="text-xs text-green-400 mt-1">
-            Đánh giá vào: {new Date(userRating.createdAt).toLocaleDateString("vi-VN")}
+            Đánh giá vào:{" "}
+            {new Date(userRating.createdAt).toLocaleDateString("vi-VN")}
           </div>
         </div>
       ) : (
@@ -398,34 +425,53 @@ type Props = {
 };
 
 // Inline RatingStars component to avoid external styling conflicts
-const InlineRatingStars = ({ rating, size = "sm", showNumber = false }: { rating: number; size?: "sm" | "md" | "lg"; showNumber?: boolean }) => {
+const InlineRatingStars = ({
+  rating,
+  size = "sm",
+  showNumber = false,
+}: {
+  rating: number;
+  size?: "sm" | "md" | "lg";
+  showNumber?: boolean;
+}) => {
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
+
   const sizeClasses = {
     sm: "w-4 h-4",
-    md: "w-5 h-5", 
-    lg: "w-6 h-6"
+    md: "w-5 h-5",
+    lg: "w-6 h-6",
   };
-  
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex items-center">
         {/* Full stars */}
         {Array.from({ length: fullStars }).map((_, i) => (
-          <Star key={`full-${i}`} className={`${sizeClasses[size]} text-yellow-400 fill-yellow-400 transition-transform duration-300 hover:scale-110`} />
+          <Star
+            key={`full-${i}`}
+            className={`${sizeClasses[size]} text-yellow-400 fill-yellow-400 transition-transform duration-300 hover:scale-110`}
+          />
         ))}
         {/* Half star */}
         {hasHalfStar && (
           <div className="relative">
-            <Star className={`${sizeClasses[size]} text-slate-600 fill-slate-600`} />
-            <Star className={`${sizeClasses[size]} text-yellow-400 fill-yellow-400 absolute top-0 left-0 transition-transform duration-300 hover:scale-110`} style={{ clipPath: 'inset(0 50% 0 0)' }} />
+            <Star
+              className={`${sizeClasses[size]} text-slate-600 fill-slate-600`}
+            />
+            <Star
+              className={`${sizeClasses[size]} text-yellow-400 fill-yellow-400 absolute top-0 left-0 transition-transform duration-300 hover:scale-110`}
+              style={{ clipPath: "inset(0 50% 0 0)" }}
+            />
           </div>
         )}
         {/* Empty stars */}
         {Array.from({ length: emptyStars }).map((_, i) => (
-          <Star key={`empty-${i}`} className={`${sizeClasses[size]} text-slate-600 fill-slate-600 transition-transform duration-300 hover:scale-110`} />
+          <Star
+            key={`empty-${i}`}
+            className={`${sizeClasses[size]} text-slate-600 fill-slate-600 transition-transform duration-300 hover:scale-110`}
+          />
         ))}
       </div>
       {showNumber && (
@@ -454,8 +500,8 @@ export function PreviewEvent({ data }: Props) {
       }
     };
 
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
+    window.addEventListener("mousemove", handleMouseMove);
+    return () => window.removeEventListener("mousemove", handleMouseMove);
   }, []);
 
   // Calculate event start and end dates from all showings
@@ -475,30 +521,28 @@ export function PreviewEvent({ data }: Props) {
   return (
     <>
       {/* Professional Dark Background */}
-      <div 
-        className="fixed inset-0 bg-slate-950"
-        style={{ zIndex: 0 }}
-      />
-      
+      <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
+
       {/* Static Gradient Accents */}
-      <div 
+      <div
         className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"
         style={{ zIndex: 1 }}
       />
-      <div 
+      <div
         className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none"
         style={{ zIndex: 1 }}
       />
-      
+
       {/* Interactive Mouse Glow */}
-      <div 
+      <div
         ref={glowRef}
         className="fixed w-[400px] h-[400px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
         style={{
-          background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)',
-          filter: 'blur(20px)',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 2
+          background:
+            "radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)",
+          filter: "blur(20px)",
+          transform: "translate(-50%, -50%)",
+          zIndex: 2,
         }}
       />
 
@@ -510,27 +554,36 @@ export function PreviewEvent({ data }: Props) {
           border: 1px solid rgba(148, 163, 184, 0.1);
           transition: all 0.3s ease;
         }
-        
+
         .professional-card:hover {
           background: rgba(15, 23, 42, 0.9);
           border: 1px solid rgba(139, 92, 246, 0.3);
-          box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.3), 
-                      0 0 20px rgba(139, 92, 246, 0.1);
+          box-shadow:
+            0 10px 25px -3px rgba(0, 0, 0, 0.3),
+            0 0 20px rgba(139, 92, 246, 0.1);
           transform: translateY(-2px);
         }
-        
+
         .glow-text {
           text-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
         }
-        
+
         .professional-button {
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(79, 70, 229, 0.1));
+          background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.1),
+            rgba(79, 70, 229, 0.1)
+          );
           border: 1px solid rgba(139, 92, 246, 0.3);
           transition: all 0.3s ease;
         }
-        
+
         .professional-button:hover {
-          background: linear-gradient(135deg, rgba(139, 92, 246, 0.2), rgba(79, 70, 229, 0.2));
+          background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.2),
+            rgba(79, 70, 229, 0.2)
+          );
           border: 1px solid rgba(139, 92, 246, 0.5);
           box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
           transform: scale(1.02);
@@ -539,21 +592,25 @@ export function PreviewEvent({ data }: Props) {
 
       <div className="relative z-10">
         <header className="relative flex flex-col lg:flex-row professional-card rounded-lg sm:rounded-xl overflow-hidden shadow-xl">
-          <div className="w-full lg:w-[30%] p-2 sm:p-3 lg:p-6 flex flex-col justify-between z-20 professional-card rounded-lg sm:rounded-xl border lg:border-r-0 order-2 lg:order-1 relative group">
+          <div className="w-full lg:w-[30%] p-2 sm:p-3 lg:p-6 flex flex-col justify-between z-20 professional-card rounded-lg sm:rounded-xl border lg:border-r-0 order-2 lg:order-1 relative group  ">
             {/* Clean ticket tear lines */}
-            <div className="absolute -right-5 -top-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900/80" />
-            <div className="absolute -right-5 -bottom-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900/80" />
-            
-            <div className="space-y-2 sm:space-y-3 lg:space-y-4">
+            <div className="absolute -right-5 -top-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900" />
+            <div className="absolute -right-5 -bottom-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900" />
+
+            <div className="space-y-2 sm:space-y-3 lg:space-y-4 ">
               <div>
-                <h1 className="text-base sm:text-lg lg:text-2xl font-bold text-white line-clamp-2 leading-tight transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105 glow-text">{data.name}</h1>
+                <h1 className="text-base sm:text-lg lg:text-2xl font-bold text-white line-clamp-2 leading-tight transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105 glow-text ">
+                  {data.name}
+                </h1>
                 <p className="text-xs text-slate-400">{data.type}</p>
               </div>
 
               <div className="space-y-1 text-xs sm:text-sm text-slate-300">
                 <div>
                   <strong className="text-violet-400">{t("startDate")}</strong>{" "}
-                  {eventStartDate ? formatDateVi(eventStartDate) : t("noShowing")}
+                  {eventStartDate
+                    ? formatDateVi(eventStartDate)
+                    : t("noShowing")}
                 </div>
                 <div>
                   <strong className="text-violet-400">{t("endDate")}</strong>{" "}
@@ -588,7 +645,7 @@ export function PreviewEvent({ data }: Props) {
                   <button
                     className="w-full px-3 py-2 text-sm font-medium text-white professional-button rounded-lg flex items-center justify-center gap-2 group"
                     onClick={() => {
-                      console.log('So sánh sự kiện:', data.eventId);
+                      console.log("So sánh sự kiện:", data.eventId);
                     }}
                   >
                     <Star className="w-4 h-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
@@ -600,7 +657,7 @@ export function PreviewEvent({ data }: Props) {
           </div>
 
           {/* Right: Professional image section */}
-          <div className="w-full lg:w-[70%] aspect-[16/9] sm:aspect-[16/8] lg:aspect-[16/9] order-1 lg:order-2 lg:border-l-0 lg:border lg:border-slate-700/50 rounded-lg lg:rounded-l-none overflow-hidden group relative z-10 professional-card">
+          <div className="w-full lg:w-[70%] aspect-[16/9] sm:aspect-[16/8] lg:aspect-[16/9] order-1 lg:order-2 lg:border-l-0 lg:border lg:border-slate-700/50 rounded-lg lg:rounded-l-none overflow-hidden group relative z-10 professional-card ">
             {data.bannerUrl ? (
               <div className="relative w-full h-full">
                 <img
@@ -612,7 +669,9 @@ export function PreviewEvent({ data }: Props) {
               </div>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-slate-400 rounded-t-lg sm:rounded-t-xl lg:rounded-l-none lg:rounded-r-xl professional-card">
-                <span className="text-sm sm:text-base text-white">No image</span>
+                <span className="text-sm sm:text-base text-white">
+                  No image
+                </span>
               </div>
             )}
           </div>
@@ -663,13 +722,16 @@ export function PreviewEvent({ data }: Props) {
                 >
                   <span className="text-left truncate pr-2">
                     {currentShowing.name} -{" "}
-                    {new Date(currentShowing.startTime).toLocaleString("vi-VN", {
-                      year: "numeric",
-                      month: "2-digit",
-                      day: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(currentShowing.startTime).toLocaleString(
+                      "vi-VN",
+                      {
+                        year: "numeric",
+                        month: "2-digit",
+                        day: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      }
+                    )}
                   </span>
                   <ChevronDown
                     className={`w-4 h-4 transition-transform shrink-0 ${
@@ -751,7 +813,9 @@ export function PreviewEvent({ data }: Props) {
           <div className="mt-3 sm:mt-4 lg:mt-6 w-full flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6">
             {/* Professional description section */}
             <div className="w-full lg:w-2/3 p-2 sm:p-3 lg:p-4 max-h-[300px] sm:max-h-[400px] lg:max-h-[800px] overflow-y-auto border border-slate-700/30 rounded-lg transform transition-all duration-500 ease-out hover:shadow-lg hover:border-violet-400/50 group professional-card">
-              <h3 className="text-white font-semibold mb-2 text-sm sm:text-base transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105">{t("description")}</h3>
+              <h3 className="text-white font-semibold mb-2 text-sm sm:text-base transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105">
+                {t("description")}
+              </h3>
               <div
                 className="prose prose-sm sm:prose max-w-none text-slate-300"
                 dangerouslySetInnerHTML={{ __html: data.description }}
@@ -781,7 +845,9 @@ export function PreviewEvent({ data }: Props) {
               {/* Professional location */}
               <div className="flex items-start gap-2 px-2 transform transition-all duration-300 ease-out hover:translate-x-1 group">
                 <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-violet-400 shrink-0 mt-0.5 transition-transform duration-300 group-hover:scale-110" />
-                <span className="text-xs sm:text-sm text-white break-words group-hover:text-violet-400 transition-colors duration-300">{data.location}</span>
+                <span className="text-xs sm:text-sm text-white break-words group-hover:text-violet-400 transition-colors duration-300">
+                  {data.location}
+                </span>
               </div>
 
               {/* Professional map */}
@@ -816,21 +882,24 @@ export function PreviewEvent({ data }: Props) {
               <div className="space-y-1 sm:space-y-2 text-slate-300 text-center sm:text-left w-full">
                 <p className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
                   <span className="flex items-center gap-2 justify-center sm:justify-start">
-                      <Landmark className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
+                    <Landmark className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
                     <strong className="text-white">{t("name")}</strong>
                   </span>
-                  <span className="break-words text-slate-300">{data.organizer.name}</span>
+                  <span className="break-words text-slate-300">
+                    {data.organizer.name}
+                  </span>
                 </p>
                 {/* Always show rating in preview mode or when rating exists */}
-                {(data.organizer.rating && data.organizer.rating.count > 0) || data.isPreview ? (
+                {(data.organizer.rating && data.organizer.rating.count > 0) ||
+                data.isPreview ? (
                   <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
                     <span className="flex items-center gap-2 justify-center sm:justify-start">
                       <Star className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
                       <strong className="text-white">Rating:</strong>
                     </span>
                     <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <InlineRatingStars 
-                        rating={data.organizer.rating?.average || 4.5} 
+                      <InlineRatingStars
+                        rating={data.organizer.rating?.average || 4.5}
                         size="sm"
                         showNumber={true}
                       />
@@ -862,7 +931,9 @@ export function PreviewEvent({ data }: Props) {
                       <MapPin className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
                       <strong className="text-white">{t("address")}</strong>
                     </span>
-                    <span className="break-words text-center sm:text-left text-slate-300">{data.organizer.address}</span>
+                    <span className="break-words text-center sm:text-left text-slate-300">
+                      {data.organizer.address}
+                    </span>
                   </p>
                 )}
                 {data.organizer.organizerType && (
@@ -871,7 +942,9 @@ export function PreviewEvent({ data }: Props) {
                       <Building2 className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
                       <strong className="text-white">{t("type")}</strong>
                     </span>
-                    <span className="break-words text-center sm:text-left text-slate-300">{data.organizer.organizerType}</span>
+                    <span className="break-words text-center sm:text-left text-slate-300">
+                      {data.organizer.organizerType}
+                    </span>
                   </p>
                 )}
               </div>
@@ -900,8 +973,8 @@ export function PreviewEvent({ data }: Props) {
                     <strong className="text-white">Rating:</strong>
                   </span>
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <InlineRatingStars 
-                      rating={4.5} 
+                    <InlineRatingStars
+                      rating={4.5}
                       size="sm"
                       showNumber={true}
                     />
