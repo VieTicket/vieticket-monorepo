@@ -361,7 +361,7 @@ const RatingWidget = ({
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               rows={3}
-              className="w-full px-3 py-2 professional-button rounded-lg text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400/50 focus:border-violet-400/50 transition-all duration-300"
+              className="w-full px-3 py-2 bg-slate-800/50 border border-slate-600/50 hover:border-violet-400/50 focus:border-violet-400 rounded-lg text-white placeholder-slate-400 resize-none focus:outline-none focus:ring-2 focus:ring-violet-400/20 transition-all duration-300 backdrop-blur-sm"
             />
           </div>
 
@@ -371,7 +371,7 @@ const RatingWidget = ({
             <button
               onClick={handleSubmit}
               disabled={loading || stars === 0}
-              className="professional-button rounded-lg px-6 py-2 text-white font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              className="bg-gradient-to-r from-violet-500 to-indigo-600 hover:from-violet-600 hover:to-indigo-700 border border-violet-400/30 hover:border-violet-400/50 rounded-lg px-6 py-2 text-white font-medium transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/20 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
             >
               {loading ? "Đang gửi..." : "Gửi đánh giá"}
             </button>
@@ -643,7 +643,7 @@ export function PreviewEvent({ data }: Props) {
                 {/* Professional compare button */}
                 {!data.isPreview && (
                   <button
-                    className="w-full px-3 py-2 text-sm font-medium text-white professional-button rounded-lg flex items-center justify-center gap-2 group"
+                    className="w-full px-3 py-2 text-sm font-medium text-white bg-gradient-to-r from-slate-700 to-slate-800 border border-slate-600/50 hover:border-violet-400/50 hover:from-violet-500/20 hover:to-indigo-600/20 rounded-lg flex items-center justify-center gap-2 group transition-all duration-300 hover:shadow-lg hover:shadow-violet-500/10"
                     onClick={() => {
                       console.log("So sánh sự kiện:", data.eventId);
                     }}
@@ -718,7 +718,7 @@ export function PreviewEvent({ data }: Props) {
                 <button
                   type="button"
                   onClick={() => setShowingDropdownOpen(!showingDropdownOpen)}
-                  className="w-full px-3 py-2 rounded-md text-xs sm:text-sm text-white min-h-[40px] sm:min-h-[44px] transform transition-all duration-200 ease-out hover:scale-[1.02] professional-button flex items-center justify-between"
+                  className="w-full px-3 py-2 rounded-md text-xs sm:text-sm text-white min-h-[40px] sm:min-h-[44px] bg-slate-800/50 border border-slate-600/50 hover:border-violet-400/50 hover:bg-slate-700/50 transform transition-all duration-300 ease-out hover:scale-[1.02] flex items-center justify-between backdrop-blur-sm"
                 >
                   <span className="text-left truncate pr-2">
                     {currentShowing.name} -{" "}
@@ -813,7 +813,7 @@ export function PreviewEvent({ data }: Props) {
           <div className="mt-3 sm:mt-4 lg:mt-6 w-full flex flex-col lg:flex-row gap-3 sm:gap-4 lg:gap-6">
             {/* Professional description section */}
             <div className="w-full lg:w-2/3 p-2 sm:p-3 lg:p-4 max-h-[300px] sm:max-h-[400px] lg:max-h-[800px] overflow-y-auto border border-slate-700/30 rounded-lg transform transition-all duration-500 ease-out hover:shadow-lg hover:border-violet-400/50 group professional-card">
-              <h3 className="text-white font-semibold mb-2 text-sm sm:text-base transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105">
+              <h3 className="text-white font-semibold mb-2 text-sm sm:text-base transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-100">
                 {t("description")}
               </h3>
               <div
