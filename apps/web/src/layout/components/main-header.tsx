@@ -49,7 +49,7 @@ export default function Header() {
 
   return (
     <>
-      <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 text-white px-6 py-4 flex items-center justify-between z-50 shadow-xl">
+      <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 text-white px-6 py-5 flex items-center justify-between z-50 shadow-xl">
         {/* Mobile Menu Button */}
         <Button
           variant="ghost"
@@ -75,12 +75,12 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  "relative px-3 py-2 rounded-lg transition-all duration-300 hover:bg-violet-500/20 hover:border-violet-400/50 border border-transparent",
-                  isActive ? "text-yellow-400 font-semibold bg-violet-500/30 border-violet-400/50" : "text-white hover:text-violet-300"
+                  "relative px-3 py-2 transition-all duration-300 hover:text-violet-300",
+                  isActive ? "text-yellow-400 font-semibold" : "text-white"
                 )}
               >
                 {item.label}
-                {isActive && (
+                {(isActive || pathname === item.href) && (
                   <div className="h-0.5 bg-gradient-to-r from-yellow-400 to-violet-400 w-full absolute bottom-0 left-0 rounded-full" />
                 )}
               </Link>
@@ -97,9 +97,10 @@ export default function Header() {
               </div>
               <Link 
                 href="/auth/sign-in" 
-                className="px-4 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
+                className="relative px-4 py-2 hover:text-violet-300 transition-all duration-300 group"
               >
                 {t("logIn")}
+                <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </Link>
               <Button
                 variant="outline"
@@ -116,17 +117,20 @@ export default function Header() {
               </div>
               <Link
                 href="/tickets"
-                className="flex gap-2 items-center px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer"
+                className="relative flex gap-2 items-center px-3 py-2 hover:text-violet-300 transition-all duration-300 cursor-pointer group"
               >
                 <Ticket className="w-5 h-5" />
                 <span>Tickets</span>
+                <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </Link>
-              <div className="flex gap-2 items-center px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer">
+              <div className="relative flex gap-2 items-center px-3 py-2 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
                 <Star className="w-5 h-5" />
                 <span>Interested</span>
+                <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </div>
-              <div className="flex gap-2 group items-center relative cursor-pointer px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50">
+              <div className="relative flex gap-2 group items-center cursor-pointer px-3 py-2 hover:text-violet-300 transition-all duration-300">
                 <ProfileDropdown />
+                <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </div>
             </div>
           )}
@@ -201,9 +205,10 @@ export default function Header() {
                 <Link 
                   href="/auth/sign-in" 
                   onClick={toggleMobileMenu}
-                  className="block py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
+                  className="relative block py-3 px-4 hover:text-violet-300 transition-all duration-300 group"
                 >
                   {t("logIn")}
+                  <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
                 </Link>
                 <Button
                   variant="outline"
@@ -219,18 +224,21 @@ export default function Header() {
               <div className="space-y-4">
                 <Link
                   href="/tickets"
-                  className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
+                  className="relative flex items-center gap-3 py-3 px-4 hover:text-violet-300 transition-all duration-300 group"
                   onClick={toggleMobileMenu}
                 >
                   <Ticket className="w-5 h-5" />
                   <span>Tickets</span>
+                  <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
                 </Link>
-                <div className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer">
+                <div className="relative flex items-center gap-3 py-3 px-4 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
                   <Star className="w-5 h-5" />
                   <span>Interested</span>
+                  <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
                 </div>
-                <div className="py-3 px-4 hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 rounded-lg cursor-pointer">
+                <div className="relative py-3 px-4 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
                   <ProfileDropdown />
+                  <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
                 </div>
               </div>
             )}

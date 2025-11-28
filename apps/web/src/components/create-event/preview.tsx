@@ -11,9 +11,11 @@ import {
   ChevronDown,
   Clock,
   Star,
+  Scale,
 } from "lucide-react";
 import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 import { BuyTicketButton } from "../checkout/buy-ticket-button";
+import { EventCompareModal } from "../event/EventCompareModal";
 
 // RatingList component integrated for preview
 const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: boolean }) => {
@@ -395,6 +397,8 @@ export type EventPreviewData = {
 
 type Props = {
   data: EventPreviewData;
+  rawEvent?: any;
+  isAuthenticated?: boolean;
 };
 
 // Inline RatingStars component to avoid external styling conflicts
@@ -437,10 +441,11 @@ const InlineRatingStars = ({ rating, size = "sm", showNumber = false }: { rating
   );
 };
 
-export function PreviewEvent({ data }: Props) {
+export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
   const t = useTranslations("event.details");
   const [selectedShowing, setSelectedShowing] = useState(0);
   const [showingDropdownOpen, setShowingDropdownOpen] = useState(false);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
   const glowRef = useRef<HTMLDivElement>(null);
 
   const currentShowing = data.showings[selectedShowing] || data.showings[0];
@@ -614,14 +619,18 @@ export function PreviewEvent({ data }: Props) {
                   isPreview={data.isPreview}
                 />
                 {/* Professional compare button */}
-                {!data.isPreview && (
+                {!data.isPreview && rawEvent && (
                   <button
                     className="w-full px-3 py-2 text-sm font-medium text-white professional-button rounded-lg flex items-center justify-center gap-2 group"
                     onClick={() => {
-                      console.log('So sánh sự kiện:', data.eventId);
+                      if (!isAuthenticated) {
+                        window.location.href = "/auth/sign-in?redirectTo=" + encodeURIComponent(window.location.pathname);
+                        return;
+                      }
+                      setCompareModalOpen(true);
                     }}
                   >
-                    <Star className="w-4 h-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+                    <Scale className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                     So sánh sự kiện
                   </button>
                 )}
@@ -986,6 +995,19 @@ export function PreviewEvent({ data }: Props) {
           <RatingList eventId={data.eventId} isPreview={data.isPreview} />
         </section>
       </div>
+
+      {/* Compare Modal */}
+      {!data.isPreview && rawEvent && (
+        <EventCompareModal
+          isOpen={compareModalOpen}
+          onClose={() => setCompareModalOpen(false)}
+          currentEvent={rawEvent}
+          onAddToCompare={(eventIds) => {
+            console.log('Đã thêm sự kiện vào danh sách so sánh:', eventIds);
+            // You can implement additional logic here
+          }}
+        />
+      )}
     </>
   );
 }
