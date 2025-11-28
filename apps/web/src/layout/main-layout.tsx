@@ -13,7 +13,9 @@ export default function MainLayout({
     <div className="min-h-screen flex flex-col justify-between bg-slate-950">
       <div>
         <Header />
-        {children}
+        <div className="pt-20">
+          {children}
+        </div>
       </div>
       <Footer />
     </div>

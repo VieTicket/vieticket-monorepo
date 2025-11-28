@@ -49,21 +49,21 @@ export default function Header() {
 
   return (
     <>
-      <header className="bg-[#2A273F] text-white px-6 py-4 flex items-center justify-between relative z-50">
+      <header className="fixed top-0 w-full bg-slate-900/95 backdrop-blur-md border-b border-slate-700/50 text-white px-6 py-4 flex items-center justify-between z-50 shadow-xl">
         {/* Mobile Menu Button */}
         <Button
           variant="ghost"
           size="sm"
-          className="md:hidden p-2 hover:bg-gray-700"
+          className="md:hidden p-2 hover:bg-violet-500/20 hover:border-violet-400/50 border border-transparent transition-all duration-300"
           onClick={toggleMobileMenu}
         >
           {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </Button>
 
         {/* Logo & Brand */}
-        <Link className="flex" href="/">
-          <IoTicket size={32} color="yellow" />
-          <h1 className="text-2xl text-yellow-300 font-bold ml-2">VieTicket</h1>
+        <Link className="flex items-center group" href="/">
+          <IoTicket size={32} className="text-yellow-400 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
+          <h1 className="text-2xl bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent font-bold ml-2 transition-all duration-300 group-hover:scale-105">VieTicket</h1>
         </Link>
 
         {/* Desktop Navigation */}
@@ -75,13 +75,13 @@ export default function Header() {
                 key={item.href}
                 href={item.href}
                 className={clsx(
-                  "relative hover:text-yellow-400 transition",
-                  isActive ? "text-yellow-400 font-semibold" : "text-white"
+                  "relative px-3 py-2 rounded-lg transition-all duration-300 hover:bg-violet-500/20 hover:border-violet-400/50 border border-transparent",
+                  isActive ? "text-yellow-400 font-semibold bg-violet-500/30 border-violet-400/50" : "text-white hover:text-violet-300"
                 )}
               >
                 {item.label}
                 {isActive && (
-                  <div className="h-1 bg-yellow-400 w-full absolute bottom-[-12px] left-0" />
+                  <div className="h-0.5 bg-gradient-to-r from-yellow-400 to-violet-400 w-full absolute bottom-0 left-0 rounded-full" />
                 )}
               </Link>
             );
@@ -92,11 +92,18 @@ export default function Header() {
         <div className="hidden md:flex">
           {!session?.user ? (
             <div className="flex items-center gap-4">
-              <LanguageSwitcher />
-              <Link href="/auth/sign-in">{t("logIn")}</Link>
+              <div className="relative z-[51]">
+                <LanguageSwitcher />
+              </div>
+              <Link 
+                href="/auth/sign-in" 
+                className="px-4 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
+              >
+                {t("logIn")}
+              </Link>
               <Button
                 variant="outline"
-                className="bg-yellow-400 text-black hover:bg-yellow-300"
+                className="bg-gradient-to-r from-yellow-400 to-yellow-500 text-black hover:from-yellow-300 hover:to-yellow-400 border-0 font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                 asChild
               >
                 <Link href="/auth/sign-up">{t("signUp")}</Link>
@@ -104,19 +111,21 @@ export default function Header() {
             </div>
           ) : (
             <div className="flex items-center gap-6 text-xs">
-              <LanguageSwitcher />
+              <div className="relative z-[51]">
+                <LanguageSwitcher />
+              </div>
               <Link
                 href="/tickets"
-                className="flex gap-2 items-center hover:text-yellow-400 transition cursor-pointer"
+                className="flex gap-2 items-center px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer"
               >
                 <Ticket className="w-5 h-5" />
                 <span>Tickets</span>
               </Link>
-              <div className="flex gap-2 items-center hover:text-yellow-400 transition cursor-pointer">
+              <div className="flex gap-2 items-center px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer">
                 <Star className="w-5 h-5" />
                 <span>Interested</span>
               </div>
-              <div className="flex gap-2 group items-center relative cursor-pointer hover:text-yellow-400 transition">
+              <div className="flex gap-2 group items-center relative cursor-pointer px-3 py-2 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50">
                 <ProfileDropdown />
               </div>
             </div>
@@ -140,23 +149,23 @@ export default function Header() {
       {/* Mobile Drawer */}
       <div
         className={clsx(
-          "fixed top-0 left-0 h-full w-80 bg-[#2A273F] text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden",
+          "fixed top-0 left-0 h-full w-80 bg-slate-900/95 backdrop-blur-md border-r border-slate-700/50 text-white z-50 transform transition-transform duration-300 ease-in-out md:hidden shadow-2xl",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex flex-col h-full">
           {/* Drawer Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-600">
+          <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
             <div className="flex items-center">
-              <IoTicket size={32} color="yellow" />
-              <h1 className="text-2xl text-yellow-300 font-bold ml-2">
+              <IoTicket size={32} className="text-yellow-400" />
+              <h1 className="text-2xl bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent font-bold ml-2">
                 VieTicket
               </h1>
             </div>
             <Button
               variant="ghost"
               size="sm"
-              className="p-2 hover:bg-gray-700"
+              className="p-2 hover:bg-violet-500/20 hover:border-violet-400/50 border border-transparent transition-all duration-300"
               onClick={toggleMobileMenu}
             >
               <X size={24} />
@@ -172,10 +181,10 @@ export default function Header() {
                   key={item.href}
                   href={item.href}
                   className={clsx(
-                    "py-3 px-4 rounded-lg transition text-lg",
+                    "py-3 px-4 rounded-lg transition-all duration-300 text-lg border",
                     isActive
-                      ? "bg-yellow-400 text-black font-semibold"
-                      : "text-white hover:bg-gray-700"
+                      ? "bg-gradient-to-r from-yellow-400 to-yellow-500 text-black font-semibold shadow-lg border-yellow-400"
+                      : "text-white hover:bg-violet-500/20 hover:border-violet-400/50 border-transparent hover:text-violet-300"
                   )}
                   onClick={toggleMobileMenu}
                 >
@@ -186,15 +195,19 @@ export default function Header() {
           </nav>
 
           {/* Mobile Auth Section */}
-          <div className="mt-auto p-6 border-t border-gray-600">
+          <div className="mt-auto p-6 border-t border-slate-700/50">
             {!session?.user ? (
               <div className="space-y-4">
-                <Link href="/auth/sign-in" onClick={toggleMobileMenu}>
+                <Link 
+                  href="/auth/sign-in" 
+                  onClick={toggleMobileMenu}
+                  className="block py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
+                >
                   {t("logIn")}
                 </Link>
                 <Button
                   variant="outline"
-                  className="w-full bg-yellow-400 text-black hover:bg-yellow-300"
+                  className="w-full bg-gradient-to-r from-yellow-400 to-yellow-500 text-black hover:from-yellow-300 hover:to-yellow-400 border-0 font-semibold shadow-lg"
                   asChild
                 >
                   <Link href="/auth/sign-up" onClick={toggleMobileMenu}>
@@ -206,17 +219,17 @@ export default function Header() {
               <div className="space-y-4">
                 <Link
                   href="/tickets"
-                  className="flex items-center gap-3 py-3 px-4 rounded-lg hover:text-yellow-400 transition"
+                  className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50"
                   onClick={toggleMobileMenu}
                 >
                   <Ticket className="w-5 h-5" />
                   <span>Tickets</span>
                 </Link>
-                <div className="flex items-center gap-3 py-3 px-4 rounded-lg hover:text-yellow-400 transition cursor-pointer">
+                <div className="flex items-center gap-3 py-3 px-4 rounded-lg hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 cursor-pointer">
                   <Star className="w-5 h-5" />
                   <span>Interested</span>
                 </div>
-                <div className="py-3 px-4 hover:text-yellow-400 transition cursor-pointer">
+                <div className="py-3 px-4 hover:bg-violet-500/20 hover:text-violet-300 transition-all duration-300 border border-transparent hover:border-violet-400/50 rounded-lg cursor-pointer">
                   <ProfileDropdown />
                 </div>
               </div>

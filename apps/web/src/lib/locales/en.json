@@ -47,7 +47,13 @@
       }
     },
     "titlecategories": "Explore the Best Online Events",
-    "seeMore": "See More"
+    "seeMore": "See More",
+    "trending": {
+      "title": "Trending Events"
+    },
+    "newEvents": {
+      "title": "New Events"
+    }
   },
   "footer": {
     "companyInfo": {

@@ -62,7 +62,7 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
   }
 
   return (
-    <section className="">
+    <section className="mt-5">
       <div className="w-full max-w-7xl mx-auto">
         {/* Header Title */}
         <div className="flex items-center gap-3 mb-6">
@@ -117,7 +117,7 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
                     className="text-[120px] font-black leading-none italic opacity-100 transition-transform group-hover/card:scale-110 duration-300"
                     style={{
                       WebkitTextStroke: '2px #8b5cf6',
-                      color: '#0f172a',
+                      color: 'transparent',
                       textShadow: '4px 4px 0px rgba(0,0,0,0.5)'
                     }}
                   >
