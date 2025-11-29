@@ -85,9 +85,6 @@ export const UploadDialog: React.FC = () => {
 
       const worldBounds = calculateAllContentBounds(shapes, areaModeContainer);
 
-      console.log("📸 All shapes found:", allShapes.length);
-      console.log("📸 World bounds:", worldBounds);
-
       // ✅ Add generous padding
       const padding = 50;
       const captureX = worldBounds.x - padding;
@@ -100,12 +97,6 @@ export const UploadDialog: React.FC = () => {
       const minHeight = 600;
       const finalWidth = Math.max(captureWidth, minWidth);
       const finalHeight = Math.max(captureHeight, minHeight);
-
-      console.log("📸 Capture dimensions:", {
-        original: { width: captureWidth, height: captureHeight },
-        final: { width: finalWidth, height: finalHeight },
-        bounds: { x: captureX, y: captureY },
-      });
 
       // ✅ Create render texture with higher resolution
       const renderTexture = PIXI.RenderTexture.create({
@@ -130,8 +121,6 @@ export const UploadDialog: React.FC = () => {
       stage.scale.set(1, 1);
       stage.x = -captureX + offsetX;
       stage.y = -captureY + offsetY;
-
-      console.log("📸 Stage positioned at:", { x: stage.x, y: stage.y });
 
       // ✅ Render to texture
       pixiApp.renderer.render({
@@ -429,9 +418,6 @@ export const UploadDialog: React.FC = () => {
 
       // ✅ Serialize shapes to remove PIXI.js objects
       const serializedShapes = shapes.map((shape) => serializeShape(shape));
-
-      console.log("📦 Serialized shapes:", serializedShapes);
-      console.log("🖼️ Screenshot URL:", screenshotUrl);
 
       setScreenshotProgress(90);
 

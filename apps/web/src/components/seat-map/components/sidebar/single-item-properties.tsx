@@ -175,16 +175,6 @@ export const SingleItemProperties = React.memo(
               context,
             }
           );
-
-          console.log(
-            "Property change saved to history:",
-            Object.keys(updates)
-          );
-        } else {
-          console.log(
-            "Property change NOT saved to history (cosmetic only):",
-            Object.keys(updates)
-          );
         }
 
         // ✅ Update shapes without saving history again (already saved above if needed)

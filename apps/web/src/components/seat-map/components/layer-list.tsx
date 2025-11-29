@@ -260,7 +260,6 @@ export const LayerList = React.memo(
 
     const handleDragStart = useCallback(
       (e: React.DragEvent, itemId: string) => {
-        console.log("Drag started for item:", itemId);
         e.dataTransfer.effectAllowed = "move";
         e.dataTransfer.setData("text/plain", itemId);
 
@@ -496,9 +495,6 @@ export const LayerList = React.memo(
 
     const handleUngroupItems = useCallback((container: ContainerGroup) => {
       const ungroupedItems = ungroupContainerForCanvas(container);
-      if (ungroupedItems.length > 0) {
-        console.log("Container ungrouped successfully");
-      }
     }, []);
 
     const handleShapeClick = useCallback(

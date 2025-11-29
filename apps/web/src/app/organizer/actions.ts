@@ -39,19 +39,19 @@ export async function fetchRevenueDistributionByEventId(eventId: string) {
 export async function fetchTotalTicketsSoldForEventByEventId(eventId: string) {
   const data =
     await organizerDashBoardService.getTotalTicketsSoldForEvent(eventId);
-  console.log(data);
+
   return data;
 }
 
 // Fetch tổng số vé
 export async function fetchTotalTicketsSByEventId(eventId: string) {
   const data = await organizerDashBoardService.getTotalTicket(eventId);
-  console.log(data);
+
   return data;
 }
 
 export async function fetchOrdersByEvent(eventId: string) {
   const data = await organizerDashBoardService.getOrdersByEvent(eventId);
-  console.log(data);
+
   return data;
 }

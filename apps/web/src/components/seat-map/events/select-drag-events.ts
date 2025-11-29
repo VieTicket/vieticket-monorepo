@@ -124,7 +124,6 @@ export const handleDoubleClick = (
       }
 
       setPreviouslyClickedShape(shape);
-      console.log("hitChild", hitChild);
     } else {
       useSeatMapStore.getState().setSelectedShapes([], false);
 

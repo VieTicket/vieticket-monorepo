@@ -172,7 +172,7 @@ export const groupItemsForCanvas = (
   // Capture state before grouping
 
   const container = groupItems(items);
-  console.log("Grouped Container:", container);
+
   if (!container) {
     return null;
   }
@@ -197,7 +197,7 @@ export const ungroupContainerForCanvas = (
 ): CanvasItem[] => {
   // Capture state before ungrouping
   const ungroupedItems = ungroupContainer(container);
-  console.log("Ungrouped Items:", ungroupedItems);
+
   setShapes([...shapes]);
 
   // Save directly to history
@@ -348,14 +348,6 @@ export const groupItems = (
   const shouldAddEvents =
     !isInContainerContext() ||
     (parentContainer && getCurrentContainerContext() === parentContainer);
-  console.log(
-    "Should Add Events to Container:",
-    !isInContainerContext(),
-    selectedContainer,
-    parentContainer && getCurrentContainerContext() === parentContainer,
-    shouldAddEvents
-  );
-
   if (shouldAddEvents) {
     safelyAddShapeEvents(container);
   }

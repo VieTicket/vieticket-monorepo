@@ -63,7 +63,6 @@ interface CollaborationState {
   roomUsers: UserInfo[];
 }
 
-// ✅ Customer-specific interfaces
 export interface CustomerSeatInfo {
   seatId: string;
   areaName: string;
@@ -81,29 +80,25 @@ export interface CustomerOrderSummary {
   subtotal: number;
   serviceFee: number;
   total: number;
-  estimatedHoldTime?: number; // in seconds
+  estimatedHoldTime?: number;
 }
 
 interface CustomerState {
-  // Selection state
   customerSelectedSeatIds: string[];
   customerSelectedSeatsInfo: CustomerSeatInfo[];
   customerOrderSummary: CustomerOrderSummary;
 
-  // UI state
   customerIsSelecting: boolean;
   customerMaxSeatsAllowed: number;
   customerMinSeatsRequired: number;
   customerHoveredSeatId: string | null;
 
-  // Status tracking
   customerSeatStatusMap: Record<
     string,
     "available" | "selected" | "held" | "sold"
   >;
   customerLastSelectionTime: number | null;
 
-  // Event data
   customerEventData: {
     eventId?: string;
     eventName?: string;
@@ -191,7 +186,6 @@ interface SeatMapStore {
 
   collaboration: CollaborationState;
 
-  // ✅ Customer state
   customer: CustomerState;
 
   setSeatMap: (seatMap: SeatMapInfo | null) => void;
@@ -253,7 +247,6 @@ interface SeatMapStore {
     newShapes: CanvasItem[]
   ) => { before: CanvasItem[]; after: CanvasItem[]; affectedIds: string[] };
 
-  // ✅ Customer operations
   customerInitializeEventData: (eventData: {
     eventId: string;
     eventName: string;
@@ -264,7 +257,7 @@ interface SeatMapStore {
       activeHoldSeatIds: string[];
     };
   }) => void;
-  customerToggleSeatSelection: (seatId: string) => boolean; // returns true if selected, false if deselected
+  customerToggleSeatSelection: (seatId: string) => boolean;
   customerSelectSeat: (seatId: string) => boolean;
   customerDeselectSeat: (seatId: string) => boolean;
   customerClearAllSelections: () => void;
@@ -302,7 +295,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     roomUsers: [],
   },
 
-  // ✅ Initialize customer state
   customer: {
     customerSelectedSeatIds: [],
     customerSelectedSeatsInfo: [],
@@ -849,7 +841,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     };
   },
 
-  // ✅ Customer operations implementation
   customerInitializeEventData: (eventData) => {
     set((state) => ({
       customer: {
@@ -889,23 +880,19 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   customerSelectSeat: (seatId: string) => {
     const { customer } = get();
 
-    // Check if already selected
     if (customer.customerSelectedSeatIds.includes(seatId)) {
       return false;
     }
 
-    // Check seat availability
     const status = get().customerGetSeatStatus(seatId);
     if (status !== "available") {
       return false;
     }
 
-    // Check limits
     if (!get().customerCanSelectMoreSeats()) {
       return false;
     }
 
-    // Find seat info
     const seatInfo = get().customerFindSeatInfoById(seatId);
     if (!seatInfo) {
       return false;
@@ -978,7 +965,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     const { customer } = get();
     const clearedStatusMap = { ...customer.customerSeatStatusMap };
 
-    // Reset all selected seats to available
     customer.customerSelectedSeatIds.forEach((seatId) => {
       if (clearedStatusMap[seatId] === "selected") {
         clearedStatusMap[seatId] = "available";
@@ -1015,12 +1001,10 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   customerGetSeatStatus: (seatId: string) => {
     const { customer } = get();
 
-    // Check local selection first
     if (customer.customerSelectedSeatIds.includes(seatId)) {
       return "selected" as const;
     }
 
-    // Check status map
     return customer.customerSeatStatusMap[seatId] || "available";
   },
 
@@ -1057,7 +1041,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     const { customer } = get();
     const selectedSeats = customer.customerSelectedSeatsInfo;
     const subtotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
-    const serviceFee = 0; // Included in price
+    const serviceFee = 0;
 
     return {
       selectedSeats,
@@ -1071,7 +1055,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   customerFindSeatInfoById: (seatId: string) => {
     const { customer } = get();
     const { seatingStructure } = customer.customerEventData;
-
     if (!seatingStructure) return null;
 
     for (const area of seatingStructure) {
@@ -1105,7 +1088,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       grouped[seat.areaName].push(seat);
     });
 
-    // Sort seats within each area
     Object.keys(grouped).forEach((areaName) => {
       grouped[areaName].sort((a, b) => {
         if (a.rowName !== b.rowName) {
@@ -1146,7 +1128,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       );
     }
 
-    // Check for any seats that are no longer available
     const unavailableSeats = customer.customerSelectedSeatsInfo.filter(
       (seat) => {
         const currentStatus = get().customerGetSeatStatus(seat.seatId);

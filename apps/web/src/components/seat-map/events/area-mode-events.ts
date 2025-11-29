@@ -197,7 +197,7 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
 
 export const alignSeats = (alignment: "left" | "center" | "right"): void => {
   const selectedShapes = useSeatMapStore.getState().selectedShapes;
-  console.log("Aligning seats with alignment:", alignment, selectedShapes);
+
   const seats: SeatShape[] = [];
 
   selectedShapes.forEach((shape) => {
@@ -220,7 +220,6 @@ export const alignSeats = (alignment: "left" | "center" | "right"): void => {
   });
 
   if (seats.length < 2) {
-    console.log("Need at least 2 seats to align");
     return;
   }
 

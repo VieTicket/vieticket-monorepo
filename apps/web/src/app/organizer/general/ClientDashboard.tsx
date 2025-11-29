@@ -124,13 +124,6 @@ export default function OrganizerDashboardModern({
     return null;
   };
 
-  useEffect(() => {
-    console.log({
-      totalRevenue,
-      totalEvents,
-      totalTicketsSold,
-    });
-  }, [totalRevenue, totalEvents, totalTicketsSold]);
   // Generate dynamic color array
   const generateColors = (count: number): string[] => {
     const colors: string[] = [];
@@ -204,7 +197,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-               {t("totalRevenue")}
+                {t("totalRevenue")}
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -358,7 +351,9 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader>
               <CardTitle>{t("revenueStructure")}</CardTitle>
-              <CardDescription>{t("revenueDistributionByEvent")}</CardDescription>
+              <CardDescription>
+                {t("revenueDistributionByEvent")}
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-[250px] sm:h-[350px] w-full p-0 flex flex-col items-center justify-center">
               <ResponsiveContainer width="100%" height={200} minWidth={0}>
@@ -411,7 +406,9 @@ export default function OrganizerDashboardModern({
                 <TableRow>
                   <TableHead>{t("event")}</TableHead>
                   <TableHead className="text-center">{t("status")}</TableHead>
-                  <TableHead className="text-center">{t("ticketsSold")}</TableHead>
+                  <TableHead className="text-center">
+                    {t("ticketsSold")}
+                  </TableHead>
                   <TableHead className="text-right">{t("revenue")}</TableHead>
                 </TableRow>
               </TableHeader>
