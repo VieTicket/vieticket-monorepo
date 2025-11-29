@@ -138,57 +138,65 @@ export default function EventFiltersSidebar({
 
 
   return (
-    <aside className="bg-white p-4 rounded shadow-md space-y-6 text-sm">
+    <aside className="space-y-6 text-sm">
       {/* Price Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">{t("PriceRange")}</h3>
-        {priceOptions.map(({ label, value }) => (
-          <label key={value} className="block mb-1 cursor-pointer">
-            <input
-              type="radio"
-              name="priceRange"
-              value={value}
-              checked={selectedPriceRange === value}
-              onChange={() => handleFilterChange("price", value)}
-              className="mr-2"
-            />
-            {label}
-          </label>
-        ))}
+        <h3 className="font-semibold text-white mb-4 text-base glow-text">{t("PriceRange")}</h3>
+        <div className="space-y-3">
+          {priceOptions.map(({ label, value }) => (
+            <label key={value} className="flex items-center cursor-pointer group">
+              <input
+                type="radio"
+                name="priceRange"
+                value={value}
+                checked={selectedPriceRange === value}
+                onChange={() => handleFilterChange("price", value)}
+                className="mr-3 w-4 h-4 text-violet-400 bg-slate-700 border-slate-600 focus:ring-violet-400/50 focus:ring-2"
+              />
+              <span className="text-slate-300 group-hover:text-violet-400 transition-colors duration-300">
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Date Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">{t("StartDate")}</h3>
-        {dateOptions.map(({ label, value }) => (
-          <label key={value} className="block mb-1 cursor-pointer">
-            <input
-              type="radio"
-              name="date"
-              value={value}
-              checked={selectedDate === value}
-              onChange={() => handleFilterChange("date", value)}
-              className="mr-2"
-            />
-            {label}
-          </label>
-        ))}
+        <h3 className="font-semibold text-white mb-4 text-base glow-text">{t("StartDate")}</h3>
+        <div className="space-y-3">
+          {dateOptions.map(({ label, value }) => (
+            <label key={value} className="flex items-center cursor-pointer group">
+              <input
+                type="radio"
+                name="date"
+                value={value}
+                checked={selectedDate === value}
+                onChange={() => handleFilterChange("date", value)}
+                className="mr-3 w-4 h-4 text-violet-400 bg-slate-700 border-slate-600 focus:ring-violet-400/50 focus:ring-2"
+              />
+              <span className="text-slate-300 group-hover:text-violet-400 transition-colors duration-300">
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
       </div>
 
       {/* Location Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">{t("Location")}</h3>
+        <h3 className="font-semibold text-white mb-4 text-base glow-text">{t("Location")}</h3>
         <Select
           value={selectedLocation}
           onValueChange={(val) => handleFilterChange("location", val)}
         >
-          <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
+          <SelectTrigger className="professional-button w-full bg-slate-800/50 border-slate-700/30 hover:border-violet-400/50 text-white rounded-lg px-3 py-2 min-h-[44px]">
             <SelectValue placeholder={t("AllLocation")} />
           </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto">
-            <SelectItem value="all">{t("AllLocation")}</SelectItem>
+          <SelectContent className="professional-card border-slate-700/50 max-h-60 overflow-y-auto">
+            <SelectItem value="all" className="text-white hover:bg-slate-700/50 focus:bg-slate-700/50">{t("AllLocation")}</SelectItem>
             {provinces.map((name) => (
-              <SelectItem key={name} value={name}>
+              <SelectItem key={name} value={name} className="text-white hover:bg-slate-700/50 focus:bg-slate-700/50">
                 {name}
               </SelectItem>
             ))}
@@ -198,17 +206,17 @@ export default function EventFiltersSidebar({
 
       {/* Category Filter */}
       <div>
-        <h3 className="font-semibold text-gray-800 mb-2">{t("Category")}</h3>
+        <h3 className="font-semibold text-white mb-4 text-base glow-text">{t("Category")}</h3>
         <Select
           value={selectedCategory}
           onValueChange={(val) => handleFilterChange("category", val)}
         >
-          <SelectTrigger className="w-full border border-gray-300 rounded px-2 py-1">
+          <SelectTrigger className="professional-button w-full bg-slate-800/50 border-slate-700/30 hover:border-violet-400/50 text-white rounded-lg px-3 py-2 min-h-[44px]">
             <SelectValue placeholder={t("categoryOptions.0.label")} />
           </SelectTrigger>
-          <SelectContent className="max-h-60 overflow-y-auto">
+          <SelectContent className="professional-card border-slate-700/50 max-h-60 overflow-y-auto">
             {categoryOptions.map(({ label, value }) => (
-              <SelectItem key={value} value={value}>
+              <SelectItem key={value} value={value} className="text-white hover:bg-slate-700/50 focus:bg-slate-700/50">
                 {label}
               </SelectItem>
             ))}

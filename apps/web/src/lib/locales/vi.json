@@ -47,7 +47,13 @@
       }
     },
     "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
-    "seeMore": "Xem Thêm"
+    "seeMore": "Xem Thêm",
+    "trending": {
+      "title": "Sự kiện xu hướng"
+    },
+    "newEvents": {
+      "title": "Sự kiện mới"
+    }
   },
   "footer": {
     "companyInfo": {

@@ -86,11 +86,14 @@ export function AITrackingProvider({ children, events = [] }: AITrackingProvider
       });
 
       // Small delay to ensure tracking has been processed
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         getRecommendations(aiEvents);
       }, 1000); // Increased delay to 1 second
+      
+      // Cleanup timeout if component unmounts
+      return () => clearTimeout(timeoutId);
     }
-  }, [events, getRecommendations]);
+  }, [events]); // Removed getRecommendations from dependencies
 
   return <>{children}</>;
 }
