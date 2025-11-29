@@ -36,8 +36,6 @@ import {
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
 
-  console.log("SeatMapV2Page rendered");
-
   // Handle window resize
   const handleResize = useCallback(() => {
     if (pixiApp && pixiContainerRef.current) {

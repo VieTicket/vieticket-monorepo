@@ -1,13 +1,15 @@
 import React, { useEffect, useState, useRef } from "react";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 import { useSeatMapStore } from "../store/seat-map-store";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
+import { useDeviceDetection } from "@/hooks/use-device-detection";
 
 function ClientConnection() {
   const [isClient, setIsClient] = useState(false);
   const [showInitializingModal, setShowInitializingModal] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
+  const { isMobile, isLoading: deviceLoading } = useDeviceDetection();
 
   const searchParams = useSearchParams();
   const seatMapId = searchParams.get("seatMapId");
@@ -15,6 +17,13 @@ function ClientConnection() {
   const isLoading = useSeatMapStore((state) => state.isLoading);
   const { data: session } = authClient.useSession();
   const initializationRef = useRef(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!deviceLoading && isMobile) {
+      router.push("/organizer");
+    }
+  }, [isMobile, deviceLoading, router]);
 
   useEffect(() => {
     setIsClient(true);
@@ -75,13 +84,25 @@ function ClientConnection() {
 
   // Hide modal when loading completes successfully
   useEffect(() => {
-    if (!isLoading && showInitializingModal && !connectionError) {
+    if (
+      !isMobile &&
+      !deviceLoading &&
+      !isLoading &&
+      showInitializingModal &&
+      !connectionError
+    ) {
       const hideTimeout = setTimeout(() => {
         setShowInitializingModal(false);
       }, 500);
       return () => clearTimeout(hideTimeout);
     }
-  }, [isLoading, showInitializingModal, connectionError]);
+  }, [
+    isLoading,
+    showInitializingModal,
+    connectionError,
+    isMobile,
+    deviceLoading,
+  ]);
 
   if (!isClient) return null;
 
