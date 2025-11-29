@@ -52,7 +52,7 @@ export default function LanguageSwitcher() {
           <DropdownMenuItem
             key={item.code}
             onClick={() => handleLocaleChange(item.code as "vi" | "en")}
-            className={`flex items-center gap-2 cursor-pointer ${
+            className={`relative z-[1000] flex items-center gap-2 cursor-pointer ${
               locale === item.code ? "font-semibold text-blue-600" : ""
             }`}
           >

@@ -142,28 +142,35 @@ export default function FilteredClientGrid() {
 
   return (
     <AITrackingProvider events={allEvents}>
-      <div className="flex gap-8">
-        <div className="w-64">
-          <EventFiltersSidebar
-            selectedPriceRange={memoizedFilterProps.selectedPriceRange}
-            selectedDate={memoizedFilterProps.selectedDate}
-            selectedLocation={memoizedFilterProps.selectedLocation}
-            selectedCategory={memoizedFilterProps.selectedCategory}
-            onChange={handleFilterChange}
-          />
+      <div className="flex flex-col lg:flex-row gap-6 lg:gap-8">
+        {/* Sidebar - Mobile responsive */}
+        <div className="w-full lg:w-64 lg:flex-shrink-0">
+          <div className="professional-card rounded-lg p-4 lg:p-6 shadow-xl border border-slate-700/30 hover:border-violet-400/30 transition-all duration-300">
+            <EventFiltersSidebar
+              selectedPriceRange={memoizedFilterProps.selectedPriceRange}
+              selectedDate={memoizedFilterProps.selectedDate}
+              selectedLocation={memoizedFilterProps.selectedLocation}
+              selectedCategory={memoizedFilterProps.selectedCategory}
+              onChange={handleFilterChange}
+            />
+          </div>
         </div>
 
-        <div className="flex-1 space-y-6">
+        {/* Main content */}
+        <div className="flex-1 min-w-0">
           {isLoading ? (
-            <div>Loading...</div>
+            <div className="professional-card rounded-lg p-8 shadow-xl border border-slate-700/30 text-center">
+              <div className="text-slate-400 glow-text">Loading events...</div>
+            </div>
           ) : error ? (
-            <div className="text-red-500">
-              Error loading events: {error.message}
+            <div className="professional-card rounded-lg p-8 shadow-xl border border-red-500/30 text-center">
+              <div className="text-red-400">
+                Error loading events: {error.message}
+              </div>
             </div>
           ) : (
-            <>
-              {/* SmartEventGrid now receives ALL events and handles AI prioritization */}
-              {/* AI analyzes the complete dataset and shows prioritized events first */}
+            <div className="space-y-6">
+              {/* SmartEventGrid with professional styling */}
               <SmartEventGrid
                 events={allEvents}
                 aiPool={allEvents}
@@ -173,19 +180,21 @@ export default function FilteredClientGrid() {
               />
 
               {hasMore && (
-                <div className="text-center">
+                <div className="text-center pt-4">
                   <Button
                     onClick={handleLoadMore}
                     disabled={false}
-                    variant="outline"
+                    className="professional-button text-white font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105 px-8 py-3 rounded-lg border-violet-400/30 hover:border-violet-400/50"
                     size="lg"
                   >
-                    {t("seeMore")} ({currentPage * itemsPerPage} /{" "}
-                    {allEvents.length})
+                    <span className="glow-text">
+                      {t("seeMore")} ({currentPage * itemsPerPage} /{" "}
+                      {allEvents.length})
+                    </span>
                   </Button>
                 </div>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>

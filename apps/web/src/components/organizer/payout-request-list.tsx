@@ -8,6 +8,8 @@ import { PayoutRequest } from "@vieticket/db/pg/models/payout-requests";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { CalendarIcon, CreditCardIcon, EyeIcon } from "lucide-react";
 import { getPayoutRequests } from "@/lib/actions/organizer/payout-request-actions";
 import Link from "next/link";
 
@@ -66,7 +68,7 @@ export function PayoutRequestList() {
       cell: ({ row }) => (
         <Link href={`/organizer/payouts/${row.original.id}`}>
           <Button variant="outline" size="sm">
-            {t("table.viewDetails")}
+            {t("viewDetails")}
           </Button>
         </Link>
       ),
@@ -111,15 +113,100 @@ export function PayoutRequestList() {
 
   return (
     <div>
-      <DataTable columns={columns} data={data} />
-      <div className="flex justify-between items-center mt-4">
-        <Button onClick={() => setPage(prev => Math.max(prev - 1, 1))} disabled={page === 1}>
-          {t("buttons.previous")}
-        </Button>
-        <span>{t("pagination.pageOf", { page, totalPages })}</span>
-        <Button onClick={() => setPage(prev => prev + 1)} disabled={page === totalPages}>
-          {t("buttons.next")}
-        </Button>
+      {/* Desktop Table View */}
+      <div className="hidden md:block">
+        <DataTable columns={columns} data={data} />
+      </div>
+
+      {/* Mobile Card View */}
+      <div className="md:hidden space-y-3">
+        {data.map((payoutRequest) => (
+          <Card key={payoutRequest.id} className="p-0">
+            <CardContent className="p-4">
+              <div className="space-y-3">
+                {/* Event Name */}
+                <div>
+                  <h3 className="font-semibold text-sm truncate">
+                    {payoutRequest.event?.name || "Unknown Event"}
+                  </h3>
+                </div>
+
+                {/* Amount & Status Row */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <CreditCardIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">
+                      {new Intl.NumberFormat("vi-VN", {
+                        style: "currency",
+                        currency: "VND",
+                      }).format(payoutRequest.requestedAmount)}
+                    </span>
+                  </div>
+                  <Badge 
+                    variant={
+                      {
+                        pending: "secondary",
+                        approved: "default", 
+                        rejected: "destructive",
+                        in_discussion: "outline",
+                        completed: "default",
+                      }[payoutRequest.status] || "default"
+                    }
+                    className="text-xs"
+                  >
+                    {t(`statusOptions.${payoutRequest.status}`)}
+                  </Badge>
+                </div>
+
+                {/* Date & Actions Row */}
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <CalendarIcon className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(payoutRequest.requestDate), "dd/MM/yyyy")}
+                    </span>
+                  </div>
+                  <Link href={`/organizer/payouts/${payoutRequest.id}`}>
+                    <Button variant="outline" size="sm" className="h-8 px-3">
+                      <EyeIcon className="w-3 h-3 mr-1" />
+                      <span className="text-xs">{t("viewDetails")}</span>
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex flex-col sm:flex-row justify-center sm:justify-between items-center gap-3 mt-6">
+        <div className="flex items-center gap-2 order-2 sm:order-1">
+          <Button 
+            onClick={() => setPage(prev => Math.max(prev - 1, 1))} 
+            disabled={page === 1}
+            variant="outline"
+            size="sm"
+            className="px-3"
+          >
+            {t("buttons.previous")}
+          </Button>
+          <Button 
+            onClick={() => setPage(prev => prev + 1)} 
+            disabled={page === totalPages}
+            variant="outline"
+            size="sm"
+            className="px-3"
+          >
+            {t("buttons.next")}
+          </Button>
+        </div>
+        <div className="text-sm text-muted-foreground order-1 sm:order-2">
+          {t("pagination.pageOf", { page, totalPages })}
+        </div>
+        <div className="hidden sm:block sm:order-3 w-[100px]">
+          {/* Spacer for balance on desktop */}
+        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { SmartEventGrid } from "./smart-event-grid";
@@ -32,39 +32,26 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
   const t = useTranslations("home");
   const { userBehavior } = useUserTracking();
 
-  // Check if user has significant behavior data
-  const hasSignificantBehavior = userBehavior ? (
-    userBehavior.searchQueries?.length > 0 || 
-    userBehavior.viewedEvents?.length > 2 || 
-    userBehavior.clickedEvents?.length > 1 ||
-    userBehavior.eventEngagement?.length > 0
-  ) : false;
+  // Check if user has significant behavior data - memoized to prevent re-computation
+  const hasSignificantBehavior = useMemo(() => {
+    if (!userBehavior) return false;
+    return userBehavior.searchQueries?.length > 0 || 
+           userBehavior.viewedEvents?.length > 2 || 
+           userBehavior.clickedEvents?.length > 1 ||
+           userBehavior.eventEngagement?.length > 0;
+  }, [userBehavior?.searchQueries?.length, userBehavior?.viewedEvents?.length, userBehavior?.clickedEvents?.length, userBehavior?.eventEngagement?.length]);
 
-  console.log('🏠 [SmartHomePage] Component state:', {
-    totalEvents: allEvents.length,
-    displayedEvents: displayedEvents.length,
-    hasSignificantBehavior,
-    smartDisplayEnabled,
-    userBehavior: !!userBehavior
-  });
-
-  // Smart display logic - show more events if user has behavior data
+  // Smart display logic - simplified with minimal dependencies
   useEffect(() => {
     if (hasSignificantBehavior && !smartDisplayEnabled && allEvents.length >= 24) {
-      console.log('🧠 [SmartHomePage] Enabling smart display for user with behavior data');
-      setDisplayedEvents(allEvents.slice(0, 24)); // Show 24 instead of 12
+      setDisplayedEvents(prev => allEvents.slice(0, 24)); 
       setSmartDisplayEnabled(true);
-    } else if (!hasSignificantBehavior && smartDisplayEnabled) {
-      console.log('🔄 [SmartHomePage] Disabling smart display - no significant behavior');
-      setDisplayedEvents(allEvents.slice(0, 12)); // Back to 12
-      setSmartDisplayEnabled(false);
     }
-  }, [hasSignificantBehavior, smartDisplayEnabled, allEvents.length]);
+  }, [hasSignificantBehavior, allEvents.length]); // Remove smartDisplayEnabled from deps to prevent loops
 
   const handleLoadMore = async () => {
     if (isLoading) return;
     
-    console.log('🔄 [SmartHomePage] Loading more events...');
     setIsLoading(true);
     
     try {
@@ -84,7 +71,6 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
       setDisplayedEvents(newEvents.slice(0, displayedEvents.length + 12));
       setHasMore(result.hasMore);
       
-      console.log(`🎯 [SmartHomePage] Loaded ${result.events.length} more events. Total: ${newEvents.length}`);
     } catch (error) {
       console.error('[SmartHomePage] Failed to load more events:', error);
     } finally {
@@ -92,27 +78,17 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
     }
   };
 
-  // Debug logging for state changes
-  useEffect(() => {
-    console.log('🔍 [SmartHomePage] State check:', {
-      hasSignificantBehavior,
-      smartDisplayEnabled,
-      totalEvents: allEvents.length,
-      displayedEvents: displayedEvents.length,
-      isLoading,
-      hasMore
-    });
-  }, [hasSignificantBehavior, smartDisplayEnabled, allEvents.length, displayedEvents.length, isLoading, hasMore]);
-
   return (
-    <section className="px-4 py-12">
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-        {t("titlecategories")}
+    <section className="my-5">
+      <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text">
+        <div className="bg-gradient-to-r from-violet-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
+          {t("titlecategories")}
+        </div>
       </h2>
 
       {isLoading && smartDisplayEnabled && (
         <div className="mb-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-full text-sm">
+          <div className="inline-flex items-center gap-2 px-4 py-2 bg-violet-900/20 backdrop-blur-sm border border-violet-400/30 text-violet-300 rounded-full text-sm">
             🧠 Loading personalized events for you...
           </div>
         </div>
@@ -131,7 +107,7 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
           <Button
             onClick={handleLoadMore}
             disabled={isLoading}
-            variant="outline"
+            className="professional-button text-white font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-violet-400/30 hover:border-violet-400/50"
             size="lg"
           >
             {isLoading ? "Loading..." : t("seeMore")}

@@ -83,7 +83,9 @@ export type EventSummary = Pick<
   | "endTime"
   | "views"
   | "bannerUrl"
+  | "posterUrl"
   | "type"
+  | "createdAt"
 > & {
   id: string;
   name: string;
@@ -93,7 +95,9 @@ export type EventSummary = Pick<
   endTime: Date;
   typicalTicketPrice: number;
   bannerUrl: string | null;
+  posterUrl: string | null;
   views: number;
+  createdAt: Date | null;
   organizer?: {
     id: string;
     name: string;
@@ -358,8 +362,10 @@ export async function getFilteredEvents({
       endTime: true,
       location: true,
       bannerUrl: true,
+      posterUrl: true,
       views: true,
       type: true,
+      createdAt: true,
     },
     with: {
       organizer: {
@@ -389,6 +395,7 @@ export async function getFilteredEvents({
       typicalTicketPrice: typicalPrice,
       location: event.location ?? "",
       bannerUrl: event.bannerUrl ?? "",
+      posterUrl: event.posterUrl ?? "",
       areas: undefined,
     };
   });
@@ -441,8 +448,10 @@ export async function getEventSummaries({
       endTime: true,
       location: true,
       bannerUrl: true,
+      posterUrl: true,
       views: true,
       type: true,
+      createdAt: true,
       [sortColumnKey]: true,
     } as const,
     with: {
@@ -482,6 +491,7 @@ export async function getEventSummaries({
       typicalTicketPrice,
       organizer: event.organizer,
       bannerUrl: event.bannerUrl ?? "", // Ensure bannerUrl is always a string
+      posterUrl: event.posterUrl ?? "", // Ensure posterUrl is always a string
       areas: undefined, // Remove areas from final response
     };
   });

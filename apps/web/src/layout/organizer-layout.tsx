@@ -13,7 +13,7 @@ export default function OrganizerLayout({
     <div className="min-h-screen flex flex-col justify-between">
       <div className="flex">
         <Sidebar />
-        <div className="flex-1 bg-white dark:bg-background">{children}</div>
+        <div className="flex-1 bg-white dark:bg-background pt-16 md:pt-0">{children}</div>
       </div>
       <Footer />
     </div>

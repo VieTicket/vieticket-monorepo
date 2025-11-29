@@ -96,26 +96,54 @@ export default function OrganizerDashboardModern({
   const t = useTranslations("organizer-dashboard.General");
 
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
-    if (active && payload && payload.length) {
+    if (active && payload && payload.length && label) {
+      const formattedDate = new Date(label).toLocaleDateString("vi-VN", {
+        day: "2-digit",
+        month: "2-digit",
+        year: "2-digit",
+      });
+
       return (
-        <div className="rounded-lg border bg-background p-2 shadow-sm">
-          <div className="grid grid-cols-2 gap-2">
-            <div className="flex flex-col space-y-1">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {label}
-              </span>
-              <span className="font-bold text-muted-foreground">
-                {payload[0].name}
-              </span>
-            </div>
-            <div className="flex flex-col space-y-1 text-right">
-              <span className="text-[0.70rem] uppercase text-muted-foreground">
-                {t("General.revenue")}
-              </span>
-              <span className="font-bold text-foreground">
-                {formatCurrencyVND(payload[0].value)}
-              </span>
-            </div>
+        <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
+          <div className="flex flex-col space-y-1 text-center">
+            <span className="text-[0.65rem] sm:text-[0.70rem] uppercase text-muted-foreground">
+              {formattedDate}
+            </span>
+            <span className="text-[0.75rem] sm:text-sm font-bold text-foreground">
+              {formatCurrencyVND(payload[0].value)}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    return null;
+  };
+
+  const CustomPieTooltip = ({ active, payload }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0].payload;
+
+      return (
+        <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
+          <div className="flex flex-col space-y-1 text-center">
+            <span className="text-[0.65rem] sm:text-[0.70rem] uppercase text-muted-foreground">
+              {data.eventName}
+            </span>
+            <span className="text-[0.75rem] sm:text-sm font-bold text-foreground">
+              {formatCurrencyVND(data.total)}
+            </span>
+            <span className="text-[0.60rem] text-muted-foreground">
+              {(
+                (data.total /
+                  revenueDistribution.reduce(
+                    (sum, item) => sum + item.total,
+                    0
+                  )) *
+                100
+              ).toFixed(1)}
+              %
+            </span>
           </div>
         </div>
       );
@@ -185,67 +213,67 @@ export default function OrganizerDashboardModern({
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-4 p-2 sm:p-4 md:gap-8 md:p-8">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-          <LayoutDashboard className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 px-2 sm:px-0">
+          <LayoutDashboard className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">
             {t("organizerOverview")}
           </h1>
         </div>
 
         {/* --- Main Info Cards --- */}
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:gap-8 md:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-3 grid-cols-1 xs:grid-cols-2 md:gap-4 lg:gap-6 xl:grid-cols-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 {t("totalRevenue")}
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-lg sm:text-2xl font-bold">
                 {formatCurrencyVND(totalRevenue)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t("actual(-20%)")}:{" "}
+                {t("actual(-20%)")}{" "}
                 {formatCurrencyVND((totalRevenue * 80) / 100)}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 {t("totalEvents")}
               </CardTitle>
               <CalendarDays className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalEvents}</div>
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-lg sm:text-2xl font-bold">{totalEvents}</div>
               <p className="text-xs text-muted-foreground"></p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 {t("ticketsSold")}
               </CardTitle>
               <Ticket className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-lg sm:text-2xl font-bold">
                 +{totalTicketsSold.toLocaleString()}
               </div>
               <p className="text-xs text-muted-foreground"></p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
+              <CardTitle className="text-xs sm:text-sm font-medium">
                 {t("featuredEvent")}
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold truncate">
+            <CardContent className="px-3 sm:px-6">
+              <div className="text-sm sm:text-lg font-bold truncate">
                 {topEvents[0]?.eventName}
               </div>
               <p className="text-xs text-muted-foreground">
@@ -256,19 +284,23 @@ export default function OrganizerDashboardModern({
         </div>
 
         {/* --- Charts --- */}
-        <div className="grid gap-4 md:gap-8 grid-cols-1 lg:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 md:gap-6 grid-cols-1 xl:grid-cols-3">
           <Card className="xl:col-span-2">
-            <CardHeader>
-              <div className="flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-center">
+            <CardHeader className="px-3 sm:px-6">
+              <div className="flex flex-col gap-3 lg:flex-row lg:justify-between lg:items-center">
                 <div>
-                  <CardTitle>{t("revenueFluctuation")}</CardTitle>
-                  <CardDescription>{t("revenueOverTime")}</CardDescription>
+                  <CardTitle className="text-sm sm:text-base">
+                    {t("revenueFluctuation")}
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {t("revenueOverTime")}
+                  </CardDescription>
                 </div>
-                <div className="flex flex-col sm:flex-row items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <select
                     value={dateFilter}
                     onChange={(e) => setDateFilter(e.target.value)}
-                    className="rounded border px-2 py-1 text-sm bg-white"
+                    className="rounded border px-2 py-1 text-xs sm:text-sm bg-white w-full sm:w-auto"
                   >
                     <option value="all">{t("allTime")}</option>
                     <option value="7days">{t("last7Days")}</option>
@@ -277,12 +309,12 @@ export default function OrganizerDashboardModern({
                   </select>
 
                   {dateFilter === "custom" && (
-                    <>
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                       <input
                         type="date"
                         value={fromDate}
                         onChange={(e) => setFromDate(e.target.value)}
-                        className="rounded border px-2 py-1 text-sm"
+                        className="rounded border px-2 py-1 text-xs sm:text-sm w-full sm:w-auto"
                         placeholder="From"
                       />
                       <span className="text-muted-foreground text-sm hidden sm:inline">
@@ -292,20 +324,20 @@ export default function OrganizerDashboardModern({
                         type="date"
                         value={toDate}
                         onChange={(e) => setToDate(e.target.value)}
-                        className="rounded border px-2 py-1 text-sm"
+                        className="rounded border px-2 py-1 text-xs sm:text-sm w-full sm:w-auto"
                         placeholder="To"
                       />
-                    </>
+                    </div>
                   )}
                 </div>
               </div>
             </CardHeader>
 
-            <CardContent className="h-[250px] sm:h-[350px] w-full p-0">
+            <CardContent className="h-[200px] sm:h-[250px] lg:h-[300px] w-full p-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart
                   data={filteredRevenue}
-                  margin={{ top: 5, right: 20, left: -10, bottom: 5 }}
+                  margin={{ top: 5, right: 10, left: -20, bottom: 5 }}
                 >
                   <defs>
                     <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
@@ -316,7 +348,7 @@ export default function OrganizerDashboardModern({
                   <XAxis
                     dataKey="date"
                     stroke="#888888"
-                    fontSize={12}
+                    fontSize={9}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value: string) => {
@@ -331,7 +363,7 @@ export default function OrganizerDashboardModern({
 
                   <YAxis
                     stroke="#888888"
-                    fontSize={12}
+                    fontSize={9}
                     tickLine={false}
                     axisLine={false}
                     tickFormatter={(value) => `${Number(value) / 1000000}M`}
@@ -349,88 +381,126 @@ export default function OrganizerDashboardModern({
           </Card>
 
           <Card>
-            <CardHeader>
-              <CardTitle>{t("revenueStructure")}</CardTitle>
-              <CardDescription>
+            <CardHeader className="px-3 sm:px-6">
+              <CardTitle className="text-sm sm:text-base">
+                {t("revenueStructure")}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
                 {t("revenueDistributionByEvent")}
               </CardDescription>
             </CardHeader>
             <CardContent className="h-[250px] sm:h-[350px] w-full p-0 flex flex-col items-center justify-center">
-              <ResponsiveContainer width="100%" height={200} minWidth={0}>
-                <PieChart>
-                  <Pie
-                    data={revenueDistribution}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    innerRadius={50} // Donut effect
-                    fill="#8884d8"
-                    dataKey="total"
-                    paddingAngle={5}
-                  >
+              {revenueDistribution && revenueDistribution.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={200} minWidth={0}>
+                    <PieChart>
+                      <Pie
+                        data={revenueDistribution}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        outerRadius={80}
+                        innerRadius={50} // Donut effect
+                        fill="#8884d8"
+                        dataKey="total"
+                        paddingAngle={5}
+                      >
+                        {revenueDistribution.map((entry, index) => (
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={dynamicColors[index]}
+                          />
+                        ))}
+                      </Pie>
+                      <Tooltip content={<CustomPieTooltip />} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs px-4 mt-2">
                     {revenueDistribution.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={dynamicColors[index]} />
+                      <div
+                        key={`legend-${index}`}
+                        className="flex items-center gap-1.5"
+                      >
+                        <span
+                          className="h-2 w-2 rounded-full"
+                          style={{ backgroundColor: dynamicColors[index] }}
+                        ></span>
+                        <span>{entry.eventName}</span>
+                      </div>
                     ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-x-4 gap-y-1 text-xs px-4 mt-2">
-                {revenueDistribution.map((entry, index) => (
-                  <div
-                    key={`legend-${index}`}
-                    className="flex items-center gap-1.5"
-                  >
-                    <span
-                      className="h-2 w-2 rounded-full"
-                      style={{ backgroundColor: dynamicColors[index] }}
-                    ></span>
-
-                    <span>{entry.eventName}</span>
                   </div>
-                ))}
-              </div>
+                </>
+              ) : (
+                <div className="flex flex-col items-center justify-center h-full text-center">
+                  <div className="text-muted-foreground text-sm">
+                    {t("noRevenueData")}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    {t("dataWillAppearHere")}
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
 
         {/* --- Top Events Table --- */}
         <Card>
-          <CardHeader>
-            <CardTitle>{t("topEventsByRevenue")}</CardTitle>
+          <CardHeader className="px-3 sm:px-6">
+            <CardTitle className="text-sm sm:text-base">
+              {t("topEventsByRevenue")}
+            </CardTitle>
           </CardHeader>
-          <CardContent className="overflow-x-auto">
+          <CardContent className="overflow-x-auto px-3 sm:px-6">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>{t("event")}</TableHead>
-                  <TableHead className="text-center">{t("status")}</TableHead>
-                  <TableHead className="text-center">
+                  <TableHead className="text-xs sm:text-sm">
+                    {t("event")}
+                  </TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">
+                    {t("status")}
+                  </TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm hidden sm:table-cell">
                     {t("ticketsSold")}
                   </TableHead>
-                  <TableHead className="text-right">{t("revenue")}</TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm">
+                    {t("revenue")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topEvents.map((event, index) => (
                   <TableRow key={event.eventId}>
-                    <TableCell>
-                      <div className="font-medium">{event.eventName}</div>
-                      <div className="hidden text-sm text-muted-foreground md:inline">
+                    <TableCell className="py-2 sm:py-3">
+                      <div
+                        className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none"
+                        title={event.eventName}
+                      >
+                        {event.eventName}
+                      </div>
+                      <div className="hidden text-xs text-muted-foreground lg:block">
                         ID: {event.eventId}
                       </div>
+                      <div className="text-xs text-muted-foreground sm:hidden">
+                        {event.ticketsSold.toLocaleString()} tickets
+                      </div>
                     </TableCell>
-                    <TableCell className="text-center">
-                      <Badge variant={index < 2 ? "default" : "secondary"}>
+                    <TableCell className="text-center py-2 sm:py-3">
+                      <Badge
+                        variant={index < 2 ? "default" : "secondary"}
+                        className="text-xs"
+                      >
                         {index < 2 ? "Hot" : "Stable"}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-center">
+                    <TableCell className="text-center hidden sm:table-cell py-2 sm:py-3 text-sm">
                       {event.ticketsSold.toLocaleString()}
                     </TableCell>
-                    <TableCell className="text-right font-semibold">
-                      {formatCurrencyVND(event.totalRevenue)}
+                    <TableCell className="text-right font-semibold py-2 sm:py-3 text-xs sm:text-sm">
+                      <div className="truncate">
+                        {formatCurrencyVND(event.totalRevenue)}
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

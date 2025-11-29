@@ -62,8 +62,8 @@ export function DraftsView({
         <div
           className={cn(
             viewMode === "grid"
-              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
-              : "flex flex-col gap-4"
+              ? "grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6"
+              : "flex flex-col gap-3 md:gap-4"
           )}
         >
           {filteredSeatMaps.map((item) => (
@@ -124,74 +124,69 @@ export function DraftsView({
 
   return (
     <>
-      {/* Drafts View Header */}
-      <div className="border-b dark:border-gray-800 p-4 flex justify-between items-center h-20">
-        <div className="flex items-center gap-4">
+      {/* Header - Responsive */}
+      <div className="border-b dark:border-gray-800 p-3 md:p-4 flex flex-col md:flex-row justify-between items-start md:items-center h-auto md:h-20">
+        <div className="flex items-center gap-3 md:gap-4 mb-3 md:mb-0">
           <div>
-            <h1 className="text-xl font-semibold flex items-center gap-2">
-              <Palette className="w-5 h-5" />
+            <h1 className="text-lg md:text-xl font-semibold flex items-center gap-2">
+              <Palette className="w-4 md:w-5 h-4 md:h-5" />
               My Canvas Seat Maps
             </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Manage your PIXI.js canvas seat map designs
-            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <div className="relative">
+        <div className="flex items-center gap-3 md:gap-4 w-full md:w-auto">
+          {/* Search Input - Responsive */}
+          <div className="relative flex-1 md:flex-none">
             <Search
-              className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
-              size={18}
+              className="absolute left-2 md:left-3 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+              size={16}
             />
             <Input
-              placeholder="Search your canvas seat maps..."
-              className="w-64 pl-10"
+              placeholder="Search..."
+              className="w-full min-w-32 md:w-48 lg:w-64 pl-8 md:pl-10 text-sm"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* View Mode Buttons */}
+          <div className="flex items-center gap-1 md:gap-2">
             <Button
               variant="ghost"
               size="icon"
               aria-label="Grid view"
               onClick={() => setViewMode("grid")}
-              className={
+              className={cn(
+                "h-8 w-8 md:h-9 md:w-9",
                 viewMode === "grid" ? "bg-gray-100 dark:bg-gray-800" : ""
-              }
+              )}
             >
-              <Grid size={18} />
+              <Grid size={16} />
             </Button>
             <Button
               variant="ghost"
               size="icon"
               aria-label="List view"
               onClick={() => setViewMode("list")}
-              className={
+              className={cn(
+                "h-8 w-8 md:h-9 md:w-9",
                 viewMode === "list" ? "bg-gray-100 dark:bg-gray-800" : ""
-              }
+              )}
             >
-              <List size={18} />
+              <List size={16} />
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Drafts Content */}
-      <div className="flex-1 overflow-y-auto p-6">
+      {/* Content */}
+      <div className="flex-1 overflow-y-auto p-4 md:p-6">
         <Tabs
           defaultValue="all"
           className="w-full"
           onValueChange={setSelectedTab}
         >
-          <TabsList className="mb-6">
-            <TabsTrigger value="all">All Canvas Seat Maps</TabsTrigger>
-            <TabsTrigger value="recent">Recent</TabsTrigger>
-            <TabsTrigger value="starred">Starred</TabsTrigger>
-          </TabsList>
-
           <TabsContent value="all" className="mt-0">
             {renderContent("all")}
           </TabsContent>

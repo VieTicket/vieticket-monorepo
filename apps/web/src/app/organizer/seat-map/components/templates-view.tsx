@@ -43,20 +43,9 @@ export function TemplatesView({
       {/* Templates View Header */}
       <div className="border-b dark:border-gray-800 p-4 flex justify-between items-center h-20">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft size={16} className="mr-2" />
-            Back
-          </Button>
-          <div>
-            <h1 className="text-xl font-semibold flex items-center gap-2">
-              <Star className="w-5 h-5" />
-              Community Templates
-            </h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
-              Discover and use public seat map templates created by the
-              community
-            </p>
-          </div>
+          <h1 className="text-xl font-semibold flex items-center gap-2">
+            Community Templates
+          </h1>
         </div>
 
         <div className="relative">
@@ -66,7 +55,7 @@ export function TemplatesView({
           />
           <Input
             placeholder="Search templates..."
-            className="w-64 pl-10"
+            className="min-w-32 pl-10"
             value={templatesSearchQuery}
             onChange={(e) => setTemplatesSearchQuery(e.target.value)}
           />
