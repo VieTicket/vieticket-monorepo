@@ -200,7 +200,9 @@ export function ShowingsTicketing({
       <div>
         <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
           <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="text-sm sm:text-base">Configure Ticketing for Each Showing</span>
+          <span className="text-sm sm:text-base">
+            Configure Ticketing for Each Showing
+          </span>
         </h3>
 
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
@@ -230,12 +232,18 @@ export function ShowingsTicketing({
               <CardContent className="pt-0">
                 <div className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-gray-600">
                   <div className="flex items-center gap-1.5 sm:gap-2">
-                    <span className="font-medium text-xs sm:text-sm">Start:</span>
-                    <span className="truncate text-xs sm:text-sm">{formatDateVi(new Date(showing.startTime))}</span>
+                    <span className="font-medium text-xs sm:text-sm">
+                      Start:
+                    </span>
+                    <span className="truncate text-xs sm:text-sm">
+                      {formatDateVi(new Date(showing.startTime))}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1.5 sm:gap-2">
                     <span className="font-medium text-xs sm:text-sm">End:</span>
-                    <span className="truncate text-xs sm:text-sm">{formatDateVi(new Date(showing.endTime))}</span>
+                    <span className="truncate text-xs sm:text-sm">
+                      {formatDateVi(new Date(showing.endTime))}
+                    </span>
                   </div>
                 </div>
               </CardContent>
@@ -252,9 +260,6 @@ export function ShowingsTicketing({
             <h4 className="text-base sm:text-lg font-semibold truncate">
               Configuring: {currentShowing.name}
             </h4>
-            <Badge variant="outline" className="text-xs flex-shrink-0 hidden sm:block">
-              {formatDateVi(new Date(currentShowing.startTime))}
-            </Badge>
           </div>
 
           {/* Copy Mode Toggle */}
@@ -265,10 +270,15 @@ export function ShowingsTicketing({
                 checked={copyToAllShowings}
                 onCheckedChange={handleCopyModeChange}
               />
-              <Label htmlFor="copy-mode" className="text-xs sm:text-sm font-medium">
+              <Label
+                htmlFor="copy-mode"
+                className="text-xs sm:text-sm font-medium"
+              >
                 <div className="flex items-center gap-1">
                   <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
-                  <span className="whitespace-nowrap">Apply to all showings</span>
+                  <span className="whitespace-nowrap">
+                    Apply to all showings
+                  </span>
                 </div>
               </Label>
             </div>
@@ -317,17 +327,6 @@ export function ShowingsTicketing({
         {/* Ticketing Mode Content */}
         {ticketingMode === "simple" ? (
           <div className="space-y-3 sm:space-y-4">
-            <div className="bg-green-50 border border-green-200 rounded-lg p-3 sm:p-4">
-              <h5 className="font-medium text-green-800 mb-1 sm:mb-2 text-sm sm:text-base">
-                Simple Ticketing Mode
-              </h5>
-              <p className="text-xs sm:text-sm text-green-700 leading-relaxed">
-                Configure areas and pricing for {currentShowing.name}.
-                {copyToAllShowings
-                  ? " Changes will apply to all showings."
-                  : " Each showing has independent configuration."}
-              </p>
-            </div>
             <SimpleTicketingMode
               areas={getCurrentShowingAreas()}
               setAreas={updateCurrentShowingAreas}
@@ -335,15 +334,6 @@ export function ShowingsTicketing({
           </div>
         ) : (
           <div className="space-y-3 sm:space-y-4">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 sm:p-4">
-              <h5 className="font-medium text-blue-800 mb-1 sm:mb-2 text-sm sm:text-base">Seat Map Mode</h5>
-              <p className="text-xs sm:text-sm text-blue-700 leading-relaxed">
-                Select a seat map for {currentShowing.name}.
-                {copyToAllShowings
-                  ? " The same seat map will be used for all showings."
-                  : " Each showing can have a different seat map."}
-              </p>
-            </div>
             <SeatMapTicketingMode
               selectedSeatMap={getCurrentShowingSeatMap().seatMapId}
               setSelectedSeatMap={(id) =>
@@ -369,7 +359,7 @@ export function ShowingsTicketing({
         {/* Navigation Info */}
         <div className="mt-4 sm:mt-6 p-2 sm:p-3 bg-gray-50 rounded-lg">
           <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            💡 <strong>Tip:</strong> Click on different showing cards above to
+            <strong>Tip:</strong> Click on different showing cards above to
             configure ticketing for each showing separately.
             {showings.length > 1 &&
               ` You have ${showings.length} showings to configure.`}

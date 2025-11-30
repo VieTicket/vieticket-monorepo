@@ -75,7 +75,7 @@ export class AIPersonalizationService {
     availableEvents: EventForRecommendation[],
     options?: { useGptProfile?: boolean; forceProfileRefresh?: boolean }
   ): Promise<RecommendationResult[]> {
-    console.log("🤖 AI Personalization: Starting recommendation generation");
+    console.log("AI Personalization: Starting recommendation generation");
     console.log("📊 User Behavior:", {
       searchQueries: userBehavior.searchQueries.length,
       viewedEvents: userBehavior.viewedEvents.length,
@@ -83,7 +83,7 @@ export class AIPersonalizationService {
       categories: userBehavior.preferences.categories,
       locations: userBehavior.preferences.locations,
     });
-    console.log("🎯 Available Events:", availableEvents.length);
+    console.log("Available Events:", availableEvents.length);
 
     try {
       if (!this.openai) {
@@ -121,7 +121,7 @@ export class AIPersonalizationService {
           const reason = this.generateRecommendationReason(event, userProfile);
 
           console.log(
-            `📈 Event "${event.title}" score: ${(score * 100).toFixed(1)}%`
+            `Event "${event.title}" score: ${(score * 100).toFixed(1)}%`
           );
 
           return {
@@ -176,7 +176,7 @@ export class AIPersonalizationService {
     if (!opts?.forceRefresh) {
       const cached = this.profileCache.get(key);
       if (cached && cached.expiresAt > now) {
-        console.log("⚡ Profile cache hit");
+        console.log("Profile cache hit");
         return cached.profile;
       }
     } else {
@@ -252,9 +252,7 @@ export class AIPersonalizationService {
         // Calculate cosine similarity
         const similarity = this.cosineSimilarity(userEmbedding, eventEmbedding);
         score += similarity * 0.6; // 60% weight for AI similarity (INCREASED for academic requirements)
-        console.log(
-          `🎯 AI similarity score: ${(similarity * 100).toFixed(1)}%`
-        );
+        console.log(`AI similarity score: ${(similarity * 100).toFixed(1)}%`);
       }
 
       // Add category preference score
@@ -269,7 +267,7 @@ export class AIPersonalizationService {
       );
       score += locationScoreResult.score * 0.1; // 10% weight (Reduced to prioritize AI)
       console.log(
-        `📍 Location score: ${(locationScoreResult.score * 100).toFixed(1)}% (explicit: ${locationScoreResult.isExplicit})`
+        `Location score: ${(locationScoreResult.score * 100).toFixed(1)}% (explicit: ${locationScoreResult.isExplicit})`
       );
 
       // Add price preference score
@@ -588,7 +586,7 @@ Preferred locations: ${userBehavior.preferences.locations.join(", ")}
       const locationBonus = 0.2 * locationDecay; // Base 20% for location match
       totalBonus += locationBonus;
       console.log(
-        `  📍 Location filter match: ${locationAgeMinutes.toFixed(1)} min ago, decay: ${(locationDecay * 100).toFixed(0)}%, bonus: +${(locationBonus * 100).toFixed(1)}%`
+        `  Location filter match: ${locationAgeMinutes.toFixed(1)} min ago, decay: ${(locationDecay * 100).toFixed(0)}%, bonus: +${(locationBonus * 100).toFixed(1)}%`
       );
     }
 

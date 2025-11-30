@@ -15,6 +15,7 @@ import {
   deleteSeatMapById,
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
+import { findEventById } from "@vieticket/repos";
 
 function validateShapesByType(shape: any): boolean {
   const validTypes = [
@@ -383,6 +384,63 @@ export async function updateSeatMap(
       throw error;
     }
     throw new Error("An unknown error occurred while updating the seat map");
+  }
+}
+
+export async function getUserSeatMapsWithEventInfo(user: User) {
+  if (user.role !== "organizer") {
+    throw new Error("Unauthorized: Only organizers can access seat maps");
+  }
+
+  try {
+    const seatMaps = await findSeatMapsByCreator(user.id);
+
+    // Enrich seat maps with event information
+    const enrichedSeatMaps = await Promise.all(
+      seatMaps.map(async (seatMap) => {
+        let eventInfo = null;
+
+        if (seatMap.usedByEvent) {
+          try {
+            const event = await findEventById(seatMap.usedByEvent);
+            if (event) {
+              eventInfo = {
+                id: event.id,
+                name: event.name,
+                startTime: event.startTime,
+                endTime: event.endTime,
+                location: event.location,
+              };
+            }
+          } catch (error) {
+            console.warn(
+              `Failed to fetch event info for seat map ${seatMap.id}:`,
+              error
+            );
+          }
+        }
+
+        return {
+          id: seatMap.id,
+          name: seatMap.name,
+          shapes: seatMap.shapes,
+          image: seatMap.image,
+          createdBy: seatMap.createdBy,
+          publicity: seatMap.publicity,
+          usedByEvent: seatMap.usedByEvent,
+          eventInfo,
+          createdAt: seatMap.createdAt,
+          updatedAt: seatMap.updatedAt,
+        };
+      })
+    );
+
+    return enrichedSeatMaps;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch seat maps: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while fetching seat maps");
   }
 }
 

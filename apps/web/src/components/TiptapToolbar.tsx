@@ -37,11 +37,8 @@ export function Toolbar({ editor, eventData, onContentChange }: ToolbarProps) {
   if (!editor) return null;
 
   // Debug logging
-  console.log("🎯 Toolbar eventData:", eventData);
 
   const handleAITextGenerated = (htmlContent: string) => {
-    console.log("🤖 AI Text Generated:", htmlContent.substring(0, 100) + "...");
-
     // Check if editor has existing content
     const currentContent = editor.getHTML();
     const isEmpty =
@@ -55,27 +52,21 @@ export function Toolbar({ editor, eventData, onContentChange }: ToolbarProps) {
       // Replace entire content if empty
       editor.chain().focus().setContent(htmlContent).run();
       finalContent = htmlContent;
-      console.log("📝 Replaced empty content");
+      console.log("Replaced empty content");
     } else {
       // Append to existing content
       const combinedContent = `${currentContent}<hr/>${htmlContent}`;
       editor.chain().focus().setContent(combinedContent).run();
       finalContent = combinedContent;
-      console.log("📝 Appended to existing content");
+      console.log("Appended to existing content");
     }
 
-    // Immediately trigger onChange callback to update formData
-    console.log(
-      "🔄 Triggering onChange with content length:",
-      finalContent.length
-    );
     onContentChange?.(finalContent);
 
     // Also trigger editor's internal update as backup
     setTimeout(() => {
       const editorContent = editor.getHTML();
       if (editorContent !== finalContent) {
-        console.log("🔄 Backup onChange triggered");
         onContentChange?.(editorContent);
       }
     }, 50);

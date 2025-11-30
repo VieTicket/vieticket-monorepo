@@ -43,23 +43,15 @@ export function TicketingStep({
 }: TicketingStepProps) {
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Ticketing & Seating</h2>
-
-      {/* Seat Map Changes Warning */}
-      {hasSeatMapChanges && (
-        <div className="mb-4 sm:mb-6 p-3 sm:p-4 border border-yellow-200 bg-yellow-50 rounded-lg">
-          <div className="flex items-center space-x-2">
-            <span className="text-yellow-600">⚠️</span>
-            <span className="text-xs sm:text-sm text-yellow-800 font-medium">
-              Changes detected that will affect seat assignments
-            </span>
-          </div>
-        </div>
-      )}
+      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">
+        Ticketing & Seating
+      </h2>
 
       {/* Mode Selection */}
       <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-        <Label className="text-sm sm:text-base font-medium">Choose Ticketing Mode</Label>
+        <Label className="text-sm sm:text-base font-medium">
+          Choose Ticketing Mode
+        </Label>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
             type="button"
@@ -70,7 +62,9 @@ export function TicketingStep({
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Simple Ticketing</div>
+            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">
+              Simple Ticketing
+            </div>
             <div className="text-xs sm:text-sm text-gray-600 leading-snug">
               Create tickets with basic area pricing (no specific seat
               selection)
@@ -86,7 +80,9 @@ export function TicketingStep({
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Seat Map Ticketing</div>
+            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">
+              Seat Map Ticketing
+            </div>
             <div className="text-xs sm:text-sm text-gray-600 leading-snug">
               Use a pre-designed seat map with specific seat selection
             </div>

@@ -11,6 +11,7 @@ import {
   createSeatMapDraft,
   updateSeatMapPublicityService,
   deleteSeatMapService,
+  getUserSeatMapsWithEventInfo,
 } from "@vieticket/services/seat-map";
 import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
 import { headers as headersFn } from "next/headers";
@@ -267,7 +268,7 @@ export async function getUserSeatMapsAction() {
       throw new Error("Unauthenticated: Please sign in to access seat maps.");
     }
 
-    const seatMaps = await getUserSeatMaps(user as User);
+    const seatMaps = await getUserSeatMapsWithEventInfo(user as User);
     if (!seatMaps) {
       return { success: true, data: [] };
     }

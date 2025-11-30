@@ -41,7 +41,7 @@ function ClientConnection() {
 
     (async () => {
       try {
-        console.log("🚀 Starting collaboration initialization...");
+        console.log("Starting collaboration initialization...");
 
         // Set loading state
         useSeatMapStore.setState({ isLoading: true });

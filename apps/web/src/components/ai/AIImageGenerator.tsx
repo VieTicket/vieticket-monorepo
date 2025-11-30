@@ -62,7 +62,7 @@ export function AIImageGenerator({
       const model = "flux"; // kontext, flux, turbo, gptimage
       const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&seed=${seed}&width=${width}&height=${height}&nologo=true`;
 
-      console.log("🎯 Fetching image from:", imageUrl);
+      console.log("Fetching image from:", imageUrl);
       const response = await fetch(imageUrl);
       if (!response.ok) throw new Error("Pollinations fetch failed");
 
