@@ -729,7 +729,7 @@ export function EventCompareModal({
                 </CardContent>
               </Card>
 
-              {/* Location List */}
+              {/* Location List with Distance Ranking */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
@@ -738,23 +738,53 @@ export function EventCompareModal({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {comparisonResult.events.map((event) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <div className="flex-1 min-w-0">
-                        <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
-                        <span className="text-xs text-gray-500 truncate block" title={event.location}>
-                          {event.location}
-                        </span>
-                      </div>
-                      {event.distanceFromUser !== undefined && (
-                        <div className="text-right ml-2 flex-shrink-0">
-                          <span className="text-sm font-medium text-blue-600">
-                            {formatDistance(event.distanceFromUser)}
-                          </span>
+                  {(userLocation && comparisonResult.distanceRanking.some(e => e.distanceFromUser !== undefined)
+                    ? comparisonResult.distanceRanking.map((event, index) => {
+                        // Find original event data to ensure we show all events
+                        const hasDistance = event.distanceFromUser !== undefined;
+                        const rankIndex = hasDistance ? index + 1 : null;
+                        
+                        return (
+                          <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              {rankIndex && (
+                                <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{rankIndex}</span>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
+                                <span className="text-xs text-gray-500 truncate block" title={event.location}>
+                                  {event.location}
+                                </span>
+                              </div>
+                            </div>
+                            {hasDistance && (
+                              <div className="text-right ml-2 flex-shrink-0">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {formatDistance(event.distanceFromUser)}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    : comparisonResult.events.map((event) => (
+                        <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
+                            <span className="text-xs text-gray-500 truncate block" title={event.location}>
+                              {event.location}
+                            </span>
+                          </div>
+                          {event.distanceFromUser !== undefined && (
+                            <div className="text-right ml-2 flex-shrink-0">
+                              <span className="text-sm font-medium text-blue-600">
+                                {formatDistance(event.distanceFromUser)}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -824,34 +854,6 @@ export function EventCompareModal({
                 </CardContent>
               </Card>
 
-              {/* Distance Ranking */}
-              {userLocation && comparisonResult.distanceRanking.some(e => e.distanceFromUser !== undefined) && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-lg">
-                      <Navigation className="h-5 w-5" />
-                      <span>Xếp hạng khoảng cách</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {comparisonResult.distanceRanking
-                      .filter(event => event.distanceFromUser !== undefined)
-                      .map((event, index) => (
-                        <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                            <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-sm font-medium text-blue-600">
-                              {formatDistance(event.distanceFromUser)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                  </CardContent>
-                </Card>
-              )}
             </div>
 
             {/* Showing Comparison Section */}
