@@ -706,24 +706,30 @@ export function EventCompareModal({
 
             {/* Detailed Comparison */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Price Ranking */}
+              {/* Price with Ranking */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <DollarSign className="h-5 w-5" />
-                    <span>Xếp hạng giá cả</span>
+                    <span>Giá cả</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {comparisonResult.priceRanking.map((event, index) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                        <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                    <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                          <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                        </div>
+                        <span className="text-sm font-medium flex-shrink-0 ml-2">
+                          {formatCurrency(event.price.avg)}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(event.price.avg)}
-                      </span>
+                      <div className="flex items-center space-x-3 text-xs text-gray-500 pl-7">
+                        <span>Min: {formatCurrency(event.price.min)}</span>
+                        <span>Max: {formatCurrency(event.price.max)}</span>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
@@ -860,80 +866,57 @@ export function EventCompareModal({
             <div className="space-y-4">
               <h3 className="text-lg font-semibold flex items-center space-x-2">
                 <Film className="h-5 w-5" />
-                <span>So sánh xuất chiếu</span>
+                <span>So sánh suất chiếu</span>
               </h3>
               
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Showing Ranking */}
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="flex items-center space-x-2 text-lg">
-                      <Film className="h-5 w-5" />
-                      <span>Xếp hạng số lượng xuất chiếu</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {comparisonResult.showingRanking.map((event, index) => (
-                      <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                        <div className="flex items-center space-x-2">
-                          <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                          <div>
-                            <p className="text-sm font-medium truncate" title={event.name}>{event.name}</p>
-                            <p className="text-xs text-gray-500">
-                              {event.showings.active} / {event.showings.total} xuất chiếu
-                            </p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-sm font-medium">
-                            {event.showings.total} xuất
-                          </span>
-                        </div>
-                      </div>
-                    ))}
-                  </CardContent>
-                </Card>
-
-                {/* Showing Details */}
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                {/* Showing Details with Ranking */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="flex items-center space-x-2 text-lg">
                       <Calendar className="h-5 w-5" />
-                      <span>Chi tiết xuất chiếu</span>
+                      <span>Chi tiết suất chiếu</span>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-3">
-                    {comparisonResult.events.map((event) => (
-                      <div key={event.id} className="p-3 rounded bg-gray-50 space-y-2">
-                        <div className="flex justify-between items-start">
-                          <span className="text-sm font-medium truncate flex-1" title={event.name}>
-                            {event.name}
-                          </span>
-                        </div>
-                        <div className="space-y-1 text-xs text-gray-600">
-                          <div className="flex justify-between">
-                            <span>Tổng số xuất:</span>
-                            <span className="font-medium">{event.showings.total}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span>Xuất đang hoạt động:</span>
-                            <span className="font-medium text-green-600">{event.showings.active}</span>
-                          </div>
-                          {event.showings.earliestStartTime && (
-                            <div className="flex justify-between">
-                              <span>Xuất sớm nhất:</span>
-                              <span className="font-medium">{formatDate(event.showings.earliestStartTime)}</span>
+                    {comparisonResult.showingRanking.map((event, index) => {
+                      // Find original event data for detailed information
+                      const originalEvent = comparisonResult.events.find(e => e.id === event.id) || event;
+                      return (
+                        <div key={event.id} className="p-3 rounded bg-gray-50 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                              <span className="text-sm font-medium truncate flex-1" title={originalEvent.name}>
+                                {originalEvent.name}
+                              </span>
                             </div>
-                          )}
-                          {event.showings.latestEndTime && (
+                          </div>
+                          <div className="space-y-1 text-xs text-gray-600 pl-7">
                             <div className="flex justify-between">
-                              <span>Xuất muộn nhất:</span>
-                              <span className="font-medium">{formatDate(event.showings.latestEndTime)}</span>
+                              <span>Tổng số suất:</span>
+                              <span className="font-medium">{originalEvent.showings.total}</span>
                             </div>
-                          )}
+                            <div className="flex justify-between">
+                              <span>Suất đang hoạt động:</span>
+                              <span className="font-medium text-green-600">{originalEvent.showings.active}</span>
+                            </div>
+                            {originalEvent.showings.earliestStartTime && (
+                              <div className="flex justify-between">
+                                <span>Suất sớm nhất:</span>
+                                <span className="font-medium">{formatDate(originalEvent.showings.earliestStartTime)}</span>
+                              </div>
+                            )}
+                            {originalEvent.showings.latestEndTime && (
+                              <div className="flex justify-between">
+                                <span>Suất muộn nhất:</span>
+                                <span className="font-medium">{formatDate(originalEvent.showings.latestEndTime)}</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </CardContent>
                 </Card>
               </div>
