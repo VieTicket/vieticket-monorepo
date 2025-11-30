@@ -97,31 +97,33 @@ export default function Sidebar() {
           />
           <div className="fixed top-16 left-0 right-0 z-40 bg-[#1f1c33] border-b border-[#3a3755] shadow-2xl">
             <nav className="flex flex-col">
-              {navItems.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname === href;
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "group flex items-center gap-4 px-4 py-4 transition-all duration-200 font-medium border-b border-[#3a3755]/50",
-                      isActive
-                        ? "bg-yellow-400 text-[#2a273f]"
-                        : "hover:bg-[#2f2b47] text-white/80"
-                    )}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Icon
-                      size={22}
+              {navItems
+                .filter((item) => item.href !== "/organizer/seat-map")
+                .map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
                       className={cn(
-                        "transition-all duration-200",
-                        isActive ? "text-[#2a273f]" : "text-yellow-300"
+                        "group flex items-center gap-4 px-4 py-4 transition-all duration-200 font-medium border-b border-[#3a3755]/50",
+                        isActive
+                          ? "bg-yellow-400 text-[#2a273f]"
+                          : "hover:bg-[#2f2b47] text-white/80"
                       )}
-                    />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Icon
+                        size={22}
+                        className={cn(
+                          "transition-all duration-200",
+                          isActive ? "text-[#2a273f]" : "text-yellow-300"
+                        )}
+                      />
+                      <span>{label}</span>
+                    </Link>
+                  );
+                })}
             </nav>
           </div>
         </div>
