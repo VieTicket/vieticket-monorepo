@@ -59,7 +59,7 @@ export function AIImageGenerator({
       const seed = Math.floor(Math.random() * 100000000);
       const width = type === "poster" ? 600 : 1280;
       const height = type === "poster" ? 800 : 720;
-      const model = "kontext"; // kontext, flux, turbo, gptimage
+      const model = "flux"; // kontext, flux, turbo, gptimage
       const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&seed=${seed}&width=${width}&height=${height}&nologo=true`;
 
       console.log("🎯 Fetching image from:", imageUrl);
@@ -72,7 +72,7 @@ export function AIImageGenerator({
 
       toast.success(t("ai.image.toasts.generated", { type }));
     } catch (error) {
-      console.error("❌ Error:", error);
+      console.error("Error:", error);
       toast.error(t("ai.image.toasts.failedGenerate"));
     } finally {
       setIsGenerating(false);
@@ -137,9 +137,9 @@ export function AIImageGenerator({
     if (!generatedImage) return;
 
     // 1. Gán ảnh base64 vào form ngay lập tức
-  onImageGenerated(generatedImage);
-  setGeneratedImage(null);
-  toast.success(t("ai.image.toasts.successApply"));
+    onImageGenerated(generatedImage);
+    setGeneratedImage(null);
+    toast.success(t("ai.image.toasts.successApply"));
 
     // 2. Upload lên Cloudinary trong background (silent)
     try {
@@ -181,7 +181,12 @@ export function AIImageGenerator({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Wand2 className="h-5 w-5" />
-          {t("ai.image.cardTitle", { type: type === "poster" ? t("ai.image.types.poster") : t("ai.image.types.banner") })}
+          {t("ai.image.cardTitle", {
+            type:
+              type === "poster"
+                ? t("ai.image.types.poster")
+                : t("ai.image.types.banner"),
+          })}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -212,12 +217,24 @@ export function AIImageGenerator({
               <SelectValue placeholder={t("ai.image.selectPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="modern">{t("ai.image.styles.modern")}</SelectItem>
-              <SelectItem value="vibrant">{t("ai.image.styles.vibrant")}</SelectItem>
-              <SelectItem value="elegant">{t("ai.image.styles.elegant")}</SelectItem>
-              <SelectItem value="creative">{t("ai.image.styles.creative")}</SelectItem>
-              <SelectItem value="realistic">{t("ai.image.styles.realistic")}</SelectItem>
-              <SelectItem value="illustration">{t("ai.image.styles.illustration")}</SelectItem>
+              <SelectItem value="modern">
+                {t("ai.image.styles.modern")}
+              </SelectItem>
+              <SelectItem value="vibrant">
+                {t("ai.image.styles.vibrant")}
+              </SelectItem>
+              <SelectItem value="elegant">
+                {t("ai.image.styles.elegant")}
+              </SelectItem>
+              <SelectItem value="creative">
+                {t("ai.image.styles.creative")}
+              </SelectItem>
+              <SelectItem value="realistic">
+                {t("ai.image.styles.realistic")}
+              </SelectItem>
+              <SelectItem value="illustration">
+                {t("ai.image.styles.illustration")}
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>

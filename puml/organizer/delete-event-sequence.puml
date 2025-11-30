@@ -77,21 +77,21 @@ end
 group Own Event - Approved  
     Org -> Action: Delete own approved event
     Action -> DB: Check status
-    DB --> Action: ❌ Forbidden (approved)
-    Action --> Org: ❌ "Cannot delete approved events"
+    DB --> Action: Forbidden (approved)
+    Action --> Org: "Cannot delete approved events"
 end
 
 group Other's Event
     Org -> Action: Delete another organizer's event
     Action -> DB: Check ownership
-    DB --> Action: ❌ Forbidden (not owner)
-    Action --> Org: ❌ "You can only delete your own events"
+    DB --> Action: Forbidden (not owner)
+    Action --> Org: "You can only delete your own events"
 end
 
 group Unauthorized User
     Org -> Action: Delete without proper auth
     Action -> Action: Check authentication
-    Action --> Org: ❌ "Unauthorized: Please log in"
+    Action --> Org: "Unauthorized: Please log in"
 end
 
 @enduml

@@ -151,6 +151,27 @@ export const findShapeRecursively = (
   return null;
 };
 
+export const findShapeAndParentRecursively = (
+  shapes: CanvasItem[],
+  targetId: string,
+  parent: ContainerGroup | null = null
+): { shape: CanvasItem; parent: ContainerGroup | null } | null => {
+  for (const shape of shapes) {
+    if (shape.id === targetId) {
+      return { shape, parent };
+    }
+    if (shape.type === "container") {
+      const found = findShapeAndParentRecursively(
+        (shape as ContainerGroup).children,
+        targetId,
+        shape as ContainerGroup
+      );
+      if (found) return found;
+    }
+  }
+  return null;
+};
+
 export const findContainerRecursively = (
   searchShapes: CanvasItem[],
   targetId: string
@@ -910,7 +931,6 @@ export const deleteShapes = () => {
   if (affectedRowIds.size > 0) {
     affectedRowIds.forEach((rowId) => {
       const row = getRowByIdFromAllGrids(rowId);
-      console.log(row);
       if (row && row.children.length > 0) {
         // Only update rows that still have seats
         updateRowLabelPosition(row);

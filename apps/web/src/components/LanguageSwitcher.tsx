@@ -13,8 +13,8 @@ import {
 import { useRouter } from "next/navigation";
 
 const locales = [
-  { code: "vi", label: "Vietnamese" },
-  { code: "en", label: "English" },
+  { code: "vi", label: "VN" },
+  { code: "en", label: "EN" },
 ];
 
 export default function LanguageSwitcher() {
@@ -42,20 +42,17 @@ export default function LanguageSwitcher() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="ghost"
-          className="flex items-center gap-2 px-3 py-2 rounded-xl border border-gray-300 shadow-sm hover:bg-gray-50 transition"
-        >
-          <Globe className="w-4 h-4" />
+        <div className="flex items-center gap-2 font-normal justify-center p-0 shadow-sm hover:text-yellow-400 transition">
+          <Globe className="w-5 h-5" />
           <span className="hidden sm:inline">{currentLang?.label}</span>
-        </Button>
+        </div>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="rounded-lg shadow-md">
         {locales.map((item) => (
           <DropdownMenuItem
             key={item.code}
             onClick={() => handleLocaleChange(item.code as "vi" | "en")}
-            className={`flex items-center gap-2 cursor-pointer ${
+            className={`relative z-[1000] flex items-center gap-2 cursor-pointer ${
               locale === item.code ? "font-semibold text-blue-600" : ""
             }`}
           >

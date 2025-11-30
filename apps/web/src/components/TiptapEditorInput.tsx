@@ -47,7 +47,7 @@ export default function TiptapEditorInput({
     editorProps: {
       attributes: {
         class:
-          "min-h-[200px] max-h-[300px] overflow-y-auto p-2 outline-none prose",
+          "min-h-[150px] sm:min-h-[200px] max-h-[250px] sm:max-h-[300px] overflow-y-auto p-2 sm:p-3 outline-none prose prose-sm sm:prose-base max-w-none",
       },
     },
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
@@ -82,10 +82,12 @@ export default function TiptapEditorInput({
   }, [value, editor]);
 
   return (
-    <div className="space-y-2">
-      <label htmlFor="description">{t("labels.description")}</label>
+    <div className="space-y-1.5 sm:space-y-2">
+      <label htmlFor="description" className="text-sm sm:text-base font-medium">{t("labels.description")}</label>
       <div
-        className={`border rounded ${error ? "border-red-500" : "border-gray-300"}`}
+        className={`border rounded-md sm:rounded-lg ${
+          error ? "border-red-500" : "border-gray-300"
+        } bg-white overflow-hidden`}
       >
         {editor && (
           <Toolbar

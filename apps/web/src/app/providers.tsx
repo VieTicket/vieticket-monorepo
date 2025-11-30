@@ -40,7 +40,9 @@ export function Providers({ children }: { children: ReactNode }) {
                 router.refresh();
               }}
               Link={Link}
-              providers={["google"]}
+              social={{
+                providers: ["google"],
+              }}
               emailVerification={true}
             >
               {children}

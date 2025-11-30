@@ -6,7 +6,6 @@ import {
 import ViewCounter from "@/components/ViewCounter";
 import RatingWidget from "@/components/event/RatingWidget";
 import RatingList from "@/components/event/RatingList";
-import { CompareEventButton } from "@/components/event/CompareEventButton";
 import { auth } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { getOrganizerAverageRating } from "@vieticket/repos/ratings";
@@ -86,25 +85,19 @@ export default async function EventPage({
     <div className="bg-white min-h-screen w-full">
       <ViewCounter eventId={raw.id} />
       <div className="relative">
-        {/* Compare button positioned at top right */}
-        <div className="absolute top-4 right-4 z-10">
-          <CompareEventButton 
-            event={raw} 
-            isAuthenticated={isAuthenticated}
-          />
-        </div>
-        
-        <div className="bg-white shadow-none rounded-none w-2/3 px-4 md:px-8 lg:px-20 py-12 mx-auto">
+        <div className="bg-white shadow-none rounded-none w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:w-2/3 px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12 mx-auto">
           <PreviewEvent
             data={{
               ...event,
               isPreview: false,
             }}
+            rawEvent={raw}
+            isAuthenticated={isAuthenticated}
           />
-          <div className="mt-8 space-y-6">
+          {/* <div className="mt-8 space-y-6">
             <RatingWidget eventId={raw.id} />
             <RatingList eventId={raw.id} />
-          </div>
+          </div> */}
         </div>
       </div>
     </div>

@@ -50,7 +50,6 @@ export const DebouncedTextarea = React.memo(
         !previouslyClickedShape ||
         (currentShape && previouslyClickedShape.id === currentShape.id)
       ) {
-        console.log(`Updating text from "${value}" to "${debouncedValue}"`);
         onUpdate(debouncedValue);
       } else {
         setLocalValue(value);

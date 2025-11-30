@@ -14,6 +14,8 @@ import { Sidebar } from "./components/sidebar";
 import { DraftsView } from "./components/drafts-view";
 import { TemplatesView } from "./components/templates-view";
 import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
+import { useDeviceDetection } from "@/hooks/use-device-detection";
+import { useRouter } from "next/navigation";
 
 export type SeatMapItem = {
   id: string;
@@ -52,6 +54,13 @@ export default function SeatMapDirectory() {
   const [selectedTab, setSelectedTab] = useState("all");
   const [currentView, setCurrentView] = useState<ViewMode>("drafts");
   const [templatesSearchQuery, setTemplatesSearchQuery] = useState("");
+  const { isMobile, isLoading: deviceLoading } = useDeviceDetection();
+  const router = useRouter();
+  useEffect(() => {
+    if (!deviceLoading && isMobile) {
+      router.push("/organizer");
+    }
+  }, [isMobile, deviceLoading, router]);
 
   useEffect(() => {
     loadSeatMaps();
@@ -278,6 +287,21 @@ export default function SeatMapDirectory() {
       return "Invalid date";
     }
   };
+
+  if (deviceLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (isMobile) {
+    return null;
+  }
 
   return (
     <div className="flex h-full">

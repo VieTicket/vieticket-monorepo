@@ -17,6 +17,7 @@ import { RxValueNone } from "react-icons/rx";
 import { SeatShape, GridShape, RowShape, SeatGridSettings } from "../../types";
 import {
   cloneCanvasItem,
+  cloneCanvasItems,
   ShapeContext,
   useSeatMapStore,
 } from "../../store/seat-map-store";
@@ -35,6 +36,8 @@ import {
   getGridByRowId,
   getRowById,
   getRowByIdFromAllGrids,
+  handleRowLabelPlacementChange,
+  handleRowsLabelPlacementChange,
   selectSeatsInRow,
   setRowLabelPlacement,
   updateRowLabelPosition,
@@ -196,16 +199,7 @@ export const AreaModeProperties = React.memo(
       ) as GridShape;
       if (!grid) return;
 
-      const beforeGrid = {
-        id: grid.id,
-        name: grid.name,
-        gridName: grid.gridName,
-        seatSettings: { ...grid.seatSettings },
-        children: grid.children.map((row) => ({
-          id: row.id,
-          labelPlacement: row.labelPlacement,
-        })),
-      };
+      const beforeGrid = cloneCanvasItem(grid);
 
       // Apply updates
       if (updates.name !== undefined) {
@@ -218,27 +212,14 @@ export const AreaModeProperties = React.memo(
       }
 
       if (updates.labelPlacement !== undefined) {
-        grid.children.forEach((row) => {
-          setRowLabelPlacement(row.id, updates.labelPlacement!);
-        });
+        handleRowsLabelPlacementChange(grid, updates.labelPlacement);
+        return;
       }
 
-      // ✅ Create after state
-      const afterGrid = {
-        id: grid.id,
-        name: grid.name,
-        gridName: grid.gridName,
-        seatSettings: { ...grid.seatSettings },
-        children: grid.children.map((row) => ({
-          id: row.id,
-          labelPlacement: row.labelPlacement,
-        })),
-      };
-
-      updateShapes([...shapes], false);
+      updateShapes([...shapes], false, undefined, false);
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
-        selectionTransform.updateSelection(selectedShapes as any[]);
+        selectionTransform.updateSelection(selectedShapes);
       }
 
       // ✅ Context-based history saving
@@ -250,14 +231,6 @@ export const AreaModeProperties = React.memo(
             type: "container",
             parentId: areaModeContainer.id,
           },
-          // Include affected rows if label placement changed
-          ...(updates.labelPlacement !== undefined
-            ? grid.children.map((row) => ({
-                id: row.id,
-                type: "container",
-                parentId: gridId,
-              }))
-            : []),
         ],
         operation: "modify",
         containerPositions: {
@@ -265,18 +238,17 @@ export const AreaModeProperties = React.memo(
             x: areaModeContainer.x,
             y: areaModeContainer.y,
           },
-          [gridId]: { x: grid.x, y: grid.y },
         },
       };
 
       const action = useSeatMapStore.getState()._saveToHistory(
         {
-          shapes: [beforeGrid as any],
+          shapes: [beforeGrid],
           selectedShapes: selectedShapes,
           context,
         },
         {
-          shapes: [afterGrid as any],
+          shapes: [grid],
           selectedShapes: selectedShapes,
           context,
         }
@@ -305,21 +277,7 @@ export const AreaModeProperties = React.memo(
       if (!row) return;
 
       // ✅ Store original values for before state
-      const beforeRow = {
-        id: row.id,
-        name: row.name,
-        rowName: row.rowName,
-        seatSpacing: row.seatSpacing,
-        labelPlacement: row.labelPlacement,
-        children:
-          updates.seatSpacing !== undefined
-            ? row.children.map((seat) => ({
-                id: seat.id,
-                x: seat.x,
-                y: seat.y,
-              }))
-            : [],
-      };
+      const beforeRow = cloneCanvasItem(row);
 
       // Apply updates
       if (updates.name !== undefined) {
@@ -349,30 +307,13 @@ export const AreaModeProperties = React.memo(
       }
 
       if (updates.labelPlacement !== undefined) {
-        setRowLabelPlacement(rowId, updates.labelPlacement);
+        setRowLabelPlacement(row, updates.labelPlacement);
       }
 
-      // ✅ Create after state
-      const afterRow = {
-        id: row.id,
-        name: row.name,
-        rowName: row.rowName,
-        seatSpacing: row.seatSpacing,
-        labelPlacement: row.labelPlacement,
-        children:
-          updates.seatSpacing !== undefined
-            ? row.children.map((seat) => ({
-                id: seat.id,
-                x: seat.x,
-                y: seat.y,
-              }))
-            : [],
-      };
-
-      updateShapes([...shapes], false);
+      updateShapes([...shapes], false, undefined, false);
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
-        selectionTransform.updateSelection(selectedShapes as any[]);
+        selectionTransform.updateSelection(selectedShapes);
       }
 
       // ✅ Context-based history saving
@@ -384,14 +325,6 @@ export const AreaModeProperties = React.memo(
             type: "container",
             parentId: gridId,
           },
-          // Include affected seats if spacing changed
-          ...(updates.seatSpacing !== undefined
-            ? row.children.map((seat) => ({
-                id: seat.id,
-                type: "ellipse",
-                parentId: rowId,
-              }))
-            : []),
         ],
         operation: "modify",
         containerPositions: {
@@ -399,19 +332,17 @@ export const AreaModeProperties = React.memo(
             x: areaModeContainer.x,
             y: areaModeContainer.y,
           },
-          [gridId]: { x: grid.x, y: grid.y },
-          [rowId]: { x: row.x, y: row.y },
         },
       };
 
       const action = useSeatMapStore.getState()._saveToHistory(
         {
-          shapes: [beforeRow as any],
+          shapes: [beforeRow],
           selectedShapes: selectedShapes,
           context,
         },
         {
-          shapes: [afterRow as any],
+          shapes: [row],
           selectedShapes: selectedShapes,
           context,
         }
@@ -435,21 +366,7 @@ export const AreaModeProperties = React.memo(
       if (rowShapes.length === 0) return;
 
       // ✅ Store original values for before state
-      const beforeRows = rowShapes.map((row) => ({
-        id: row.id,
-        name: row.name,
-        rowName: row.rowName,
-        seatSpacing: row.seatSpacing,
-        labelPlacement: row.labelPlacement,
-        children:
-          updates.seatSpacing !== undefined
-            ? row.children.map((seat) => ({
-                id: seat.id,
-                x: seat.x,
-                y: seat.y,
-              }))
-            : [],
-      }));
+      const beforeRows = cloneCanvasItems(rowShapes);
 
       // Apply updates
       rowShapes.forEach((row) => {
@@ -477,31 +394,14 @@ export const AreaModeProperties = React.memo(
         }
 
         if (updates.labelPlacement !== undefined) {
-          setRowLabelPlacement(row.id, updates.labelPlacement);
+          setRowLabelPlacement(row, updates.labelPlacement);
         }
       });
 
-      // ✅ Create after state
-      const afterRows = rowShapes.map((row) => ({
-        id: row.id,
-        name: row.name,
-        rowName: row.rowName,
-        seatSpacing: row.seatSpacing,
-        labelPlacement: row.labelPlacement,
-        children:
-          updates.seatSpacing !== undefined
-            ? row.children.map((seat) => ({
-                id: seat.id,
-                x: seat.x,
-                y: seat.y,
-              }))
-            : [],
-      }));
-
-      updateShapes([...shapes], false);
+      updateShapes([...shapes], false, undefined, false);
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
-        selectionTransform.updateSelection(selectedShapes as any[]);
+        selectionTransform.updateSelection(selectedShapes);
       }
 
       // ✅ Context-based history saving
@@ -514,16 +414,6 @@ export const AreaModeProperties = React.memo(
             type: "container" as const,
             parentId: row.gridId,
           })),
-          // Include affected seats if spacing changed
-          ...(updates.seatSpacing !== undefined
-            ? rowShapes.flatMap((row) =>
-                row.children.map((seat) => ({
-                  id: seat.id,
-                  type: "ellipse" as const,
-                  parentId: row.id,
-                }))
-              )
-            : []),
         ],
         operation: "modify",
         containerPositions: {
@@ -531,29 +421,17 @@ export const AreaModeProperties = React.memo(
             x: areaModeContainer.x,
             y: areaModeContainer.y,
           },
-          // Include positions of affected grids and rows
-          ...Object.fromEntries(
-            [...new Set(rowShapes.map((row) => row.gridId))].map((gridId) => {
-              const grid = areaModeContainer!.children.find(
-                (g) => g.id === gridId
-              );
-              return [gridId, { x: grid?.x || 0, y: grid?.y || 0 }];
-            })
-          ),
-          ...Object.fromEntries(
-            rowShapes.map((row) => [row.id, { x: row.x, y: row.y }])
-          ),
         },
       };
 
       const action = useSeatMapStore.getState()._saveToHistory(
         {
-          shapes: beforeRows as any[],
+          shapes: beforeRows,
           selectedShapes: selectedShapes,
           context,
         },
         {
-          shapes: afterRows as any[],
+          shapes: rowShapes,
           selectedShapes: selectedShapes,
           context,
         }
@@ -579,29 +457,11 @@ export const AreaModeProperties = React.memo(
       });
 
       if (!hasChanges) {
-        console.log("No changes detected in seat update, skipping...");
         return;
       }
 
       // ✅ Store original values for before state
-      const beforeSeat = {
-        id: seat.id,
-        name: seat.name,
-        x: seat.x,
-        y: seat.y,
-        rotation: seat.rotation,
-        scaleX: seat.scaleX,
-        scaleY: seat.scaleY,
-        opacity: seat.opacity,
-        visible: seat.visible,
-        color: seat.color,
-        strokeColor: seat.strokeColor,
-        strokeWidth: seat.strokeWidth,
-        radiusX: seat.radiusX,
-        radiusY: seat.radiusY,
-        showLabel: seat.showLabel,
-        labelStyle: { ...seat.labelStyle },
-      };
+      const beforeSeat = cloneCanvasItem(seat);
 
       // Apply updates
       Object.assign(seat, updates);
@@ -651,35 +511,11 @@ export const AreaModeProperties = React.memo(
         seat.graphics.visible = seat.visible;
       }
 
-      // ✅ Create after state
-      const afterSeat = {
-        id: seat.id,
-        name: seat.name,
-        x: seat.x,
-        y: seat.y,
-        rotation: seat.rotation,
-        scaleX: seat.scaleX,
-        scaleY: seat.scaleY,
-        opacity: seat.opacity,
-        visible: seat.visible,
-        color: seat.color,
-        strokeColor: seat.strokeColor,
-        strokeWidth: seat.strokeWidth,
-        radiusX: seat.radiusX,
-        radiusY: seat.radiusY,
-        showLabel: seat.showLabel,
-        labelStyle: { ...seat.labelStyle },
-      };
-
-      updateShapes([...shapes], false);
+      updateShapes([...shapes], false, undefined, false);
       const selectionTransform = getSelectionTransform();
       if (selectionTransform) {
-        selectionTransform.updateSelection(selectedShapes as any[]);
+        selectionTransform.updateSelection(selectedShapes);
       }
-
-      // ✅ Context-based history saving
-      const row = getRowByIdFromAllGrids(seat.rowId);
-      const grid = getGridByRowId(seat.rowId);
 
       const context: ShapeContext = {
         topLevel: [],
@@ -696,19 +532,17 @@ export const AreaModeProperties = React.memo(
             x: areaModeContainer.x,
             y: areaModeContainer.y,
           },
-          ...(grid ? { [grid.id]: { x: grid.x, y: grid.y } } : {}),
-          ...(row ? { [row.id]: { x: row.x, y: row.y } } : {}),
         },
       };
 
       const action = useSeatMapStore.getState()._saveToHistory(
         {
-          shapes: [beforeSeat as any],
+          shapes: [beforeSeat],
           selectedShapes: selectedShapes,
           context,
         },
         {
-          shapes: [afterSeat as any],
+          shapes: [seat],
           selectedShapes: selectedShapes,
           context,
         }

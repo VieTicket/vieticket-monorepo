@@ -106,10 +106,10 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
   const canDelete = event.approvalStatus !== "approved";
 
   return (
-    <div className="border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-all duration-200">
+    <div className="w-full max-w-full min-w-0 border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-all duration-200">
       {/* Banner Image */}
       {event.bannerUrl && (
-        <div className="relative w-full h-32 bg-gray-200">
+        <div className="relative w-full h-28 sm:h-32 md:h-36 bg-gray-200">
           <img
             src={event.bannerUrl}
             alt={event.name}
@@ -121,22 +121,22 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
         </div>
       )}
 
-      <div className="p-3 space-y-3">
+      <div className="p-2 sm:p-3 space-y-2 sm:space-y-3">
         {/* Header with name and status */}
         <div className="flex justify-between items-start gap-2">
-          <h3 className="text-base font-semibold text-gray-800 line-clamp-2 leading-tight">
+          <h3 className="text-sm sm:text-base font-semibold text-gray-800 line-clamp-2 leading-tight flex-1 min-w-0 break-words">
             {event.name}
           </h3>
           <span
-            className={`text-xs px-2 py-1 rounded-full font-medium shrink-0 ${status.className}`}
+            className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full font-medium shrink-0 ${status.className}`}
           >
             {status.label}
           </span>
         </div>
 
         {/* Date Information */}
-        <div className="bg-gray-50 rounded-lg p-2">
-          <span className="text-xs font-medium text-gray-700">
+        <div className="bg-gray-50 rounded-lg p-1.5 sm:p-2">
+          <span className="text-[10px] sm:text-xs font-medium text-gray-700 break-words">
             {isSameDay
               ? formatDate(startDate)
               : `${formatDate(startDate)} - ${formatDate(endDate)}`}
@@ -144,13 +144,13 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
         </div>
 
         {/* Actions */}
-        <div className="flex gap-2">
+        <div className="flex gap-1 sm:gap-2 w-full">
           <Button
             onClick={() =>
               router.push(`/organizer/general/create?id=${event.id}`)
             }
             variant="outline"
-            className="flex-1 text-xs py-2 h-8"
+            className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate"
           >
             Statistics
           </Button>
@@ -159,7 +159,7 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
               onClick={() =>
                 router.push(`/organizer/event/create?id=${event.id}`)
               }
-              className="flex-1 text-xs py-2 h-8"
+              className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate"
             >
               Edit
             </Button>
@@ -170,13 +170,13 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
                 <Button
                   variant="destructive"
                   size="sm"
-                  className="text-xs py-2 h-8 px-2"
+                  className="text-xs py-1.5 sm:py-2 h-7 sm:h-8 px-1.5 sm:px-2 min-h-[28px] sm:min-h-[32px] min-w-[28px] sm:min-w-[32px]"
                   disabled={isDeleting}
                 >
                   {isDeleting ? (
-                    <Loader2 className="h-3 w-3 animate-spin" />
+                    <Loader2 className="h-2.5 w-2.5 sm:h-3 sm:w-3 animate-spin" />
                   ) : (
-                    <Trash2 className="h-3 w-3" />
+                    <Trash2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
                   )}
                 </Button>
               </AlertDialogTrigger>

@@ -72,7 +72,7 @@ export const DebouncedInput = React.memo(
         (currentShape && previouslyClickedShape.id === currentShape.id)
       ) {
         // ✅ Only update if the value has actually changed from user input
-        console.log(`Updating value from ${value} to ${numericValue}`);
+
         onUpdate(numericValue);
       } else {
         setLocalValue(formatNumber(value, isFloat));

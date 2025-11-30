@@ -1,5 +1,11 @@
 import * as PIXI from "pixi.js";
-import { CanvasItem, ContainerGroup, PolygonShape } from "../types";
+import {
+  CanvasItem,
+  ContainerGroup,
+  PolygonShape,
+  RowShape,
+  SeatShape,
+} from "../types";
 import {
   currentTool,
   selectedContainer,
@@ -36,6 +42,7 @@ import { cloneCanvasItems, useSeatMapStore } from "../store/seat-map-store";
 import { getSelectionTransform } from "./transform-events";
 import { onDrawStart } from "./draw-events";
 import { onPolygonStart } from "./polygon-events";
+import { getGuideLines } from "../guide-lines";
 
 export const handleShapeSelection = (
   event: PIXI.FederatedPointerEvent,
@@ -117,7 +124,6 @@ export const handleDoubleClick = (
       }
 
       setPreviouslyClickedShape(shape);
-      console.log("hitChild", hitChild);
     } else {
       useSeatMapStore.getState().setSelectedShapes([], false);
 
@@ -200,14 +206,55 @@ export const startShapeDrag = (
       return [];
     })
   );
+
+  const guideLines = getGuideLines();
+  if (guideLines && stage) {
+    const bounds = stage.getBounds();
+    guideLines.createGrid(bounds.width * 2, bounds.height * 2);
+  }
 };
 
 export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
   if (!isShapeDragging || !shapeDragStart || !stage) return;
 
   const currentPoint = event.getLocalPosition(stage);
-  const deltaX = currentPoint.x - shapeDragStart.x;
-  const deltaY = currentPoint.y - shapeDragStart.y;
+  let deltaX = currentPoint.x - shapeDragStart.x;
+  let deltaY = currentPoint.y - shapeDragStart.y;
+
+  const guideLines = getGuideLines();
+  if (guideLines && draggedShapes.length > 0) {
+    const firstShape = draggedShapes[0];
+    const originalPos = originalPositions[0];
+    const newX = originalPos.x + deltaX;
+    const newY = originalPos.y + deltaY;
+
+    // Get snap points from other shapes (excluding dragged ones)
+    const snapPoints = getSnapPointsExcludingShapes(draggedShapes);
+    const snappedPos = guideLines.snapToPoints(newX, newY, snapPoints);
+    const gridSnappedPos = guideLines.snapToGrid(newX, newY);
+
+    // Use the closest snap
+    const objectDistance = Math.sqrt(
+      Math.pow(snappedPos.x - newX, 2) + Math.pow(snappedPos.y - newY, 2)
+    );
+    const gridDistance = Math.sqrt(
+      Math.pow(gridSnappedPos.x - newX, 2) +
+        Math.pow(gridSnappedPos.y - newY, 2)
+    );
+
+    let finalPos = { x: newX, y: newY };
+    if (objectDistance < gridDistance && objectDistance < 15) {
+      finalPos = snappedPos;
+    } else if (gridDistance < 15) {
+      finalPos = gridSnappedPos;
+    }
+
+    deltaX = finalPos.x - originalPos.x;
+    deltaY = finalPos.y - originalPos.y;
+
+    // Show snap guides
+    guideLines.showSnapGuides(finalPos.x, finalPos.y, snapPoints);
+  }
 
   draggedShapes.forEach((shape, index) => {
     const original = originalPositions[index];
@@ -330,6 +377,10 @@ function worldDeltaToContainerLocal(
 
 export const endShapeDrag = () => {
   if (!isShapeDragging) return;
+  const guideLines = getGuideLines();
+  if (guideLines) {
+    guideLines.clearAll();
+  }
   const afterDragShapes = draggedShapes;
   const beforeDragShapes = cloneCanvasItems(draggedShapes);
 
@@ -377,6 +428,152 @@ export const endShapeDrag = () => {
       .getState()
       .saveDirectHistory(beforeDragShapes, afterDragShapes);
   }
+};
+
+const getSnapPointsExcludingShapes = (
+  excludeShapes: CanvasItem[]
+): Array<{ x: number; y: number }> => {
+  const snapPoints: Array<{ x: number; y: number }> = [];
+  const excludeIds = new Set(excludeShapes.map((s) => s.id));
+
+  const getWorldCoordinates = (shape: CanvasItem): { x: number; y: number } => {
+    let worldX = shape.x;
+    let worldY = shape.y;
+
+    // For seats, add row and grid positions
+    if (shape.type === "ellipse" && "rowId" in shape && "gridId" in shape) {
+      const seat = shape as SeatShape;
+
+      // Find the row and grid
+      if (areaModeContainer) {
+        for (const grid of areaModeContainer.children) {
+          if (grid.id === seat.gridId) {
+            worldX += grid.x;
+            worldY += grid.y;
+
+            for (const row of grid.children) {
+              if (row.id === seat.rowId) {
+                worldX += row.x;
+                worldY += row.y;
+                break;
+              }
+            }
+            break;
+          }
+        }
+      }
+    }
+    // For rows, add grid position
+    else if (shape.type === "container" && "rowName" in shape) {
+      const row = shape as RowShape;
+
+      if (areaModeContainer) {
+        for (const grid of areaModeContainer.children) {
+          if (grid.id === row.gridId) {
+            worldX += grid.x;
+            worldY += grid.y;
+            break;
+          }
+        }
+      }
+    }
+
+    return { x: worldX, y: worldY };
+  };
+
+  shapes.forEach((shape: CanvasItem) => {
+    if (excludeIds.has(shape.id) || shape.type === "container") return;
+    const worldPos = getWorldCoordinates(shape);
+    snapPoints.push(worldPos);
+
+    if (shape.type === "rectangle") {
+      const halfWidth = shape.width / 2;
+      const halfHeight = shape.height / 2;
+
+      snapPoints.push(
+        { x: worldPos.x - halfWidth, y: worldPos.y - halfHeight },
+        { x: worldPos.x + halfWidth, y: worldPos.y - halfHeight },
+        { x: worldPos.x - halfWidth, y: worldPos.y + halfHeight },
+        { x: worldPos.x + halfWidth, y: worldPos.y + halfHeight },
+        { x: worldPos.x, y: worldPos.y - halfHeight },
+        { x: worldPos.x, y: worldPos.y + halfHeight },
+        { x: worldPos.x - halfWidth, y: worldPos.y },
+        { x: worldPos.x + halfWidth, y: worldPos.y }
+      );
+    } else if (shape.type === "ellipse") {
+      snapPoints.push(
+        { x: worldPos.x - shape.radiusX, y: worldPos.y },
+        { x: worldPos.x + shape.radiusX, y: worldPos.y },
+        { x: worldPos.x, y: worldPos.y - shape.radiusY },
+        { x: worldPos.x, y: worldPos.y + shape.radiusY }
+      );
+    }
+  });
+
+  if (areaModeContainer) {
+    areaModeContainer.children.forEach((grid) => {
+      if (excludeIds.has(grid.id)) return;
+
+      // Add grid center
+      snapPoints.push({ x: grid.x, y: grid.y });
+
+      // Calculate grid bounds for corner snap points
+      let minX = Infinity,
+        maxX = -Infinity,
+        minY = Infinity,
+        maxY = -Infinity;
+      let hasContent = false;
+
+      grid.children.forEach((row) => {
+        if (excludeIds.has(row.id)) return;
+
+        // Add row snap points
+        const rowWorldX = grid.x + row.x;
+        const rowWorldY = grid.y + row.y;
+        snapPoints.push({ x: rowWorldX, y: rowWorldY });
+
+        row.children.forEach((seat) => {
+          if (excludeIds.has(seat.id)) return;
+
+          // Add seat snap points
+          const seatWorldX = grid.x + row.x + seat.x;
+          const seatWorldY = grid.y + row.y + seat.y;
+          snapPoints.push({ x: seatWorldX, y: seatWorldY });
+
+          // Add seat edge points
+          snapPoints.push(
+            { x: seatWorldX - seat.radiusX, y: seatWorldY },
+            { x: seatWorldX + seat.radiusX, y: seatWorldY },
+            { x: seatWorldX, y: seatWorldY - seat.radiusY },
+            { x: seatWorldX, y: seatWorldY + seat.radiusY }
+          );
+
+          // Track grid bounds
+          minX = Math.min(minX, seatWorldX - seat.radiusX);
+          maxX = Math.max(maxX, seatWorldX + seat.radiusX);
+          minY = Math.min(minY, seatWorldY - seat.radiusY);
+          maxY = Math.max(maxY, seatWorldY + seat.radiusY);
+          hasContent = true;
+        });
+      });
+
+      // Add grid corner snap points based on content bounds
+      if (hasContent) {
+        snapPoints.push(
+          { x: minX, y: minY }, // Top-left
+          { x: maxX, y: minY }, // Top-right
+          { x: minX, y: maxY }, // Bottom-left
+          { x: maxX, y: maxY }, // Bottom-right
+          { x: (minX + maxX) / 2, y: minY }, // Top-center
+          { x: (minX + maxX) / 2, y: maxY }, // Bottom-center
+          { x: minX, y: (minY + maxY) / 2 }, // Left-center
+          { x: maxX, y: (minY + maxY) / 2 } // Right-center
+        );
+      }
+    });
+  }
+
+  return snapPoints;
 };
 
 export const isCurrentlyShapeDragging = (): boolean => {

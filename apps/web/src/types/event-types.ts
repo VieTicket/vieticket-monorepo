@@ -1,3 +1,5 @@
+import { GridShape } from "@/components/seat-map/types";
+
 export interface EventFormData {
   name: string;
   type: string;
@@ -20,28 +22,15 @@ export interface Area {
   ticketPrice: string;
 }
 
-export interface SeatMapGridData {
-  id: string;
-  name: string;
-  rows: SeatMapRowData[];
-  seatSettings: {
-    seatSpacing: number;
-    rowSpacing: number;
-    seatRadius: number;
-    seatColor: number;
-    seatStrokeColor: number;
-    seatStrokeWidth: number;
-    price: number;
-  };
-  createdAt: string;
-}
-
-export interface SeatMapRowData {
-  id: string;
-  name: string;
-  seats: string[];
-  bend?: number;
-  seatSpacing?: number;
+// ✅ Import types from seat-map component
+export interface SeatGridSettings {
+  seatSpacing: number;
+  rowSpacing: number;
+  seatRadius: number;
+  seatColor: number;
+  seatStrokeColor: number;
+  seatStrokeWidth: number;
+  price: number;
 }
 
 export interface SeatMapPreviewData {
@@ -61,7 +50,6 @@ export interface SeatMapPreviewData {
   totalRevenue: number;
 }
 
-// ✅ Fixed SeatMapData interface
 export interface SeatMapData {
   id: string;
   name: string;
@@ -70,16 +58,17 @@ export interface SeatMapData {
   publicity: "public" | "private";
   createdAt: string;
   updatedAt: string;
-  // ✅ Grid data for area mode container
-  grids?: SeatMapGridData[];
-  defaultSeatSettings?: {
-    seatSpacing: number;
-    rowSpacing: number;
-    seatRadius: number;
-    seatColor: number;
-    seatStrokeColor: number;
-    seatStrokeWidth: number;
-    price: number;
+  draftedFrom?: string; // ObjectId as string
+  originalCreator?: string;
+  shapes?: any[]; // Raw CanvasItem[] from MongoDB
+  grids?: GridShape[]; // Processed grid data
+  defaultSeatSettings?: SeatGridSettings;
+  hasGrids?: boolean;
+  statistics?: {
+    gridCount: number;
+    totalSeats: number;
+    totalRevenue: number;
+    hasValidStructure: boolean;
   };
 }
 

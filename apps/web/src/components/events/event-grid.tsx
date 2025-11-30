@@ -5,7 +5,7 @@ import { Eye, Star } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { formatCurrencyVND, formatTimeRange } from "@/lib/utils";
-import { use, useState, useTransition, useCallback } from "react";
+import { use, useState, useTransition, useCallback, useEffect, useRef } from "react";
 import {
   EventCursor,
   EventSummary,
@@ -14,10 +14,13 @@ import {
   SortableEventColumnKey,
 } from "@/lib/queries/events";
 import { Button } from "../ui/button";
-import { useEffect } from 'react';
 import { useUserTracking } from '@/hooks/use-user-tracking';
 import { useTranslations } from "next-intl";
 import { SmartEventGrid } from "./smart-event-grid";
+import { MouseGlowEffect } from "../effects/mouse-glow";
+
+// Mouse Glow Effect Component - Use shared component
+// Removed local definition in favor of shared component
 
 
 interface EventGridProps {
@@ -38,52 +41,53 @@ export function EventCard({
   const eventHref = `/events/${slug}`;
 
   return (
-    <Link href={eventHref} className="block h-full w-full">
-      <Card className="flex flex-col h-full w-full overflow-hidden rounded-xl shadow-md bg-white !pt-0 hover:shadow-lg transition-shadow cursor-pointer">
+    <Link href={eventHref} className="block h-full w-full group animate-fade-in-up hover-scale-105">
+      <Card className="professional-card flex flex-col h-full w-full overflow-hidden rounded-xl shadow-xl !pt-0 hover:shadow-2xl hover:border-violet-400/30 transition-all duration-300 transform hover:translateY-[-4px] hover:scale-[1.02] cursor-pointer professional-card-hover max-h-64">
         {/* Image */}
-        <div className="relative w-full h-[180px] flex-shrink-0 bg-gray-100">
+        <div className="relative w-full h-[140px] flex-shrink-0 bg-slate-800 overflow-hidden">
           {bannerUrl ? (
-            <Image src={bannerUrl} alt={name} fill className="object-cover" />
+            <>
+              <Image src={bannerUrl} alt={name} fill className="object-cover transition-transform duration-300 group-hover:scale-110" />
+              <div className="absolute inset-0 bg-slate-900/20 group-hover:bg-slate-900/10 transition-all duration-300"></div>
+            </>
           ) : (
-            <div className="flex items-center justify-center w-full h-full text-gray-400 text-4xl bg-gray-200">
+            <div className="flex items-center justify-center w-full h-full text-slate-400 text-xl bg-slate-800 border border-slate-700/30">
               <span>No Image</span>
             </div>
           )}
           {/* Favorite */}
-          <div className="absolute top-3 right-3 bg-white p-2 rounded-full shadow-md">
-            <Star className="w-5 h-5 text-gray-600" strokeWidth={1.5} />
+          <div className="absolute top-2 right-2 bg-slate-900/80 backdrop-blur-sm p-1.5 rounded-full shadow-lg border border-violet-400/30 hover:bg-slate-800/90 hover:border-violet-400/50 transition-all duration-300 animate-float">
+            <Star className="w-4 h-4 text-violet-400 hover:text-violet-300" strokeWidth={1.5} />
           </div>
           {/* Organizer - Only show if organizer exists */}
           {organizer?.name && (
-            <div className="absolute bottom-3 left-3 bg-yellow-400 text-black font-semibold text-sm px-3 py-1 rounded">
+            <div className="absolute bottom-2 left-2 bg-gradient-to-r from-violet-500/90 to-indigo-500/90 backdrop-blur-sm text-white font-medium text-xs px-2 py-1 rounded-full border border-violet-400/40 shadow-lg animate-shimmer">
               {organizer.name}
             </div>
           )}
         </div>
 
-        <CardContent className="flex flex-col flex-grow p-4 space-y-3">
-          {/* Title */}
-          <h3 className="text-lg font-semibold text-gray-800 leading-tight line-clamp-2">
+        <CardContent className="flex flex-col flex-grow p-3 pb-2">
+          {/* Hidden location data for SEO/accessibility - not displayed */}
+          <span className="sr-only">{location}</span>
+          
+          {/* Title - Full display */}
+          <h3 className="text-sm font-semibold text-white leading-tight group-hover:text-violet-300 transition-colors duration-300 glow-text mb-1">
             {name}
           </h3>
 
-          {/* Location */}
-          <p className="text-sm text-gray-600 font-medium">
-            {location || "Location TBA"}
-          </p>
-
           {/* Date + Time */}
-          <p className="text-sm text-gray-600">
+          <p className="text-xs text-slate-400 group-hover:text-slate-300 transition-colors duration-300 mb-auto">
             {formatTimeRange(new Date(startTime), new Date(endTime))}
           </p>
 
-          {/* Price + Views */}
-          <div className="flex items-center justify-between pt-2 mt-auto">
-            <span className="text-gray-800 font-semibold">
+          {/* Price + Views - Absolutely fixed at bottom */}
+          <div className="flex items-center justify-between mt-auto">
+            <span className="text-lg font-bold text-yellow-400">
               {formatCurrencyVND(typicalTicketPrice)}
             </span>
-            <div className="flex items-center gap-1 text-sm text-gray-600">
-              <Eye className="w-4 h-4" />
+            <div className="flex items-center gap-1 text-xs text-slate-400 group-hover:text-violet-400 transition-colors duration-300">
+              <Eye className="w-3 h-3" />
               <span>{views || 0}</span>
             </div>
           </div>
@@ -213,25 +217,30 @@ export function EventGridSection({
   }, [userBehavior, aiPool.length, sortColumnKey]);
 
   return (
-    <section className="px-4 py-12">
-      <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-8">
-        {t("titlecategories")}
-      </h2>
+    <>
+      <MouseGlowEffect />
+      <section className="px-4 py-12 professional-card rounded-lg mx-4 mb-6 shadow-xl border border-slate-700/30 hover:border-violet-400/30 transition-all duration-500 animate-fade-in">
+        <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text-intense animate-glow">
+          <div className="bg-gradient-to-r from-violet-400 via-indigo-400 to-violet-300 bg-clip-text text-transparent animate-gradient-text">
+            {t("titlecategories")}
+          </div>
+        </h2>
 
   <SmartEventGrid events={events} aiPool={aiPool} renderLimit={events.length} showAIRecommendations={true} />
 
       {hasMore && (
-        <div className="mt-8 flex justify-center">
+        <div className="mt-8 flex justify-center animate-fade-in-up">
           <Button
             onClick={handleClickSeeMore}
             disabled={isPending}
-            variant="outline"
+            className="professional-button text-white font-medium transition-all duration-300 hover:shadow-lg transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none border-violet-400/30 hover:border-violet-400/50 bg-gradient-to-r from-violet-400/10 to-indigo-400/10 hover:from-violet-400/20 hover:to-indigo-400/20"
             size="lg"
           >
-            {t("seeMore")}
+            {isPending ? "Loading..." : t("seeMore")}
           </Button>
         </div>
       )}
     </section>
+    </>
   );
 }

@@ -28,11 +28,13 @@ import { PropertiesSidebar } from "@/components/seat-map/components/properties-s
 import { updateStageHitArea } from "@/components/seat-map/utils/stageTransform";
 import ClientConnection from "@/components/seat-map/components/client-connection";
 import { useSeatMapStore } from "@/components/seat-map/store/seat-map-store";
+import {
+  createGuideLines,
+  destroyGuideLines,
+} from "@/components/seat-map/guide-lines";
 
 const SeatMapV2Page = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
-
-  console.log("SeatMapV2Page rendered");
 
   // Handle window resize
   const handleResize = useCallback(() => {
@@ -137,9 +139,19 @@ const SeatMapV2Page = () => {
 
       createEventManager();
 
+      createGuideLines({
+        showGrid: true,
+        showSnapGuides: true,
+        gridSpacing: 25,
+        snapDistance: 15,
+        gridColor: 0xdddddd,
+        snapGuideColor: 0xff4081,
+        gridAlpha: 0.4,
+        snapGuideAlpha: 0.9,
+      });
+
       initializeAreaModeContainer();
 
-      // Additional wheel event prevention directly on canvas
       const canvas = app.canvas;
       const preventZoom = (e: WheelEvent) => {
         e.preventDefault();
@@ -149,7 +161,6 @@ const SeatMapV2Page = () => {
 
       canvas.addEventListener("wheel", preventZoom, { passive: false });
 
-      // Store the cleanup function
       (canvas as any).__preventZoomCleanup = () => {
         canvas.removeEventListener("wheel", preventZoom);
       };
@@ -172,6 +183,7 @@ const SeatMapV2Page = () => {
 
         destroyEventManager();
         destroySelectionTransform();
+        destroyGuideLines();
         pixiApp.destroy(true, { children: true, texture: true });
         resetVariables();
       }
@@ -182,7 +194,7 @@ const SeatMapV2Page = () => {
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* ✅ Only show ClientConnection for existing seat maps */}
-      {/* <ClientConnection /> */}
+      <ClientConnection />
       <MainToolbar />
 
       <div className="flex-1 flex overflow-hidden">

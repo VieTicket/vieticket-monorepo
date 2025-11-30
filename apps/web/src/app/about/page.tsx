@@ -1,31 +1,49 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import Image from "next/image";
+
+// UI Components
 import { Card, CardContent } from "@/components/ui/card";
-import { 
-  Users, 
-  Target, 
-  Shield, 
-  Zap, 
-  Globe, 
+
+// Icons
+import {
+  Users,
+  Target,
+  Shield,
+  Zap,
+  Globe,
   Heart,
-  CheckCircle,
-  Star,
   TrendingUp,
   Award,
   Clock,
-  Smartphone
+  Smartphone,
 } from "lucide-react";
-import Image from "next/image";
 
 export default function AboutPage() {
   const t = useTranslations("about");
 
   const stats = [
-    { icon: Users, value: t("stats.users.value"), label: t("stats.users.label") },
-    { icon: TrendingUp, value: t("stats.events.value"), label: t("stats.events.label") },
-    { icon: Globe, value: t("stats.provinces.value"), label: t("stats.provinces.label") },
-    { icon: Award, value: t("stats.reliability.value"), label: t("stats.reliability.label") }
+    {
+      icon: Users,
+      value: t("stats.users.value"),
+      label: t("stats.users.label"),
+    },
+    {
+      icon: TrendingUp,
+      value: t("stats.events.value"),
+      label: t("stats.events.label"),
+    },
+    {
+      icon: Globe,
+      value: t("stats.provinces.value"),
+      label: t("stats.provinces.label"),
+    },
+    {
+      icon: Award,
+      value: t("stats.reliability.value"),
+      label: t("stats.reliability.label"),
+    },
   ];
 
   const features = [
@@ -33,38 +51,38 @@ export default function AboutPage() {
       icon: Zap,
       title: t("features.list.fastBooking.title"),
       description: t("features.list.fastBooking.description"),
-      color: "text-yellow-500"
+      color: "text-yellow-500",
     },
     {
       icon: Shield,
-      title: t("features.list.security.title"), 
+      title: t("features.list.security.title"),
       description: t("features.list.security.description"),
-      color: "text-green-500"
+      color: "text-green-500",
     },
     {
       icon: Smartphone,
       title: t("features.list.eTicket.title"),
       description: t("features.list.eTicket.description"),
-      color: "text-[#2A273F]"
+      color: "text-[#2A273F]",
     },
     {
       icon: Heart,
       title: t("features.list.aiPersonal.title"),
       description: t("features.list.aiPersonal.description"),
-      color: "text-yellow-600"
+      color: "text-yellow-600",
     },
     {
       icon: Clock,
       title: t("features.list.support.title"),
       description: t("features.list.support.description"),
-      color: "text-[#3A3555]"
+      color: "text-[#3A3555]",
     },
     {
       icon: Target,
       title: t("features.list.diverse.title"),
       description: t("features.list.diverse.description"),
-      color: "text-orange-500"
-    }
+      color: "text-orange-500",
+    },
   ];
 
   const teamMembers = [
@@ -73,54 +91,54 @@ export default function AboutPage() {
       name: t("team.members.vinh.name"),
       role: t("team.members.vinh.role"),
       bio: t("team.members.vinh.bio"),
-      avatar: "/images/team/dang-thanh-vinh.jpg"
+      avatar: "/images/team/dang-thanh-vinh.jpg",
     },
     {
       id: "khanh",
       name: t("team.members.khanh.name"),
       role: t("team.members.khanh.role"),
       bio: t("team.members.khanh.bio"),
-      avatar: "/images/team/tran-dinh-khanh.jpg"
+      avatar: "/images/team/tran-dinh-khanh.jpg",
     },
     {
       id: "hoang",
       name: t("team.members.hoang.name"),
       role: t("team.members.hoang.role"),
       bio: t("team.members.hoang.bio"),
-      avatar: "/images/team/nguyen-pham-viet-hoang.jpg"
+      avatar: "/images/team/nguyen-pham-viet-hoang.jpg",
     },
     {
       id: "ha",
       name: t("team.members.ha.name"),
       role: t("team.members.ha.role"),
       bio: t("team.members.ha.bio"),
-      avatar: "/images/team/le-thy-an-ha.jpg"
+      avatar: "/images/team/le-thy-an-ha.jpg",
     },
     {
       id: "hung",
       name: t("team.members.hung.name"),
       role: t("team.members.hung.role"),
       bio: t("team.members.hung.bio"),
-      avatar: "/images/team/duong-viet-hung.jpg"
-    }
+      avatar: "/images/team/duong-viet-hung.jpg",
+    },
   ];
 
   const timeline = [
     {
       year: t("timeline.events.2024.year"),
       title: t("timeline.events.2024.title"),
-      description: t("timeline.events.2024.description")
+      description: t("timeline.events.2024.description"),
     },
     {
       year: t("timeline.events.2025.year"),
       title: t("timeline.events.2025.title"),
-      description: t("timeline.events.2025.description")
+      description: t("timeline.events.2025.description"),
     },
     {
       year: t("timeline.events.2026.year"),
       title: t("timeline.events.2026.title"),
-      description: t("timeline.events.2026.description")
-    }
+      description: t("timeline.events.2026.description"),
+    },
   ];
 
   // Helper to show avatar or initials fallback

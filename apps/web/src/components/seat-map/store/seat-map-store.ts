@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { CanvasItem, ImageShape } from "../types";
+import { CanvasItem, ImageShape, SeatShape } from "../types";
 import { isEqual } from "lodash";
 import { getSelectionTransform } from "../events/transform-events";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
@@ -61,6 +61,54 @@ interface CollaborationState {
   userId: string;
   isConnected: boolean;
   roomUsers: UserInfo[];
+}
+
+export interface CustomerSeatInfo {
+  seatId: string;
+  areaName: string;
+  rowName: string;
+  seatNumber: string;
+  price: number;
+  status: "available" | "selected" | "held" | "sold";
+  position?: { x: number; y: number };
+  shape?: SeatShape;
+}
+
+export interface CustomerOrderSummary {
+  selectedSeats: CustomerSeatInfo[];
+  totalSeats: number;
+  subtotal: number;
+  serviceFee: number;
+  total: number;
+  estimatedHoldTime?: number;
+}
+
+interface CustomerState {
+  customerSelectedSeatIds: string[];
+  customerSelectedSeatsInfo: CustomerSeatInfo[];
+  customerOrderSummary: CustomerOrderSummary;
+
+  customerIsSelecting: boolean;
+  customerMaxSeatsAllowed: number;
+  customerMinSeatsRequired: number;
+  customerHoveredSeatId: string | null;
+
+  customerSeatStatusMap: Record<
+    string,
+    "available" | "selected" | "held" | "sold"
+  >;
+  customerLastSelectionTime: number | null;
+
+  customerEventData: {
+    eventId?: string;
+    eventName?: string;
+    eventLocation?: string;
+    seatingStructure?: any[];
+    seatStatusData?: {
+      paidSeatIds: string[];
+      activeHoldSeatIds: string[];
+    };
+  };
 }
 
 let applyDeltaRestoreRef:
@@ -138,6 +186,8 @@ interface SeatMapStore {
 
   collaboration: CollaborationState;
 
+  customer: CustomerState;
+
   setSeatMap: (seatMap: SeatMapInfo | null) => void;
   setLoading: (loading: boolean) => void;
 
@@ -196,6 +246,39 @@ interface SeatMapStore {
     oldShapes: CanvasItem[],
     newShapes: CanvasItem[]
   ) => { before: CanvasItem[]; after: CanvasItem[]; affectedIds: string[] };
+
+  customerInitializeEventData: (eventData: {
+    eventId: string;
+    eventName: string;
+    eventLocation: string;
+    seatingStructure: any[];
+    seatStatusData: {
+      paidSeatIds: string[];
+      activeHoldSeatIds: string[];
+    };
+  }) => void;
+  customerToggleSeatSelection: (seatId: string) => boolean;
+  customerSelectSeat: (seatId: string) => boolean;
+  customerDeselectSeat: (seatId: string) => boolean;
+  customerClearAllSelections: () => void;
+  customerSetHoveredSeat: (seatId: string | null) => void;
+  customerGetSeatStatus: (
+    seatId: string
+  ) => "available" | "selected" | "held" | "sold";
+  customerUpdateSeatStatusMap: (
+    statusMap: Record<string, "available" | "selected" | "held" | "sold">
+  ) => void;
+  customerSetSelectionLimits: (min: number, max: number) => void;
+  customerCanSelectMoreSeats: () => boolean;
+  customerGetOrderSummary: () => CustomerOrderSummary;
+  customerFindSeatInfoById: (seatId: string) => CustomerSeatInfo | null;
+  customerGetSelectedSeatsGroupedByArea: () => Record<
+    string,
+    CustomerSeatInfo[]
+  >;
+  customerCalculateTotalPrice: () => number;
+  customerValidateSelection: () => { isValid: boolean; errors: string[] };
+  customerResetState: () => void;
 }
 
 export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
@@ -208,9 +291,27 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   maxHistorySize: 50,
   collaboration: {
     userId: "",
-    userInfo: null,
     isConnected: false,
     roomUsers: [],
+  },
+
+  customer: {
+    customerSelectedSeatIds: [],
+    customerSelectedSeatsInfo: [],
+    customerOrderSummary: {
+      selectedSeats: [],
+      totalSeats: 0,
+      subtotal: 0,
+      serviceFee: 0,
+      total: 0,
+    },
+    customerIsSelecting: false,
+    customerMaxSeatsAllowed: 10,
+    customerMinSeatsRequired: 1,
+    customerHoveredSeatId: null,
+    customerSeatStatusMap: {},
+    customerLastSelectionTime: null,
+    customerEventData: {},
   },
 
   setSeatMap: (seatMap: SeatMapInfo | null) => {
@@ -595,7 +696,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
         }
       }
     } catch (error) {
-      console.error("❌ Failed to apply remote change:", error);
+      console.error("Failed to apply remote change:", error);
     }
   },
 
@@ -624,8 +725,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     updateStore: boolean = false
   ) => {
     const action: UndoRedoAction = get()._saveToHistory(
-      { shapes: beforeShapes },
-      { shapes: afterShapes }
+      { selectedShapes: afterShapes, shapes: beforeShapes },
+      { selectedShapes: afterShapes, shapes: afterShapes }
     );
 
     SeatMapCollaboration.broadcastShapeChange(action);
@@ -738,5 +839,334 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       after: cloneCanvasItems(after),
       affectedIds: affectedIds,
     };
+  },
+
+  customerInitializeEventData: (eventData) => {
+    set((state) => ({
+      customer: {
+        ...state.customer,
+        customerEventData: eventData,
+        customerSeatStatusMap: {
+          ...eventData.seatStatusData.paidSeatIds.reduce(
+            (acc, id) => ({ ...acc, [id]: "sold" as const }),
+            {}
+          ),
+          ...eventData.seatStatusData.activeHoldSeatIds.reduce(
+            (acc, id) => ({ ...acc, [id]: "held" as const }),
+            {}
+          ),
+        },
+      },
+    }));
+  },
+
+  customerToggleSeatSelection: (seatId: string) => {
+    const { customer } = get();
+    const isSelected = customer.customerSelectedSeatIds.includes(seatId);
+
+    if (isSelected) {
+      get().customerDeselectSeat(seatId);
+      return false;
+    } else {
+      const canSelect = get().customerCanSelectMoreSeats();
+      if (canSelect) {
+        get().customerSelectSeat(seatId);
+        return true;
+      }
+      return false;
+    }
+  },
+
+  customerSelectSeat: (seatId: string) => {
+    const { customer } = get();
+
+    if (customer.customerSelectedSeatIds.includes(seatId)) {
+      return false;
+    }
+
+    const status = get().customerGetSeatStatus(seatId);
+    if (status !== "available") {
+      return false;
+    }
+
+    if (!get().customerCanSelectMoreSeats()) {
+      return false;
+    }
+
+    const seatInfo = get().customerFindSeatInfoById(seatId);
+    if (!seatInfo) {
+      return false;
+    }
+
+    set((state) => {
+      const newSelectedIds = [
+        ...state.customer.customerSelectedSeatIds,
+        seatId,
+      ];
+      const newSeatInfo = { ...seatInfo, status: "selected" as const };
+      const newSelectedSeatsInfo = [
+        ...state.customer.customerSelectedSeatsInfo,
+        newSeatInfo,
+      ];
+
+      return {
+        customer: {
+          ...state.customer,
+          customerSelectedSeatIds: newSelectedIds,
+          customerSelectedSeatsInfo: newSelectedSeatsInfo,
+          customerSeatStatusMap: {
+            ...state.customer.customerSeatStatusMap,
+            [seatId]: "selected",
+          },
+          customerLastSelectionTime: Date.now(),
+          customerOrderSummary: get().customerGetOrderSummary(),
+        },
+      };
+    });
+
+    return true;
+  },
+
+  customerDeselectSeat: (seatId: string) => {
+    const { customer } = get();
+
+    if (!customer.customerSelectedSeatIds.includes(seatId)) {
+      return false;
+    }
+
+    set((state) => {
+      const newSelectedIds = state.customer.customerSelectedSeatIds.filter(
+        (id) => id !== seatId
+      );
+      const newSelectedSeatsInfo =
+        state.customer.customerSelectedSeatsInfo.filter(
+          (seat) => seat.seatId !== seatId
+        );
+
+      return {
+        customer: {
+          ...state.customer,
+          customerSelectedSeatIds: newSelectedIds,
+          customerSelectedSeatsInfo: newSelectedSeatsInfo,
+          customerSeatStatusMap: {
+            ...state.customer.customerSeatStatusMap,
+            [seatId]: "available",
+          },
+          customerLastSelectionTime: Date.now(),
+          customerOrderSummary: get().customerGetOrderSummary(),
+        },
+      };
+    });
+
+    return true;
+  },
+
+  customerClearAllSelections: () => {
+    const { customer } = get();
+    const clearedStatusMap = { ...customer.customerSeatStatusMap };
+
+    customer.customerSelectedSeatIds.forEach((seatId) => {
+      if (clearedStatusMap[seatId] === "selected") {
+        clearedStatusMap[seatId] = "available";
+      }
+    });
+
+    set((state) => ({
+      customer: {
+        ...state.customer,
+        customerSelectedSeatIds: [],
+        customerSelectedSeatsInfo: [],
+        customerSeatStatusMap: clearedStatusMap,
+        customerLastSelectionTime: Date.now(),
+        customerOrderSummary: {
+          selectedSeats: [],
+          totalSeats: 0,
+          subtotal: 0,
+          serviceFee: 0,
+          total: 0,
+        },
+      },
+    }));
+  },
+
+  customerSetHoveredSeat: (seatId: string | null) => {
+    set((state) => ({
+      customer: {
+        ...state.customer,
+        customerHoveredSeatId: seatId,
+      },
+    }));
+  },
+
+  customerGetSeatStatus: (seatId: string) => {
+    const { customer } = get();
+
+    if (customer.customerSelectedSeatIds.includes(seatId)) {
+      return "selected" as const;
+    }
+
+    return customer.customerSeatStatusMap[seatId] || "available";
+  },
+
+  customerUpdateSeatStatusMap: (statusMap) => {
+    set((state) => ({
+      customer: {
+        ...state.customer,
+        customerSeatStatusMap: {
+          ...state.customer.customerSeatStatusMap,
+          ...statusMap,
+        },
+      },
+    }));
+  },
+
+  customerSetSelectionLimits: (min: number, max: number) => {
+    set((state) => ({
+      customer: {
+        ...state.customer,
+        customerMinSeatsRequired: min,
+        customerMaxSeatsAllowed: max,
+      },
+    }));
+  },
+
+  customerCanSelectMoreSeats: () => {
+    const { customer } = get();
+    return (
+      customer.customerSelectedSeatIds.length < customer.customerMaxSeatsAllowed
+    );
+  },
+
+  customerGetOrderSummary: () => {
+    const { customer } = get();
+    const selectedSeats = customer.customerSelectedSeatsInfo;
+    const subtotal = selectedSeats.reduce((sum, seat) => sum + seat.price, 0);
+    const serviceFee = 0;
+
+    return {
+      selectedSeats,
+      totalSeats: selectedSeats.length,
+      subtotal,
+      serviceFee,
+      total: subtotal + serviceFee,
+    };
+  },
+
+  customerFindSeatInfoById: (seatId: string) => {
+    const { customer } = get();
+    const { seatingStructure } = customer.customerEventData;
+    if (!seatingStructure) return null;
+
+    for (const area of seatingStructure) {
+      for (const row of area.rows) {
+        for (const seat of row.seats) {
+          if (seat.id === seatId) {
+            return {
+              seatId: seat.id,
+              areaName: area.name,
+              rowName: row.rowName,
+              seatNumber: seat.seatNumber,
+              price: area.price,
+              status: get().customerGetSeatStatus(seat.id),
+            } as CustomerSeatInfo;
+          }
+        }
+      }
+    }
+
+    return null;
+  },
+
+  customerGetSelectedSeatsGroupedByArea: () => {
+    const { customer } = get();
+    const grouped: Record<string, CustomerSeatInfo[]> = {};
+
+    customer.customerSelectedSeatsInfo.forEach((seat) => {
+      if (!grouped[seat.areaName]) {
+        grouped[seat.areaName] = [];
+      }
+      grouped[seat.areaName].push(seat);
+    });
+
+    Object.keys(grouped).forEach((areaName) => {
+      grouped[areaName].sort((a, b) => {
+        if (a.rowName !== b.rowName) {
+          return a.rowName.localeCompare(b.rowName);
+        }
+        return a.seatNumber.localeCompare(b.seatNumber, undefined, {
+          numeric: true,
+          sensitivity: "base",
+        });
+      });
+    });
+
+    return grouped;
+  },
+
+  customerCalculateTotalPrice: () => {
+    const { customer } = get();
+    return customer.customerSelectedSeatsInfo.reduce(
+      (total, seat) => total + seat.price,
+      0
+    );
+  },
+
+  customerValidateSelection: () => {
+    const { customer } = get();
+    const errors: string[] = [];
+    const selectedCount = customer.customerSelectedSeatIds.length;
+
+    if (selectedCount < customer.customerMinSeatsRequired) {
+      errors.push(
+        `Please select at least ${customer.customerMinSeatsRequired} seat(s)`
+      );
+    }
+
+    if (selectedCount > customer.customerMaxSeatsAllowed) {
+      errors.push(
+        `Cannot select more than ${customer.customerMaxSeatsAllowed} seats`
+      );
+    }
+
+    const unavailableSeats = customer.customerSelectedSeatsInfo.filter(
+      (seat) => {
+        const currentStatus = get().customerGetSeatStatus(seat.seatId);
+        return currentStatus !== "selected" && currentStatus !== "available";
+      }
+    );
+
+    if (unavailableSeats.length > 0) {
+      errors.push(
+        `Some selected seats are no longer available: ${unavailableSeats.map((s) => `${s.areaName} ${s.rowName}-${s.seatNumber}`).join(", ")}`
+      );
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors,
+    };
+  },
+
+  customerResetState: () => {
+    set((state) => ({
+      customer: {
+        customerSelectedSeatIds: [],
+        customerSelectedSeatsInfo: [],
+        customerOrderSummary: {
+          selectedSeats: [],
+          totalSeats: 0,
+          subtotal: 0,
+          serviceFee: 0,
+          total: 0,
+        },
+        customerIsSelecting: false,
+        customerMaxSeatsAllowed: 10,
+        customerMinSeatsRequired: 1,
+        customerHoveredSeatId: null,
+        customerSeatStatusMap: {},
+        customerLastSelectionTime: null,
+        customerEventData: {},
+      },
+    }));
   },
 }));

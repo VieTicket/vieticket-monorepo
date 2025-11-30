@@ -341,8 +341,13 @@ function CreateEventPageInner() {
 
     const loadEvent = async () => {
       try {
-        const event = await fetchEventById(eventId);
-        if (!event) return;
+        const result = await fetchEventById(eventId);
+        if (!result.success || !result.data) {
+          toast.error("Event not found");
+          return;
+        }
+        
+        const event = result.data;
 
         setFormData({
           name: event.name ?? "",
@@ -365,7 +370,6 @@ function CreateEventPageInner() {
         });
 
         if (event.seatMapId) {
-          console.log("📥 Loading existing seat map:", event.seatMapId);
           const gridDataResult = await getSeatMapGridDataAction(
             event.seatMapId
           );
@@ -393,18 +397,18 @@ function CreateEventPageInner() {
           }
         } else {
           // Load simple ticketing areas from showings
-          if (event.showings?.length > 0) {
-            const firstShowing = event.showings[0];
-            if (firstShowing.areas?.length > 0) {
-              setAreas(
-                firstShowing.areas.map((area: any) => ({
-                  name: area.name,
-                  ticketPrice: area.price.toString(),
-                  seatCount: area.seatCount?.toString() || "0",
-                }))
-              );
-            }
-          } else if (event.areas?.length > 0) {
+          // if (event.showings?.length > 0) {
+          //   const firstShowing = event.showings[0];
+          //   if (firstShowing.areas?.length > 0) {
+          //     setAreas(
+          //       firstShowing.areas.map((area: any) => ({
+          //         name: area.name,
+          //         ticketPrice: area.price.toString(),
+          //         seatCount: area.seatCount?.toString() || "0",
+          //       }))
+          //     );
+          //   }
+          if (event.areas?.length > 0) {
             setAreas(
               event.areas.map((area: any) => ({
                 name: area.name,
@@ -460,7 +464,7 @@ function CreateEventPageInner() {
         setPosterPreview(event.posterUrl ?? null);
         setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
-        console.error("❌ Error loading event:", error);
+        console.error("Error loading event:", error);
         toast.error(t("toasts.failedLoadEvent"));
       }
     };
@@ -493,8 +497,6 @@ function CreateEventPageInner() {
 
   // ✅ Corrected seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
-    console.log("📥 Processing seat map selection:", seatMap.name);
-
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 
@@ -521,11 +523,11 @@ function CreateEventPageInner() {
           }
         );
       } else {
-        console.error("❌ Failed to load seat map data:", result.error);
+        console.error("Failed to load seat map data:", result.error);
         toast.error(result.error || t("toasts.failedLoadSeatMap"));
       }
     } catch (error) {
-      console.error("❌ Error processing seat map:", error);
+      console.error("Error processing seat map:", error);
       toast.error(t("toasts.seatMapLoadError"));
     }
   };
@@ -771,8 +773,13 @@ function CreateEventPageInner() {
     startTransition(async () => {
       try {
         if (eventId) {
-          await handleUpdateEvent(form);
-          toast.success(t("toasts.eventUpdated"));
+          const result = await handleUpdateEvent(form);
+          if (result.success) {
+            toast.success(t("toasts.eventUpdated"));
+          } else {
+            toast.error(result.error || "Failed to update event");
+            return;
+          }
         } else {
           const eventResult = await handleCreateEvent(form);
 
@@ -860,15 +867,15 @@ function CreateEventPageInner() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-3xl font-semibold mb-4">
+    <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
+      <h1 className="text-2xl sm:text-3xl font-semibold mb-3 sm:mb-4">
         {eventId ? t("editEvent") : t("createEvent")}
       </h1>
 
       <StepProgressBar step={step} />
-      <Separator className="mb-6" />
+      <Separator className="mb-4 sm:mb-6" />
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form onSubmit={onSubmit} className="space-y-4 sm:space-y-6">
         {renderStep()}
 
         {step === 4 && (
@@ -937,7 +944,7 @@ function CreateEventPageInner() {
       </form>
 
       {step < 4 && (
-        <div className="flex justify-end mt-8 space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 mt-4 sm:mt-6 lg:mt-8">
           <Button
             variant="outline"
             onClick={() => {
@@ -945,10 +952,16 @@ function CreateEventPageInner() {
               scrollToTop();
             }}
             disabled={step === 1}
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             {t("goback")}
           </Button>
-          <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
+          <Button 
+            onClick={handleNextStep}
+            className="w-full sm:w-auto order-1 sm:order-2"
+          >
+            {t("saveandcontinue")}
+          </Button>
         </div>
       )}
 

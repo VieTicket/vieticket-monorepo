@@ -19,9 +19,9 @@ import {
   isAreaMode,
 } from "../variables";
 import { mirrorHorizontally, mirrorVertically } from "../utils/mirroring";
+import { getGuideLines } from "../guide-lines";
 
 export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
-  // Get store functions and state
   const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
   const selectAll = useSeatMapStore((state) => state.selectAll);
   const clearSelection = useSeatMapStore((state) => state.clearSelection);
@@ -30,8 +30,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
     (shape) => shape.id === "area-mode-container"
   );
 
-  // Store all these references in a ref to access their latest values
-  // without having to add them as dependencies to the useCallback
   const storeRef = useRef({
     selectedShapes,
     selectAll,
@@ -42,7 +40,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
     pan,
   });
 
-  // Keep the ref updated with the latest values
   useEffect(() => {
     storeRef.current = {
       selectedShapes,
@@ -77,7 +74,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
     [areaModeContainer]
   );
 
-  // This handleKeyDown callback will now never change
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       const store = storeRef.current;
@@ -85,7 +81,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
       const isShift = e.shiftKey;
       const isAlt = e.altKey;
 
-      // Check if user is typing in an input field
       const activeElement = document.activeElement;
       const isInInput =
         activeElement &&
@@ -99,27 +94,27 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         e.stopPropagation();
       };
 
-      // If user is typing in input, only handle essential keys
       if (isInInput) {
         switch (e.key) {
           case "Escape":
-            // Allow escape to blur input fields
             (activeElement as HTMLElement).blur();
             preventDefault();
             return;
           default:
-            // Don't interfere with input typing
             return;
         }
       }
 
-      // Tool selection shortcuts (1-6)
       if (!isCtrl && !isShift && !isAlt) {
         if (["1", "2", "3", "4", "5", "6"].includes(e.key)) {
           const toolToSelect = getToolMapping(e.key);
           if (toolToSelect) {
             setCurrentTool(toolToSelect);
             setSelectedTool(toolToSelect);
+            const guideLines = getGuideLines();
+            if (guideLines) {
+              guideLines.clearAll();
+            }
             preventDefault();
             return;
           }
@@ -127,7 +122,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
 
         switch (e.key) {
           case "Escape":
-            // Clear selection and switch to select tool
             store.clearSelection();
             setCurrentTool("select");
             setSelectedTool("select");
@@ -143,7 +137,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Ctrl/Cmd shortcuts
       if (isCtrl && !isShift && !isAlt) {
         switch (e.key) {
           case "z":
@@ -192,7 +185,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Ctrl/Cmd + Shift shortcuts
       if (isCtrl && isShift && !isAlt) {
         switch (e.key) {
           case "Z":
@@ -220,7 +212,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Pan canvas with arrow keys (only in select mode)
       if (store.currentTool === "select" && !isCtrl && !isShift && !isAlt) {
         const panStep = 50;
 
@@ -244,7 +235,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Zoom shortcuts
       if (isCtrl && !isShift && !isAlt) {
         switch (e.key) {
           case "=":
@@ -260,7 +250,6 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Alternative zoom with Ctrl + Arrow keys
       if (isCtrl && !isShift && !isAlt) {
         switch (e.key) {
           case "ArrowUp":
@@ -274,9 +263,7 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         }
       }
 
-      // Special case for polygon tool
       if (e.key === "Escape" && store.currentTool === "polygon") {
-        // Cancel polygon drawing
         const { cancelPolygonDrawing } = require("../events/polygon-events");
         cancelPolygonDrawing();
         preventDefault();
@@ -284,7 +271,7 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
       }
     },
     [getToolMapping]
-  ); // Only getToolMapping as dependency
+  );
 
   useEffect(() => {
     window.addEventListener("keydown", handleKeyDown);

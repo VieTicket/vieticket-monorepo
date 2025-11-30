@@ -286,11 +286,26 @@ export const calculateShapeBoundsWithWorldTransform = (
       const scaleY = worldTransform.scaleY;
       const rotation = worldTransform.rotation;
 
-      const scaledRadiusX = shape.radiusX * scaleX;
-      const scaledRadiusY = shape.radiusY * scaleY;
+      const scaledRadiusX = shape.radiusX * Math.abs(scaleX);
+      const scaledRadiusY = shape.radiusY * Math.abs(scaleY);
 
+      if (rotation === 0) {
+        // No rotation - simple case
+        return {
+          x: worldTransform.x - scaledRadiusX,
+          y: worldTransform.y - scaledRadiusY,
+          width: scaledRadiusX * 2,
+          height: scaledRadiusY * 2,
+          centerX: worldTransform.x,
+          centerY: worldTransform.y,
+        };
+      }
+
+      // With rotation - calculate rotated ellipse bounds
       const cos = Math.abs(Math.cos(rotation));
       const sin = Math.abs(Math.sin(rotation));
+
+      // Calculate the bounding box of the rotated ellipse
       const boundingWidth = scaledRadiusX * cos + scaledRadiusY * sin;
       const boundingHeight = scaledRadiusX * sin + scaledRadiusY * cos;
 
@@ -379,6 +394,70 @@ export const calculateShapeBoundsWithWorldTransform = (
 export const calculateItemBounds = (item: CanvasItem): BoundingBox => {
   const worldTransform = calculateWorldTransform(item);
   return calculateShapeBoundsWithWorldTransform(item, worldTransform);
+};
+
+// ✅ Add this helper function to bounds.ts
+export const calculateAllContentBounds = (
+  topLevelShapes: CanvasItem[],
+  areaModeContainer?: any
+): BoundingBox => {
+  let allItems: CanvasItem[] = [...topLevelShapes];
+
+  // ✅ Collect all nested shapes from area mode container
+  if (areaModeContainer && areaModeContainer.children) {
+    const collectNestedItems = (
+      container: any,
+      parentX = 0,
+      parentY = 0
+    ): CanvasItem[] => {
+      const items: CanvasItem[] = [];
+
+      if (container.children && Array.isArray(container.children)) {
+        container.children.forEach((child: any) => {
+          // Create a virtual item with world coordinates
+          const worldX = parentX + (child.x || 0);
+          const worldY = parentY + (child.y || 0);
+
+          const virtualItem: CanvasItem = {
+            ...child,
+            x: worldX,
+            y: worldY,
+          };
+
+          items.push(virtualItem);
+
+          // Recursively collect children
+          if (child.children && child.children.length > 0) {
+            items.push(...collectNestedItems(child, worldX, worldY));
+          }
+        });
+      }
+
+      return items;
+    };
+
+    areaModeContainer.children.forEach((grid: any) => {
+      const gridX = areaModeContainer.x + (grid.x || 0);
+      const gridY = areaModeContainer.y + (grid.y || 0);
+
+      // Add grid itself
+      allItems.push({
+        ...grid,
+        x: gridX,
+        y: gridY,
+      });
+
+      // Add all nested items
+      allItems.push(...collectNestedItems(grid, gridX, gridY));
+    });
+  }
+
+  if (allItems.length === 0) {
+    return { x: 0, y: 0, width: 800, height: 600, centerX: 400, centerY: 300 };
+  }
+
+  // Calculate bounds of all items
+  return calculateGroupBounds(allItems);
 };
 
 /**

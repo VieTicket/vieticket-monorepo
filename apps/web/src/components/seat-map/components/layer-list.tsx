@@ -58,7 +58,6 @@ export const LayerList = React.memo(
       dragOverTarget: null,
       dragPosition: null,
     });
-
     const shapes = useSeatMapStore((state) => state.shapes);
     const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
     const setSelectedShapes = useSeatMapStore(
@@ -496,9 +495,6 @@ export const LayerList = React.memo(
 
     const handleUngroupItems = useCallback((container: ContainerGroup) => {
       const ungroupedItems = ungroupContainerForCanvas(container);
-      if (ungroupedItems.length > 0) {
-        console.log("Container ungrouped successfully");
-      }
     }, []);
 
     const handleShapeClick = useCallback(
@@ -634,7 +630,7 @@ export const LayerList = React.memo(
                   : "hover:bg-gray-700 text-gray-300"
               } ${isDraggedItem ? "opacity-50" : ""} ${getDragIndicatorClasses(item.id)} cursor-pointer text-xs`}
               style={{ paddingLeft: `${paddingLeft}px` }}
-              draggable={!item.interactive}
+              draggable={item.interactive}
               onDragStart={(e) => handleDragStart(e, item.id)}
               onDragOver={(e) => handleDragOver(e, item.id)}
               onDragLeave={handleDragLeave}

@@ -20,7 +20,7 @@ function normalizeLocation(str: string): string {
   return str
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // Bỏ dấu
-    .replace(/đ/gi, "d") // Thay đ/Đ thành d/D  
+    .replace(/đ/gi, "d") // Thay đ/Đ thành d/D
     .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a") // Các ký tự a có dấu
     .replace(/[èéẹẻẽêềếệểễ]/gi, "e") // Các ký tự e có dấu
     .replace(/[ìíịỉĩ]/gi, "i") // Các ký tự i có dấu
@@ -34,13 +34,13 @@ function normalizeLocation(str: string): string {
 // Function to create location search patterns
 function createLocationSearchPatterns(location: string): string[] {
   const baseNormalized = normalizeLocation(location);
-  
+
   // Create comprehensive patterns for Vietnamese location matching
   const patterns = new Set<string>();
-  
+
   // Add base normalized pattern
   patterns.add(baseNormalized);
-  
+
   // Add pattern with all Vietnamese diacritics removed
   const fullyNormalized = location
     .normalize("NFD")
@@ -49,14 +49,18 @@ function createLocationSearchPatterns(location: string): string[] {
     .replace(/\s+/g, "") // Remove all spaces
     .toLowerCase();
   patterns.add(fullyNormalized);
-  
+
   // Add original location without spaces, lowercase
   patterns.add(location.replace(/\s+/g, "").toLowerCase());
-  
+
   // For "Đà Nẵng" specifically, add common variations
   const locationLower = location.toLowerCase();
-  if (locationLower.includes("đà nẵng") || locationLower.includes("da nang") || 
-      locationLower.includes("danang") || locationLower.includes("đanang")) {
+  if (
+    locationLower.includes("đà nẵng") ||
+    locationLower.includes("da nang") ||
+    locationLower.includes("danang") ||
+    locationLower.includes("đanang")
+  ) {
     patterns.add("danang");
     patterns.add("dànẵng");
     patterns.add("đànẵng");
@@ -64,9 +68,9 @@ function createLocationSearchPatterns(location: string): string[] {
     patterns.add("dànang");
     patterns.add("đa nang");
   }
-  
+
   // Remove empty strings and return unique patterns
-  return Array.from(patterns).filter(p => p.length > 0);
+  return Array.from(patterns).filter((p) => p.length > 0);
 }
 
 export type EventSummary = Pick<
@@ -79,7 +83,9 @@ export type EventSummary = Pick<
   | "endTime"
   | "views"
   | "bannerUrl"
+  | "posterUrl"
   | "type"
+  | "createdAt"
 > & {
   id: string;
   name: string;
@@ -89,7 +95,9 @@ export type EventSummary = Pick<
   endTime: Date;
   typicalTicketPrice: number;
   bannerUrl: string | null;
+  posterUrl: string | null;
   views: number;
+  createdAt: Date | null;
   organizer?: {
     id: string;
     name: string;
@@ -140,7 +148,9 @@ export async function getEventBySlug(slug: string): Promise<EventFull | null> {
   } as EventFull;
 }
 
-export async function getEventByIdFull(eventId: string): Promise<EventFull | null> {
+export async function getEventByIdFull(
+  eventId: string
+): Promise<EventFull | null> {
   // Get the event using relations to include organizer, areas, and showings
   const event = await db.query.events.findFirst({
     where: eq(events.id, eventId),
@@ -190,10 +200,6 @@ export async function getFilteredEvents({
   category?: string;
   q?: string;
 }) {
-  console.log("getFilteredEvents called with:", {
-    page, limit, price, date, location, category, q
-  });
-
   const whereConditions = [eq(events.approvalStatus, "approved")];
 
   // Price filter
@@ -207,8 +213,7 @@ export async function getFilteredEvents({
     };
 
     const [minPrice, maxPrice] = priceRanges[price] || [0, Infinity];
-    console.log(`Price filter: ${price} -> min: ${minPrice}, max: ${maxPrice}`);
-    
+
     // Filter by minimum price (typical ticket price) instead of any area price
     if (maxPrice !== Infinity) {
       whereConditions.push(
@@ -233,7 +238,7 @@ export async function getFilteredEvents({
   // Date filter
   if (date && date !== "all") {
     const now = new Date();
-    console.log(`Date filter: ${date}`);
+
     if (date === "today") {
       whereConditions.push(sql`DATE(${events.startTime}) = CURRENT_DATE`);
     } else if (date === "thisWeek") {
@@ -245,8 +250,6 @@ export async function getFilteredEvents({
 
   // Location filter
   if (location && location !== "all") {
-    console.log(`Location filter: ${location}`);
-    
     // Function to create Vietnamese text variations
     function createVietnameseVariations(text: string) {
       const baseVariations = [
@@ -254,41 +257,55 @@ export async function getFilteredEvents({
         text.toLowerCase(),
         text.toUpperCase(),
         // Replace Vietnamese characters with base characters
-        text.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
-            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
-            .replace(/[ìíịỉĩ]/gi, "i")
-            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
-            .replace(/[ùúụủũưừứựửữ]/gi, "u")
-            .replace(/[ỳýỵỷỹ]/gi, "y")
-            .replace(/[đĐ]/gi, "d"),
+        text
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+          .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+          .replace(/[ìíịỉĩ]/gi, "i")
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+          .replace(/[ùúụủũưừứựửữ]/gi, "u")
+          .replace(/[ỳýỵỷỹ]/gi, "y")
+          .replace(/[đĐ]/gi, "d"),
         // With spaces removed
         text.replace(/\s+/g, "").toLowerCase(),
         // Without diacritics and spaces
-        text.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
-            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
-            .replace(/[ìíịỉĩ]/gi, "i")
-            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
-            .replace(/[ùúụủũưừứựửữ]/gi, "u")
-            .replace(/[ỳýỵỷỹ]/gi, "y")
-            .replace(/[đĐ]/gi, "d")
-            .replace(/\s+/g, "")
-            .toLowerCase(),
+        text
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+          .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+          .replace(/[ìíịỉĩ]/gi, "i")
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+          .replace(/[ùúụủũưừứựửữ]/gi, "u")
+          .replace(/[ỳýỵỷỹ]/gi, "y")
+          .replace(/[đĐ]/gi, "d")
+          .replace(/\s+/g, "")
+          .toLowerCase(),
         // Additional variations for common swaps
-        text.replace(/ó/gi, "o").replace(/ò/gi, "o").replace(/ỏ/gi, "o").replace(/õ/gi, "o").replace(/ọ/gi, "o"),
-        text.replace(/á/gi, "a").replace(/à/gi, "a").replace(/ả/gi, "a").replace(/ã/gi, "a").replace(/ạ/gi, "a"),
+        text
+          .replace(/ó/gi, "o")
+          .replace(/ò/gi, "o")
+          .replace(/ỏ/gi, "o")
+          .replace(/õ/gi, "o")
+          .replace(/ọ/gi, "o"),
+        text
+          .replace(/á/gi, "a")
+          .replace(/à/gi, "a")
+          .replace(/ả/gi, "a")
+          .replace(/ã/gi, "a")
+          .replace(/ạ/gi, "a"),
         // Mixed case variations
-        text.toLowerCase().replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
-            .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
-            .replace(/[ìíịỉĩ]/gi, "i")
-            .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
-            .replace(/[ùúụủũưừứựửữ]/gi, "u")
-            .replace(/[ỳýỵỷỹ]/gi, "y")
-            .replace(/[đĐ]/gi, "d")
+        text
+          .toLowerCase()
+          .replace(/[àáạảãâầấậẩẫăằắặẳẵ]/gi, "a")
+          .replace(/[èéẹẻẽêềếệểễ]/gi, "e")
+          .replace(/[ìíịỉĩ]/gi, "i")
+          .replace(/[òóọỏõôồốộổỗơờớợởỡ]/gi, "o")
+          .replace(/[ùúụủũưừứựửữ]/gi, "u")
+          .replace(/[ỳýỵỷỹ]/gi, "y")
+          .replace(/[đĐ]/gi, "d"),
       ];
-      
+
       // Add variations with punctuation and whitespace handling
       const extendedVariations: string[] = [];
-      baseVariations.forEach(variation => {
+      baseVariations.forEach((variation) => {
         extendedVariations.push(variation);
         // Add with common punctuation
         extendedVariations.push(variation + ",");
@@ -300,40 +317,38 @@ export async function getFilteredEvents({
         extendedVariations.push(" " + variation + ",");
         extendedVariations.push(" " + variation + ".");
       });
-      
+
       // Remove duplicates
       return [...new Set(extendedVariations)];
     }
-    
+
     const searchPatterns = createVietnameseVariations(location);
-    console.log(`Search patterns: ${searchPatterns.join(', ')}`);
-    
-    // Use ILIKE (case-insensitive LIKE) for each pattern  
-    const conditions = searchPatterns.map(pattern => 
-      sql`${events.location} ILIKE ${'%' + pattern + '%'}`
+
+    // Use ILIKE (case-insensitive LIKE) for each pattern
+    const conditions = searchPatterns.map(
+      (pattern) => sql`${events.location} ILIKE ${"%" + pattern + "%"}`
     );
-    
-    whereConditions.push(sql`(${conditions.reduce((acc, condition, index) => 
-      index === 0 ? condition : sql`${acc} OR ${condition}`
-    )})`);
+
+    whereConditions.push(
+      sql`(${conditions.reduce((acc, condition, index) =>
+        index === 0 ? condition : sql`${acc} OR ${condition}`
+      )})`
+    );
   }
 
   // Category filter
   if (category && category !== "all") {
-    console.log(`Category filter: ${category}`);
     whereConditions.push(sql`LOWER(${events.type}) = LOWER(${category})`);
   }
 
   // Search query
   if (q) {
     const likeQuery = `%${q}%`;
-    console.log(`Search filter: ${q}`);
+
     whereConditions.push(
       sql`(${events.name} ILIKE ${likeQuery} OR ${events.description} ILIKE ${likeQuery})`
     );
   }
-
-  console.log(`Total where conditions: ${whereConditions.length}`);
 
   const result = await db.query.events.findMany({
     limit,
@@ -347,8 +362,10 @@ export async function getFilteredEvents({
       endTime: true,
       location: true,
       bannerUrl: true,
+      posterUrl: true,
       views: true,
       type: true,
+      createdAt: true,
     },
     with: {
       organizer: {
@@ -366,21 +383,19 @@ export async function getFilteredEvents({
     where: and(...whereConditions),
   });
 
-  console.log(`Found ${result.length} events`);
-
   // Calculate typical ticket price
   const eventsWithTypicalPrice = result.map((event) => {
-    const typicalPrice = event.areas.length > 0
-      ? Math.min(...event.areas.map((area) => area.price))
-      : 0;
-    
-    console.log(`Event "${event.name}": areas prices = [${event.areas.map(a => a.price).join(', ')}], typical price = ${typicalPrice}`);
-    
+    const typicalPrice =
+      event.areas.length > 0
+        ? Math.min(...event.areas.map((area) => area.price))
+        : 0;
+
     return {
       ...event,
       typicalTicketPrice: typicalPrice,
       location: event.location ?? "",
       bannerUrl: event.bannerUrl ?? "",
+      posterUrl: event.posterUrl ?? "",
       areas: undefined,
     };
   });
@@ -391,7 +406,6 @@ export async function getFilteredEvents({
     hasMore: result.length === limit,
   };
 
-  console.log("getFilteredEvents response:", response);
   return response;
 }
 
@@ -434,8 +448,10 @@ export async function getEventSummaries({
       endTime: true,
       location: true,
       bannerUrl: true,
+      posterUrl: true,
       views: true,
       type: true,
+      createdAt: true,
       [sortColumnKey]: true,
     } as const,
     with: {
@@ -475,6 +491,7 @@ export async function getEventSummaries({
       typicalTicketPrice,
       organizer: event.organizer,
       bannerUrl: event.bannerUrl ?? "", // Ensure bannerUrl is always a string
+      posterUrl: event.posterUrl ?? "", // Ensure posterUrl is always a string
       areas: undefined, // Remove areas from final response
     };
   });

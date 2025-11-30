@@ -3,8 +3,14 @@ import {
   SeatMap,
   CreateSeatMapInput,
   UpdateSeatMapInput,
+  CanvasItem,
+  GridShape,
+  AreaModeContainer,
+  RowShape,
+  SeatShape,
 } from "@vieticket/db/mongo/models/seat-map";
 import { ensureMongoConnection } from "@vieticket/db/mongo";
+import { v4 as uuidv4 } from "uuid";
 
 /**
  * Retrieves a seat map by its ID.
@@ -14,7 +20,7 @@ import { ensureMongoConnection } from "@vieticket/db/mongo";
 export async function findSeatMapById(id: string): Promise<SeatMap | null> {
   await ensureMongoConnection();
   const doc = await SeatMapModel.findById(id).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -26,10 +32,10 @@ export async function findSeatMapsByCreator(
   createdBy: string
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  const docs = await SeatMapModel.find({ createdBy })
+  const docs = await SeatMapModel.find({ createdBy, usedByEvent: false })
     .sort({ createdAt: -1 })
     .exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -68,7 +74,7 @@ export async function findSeatMapsWithPagination(
     SeatMapModel.countDocuments(filter).exec(),
   ]);
 
-  const seatMaps = docs.map((doc) => doc.toObject());
+  const seatMaps = docs.map((doc) => doc.toObject() as SeatMap);
 
   return {
     seatMaps,
@@ -92,8 +98,10 @@ export async function createSeatMap(
   data: CreateSeatMapInput
 ): Promise<SeatMap> {
   await ensureMongoConnection();
-  const doc = await SeatMapModel.create(data);
-  return doc.toObject();
+
+  const seatmap = await SeatMapModel.create(data);
+
+  return seatmap.toObject() as SeatMap;
 }
 
 /**
@@ -109,7 +117,8 @@ export async function updateSeatMapById(
   await ensureMongoConnection();
   // The `timestamps: true` option in the schema will automatically handle `updatedAt`.
   const doc = await SeatMapModel.findByIdAndUpdate(id, updates).exec();
-  return doc ? doc.toObject() : null;
+
+  return doc ? (doc.toObject() as SeatMap) : null;
 }
 
 /**
@@ -120,7 +129,138 @@ export async function updateSeatMapById(
 export async function deleteSeatMapById(id: string): Promise<SeatMap | null> {
   await ensureMongoConnection();
   const doc = await SeatMapModel.findByIdAndDelete(id).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
+}
+
+export async function duplicateSeatMapForEvent(
+  originalSeatMapId: string,
+  eventName: string,
+  userId: string
+): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
+  try {
+    await ensureMongoConnection();
+    const originalSeatMap = await SeatMapModel.findById(originalSeatMapId);
+    if (!originalSeatMap) {
+      return {
+        success: false,
+        error: "Original seat map not found",
+      };
+    }
+
+    const duplicatedShapes: CanvasItem[] = JSON.parse(
+      JSON.stringify(originalSeatMap.shapes)
+    );
+
+    const areaModeContainerIndex = duplicatedShapes.findIndex(
+      (shape: any) =>
+        shape.id === "area-mode-container-id" &&
+        shape.type === "container" &&
+        shape.defaultSeatSettings
+    );
+
+    if (areaModeContainerIndex === -1) {
+      return {
+        success: false,
+        error: "No area mode container found in seat map",
+      };
+    }
+
+    const areaModeContainer = duplicatedShapes[
+      areaModeContainerIndex
+    ] as AreaModeContainer;
+
+    const idMappings: Record<string, string> = {};
+
+    const processedGrids: GridShape[] = areaModeContainer.children.map(
+      (grid: GridShape) => {
+        const newGridId = uuidv4();
+        idMappings[grid.id] = newGridId;
+
+        const processedRows: RowShape[] = grid.children.map((row: RowShape) => {
+          const newRowId = uuidv4();
+          idMappings[row.id] = newRowId;
+
+          const processedSeats: SeatShape[] = row.children.map(
+            (seat: SeatShape) => {
+              const newSeatId = uuidv4();
+              idMappings[seat.id] = newSeatId;
+
+              return {
+                ...seat,
+                id: newSeatId,
+                rowId: newRowId,
+                gridId: newGridId,
+              };
+            }
+          );
+
+          return {
+            ...row,
+            id: newRowId,
+            gridId: newGridId,
+            children: processedSeats,
+          };
+        });
+
+        return {
+          ...grid,
+          id: newGridId,
+          children: processedRows,
+        };
+      }
+    );
+
+    const updatedAreaModeContainer: AreaModeContainer = {
+      ...areaModeContainer,
+      children: processedGrids,
+    };
+
+    duplicatedShapes[areaModeContainerIndex] = updatedAreaModeContainer;
+
+    const finalShapes = duplicatedShapes.map((shape) => {
+      if (shape.id === "area-mode-container-id" && shape.type === "container") {
+        return shape;
+      }
+
+      const newId = uuidv4();
+      idMappings[shape.id] = newId;
+
+      return {
+        ...shape,
+        id: newId,
+      };
+    });
+
+    const timestamp = new Date().toISOString().slice(0, 16).replace("T", "_");
+    const duplicatedName = `${originalSeatMap.name}_${eventName}_${timestamp}`;
+
+    const duplicatedSeatMap = new SeatMapModel({
+      name: duplicatedName,
+      shapes: finalShapes,
+      image: originalSeatMap.image,
+      createdBy: userId,
+      publicity: "private",
+      usedByEvent: true,
+      draftedFrom: originalSeatMap._id,
+      originalCreator: originalSeatMap.createdBy,
+    });
+
+    const savedSeatMap = await duplicatedSeatMap.save();
+
+    return {
+      success: true,
+      seatMapId: savedSeatMap.id,
+    };
+  } catch (error) {
+    console.error("❌ Error duplicating seat map:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during duplication",
+    };
+  }
 }
 
 /**
@@ -155,7 +295,7 @@ export async function findSeatMapsByName(
   }
 
   const docs = await SeatMapModel.find(filter).sort({ createdAt: -1 }).exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -187,7 +327,7 @@ export async function findRecentSeatMaps(
     .sort({ createdAt: -1 })
     .limit(limit)
     .exec();
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -200,7 +340,7 @@ export async function createMultipleSeatMaps(
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
   const docs = await SeatMapModel.insertMany(seatMaps, { ordered: false });
-  return docs.map((doc) => doc.toObject());
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -229,7 +369,23 @@ export async function findSeatMapWithShapesById(
   const filter: any = { _id: id };
 
   const doc = await SeatMapModel.findOne(filter).exec();
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
+}
+
+export async function findSeatMapsUsedByEvents(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: true })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+export async function findSeatMapTemplates(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: false })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -272,7 +428,7 @@ export async function findPublicSeatMaps(
     SeatMapModel.countDocuments(filter).exec(),
   ]);
 
-  const seatMaps = docs.map((doc) => doc.toObject());
+  const seatMaps = docs.map((doc) => doc.toObject() as SeatMap);
 
   return {
     seatMaps,
@@ -322,7 +478,7 @@ export async function createDraftFromSeatMap(
   };
 
   const doc = await SeatMapModel.create(draftInput);
-  return doc.toObject();
+  return doc.toObject() as SeatMap;
 }
 
 /**
@@ -359,12 +515,12 @@ export async function getSeatMapDraftChain(seatMapId: string): Promise<{
     const parentDoc = await SeatMapModel.findById(
       currentSeatMap.draftedFrom
     ).exec();
-    parent = parentDoc ? parentDoc.toObject() : undefined;
+    parent = parentDoc ? (parentDoc.toObject() as SeatMap) : undefined;
   }
 
   return {
     parent,
-    children: children.map((doc) => doc.toObject()),
+    children: children.map((doc) => doc.toObject() as SeatMap),
     draftCount: children.length,
   };
 }
@@ -389,5 +545,5 @@ export async function updateSeatMapPublicity(
     { new: true, runValidators: true }
   ).exec();
 
-  return doc ? doc.toObject() : null;
+  return doc ? (doc.toObject() as SeatMap) : null;
 }

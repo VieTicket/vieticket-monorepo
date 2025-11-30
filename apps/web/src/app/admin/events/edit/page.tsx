@@ -403,19 +403,18 @@ function CreateEventPageInner() {
             setTicketingMode("seatmap");
           }
         } else {
-          // Load simple ticketing areas from showings
-          if (event.showings?.length > 0) {
-            const firstShowing = event.showings[0];
-            if (firstShowing.areas?.length > 0) {
-              setAreas(
-                firstShowing.areas.map((area: any) => ({
-                  name: area.name,
-                  ticketPrice: area.price.toString(),
-                  seatCount: area.seatCount?.toString() || "0",
-                }))
-              );
-            }
-          } else if (event.areas?.length > 0) {
+          // if (event.showings?.length > 0) {
+          //   const firstShowing = event.showings[0];
+          //   if (firstShowing.areas?.length > 0) {
+          //     setAreas(
+          //       firstShowing.areas.map((area: any) => ({
+          //         name: area.name,
+          //         ticketPrice: area.price.toString(),
+          //         seatCount: area.seatCount?.toString() || "0",
+          //       }))
+          //     );
+          //   }
+          if (event.areas?.length > 0) {
             setAreas(
               event.areas.map((area: any) => ({
                 name: area.name,
@@ -471,7 +470,7 @@ function CreateEventPageInner() {
         setPosterPreview(event.posterUrl ?? null);
         setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
-        console.error("❌ Error loading event:", error);
+        console.error("Error loading event:", error);
         toast.error(t("toasts.failedLoadEvent"));
       }
     };
@@ -532,11 +531,11 @@ function CreateEventPageInner() {
           }
         );
       } else {
-        console.error("❌ Failed to load seat map data:", result.error);
+        console.error("Failed to load seat map data:", result.error);
         toast.error(result.error || t("toasts.failedLoadSeatMap"));
       }
     } catch (error) {
-      console.error("❌ Error processing seat map:", error);
+      console.error("Error processing seat map:", error);
       toast.error(t("toasts.seatMapLoadError"));
     }
   };
@@ -984,7 +983,8 @@ function CreateEventPageInner() {
           <AlertDialogHeader>
             <AlertDialogTitle>Xác nhận thoát</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn thoát? Tất cả các thay đổi chưa lưu sẽ bị mất.
+              Bạn có chắc chắn muốn thoát? Tất cả các thay đổi chưa lưu sẽ bị
+              mất.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

@@ -12,6 +12,7 @@ interface SmartEventGridProps {
   renderLimit?: number; // optional: limit how many events to render (homepage uses this)
   showAIRecommendations?: boolean;
   enableSmartOrdering?: boolean; // New prop to control AI ordering
+  waitForAI?: boolean; // Wait for AI recommendations before initial render
 }
 
 /**
@@ -22,12 +23,14 @@ export function SmartEventGrid({
   aiPool,
   renderLimit,
   showAIRecommendations = true, 
-  enableSmartOrdering = true 
+  enableSmartOrdering = true,
+  waitForAI = false
 }: SmartEventGridProps) {
   const { recommendations, getRecommendations, isLoading } = useAIRecommendations();
   const { userBehavior } = useUserTracking();
   // smartOrderedEvents represents the ordering produced by AI over the aiPool (or events)
   const [smartOrderedEvents, setSmartOrderedEvents] = useState<EventSummary[]>(events);
+  const [aiInitialized, setAiInitialized] = useState(false);
 
   // Check if user has significant behavior data
   const hasSignificantBehavior = useMemo(() => {
@@ -46,8 +49,10 @@ export function SmartEventGrid({
     shouldUseAI: enableSmartOrdering && hasSignificantBehavior,
     eventsCount: events.length,
     aiPoolSize: aiPool?.length || 0,
-    renderLimit
-  }), [hasSignificantBehavior, enableSmartOrdering, events.length, aiPool?.length, renderLimit]);
+    renderLimit,
+    waitForAI,
+    shouldWaitForAI: waitForAI && enableSmartOrdering && hasSignificantBehavior
+  }), [hasSignificantBehavior, enableSmartOrdering, events.length, aiPool?.length, renderLimit, waitForAI]);
 
   // Only log occasionally to reduce noise
   if (Math.random() < 0.1) {
@@ -106,6 +111,8 @@ export function SmartEventGrid({
         hasSignificantBehavior: behaviorCheck.hasSignificantBehavior,
         aiPoolSize: aiEventsLength
       });
+      // If we're not using AI, mark as initialized immediately
+      setAiInitialized(true);
     }
   }, [aiEventsLength, aiEventsIds, getRecommendations, behaviorCheck.shouldUseAI]); // Remove aiEvents from dependencies
 
@@ -136,6 +143,9 @@ export function SmartEventGrid({
         // No render limit: expose full ordered pool (falls back to existing behavior)
         setSmartOrderedEvents(reorderedPool);
       }
+      
+      // Mark AI as initialized when we have processed recommendations
+      setAiInitialized(true);
     } else {
       // No recommendations yet, use original events order (or limited view)
       if (typeof renderLimit === 'number' && renderLimit > 0) {
@@ -143,9 +153,17 @@ export function SmartEventGrid({
       } else {
         setSmartOrderedEvents(events);
       }
+      
+      // If we're not waiting for AI or don't have behavior, mark as initialized
+      if (!behaviorCheck.shouldWaitForAI) {
+        setAiInitialized(true);
+      }
     }
-  }, [recommendations, aiPoolToUse, events, renderLimit]);
+  }, [recommendations, aiPoolToUse, events, renderLimit, behaviorCheck.shouldWaitForAI]);
 
+  // Determine if we should show loading state or render events
+  const isWaitingForAI = behaviorCheck.shouldWaitForAI && !aiInitialized;
+  
   return (
     <div className="space-y-6">
       {/* AI Recommendations Section */}
@@ -155,11 +173,20 @@ export function SmartEventGrid({
       <div className="relative">
         {isLoading && recommendations.length === 0 && (
           <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-full text-xs z-10">
-            🧠 Analyzing your preferences...
+          Loading...
           </div>
         )}
         
-        <StaticEventGrid events={smartOrderedEvents} />
+        {isWaitingForAI ? (
+          <div className="flex items-center justify-center py-16">
+            <div className="text-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+              <p className="text-gray-600">Loading...</p>
+            </div>
+          </div>
+        ) : (
+          <StaticEventGrid events={smartOrderedEvents} />
+        )}
       </div>
     </div>
   );

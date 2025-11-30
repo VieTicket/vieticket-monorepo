@@ -7,22 +7,22 @@ export default function HeroCarousel() {
   const [current, setCurrent] = useState(0);
   const t = useTranslations("home.carousel");
   const videos = [
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360508/banner1.mp4",
-    title: t("slide1.title"),
-    subtitle: t("slide1.subtitle"),
-  },
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360111/banner2.mp4",
-    title: t("slide2.title"),
-    subtitle: t("slide2.subtitle"),
-  },
-  {
-    src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360106/banner3.mp4",
-    title: t("slide3.title"),
-    subtitle: t("slide3.subtitle"),
-  },
-];
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360508/banner1.mp4",
+      title: t("slide1.title"),
+      subtitle: t("slide1.subtitle"),
+    },
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360111/banner2.mp4",
+      title: t("slide2.title"),
+      subtitle: t("slide2.subtitle"),
+    },
+    {
+      src: "https://res.cloudinary.com/duwvn7qqf/video/upload/v1721360106/banner3.mp4",
+      title: t("slide3.title"),
+      subtitle: t("slide3.subtitle"),
+    },
+  ];
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -48,26 +48,32 @@ export default function HeroCarousel() {
         />
       ))}
 
-      {/* Overlay */}
-      <div className="absolute inset-0 bg-black/40" />
+      {/* Professional Dark Overlay with Gradient */}
+      <div className="absolute inset-0 bg-gradient-to-b from-slate-900/60 via-slate-900/40 to-slate-900/80" />
+      <div className="absolute inset-0 bg-gradient-to-r from-violet-900/20 via-transparent to-indigo-900/20" />
 
-      {/* Text (fade bằng Tailwind) */}
+      {/* Text with Professional Styling */}
       <div className="relative z-10 flex flex-col items-center justify-center h-full text-center text-white px-4 transition-opacity duration-1000">
-        <h1 className="text-4xl md:text-6xl font-bold drop-shadow-lg">
+        <h1 className="text-4xl md:text-6xl font-bold drop-shadow-lg glow-text mb-4">
           {videos[current].title}
         </h1>
-        <h2 className="text-lg md:text-2xl font-medium text-yellow-300 drop-shadow mt-2">
+        <h2 className="text-lg md:text-2xl font-medium text-violet-200 drop-shadow mt-2 bg-slate-900/20 backdrop-blur-sm px-6 py-3 rounded-full border border-violet-400/30">
           {videos[current].subtitle}
         </h2>
+        
+        {/* Professional accent line */}
+        <div className="mt-8 w-24 h-1 bg-gradient-to-r from-violet-400 to-indigo-400 rounded-full shadow-lg shadow-violet-400/30"></div>
       </div>
 
-      {/* Indicator dots */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3">
+      {/* Professional indicator dots */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-3 bg-slate-900/30 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-700/30">
         {videos.map((_, index) => (
           <button
             key={index}
-            className={`w-3 h-3 rounded-full transition-all ${
-              index === current ? "bg-yellow-400 scale-110" : "bg-white/50"
+            className={`w-3 h-3 rounded-full transition-all duration-300 ${
+              index === current 
+                ? "bg-violet-400 scale-110 shadow-lg shadow-violet-400/50" 
+                : "bg-slate-500/50 hover:bg-slate-400/70"
             }`}
             onClick={() => setCurrent(index)}
           />
