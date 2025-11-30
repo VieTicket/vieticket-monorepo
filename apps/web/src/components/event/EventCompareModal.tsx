@@ -106,25 +106,32 @@ const geocodeAddress = async (address: string): Promise<LocationCoordinates | nu
   if (!address) return null;
   
   try {
-    // Use OpenStreetMap Nominatim API (free, no API key required)
+    // Use our geocode API endpoint which tries multiple variations and services
     const response = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
-      {
-        headers: {
-          'User-Agent': 'VieTicket/1.0' // Required by Nominatim
-        }
-      }
+      `/api/geocode?address=${encodeURIComponent(address)}`
     );
     
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.warn(`Geocoding API failed for "${address}": HTTP ${response.status}`);
+      return null;
+    }
     
     const data = await response.json();
-    if (data && data.length > 0) {
-      return {
-        lat: parseFloat(data[0].lat),
-        lng: parseFloat(data[0].lon)
-      };
+    
+    if (data.success && data.lat && data.lng) {
+      const lat = parseFloat(data.lat);
+      const lng = parseFloat(data.lng);
+      
+      // Validate coordinates
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        console.log(`Successfully geocoded "${address}" using "${data.matchedQuery}": (${lat}, ${lng})`);
+        return { lat, lng };
+      } else {
+        console.warn(`Invalid coordinates for "${address}": (${lat}, ${lng})`);
+      }
     }
+    
+    console.warn(`Geocoding failed for "${address}"`);
     return null;
   } catch (error) {
     console.error("Error geocoding address:", error);
@@ -473,6 +480,11 @@ export function EventCompareModal({
       // Geocode event location
       const locationCoordinates = await geocodeAddress(event.location || "");
       
+      // Log if geocoding failed
+      if (!locationCoordinates && event.location) {
+        console.warn(`Failed to geocode location for event "${event.name}": "${event.location}"`);
+      }
+      
       // Calculate distance from user location if available
       let distanceFromUser: number | undefined;
       if (userLocation && locationCoordinates) {
@@ -482,6 +494,9 @@ export function EventCompareModal({
           locationCoordinates.lat,
           locationCoordinates.lng
         );
+        console.log(`Calculated distance for "${event.name}": ${distanceFromUser.toFixed(2)}km`);
+      } else if (userLocation && !locationCoordinates) {
+        console.warn(`Cannot calculate distance for "${event.name}": location geocoding failed`);
       }
 
       return {
@@ -849,10 +864,16 @@ export function EventCompareModal({
                                 </span>
                               </div>
                             </div>
-                            {hasDistance && (
+                            {hasDistance ? (
                               <div className="text-right ml-2 flex-shrink-0">
                                 <span className="text-sm font-medium text-blue-600">
                                   {formatDistance(event.distanceFromUser)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-right ml-2 flex-shrink-0">
+                                <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
+                                  N/A
                                 </span>
                               </div>
                             )}
@@ -867,10 +888,16 @@ export function EventCompareModal({
                               {event.location}
                             </span>
                           </div>
-                          {event.distanceFromUser !== undefined && (
+                          {event.distanceFromUser !== undefined ? (
                             <div className="text-right ml-2 flex-shrink-0">
                               <span className="text-sm font-medium text-blue-600">
                                 {formatDistance(event.distanceFromUser)}
+                              </span>
+                            </div>
+                          ) : event.location && (
+                            <div className="text-right ml-2 flex-shrink-0">
+                              <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
+                                N/A
                               </span>
                             </div>
                           )}
