@@ -73,6 +73,11 @@ interface EventComparisonData {
     earliestStartTime: Date | null;
     latestEndTime: Date | null;
   };
+  ticketSaleRate?: {
+    rate: number; // percentage
+    totalTicketsSold: number;
+    totalAvailableTickets: number;
+  };
 }
 
 interface ComparisonResult {
@@ -81,6 +86,7 @@ interface ComparisonResult {
   organizerRanking: EventComparisonData[];
   showingRanking: EventComparisonData[];
   distanceRanking: EventComparisonData[];
+  ticketSaleRateRanking: EventComparisonData[];
 }
 
 // Utility functions for location and distance
@@ -378,6 +384,28 @@ export function EventCompareModal({
     }
   };
 
+  // Fetch ticket sale rate
+  const fetchTicketSaleRate = async (eventId: string): Promise<{ rate: number; totalTicketsSold: number; totalAvailableTickets: number } | undefined> => {
+    try {
+      const response = await fetch(`/api/events/${eventId}/ticket-sale-rate`);
+      if (!response.ok) {
+        return undefined;
+      }
+      const data = await response.json();
+      if (data.success && data.ticketSaleRate !== undefined) {
+        return {
+          rate: data.ticketSaleRate,
+          totalTicketsSold: data.totalTicketsSold || 0,
+          totalAvailableTickets: data.totalAvailableTickets || 0,
+        };
+      }
+      return undefined;
+    } catch (error) {
+      console.error("Error fetching ticket sale rate:", error);
+      return undefined;
+    }
+  };
+
   // Get user location
   const handleGetUserLocation = async () => {
     setIsGettingLocation(true);
@@ -421,6 +449,9 @@ export function EventCompareModal({
       if (event.organizer?.id) {
         organizerRating = await fetchOrganizerRating(event.organizer.id);
       }
+
+      // Fetch ticket sale rate
+      const ticketSaleRate = await fetchTicketSaleRate(event.id);
 
       // Calculate showing information
       const showings = event.showings || [];
@@ -473,6 +504,7 @@ export function EventCompareModal({
           earliestStartTime,
           latestEndTime,
         },
+        ticketSaleRate,
       };
     });
 
@@ -498,6 +530,12 @@ export function EventCompareModal({
       const bDistance = b.distanceFromUser ?? Infinity;
       return aDistance - bDistance;
     });
+    const ticketSaleRateRanking = [...eventData].sort((a, b) => {
+      // Sort by ticket sale rate (descending - highest rate first)
+      const aRate = a.ticketSaleRate?.rate || 0;
+      const bRate = b.ticketSaleRate?.rate || 0;
+      return bRate - aRate;
+    });
 
     return {
       events: eventData,
@@ -505,6 +543,7 @@ export function EventCompareModal({
       organizerRanking,
       showingRanking,
       distanceRanking,
+      ticketSaleRateRanking,
     };
   };
 
@@ -732,6 +771,53 @@ export function EventCompareModal({
                       </div>
                     </div>
                   ))}
+                </CardContent>
+              </Card>
+
+              {/* Ticket Sale Rate Ranking */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <TrendingUp className="h-5 w-5" />
+                    <span>Tỷ lệ bán vé</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {comparisonResult.ticketSaleRateRanking.map((event, index) => {
+                    const ticketSaleRate = event.ticketSaleRate;
+                    return (
+                      <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                            <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                          </div>
+                          {ticketSaleRate ? (
+                            <span className="text-sm font-medium flex-shrink-0 ml-2 text-purple-600">
+                              {ticketSaleRate.rate.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">N/A</span>
+                          )}
+                        </div>
+                        {ticketSaleRate && (
+                          <div className="flex items-center space-x-3 text-xs text-gray-500 pl-7">
+                            <span>
+                              {ticketSaleRate.totalTicketsSold.toLocaleString()} / {ticketSaleRate.totalAvailableTickets.toLocaleString()} vé
+                            </span>
+                            <div className="flex-1 max-w-[100px]">
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                                <div
+                                  className="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, ticketSaleRate.rate)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
 
