@@ -55,3 +55,13 @@ export async function fetchOrdersByEvent(eventId: string) {
 
   return data;
 }
+
+// Fetch rating summary for an event
+export async function fetchEventRatingSummary(eventId: string) {
+  return await organizerDashBoardService.getEventRatingSummary(eventId);
+}
+
+// Fetch list of ratings for an event
+export async function fetchEventRatings(eventId: string, limit = 100) {
+  return await organizerDashBoardService.getEventRatings(eventId, limit);
+}
