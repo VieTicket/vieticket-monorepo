@@ -12,9 +12,11 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { useLocale } from "@/providers/LocaleProvider";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
+  const { data: organizations } = authClient.useListOrganizations();
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("home");
@@ -81,7 +83,7 @@ export default function Header() {
               >
                 {item.label}
                 {isActive && (
-                  <div className="h-1 bg-yellow-400 w-full absolute bottom-[-12px] left-0" />
+                  <div className="h-1 bg-yellow-400 w-full absolute -bottom-3 left-0" />
                 )}
               </Link>
             );
@@ -116,6 +118,11 @@ export default function Header() {
                 <Star className="w-5 h-5" />
                 <span>Interested</span>
               </div>
+              {organizations && organizations.length > 0 && (
+                <div className="flex items-center">
+                  <OrgSwitcher />
+                </div>
+              )}
               <div className="flex gap-2 group items-center relative cursor-pointer hover:text-yellow-400 transition">
                 <ProfileDropdown />
               </div>

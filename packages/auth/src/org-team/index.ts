@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg/direct";
 import { organizers, user as userSchema } from "@vieticket/db/pg/schemas/users";
-import { type User } from "better-auth";
+import { APIError, type User } from "better-auth";
 import { organization } from "better-auth/plugins";
 import { eq, type InferSelectModel } from "drizzle-orm";
 import { sendOrganizationInvitationEmail } from "../emails/org-invitation";
@@ -93,10 +93,17 @@ const org_team = organization({
                 }
             }
         },
+        beforeRemoveMember: async ({ member }) => {
+            if (member.role === "owner") {
+                throw new APIError("BAD_REQUEST", {
+                    message: "Owners cannot leave the organization."
+                });
+            }
+        },
     },
     allowUserToCreateOrganization,
     sendInvitationEmail: sendOrganizationInvitationEmail,
-    requireEmailVerificationOnInvitation: true,
+    requireEmailVerificationOnInvitation: false,
 });
 
 export default org_team;

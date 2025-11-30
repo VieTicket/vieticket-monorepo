@@ -1,7 +1,7 @@
 {
   "name": "vieticket",
   "devDependencies": {
-    "prettier": "^3.5.3",
+    "prettier": "^3.7.2",
     "turbo": "^2.6.1",
     "typescript": "5.9.3"
   },
@@ -25,11 +25,11 @@
     "packages/*"
   ],
   "dependencies": {
-    "mongoose": "^8.19.2",
-    "resend": "^6.4.2"
+    "mongoose": "^8.20.1",
+    "resend": "^6.5.2"
   },
   "catalog": {
-    "better-auth": "^1.4.1",
+    "better-auth": "^1.4.3",
     "drizzle-orm": "^0.44.7",
     "typescript": "5.9.3"
   }

@@ -16,9 +16,11 @@ import {
   TicketCheck,
   LogOut,
   User,
+  Building2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -47,6 +49,7 @@ export default function Sidebar() {
     href: "/organizer/chat?recipientId=admin",
     icon: MessageCircle,
   },
+  { label: "Organization", href: "/organizer/organization", icon: Building2 },
   { label: t("Profile.profile"), href: "/profile/edit", icon: User },
   { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
 ];
@@ -139,6 +142,13 @@ export default function Sidebar() {
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
+        
+        {isOpen && (
+          <div className="mb-4 px-1">
+            <OrgSwitcher className="w-full" />
+          </div>
+        )}
+
         {/* Logo */}
         <div
           className={cn(

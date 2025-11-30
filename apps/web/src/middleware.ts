@@ -6,21 +6,21 @@ import { user, organizers, Role } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
 type PermissionMap = {
-  role: Role;
+  roles: Role[];
   endpoints: string[];
 }[];
 
 const permissionMap: PermissionMap = [
   {
-    role: "admin",
+    roles: ["admin"],
     endpoints: ["/admin/*"],
   },
   {
-    role: "organizer",
+    roles: ["organizer", "customer"],
     endpoints: ["/organizer/*", "/inspector/*", "/seat-map/*"],
   },
   {
-    role: "customer",
+    roles: ["customer"],
     endpoints: ["/orders/*", "/checkout/*"],
   },
 ];
@@ -48,6 +48,7 @@ const protectedRoutes = [
   "/api/checkout/*",
   "/api/profile/*",
   "/api/sign-cloudinary-params",
+  "/accept-invitation/*",
 ];
 
 function isPublicRoute(pathname: string): boolean {
@@ -68,15 +69,15 @@ function isProtectedRoute(pathname: string): boolean {
   });
 }
 
-function getRequiredRole(pathname: string): Role | null {
-  for (const { role, endpoints } of permissionMap) {
+function getAllowedRoles(pathname: string): Role[] | null {
+  for (const { roles, endpoints } of permissionMap) {
     for (const endpoint of endpoints) {
       if (endpoint.endsWith("/*")) {
         if (pathname.startsWith(endpoint.slice(0, -2))) {
-          return role;
+          return roles;
         }
       } else if (pathname === endpoint) {
-        return role;
+        return roles;
       }
     }
   }
@@ -114,12 +115,16 @@ export async function middleware(request: NextRequest) {
         response = NextResponse.next();
       }
       // Redirect to login for protected routes
-      else if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+      else if (isProtectedRoute(pathname) || getAllowedRoles(pathname)) {
         const loginUrl = new URL("/auth/sign-in", request.url);
         loginUrl.searchParams.set("redirectTo", request.url);
         response = NextResponse.redirect(loginUrl);
-      } else {
-        response = NextResponse.next();
+      }
+      // Redirect to login for ALL other routes (protected or role-based)
+      else {
+        const loginUrl = new URL("/auth/sign-in", request.url);
+        loginUrl.searchParams.set("redirectTo", request.url);
+        response = NextResponse.redirect(loginUrl);
       }
     } else {
       // User is authenticated - get their role from database
@@ -187,9 +192,9 @@ export async function middleware(request: NextRequest) {
         response = NextResponse.next();
       } else {
         // Check if route requires specific role
-        const requiredRole = getRequiredRole(pathname);
-        if (requiredRole) {
-          if (userData.role !== requiredRole) {
+        const allowedRoles = getAllowedRoles(pathname);
+        if (allowedRoles) {
+          if (!allowedRoles.includes(userData.role)) {
             // User doesn't have required role - redirect based on their role
             if (userData.role === "admin") {
               response = NextResponse.redirect(new URL("/admin", request.url));
@@ -208,7 +213,7 @@ export async function middleware(request: NextRequest) {
             }
           } else if (
             userData.role === "organizer" &&
-            requiredRole === "organizer"
+            allowedRoles.includes("organizer")
           ) {
             // Additional check for organizer routes - must be active
             if (!userData.organizer || !userData.organizer.isActive) {
@@ -233,7 +238,7 @@ export async function middleware(request: NextRequest) {
     console.error("Middleware error:", error);
 
     // If there's an error checking auth, redirect to login for protected routes
-    if (isProtectedRoute(pathname) || getRequiredRole(pathname)) {
+    if (isProtectedRoute(pathname) || getAllowedRoles(pathname)) {
       const loginUrl = new URL("/auth/sign-in", request.url);
       loginUrl.searchParams.set("redirectTo", request.url);
       response = NextResponse.redirect(loginUrl);

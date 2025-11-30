@@ -1,5 +1,5 @@
-import { createAccessControl } from "better-auth/plugins";
-import { defaultStatements, memberAc } from 'better-auth/plugins/organization/access'
+import { createAccessControl } from "better-auth/plugins/access";
+import { defaultStatements, ownerAc } from 'better-auth/plugins/organization/access'
 
 const statement = {
     ...defaultStatements,
@@ -14,12 +14,17 @@ const member = ac.newRole({
     seatMaps: [...statement.seatMaps] as ('read' | 'write')[],
     ticketInspection: [...statement.ticketInspection] as ('read' | 'write')[],
     seatMapTemplates: [...statement.seatMapTemplates] as ('read' | 'write')[],
-    ...memberAc.statements,
+    ac: ["read"],
 });
+
+const owner = ac.newRole({
+    ...ownerAc.statements
+})
 
 export const acAndRole = {
     ac,
     roles: {
-        member
+        member,
+        owner
     }
 } as const;
