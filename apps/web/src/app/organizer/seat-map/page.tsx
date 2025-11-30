@@ -26,7 +26,17 @@ export type SeatMapItem = {
   image?: string;
   createdBy: string;
   publicity?: "public" | "private";
+  usedByEvent?: string;
+  eventInfo?: {
+    id: string;
+    name: string;
+    startTime: Date;
+    endTime: Date;
+    location?: string;
+    status?: string;
+  };
 };
+
 type PublicSeatMapItem = {
   id: string;
   name: string;
@@ -43,7 +53,9 @@ type ViewMode = "drafts" | "templates";
 
 export default function SeatMapDirectory() {
   const [searchQuery, setSearchQuery] = useState("");
+  const [draftsSearchQuery, setDraftsSearchQuery] = useState("");
   const [seatMaps, setSeatMaps] = useState<SeatMapItem[]>([]);
+  const [allSeatMaps, setAllSeatMaps] = useState<SeatMapItem[]>([]);
   const [publicSeatMaps, setPublicSeatMaps] = useState<PublicSeatMapItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingTemplates, setIsLoadingTemplates] = useState(false);
@@ -51,11 +63,12 @@ export default function SeatMapDirectory() {
   const [publishingIds, setPublishingIds] = useState<Set<string>>(new Set());
   const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [selectedTab, setSelectedTab] = useState("all");
   const [currentView, setCurrentView] = useState<ViewMode>("drafts");
   const [templatesSearchQuery, setTemplatesSearchQuery] = useState("");
+
   const { isMobile, isLoading: deviceLoading } = useDeviceDetection();
   const router = useRouter();
+
   useEffect(() => {
     if (!deviceLoading && isMobile) {
       router.push("/organizer");
@@ -72,7 +85,11 @@ export default function SeatMapDirectory() {
       const result = await getUserSeatMapsAction();
 
       if (result.success && result.data) {
-        setSeatMaps(result.data as SeatMapItem[]);
+        setAllSeatMaps(result.data as SeatMapItem[]);
+        const draftsAndTemplates = result.data.filter(
+          (seatMap) => !seatMap.usedByEvent
+        );
+        setSeatMaps(draftsAndTemplates as SeatMapItem[]);
       } else {
         toast.error(result.error || "Failed to load seat maps");
       }
@@ -102,29 +119,22 @@ export default function SeatMapDirectory() {
     }
   };
 
-  // Handle drafts search with debouncing
+  // Handle search with debouncing
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      if (searchQuery.trim() && currentView === "drafts") {
-        handleSearch(searchQuery);
-      } else if (!searchQuery.trim() && currentView === "drafts") {
-        loadSeatMaps();
-      }
-    }, 300);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchQuery, currentView]);
-
-  // Handle templates search with debouncing
-  useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      if (currentView === "templates") {
+      if (currentView === "drafts") {
+        if (searchQuery.trim()) {
+          handleSearch(searchQuery);
+        } else {
+          loadSeatMaps();
+        }
+      } else if (currentView === "templates") {
         loadPublicSeatMaps(templatesSearchQuery || undefined);
       }
     }, 300);
 
     return () => clearTimeout(timeoutId);
-  }, [templatesSearchQuery, currentView]);
+  }, [searchQuery, templatesSearchQuery, currentView]);
 
   const handleSearch = async (query: string) => {
     try {
@@ -132,7 +142,10 @@ export default function SeatMapDirectory() {
       const result = await searchSeatMapsAction(query);
 
       if (result.success && result.data) {
-        setSeatMaps(result.data);
+        const draftsAndTemplates = result.data.filter(
+          (seatMap: SeatMapItem) => !seatMap.usedByEvent
+        );
+        setSeatMaps(draftsAndTemplates);
       } else {
         toast.error(result.error || "Failed to search seat maps");
       }
@@ -169,7 +182,7 @@ export default function SeatMapDirectory() {
       if (result.success) {
         toast.success(`Draft "${draftName}" created successfully!`);
         setCurrentView("drafts");
-        loadSeatMaps(); // Refresh drafts list
+        loadSeatMaps();
       } else {
         toast.error(result.error || "Failed to create draft");
       }
@@ -189,7 +202,7 @@ export default function SeatMapDirectory() {
 
       if (result.success) {
         toast.success("Seat map published successfully!");
-        loadSeatMaps(); // Refresh the list
+        loadSeatMaps();
       } else {
         toast.error(result.error || "Failed to publish seat map");
       }
@@ -221,7 +234,7 @@ export default function SeatMapDirectory() {
 
       if (result.success) {
         toast.success("Seat map deleted successfully!");
-        loadSeatMaps(); // Refresh the list
+        loadSeatMaps();
       } else {
         toast.error(result.error || "Failed to delete seat map");
       }
@@ -236,48 +249,20 @@ export default function SeatMapDirectory() {
       });
     }
   };
+  const filteredDrafts = seatMaps.filter((seatMap) =>
+    seatMap.name.toLowerCase().includes(draftsSearchQuery.toLowerCase())
+  );
 
-  const getRecentSeatMaps = () => {
-    return seatMaps
-      .sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      )
-      .slice(0, 3);
+  const getEventSeatMaps = () => {
+    return allSeatMaps.filter((seatMap) => seatMap.usedByEvent);
   };
-
-  const getFilteredSeatMaps = () => {
-    switch (selectedTab) {
-      case "recent":
-        return seatMaps
-          .sort(
-            (a, b) =>
-              new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-          )
-          .slice(0, 10);
-      case "starred":
-        return [];
-      default:
-        return seatMaps;
-    }
-  };
-
-  const filteredSeatMaps = getFilteredSeatMaps();
-  const recentSeatMaps = getRecentSeatMaps();
 
   const formatDate = (dateString: string | Date | undefined) => {
-    if (!dateString) {
-      return "N/A";
-    }
-
+    if (!dateString) return "N/A";
     try {
       const date =
         dateString instanceof Date ? dateString : new Date(dateString);
-
-      if (isNaN(date.getTime())) {
-        return "Invalid date";
-      }
-
+      if (isNaN(date.getTime())) return "Invalid date";
       return date.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
@@ -305,29 +290,21 @@ export default function SeatMapDirectory() {
 
   return (
     <div className="flex h-full">
-      {/* Sidebar */}
-      <Sidebar
-        currentView={currentView}
-        seatMaps={seatMaps}
-        recentSeatMaps={recentSeatMaps}
+      {/* <Sidebar
         onShowTemplates={handleShowTemplates}
         onShowDrafts={handleShowDrafts}
-        formatDate={formatDate}
-      />
+      /> */}
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {currentView === "drafts" && (
           <DraftsView
-            filteredSeatMaps={filteredSeatMaps}
+            filteredSeatMaps={filteredDrafts}
+            eventSeatMaps={getEventSeatMaps()}
             isLoading={isLoading}
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
+            draftsSearchQuery={draftsSearchQuery}
+            setDraftsSearchQuery={setDraftsSearchQuery}
             viewMode={viewMode}
             setViewMode={setViewMode}
-            selectedTab={selectedTab}
-            setSelectedTab={setSelectedTab}
-            formatDate={formatDate}
             onPublish={handlePublishSeatMap}
             onDelete={handleDeleteSeatMap}
             publishingIds={publishingIds}

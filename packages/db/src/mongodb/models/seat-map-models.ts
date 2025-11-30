@@ -178,6 +178,7 @@ export type SeatMap = {
   image: string;
   createdBy: string;
   publicity: "public" | "private";
+  usedByEvent?: string;
   draftedFrom?: string;
   originalCreator?: string;
   createdAt?: Date;

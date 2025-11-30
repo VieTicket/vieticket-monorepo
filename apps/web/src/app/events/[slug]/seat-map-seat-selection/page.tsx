@@ -259,10 +259,15 @@ export default function SeatMapSeatSelectionPage({
 
           if (recreatedShape.id === "area-mode-container-id") {
             const areaModeContainer = recreatedShape as AreaModeContainer;
+            const eventManager = getCustomerEventManager();
+            if (!eventManager) {
+              return;
+            }
             areaModeContainer.children.forEach((grid) => {
               grid.children.forEach((row) => {
                 row.children.forEach((seat) => {
-                  getCustomerEventManager()?.addShapeEvents(seat);
+                  eventManager.addShapeEvents(seat);
+                  eventManager.customerUpdateSeatVisuals(seat);
                 });
               });
             });
@@ -273,7 +278,8 @@ export default function SeatMapSeatSelectionPage({
           console.error("Failed to recreate shape:", shapeData.id, error);
         }
       }
-
+      console.log("Recreated shapes:", recreatedShapes);
+      setShapes(recreatedShapes);
       updateShapes(recreatedShapes, false, undefined, false);
       enterAreaMode();
     } catch (error) {

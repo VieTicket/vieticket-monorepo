@@ -1,6 +1,6 @@
 import * as PIXI from "pixi.js";
 import { CanvasItem, SeatShape } from "../types";
-import { stage, shapes } from "../variables";
+import { shapes, stage } from "../variables";
 import { onPanStart, onPanMove, onPanEnd } from "./pan-events";
 import { onStageWheel } from "./zoom-events";
 import { updateStageHitArea } from "../utils/stageTransform";
@@ -185,7 +185,8 @@ export class CustomerEventManager {
   }
 
   // ✅ Enhanced customer seat visuals
-  private customerUpdateSeatVisuals(seat: SeatShape, isUnavailable: boolean) {
+  public customerUpdateSeatVisuals(seat: SeatShape) {
+    console.log("Updating seat visuals for seat ID:", seat.id);
     if (!seat.seatGraphics) return;
 
     const status = this.getSeatStatus
@@ -211,26 +212,21 @@ export class CustomerEventManager {
         break;
       case "selected":
         seat.seatGraphics.stroke({
-          width: 4, // Thicker border for selected
+          width: 3, // Thicker border for selected
           color: 0x3b82f6, // Blue border
         });
-        // Add enhanced selection ring for selected seats
-        this.customerAddSelectionRing(seat);
         break;
       case "held":
         seat.seatGraphics.stroke({
           width: 2,
           color: 0xeab308, // Yellow border
         });
-        // Add pulse animation for held seats
-        this.customerAddPulseEffect(seat);
         break;
       case "sold":
         seat.seatGraphics.stroke({
           width: 2,
           color: 0xef4444, // Red border
         });
-        // Add cross-out effect for sold seats
         this.customerAddCrossOutEffect(seat);
         break;
       default:
@@ -390,33 +386,16 @@ export class CustomerEventManager {
   // ✅ Public customer methods
   public customerUpdateSeatStatus(seatId: string) {
     const seat = this.customerFindSeatById(seatId);
+    console.log("Updating status for seat ID:", seatId, seat);
     if (seat) {
-      this.customerUpdateSeatVisuals(seat, false);
+      this.customerUpdateSeatVisuals(seat);
     }
   }
 
   public customerUpdateAllSeatVisuals() {
     const seats = this.customerGetAllSeats();
     seats.forEach((seat) => {
-      this.customerUpdateSeatVisuals(seat, false);
-    });
-  }
-
-  public customerHighlightAvailableSeats() {
-    const seats = this.customerGetAllSeats();
-    seats.forEach((seat) => {
-      const status = this.getSeatStatus
-        ? this.getSeatStatus(seat.id)
-        : "available";
-      if (status === "available" && seat.seatGraphics) {
-        // Add subtle highlight to available seats
-        seat.seatGraphics.alpha = 0.8;
-        setTimeout(() => {
-          if (seat.seatGraphics) {
-            seat.seatGraphics.alpha = 1.0;
-          }
-        }, 500);
-      }
+      this.customerUpdateSeatVisuals(seat);
     });
   }
 

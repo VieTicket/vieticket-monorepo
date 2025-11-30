@@ -192,7 +192,7 @@
       "eventDetails": "Event Details",
       "seatMap": "Seat Map",
       "editEvent": "Edit Event",
-      "seatMapUpdateRequired": "⚠️ Seat Map Update Required",
+      "seatMapUpdateRequired": "Seat Map Update Required",
       "text1": "You have changed the seat map configuration. This will:",
       "text2": "Delete all existing areas and seats.",
       "text3": "Recreate the entire seat map structure.",
@@ -202,7 +202,7 @@
       "updating": "Updating...",
       "creating": "Creating...",
       "updateEvent": "Update Event",
-      "createEventt": "🎉 Create a New Event",
+      "createEventt": "Create a New Event",
       "saveandcontinue": "Save & Continue",
       "areaA": "Area A",
       "mainShowing": "Main Showing",
@@ -260,8 +260,8 @@
         "text": {
           "trigger": "✨ AI Description",
           "title": "Create Event Description with AI",
-          "description": "💡 Enter specific instructions and creative hints to generate an attractive marketing description.",
-          "eventInfoTitle": "🎯 Current event information",
+          "description": "Enter specific instructions and creative hints to generate an attractive marketing description.",
+          "eventInfoTitle": "Current event information",
           "labels": {
             "name": "Name:",
             "type": "Type:",
@@ -270,12 +270,12 @@
             "end": "End:",
             "price": "Price:"
           },
-          "promptLabel": "🎨 Creative brief for description",
-          "placeholder": "💡 Creative example:\n• Emphasize unique networking opportunities\n• Highlight guest speakers/artists\n• Create FOMO with limited tickets\n• Emphasize exclusive experiences\n• Mention early bird discounts",
+          "promptLabel": "Creative brief for description",
+          "placeholder": "Creative example:\n• Emphasize unique networking opportunities\n• Highlight guest speakers/artists\n• Create FOMO with limited tickets\n• Emphasize exclusive experiences\n• Mention early bird discounts",
           "tipTitle": "Tip:",
           "tipText": "The more specific you are, the better the AI output will match your needs.",
-          "suggestionsTitle": "🚀 Creative suggestions:",
-          "templatesTitle": "📝 Example templates (click to copy):",
+          "suggestionsTitle": "Creative suggestions:",
+          "templatesTitle": "Example templates (click to copy):",
           "templates": {
             "workshop": "Create an energetic learning event description focused on networking, expert speakers and limited tickets.",
             "workshopTitle": "Workshop/Training",
@@ -294,7 +294,7 @@
           "debugDisabled": "disabled=",
           "footer": {
             "cancel": "Cancel",
-            "generating": "🎨 Generating...",
+            "generating": "Generating...",
             "generate": "Generate Super Engaging Description"
           },
           "toasts": {
@@ -403,9 +403,9 @@
       "searchLabel": "Search",
       "searchPlaceholder": "Search by event name...",
       "allEvents": "All Events",
-      "approved": "✓ Approved",
-      "pending": "⏳ Pending",
-      "rejected": "✗ Rejected"
+      "approved": "Approved",
+      "pending": "Pending",
+      "rejected": "Rejected"
     },
     "Rating": {
       "rating": "Rating"
@@ -580,7 +580,7 @@
   },
   "about": {
     "hero": {
-      "badge": "🚀 About VieTicket",
+      "badge": "About VieTicket",
       "title": "Vietnam's Leading Event Ticketing Platform",
       "subtitle": "Connecting attendees with amazing event experiences, from music and sports to conferences and much more."
     },
@@ -603,7 +603,7 @@
       }
     },
     "mission": {
-      "badge": "🎯 Mission",
+      "badge": "Mission",
       "title": "Why was VieTicket created?",
       "content": "VieTicket was born with the mission to democratize event access in Vietnam. We believe everyone deserves great event experiences, regardless of where they are or what they do. From concerts, conferences, workshops to sporting events - everything should be easy to find, book and attend.",
       "vision": {
@@ -612,7 +612,7 @@
       }
     },
     "features": {
-      "badge": "⚡ Features",
+      "badge": "Features",
       "title": "Why choose VieTicket?",
       "list": {
         "fastBooking": {
@@ -642,7 +642,7 @@
       }
     },
     "timeline": {
-      "badge": "📈 Journey",
+      "badge": "Journey",
       "title": "VieTicket development journey",
       "events": {
         "2024": {
@@ -663,7 +663,7 @@
       }
     },
     "team": {
-      "badge": "👥 Development team",
+      "badge": "Development team",
       "title": "The people behind VieTicket",
       "subtitle": "A team passionate about technology and events, committed to creating amazing experiences for users.",
       "members": {
@@ -695,7 +695,7 @@
       }
     },
     "cta": {
-      "badge": "🚀 Join now",
+      "badge": "Join now",
       "title": "Ready to explore?",
       "subtitle": "Become part of the VieTicket community today",
       "buttons": {
@@ -706,7 +706,7 @@
   },
   "contact": {
     "hero": {
-      "badge": "📞 Contact",
+      "badge": "Contact",
       "title": "We're always ready to help you",
       "subtitle": "Have questions or need support? The VieTicket team is always ready to help you 24/7. Contact us through any of the channels below."
     },
@@ -765,7 +765,7 @@
       }
     },
     "faq": {
-      "badge": "❓ FAQ",
+      "badge": "FAQ",
       "title": "You might need to know",
       "subtitle": "The most frequently asked questions from VieTicket users",
       "items": {
@@ -791,7 +791,7 @@
       "emailSupport": "Email support"
     },
     "office": {
-      "badge": "📍 Address",
+      "badge": "Address",
       "title": "Visit our office",
       "headquarters": "VieTicket Headquarters",
       "mapPlaceholder": "Google Maps will be integrated here",

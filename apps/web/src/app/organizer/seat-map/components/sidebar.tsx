@@ -11,22 +11,11 @@ import { SeatMapItem } from "../page";
 type ViewMode = "welcome" | "drafts" | "templates";
 
 interface SidebarProps {
-  currentView: ViewMode;
-  seatMaps: SeatMapItem[];
-  recentSeatMaps: SeatMapItem[];
   onShowTemplates: () => void;
   onShowDrafts: () => void;
-  formatDate: (date: Date) => string;
 }
 
-export function Sidebar({
-  currentView,
-  seatMaps,
-  recentSeatMaps,
-  onShowTemplates,
-  onShowDrafts,
-  formatDate,
-}: SidebarProps) {
+export function Sidebar({ onShowTemplates, onShowDrafts }: SidebarProps) {
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
 
@@ -56,13 +45,13 @@ export function Sidebar({
   };
 
   return (
-    <div className="w-54 md:w-50 lg:w-80 bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800 flex flex-col">
-      <div className="p-3 md:p-4 dark:border-gray-800">
+    <div className="min-w-[216px] bg-gray-50 dark:bg-gray-900 border-r dark:border-gray-800 flex flex-col">
+      <div className="dark:border-gray-800">
         <div className="space-y-2">
           <button
             onClick={handleCreateNewSeatMap}
             disabled={isCreating}
-            className="flex items-center gap-2 md:gap-3 p-2 md:p-3 rounded-lg bg-yellow-300 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-primary transition-colors group w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            className="flex items-center gap-2 md:gap-3 p-2 md:p-3 bg-yellow-300 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-primary transition-colors group w-full text-left disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <div>
               <span className="font-medium text-sm md:text-base">

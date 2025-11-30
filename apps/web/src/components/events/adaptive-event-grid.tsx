@@ -44,7 +44,7 @@ export function AdaptiveEventGrid({
   const t = useTranslations("home");
   const { userBehavior } = useUserTracking();
 
-  console.log("🚀 [AdaptiveGrid] Component rendered with:", {
+  console.log("[AdaptiveGrid] Component rendered with:", {
     initialEventsCount: initialEvents.length,
     userBehavior: userBehavior,
     isExpanded,
@@ -70,7 +70,7 @@ export function AdaptiveEventGrid({
 
   // Auto-expand for users with behavior data
   useEffect(() => {
-    console.log("🔄 [AdaptiveGrid] useEffect triggered with:", {
+    console.log("[AdaptiveGrid] useEffect triggered with:", {
       hasSignificantBehavior,
       isExpanded,
       hasMore,
@@ -107,7 +107,7 @@ export function AdaptiveEventGrid({
   const handleExpand = async () => {
     if (isLoading) return;
 
-    console.log("🔄 [AdaptiveGrid] Expanding event list...");
+    console.log("[AdaptiveGrid] Expanding event list...");
     setIsLoading(true);
     setIsExpanded(true);
 
@@ -122,9 +122,7 @@ export function AdaptiveEventGrid({
         q: "",
       });
 
-      console.log(
-        `🎯 [AdaptiveGrid] Loaded ${result.events.length} total events`
-      );
+      console.log(`[AdaptiveGrid] Loaded ${result.events.length} total events`);
       setEvents(result.events);
       setHasMore(result.hasMore);
     } catch (error) {
@@ -156,7 +154,7 @@ export function AdaptiveEventGrid({
           !events.some((existingEvent) => existingEvent.id === newEvent.id)
       );
 
-      console.log(`🔄 [AdaptiveGrid] Loaded ${newEvents.length} more events`);
+      console.log(`[AdaptiveGrid] Loaded ${newEvents.length} more events`);
       setEvents((prev) => [...prev, ...newEvents]);
       setHasMore(result.hasMore);
     } catch (error) {

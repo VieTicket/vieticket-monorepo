@@ -11,6 +11,7 @@ import {
 } from "@vieticket/db/mongo/models/seat-map";
 import { ensureMongoConnection } from "@vieticket/db/mongo";
 import { v4 as uuidv4 } from "uuid";
+import { Event } from "@vieticket/db/pg/models/events";
 
 /**
  * Retrieves a seat map by its ID.
@@ -32,7 +33,7 @@ export async function findSeatMapsByCreator(
   createdBy: string
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  const docs = await SeatMapModel.find({ createdBy, usedByEvent: false })
+  const docs = await SeatMapModel.find({ createdBy })
     .sort({ createdAt: -1 })
     .exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
@@ -134,7 +135,7 @@ export async function deleteSeatMapById(id: string): Promise<SeatMap | null> {
 
 export async function duplicateSeatMapForEvent(
   originalSeatMapId: string,
-  eventName: string,
+  event: Event,
   userId: string
 ): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
   try {
@@ -231,8 +232,8 @@ export async function duplicateSeatMapForEvent(
       };
     });
 
-    const timestamp = new Date().toISOString().slice(0, 16).replace("T", "_");
-    const duplicatedName = `${originalSeatMap.name}_${eventName}_${timestamp}`;
+    const timestamp = new Date().getDate();
+    const duplicatedName = `${originalSeatMap.name}_${event.name}_${timestamp}`;
 
     const duplicatedSeatMap = new SeatMapModel({
       name: duplicatedName,
@@ -240,7 +241,7 @@ export async function duplicateSeatMapForEvent(
       image: originalSeatMap.image,
       createdBy: userId,
       publicity: "private",
-      usedByEvent: true,
+      usedByEvent: event.id,
       draftedFrom: originalSeatMap._id,
       originalCreator: originalSeatMap.createdBy,
     });
@@ -374,7 +375,7 @@ export async function findSeatMapWithShapesById(
 
 export async function findSeatMapsUsedByEvents(): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  const docs = await SeatMapModel.find({ usedByEvent: true })
+  const docs = await SeatMapModel.find({ usedByEvent: { $ne: null } })
     .sort({ createdAt: -1 })
     .exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
@@ -382,7 +383,7 @@ export async function findSeatMapsUsedByEvents(): Promise<SeatMap[]> {
 
 export async function findSeatMapTemplates(): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  const docs = await SeatMapModel.find({ usedByEvent: false })
+  const docs = await SeatMapModel.find({ usedByEvent: null })
     .sort({ createdAt: -1 })
     .exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
