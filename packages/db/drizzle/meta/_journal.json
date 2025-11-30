@@ -8,6 +8,13 @@
       "when": 1753340720384,
       "tag": "0000_secret_night_nurse",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1764488214260,
+      "tag": "0001_fresh_wild_pack",
+      "breakpoints": true
     }
   ]
 }

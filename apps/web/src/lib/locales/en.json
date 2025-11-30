@@ -522,6 +522,7 @@
         "organizerName": "Enter organizer name",
         "website": "https://example.com",
         "address": "Enter address",
+        "taxCode": "Enter tax code",
         "foundedDate": "YYYY-MM-DD",
         "organizerType": "e.g. Entertainment, Cultural"
       },
@@ -536,7 +537,8 @@
         "website": "Website:",
         "address": "Address:",
         "foundedDate": "Founded Date:",
-        "organizerType": "Organizer Type:"
+        "organizerType": "Organizer Type:",
+        "taxCode": "Tax Code:"
       },
       "buttons": {
         "submitForApproval": "Submit for Approval",

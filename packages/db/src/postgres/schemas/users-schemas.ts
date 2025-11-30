@@ -110,6 +110,7 @@ export const organizers = pgTable("organizers", {
   website: varchar("website", { length: 255 }),
   isActive: boolean("is_active").default(false),
   address: varchar("address", { length: 255 }),
+  taxCode: varchar("tax_code", { length: 50 }),
   organizerType: varchar("organizer_type", { length: 64 }),
   rejectionReason: text("rejection_reason"),
   rejectionSeen: boolean("rejection_seen").default(false),

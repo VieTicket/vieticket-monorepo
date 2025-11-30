@@ -522,6 +522,7 @@
         "organizerName": "Nhập tên nhà tổ chức",
         "website": "https://example.com",
         "address": "Nhập địa chỉ",
+        "taxCode": "Mã số thuế",
         "foundedDate": "YYYY-MM-DD",
         "organizerType": "vd. Giải trí, Văn hóa"
       },
@@ -536,7 +537,8 @@
         "website": "Website:",
         "address": "Địa chỉ:",
         "foundedDate": "Ngày thành lập:",
-        "organizerType": "Loại nhà tổ chức:"
+        "organizerType": "Loại nhà tổ chức:",
+        "taxCode": "Mã số thuế:"
       },
       "buttons": {
         "submitForApproval": "Gửi yêu cầu phê duyệt",
