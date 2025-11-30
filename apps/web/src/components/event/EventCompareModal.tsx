@@ -73,17 +73,59 @@ export function EventCompareModal({
 }: EventCompareModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchEvent[]>([]);
+  const [suggestedEvents, setSuggestedEvents] = useState<SearchEvent[]>([]);
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Load suggested events when modal opens and search query is empty
+  const loadSuggestedEvents = useCallback(async () => {
+    setIsLoadingSuggestions(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/events?limit=10&page=1`);
+      if (!response.ok) {
+        throw new Error('Failed to load suggested events');
+      }
+      const data = await response.json();
+      
+      // Transform events to match SearchEvent interface and exclude current event
+      const events: SearchEvent[] = (data.events || [])
+        .filter((event: any) => event.id !== currentEvent.id) // Exclude current event
+        .map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          location: event.location || "",
+          bannerUrl: event.bannerUrl,
+          posterUrl: event.posterUrl,
+          type: event.type || "",
+          typicalTicketPrice: event.typicalTicketPrice || 0,
+          organizer: event.organizer ? {
+            name: event.organizer.name || "",
+            organizerType: event.organizer.organizerType || ""
+          } : undefined,
+        }));
+      
+      setSuggestedEvents(events);
+    } catch (err) {
+      console.error("Error loading suggested events:", err);
+      setSuggestedEvents([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [currentEvent.id]);
 
   // Search events with debounce
   const searchEvents = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
+      // Load suggested events when search query is cleared
+      loadSuggestedEvents();
       return;
     }
 
@@ -96,14 +138,16 @@ export function EventCompareModal({
         throw new Error('Failed to search events');
       }
       const data = await response.json();
-      setSearchResults(data.events || []);
+      // Filter out current event from search results
+      const filteredEvents = (data.events || []).filter((event: SearchEvent) => event.id !== currentEvent.id);
+      setSearchResults(filteredEvents);
     } catch (err) {
       setError("Có lỗi xảy ra khi tìm kiếm sự kiện");
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [loadSuggestedEvents, currentEvent.id]);
 
   // Handle search input with debounce
   const handleSearchChange = (value: string) => {
@@ -184,6 +228,13 @@ export function EventCompareModal({
       setSearchTimeout(null);
     }
   };
+
+  // Load suggested events when modal opens
+  useEffect(() => {
+    if (isOpen && !searchQuery.trim()) {
+      loadSuggestedEvents();
+    }
+  }, [isOpen, loadSuggestedEvents, searchQuery]);
 
   const handleClose = () => {
     resetModal();
@@ -320,17 +371,22 @@ export function EventCompareModal({
           {isSearching && (
             <p className="text-sm text-gray-500">Đang tìm kiếm...</p>
           )}
+          {isLoadingSuggestions && !searchQuery.trim() && (
+            <p className="text-sm text-gray-500">Đang tải sự kiện gợi ý...</p>
+          )}
           {error && (
             <p className="text-red-500 text-sm">{error}</p>
           )}
         </div>
 
-        {/* Search Results */}
-        {searchResults.length > 0 && (
+        {/* Search Results or Suggested Events */}
+        {(searchQuery.trim() ? searchResults.length > 0 : suggestedEvents.length > 0) && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Kết quả tìm kiếm</h3>
+            <h3 className="text-sm font-medium">
+              {searchQuery.trim() ? "Kết quả tìm kiếm" : "Sự kiện gợi ý"}
+            </h3>
             <div className="max-h-60 overflow-y-auto space-y-2">
-              {searchResults.map((event) => (
+              {(searchQuery.trim() ? searchResults : suggestedEvents).map((event) => (
                 <div
                   key={event.id}
                   className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -389,7 +445,7 @@ export function EventCompareModal({
               <h3 className="font-semibold text-green-900 mb-2">Sự kiện đã chọn để so sánh</h3>
               <div className="space-y-2">
                 {Array.from(selectedEvents).map((eventId) => {
-                  const event = searchResults.find(e => e.id === eventId);
+                  const event = searchResults.find(e => e.id === eventId) || suggestedEvents.find(e => e.id === eventId);
                   if (!event) return null;
                   return (
                     <div key={eventId} className="flex items-center space-x-2">
@@ -531,7 +587,11 @@ export function EventCompareModal({
         )}
 
         {/* No comparison results yet */}
-        {!comparisonResult && searchResults.length === 0 && (
+        {!comparisonResult && 
+         !isLoadingSuggestions && 
+         searchResults.length === 0 && 
+         suggestedEvents.length === 0 && 
+         !searchQuery.trim() && (
           <div className="text-center py-8 text-gray-500">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nhập tên sự kiện để tìm kiếm và so sánh</p>
