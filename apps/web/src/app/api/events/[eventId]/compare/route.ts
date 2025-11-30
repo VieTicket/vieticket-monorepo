@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { fetchEventById } from "@/lib/services/eventService";
+import { getEventById } from "@/lib/services/eventService";
 import { authorise } from "@/lib/auth/authorise";
 
 export async function POST(
@@ -22,8 +22,8 @@ export async function POST(
 
     // Fetch both events
     const [currentEvent, compareEvent] = await Promise.all([
-      fetchEventById(eventId),
-      fetchEventById(compareEventId),
+      getEventById(eventId),
+      getEventById(compareEventId),
     ]);
 
     // Perform comparison

@@ -8,6 +8,7 @@ import {
   getTotalAvailableSeatsByEvent,
   getOrdersByEvent,
 } from "@/lib/queries/organizer-dashboard";
+import { getEventRatingSummary, listEventRatings } from "@vieticket/repos/ratings";
 
 export const organizerDashBoardService = {
   async getRevenueOverTime(organizerId: string) {
@@ -36,5 +37,11 @@ export const organizerDashBoardService = {
   },
   async getOrdersByEvent(eventId: string) {
     return await getOrdersByEvent(eventId);
+  },
+  async getEventRatingSummary(eventId: string) {
+    return await getEventRatingSummary(eventId);
+  },
+  async getEventRatings(eventId: string, limit = 100) {
+    return await listEventRatings(eventId, limit);
   },
 };
