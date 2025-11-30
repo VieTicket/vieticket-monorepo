@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Wallet, Ticket, DollarSign, Star } from "lucide-react";
+import { Wallet, Ticket, Star } from "lucide-react";
 import Link from "next/link";
 import {
   ResponsiveContainer,
@@ -153,10 +153,6 @@ export function DashboardOverview({
     return ticketTypeRevenue.reduce((sum, item) => sum + item.ticketsSold, 0);
   }, [ticketTypeRevenue]);
 
-  const averageTicketPrice = useMemo(() => {
-    return totalTicketsSold > 0 ? totalRevenue / totalTicketsSold : 0;
-  }, [totalRevenue, totalTicketsSold]);
-
   // Calculate remaining tickets
   const remainingTickets = useMemo(() => {
     return Math.max(0, totalAvailableTickets - totalTicketsSold);
@@ -260,7 +256,7 @@ export function DashboardOverview({
       </h1>
 
       {/* Overview metrics */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5 mb-8">
+      <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
@@ -320,23 +316,6 @@ export function DashboardOverview({
                 style={{ width: `${ticketSoldPercentage}%` }}
               ></div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-              Average Ticket Price
-            </CardTitle>
-            <DollarSign className="h-5 w-5 text-yellow-500 dark:text-yellow-400" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
-              {formatCurrencyVND(averageTicketPrice)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Revenue / Tickets sold
-            </p>
           </CardContent>
         </Card>
 
