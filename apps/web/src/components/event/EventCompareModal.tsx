@@ -20,7 +20,10 @@ import {
   Search,
   X,
   Plus,
-  Check
+  Check,
+  Film,
+  Navigation,
+  Loader2
 } from "lucide-react";
 import { EventFull } from "@vieticket/db/pg/schema";
 
@@ -45,11 +48,18 @@ interface SearchEvent {
   };
 }
 
+interface LocationCoordinates {
+  lat: number;
+  lng: number;
+}
+
 interface EventComparisonData {
   id: string;
   name: string;
   price: { min: number; max: number; avg: number };
   location: string;
+  locationCoordinates?: LocationCoordinates;
+  distanceFromUser?: number; // in kilometers
   organizer: { 
     id: string;
     name: string; 
@@ -57,13 +67,90 @@ interface EventComparisonData {
     rating?: { average: number; count: number };
   };
   category: string;
+  showings: {
+    total: number;
+    active: number;
+    earliestStartTime: Date | null;
+    latestEndTime: Date | null;
+  };
 }
 
 interface ComparisonResult {
   events: EventComparisonData[];
   priceRanking: EventComparisonData[];
   organizerRanking: EventComparisonData[];
+  showingRanking: EventComparisonData[];
+  distanceRanking: EventComparisonData[];
 }
+
+// Utility functions for location and distance
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+};
+
+const geocodeAddress = async (address: string): Promise<LocationCoordinates | null> => {
+  if (!address) return null;
+  
+  try {
+    // Use OpenStreetMap Nominatim API (free, no API key required)
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'VieTicket/1.0' // Required by Nominatim
+        }
+      }
+    );
+    
+    if (!response.ok) return null;
+    
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error("Error geocoding address:", error);
+    return null;
+  }
+};
+
+const getUserLocation = (): Promise<LocationCoordinates> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        reject(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+};
 
 export function EventCompareModal({ 
   isOpen, 
@@ -81,6 +168,9 @@ export function EventCompareModal({
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
 
   // Load suggested events when modal opens and search query is empty
   const loadSuggestedEvents = useCallback(async () => {
@@ -236,6 +326,14 @@ export function EventCompareModal({
     }
   }, [isOpen, loadSuggestedEvents, searchQuery]);
 
+  // Request user location when modal opens (optional)
+  useEffect(() => {
+    if (isOpen && !userLocation && !locationPermissionDenied) {
+      // Don't auto-request, let user click button instead
+      // This respects user privacy better
+    }
+  }, [isOpen, userLocation, locationPermissionDenied]);
+
   const handleClose = () => {
     resetModal();
     onClose();
@@ -280,6 +378,36 @@ export function EventCompareModal({
     }
   };
 
+  // Get user location
+  const handleGetUserLocation = async () => {
+    setIsGettingLocation(true);
+    setLocationPermissionDenied(false);
+    setError(null);
+    
+    try {
+      const location = await getUserLocation();
+      setUserLocation(location);
+      
+      // Auto re-compare if there are selected events and comparison result exists
+      if (selectedEvents.size > 0 && comparisonResult) {
+        // Trigger re-comparison with new location
+        setTimeout(() => {
+          handleCompare();
+        }, 500);
+      }
+    } catch (error: any) {
+      console.error("Error getting user location:", error);
+      if (error.code === 1) {
+        setLocationPermissionDenied(true);
+        setError("Quyền truy cập vị trí bị từ chối. Vui lòng cho phép truy cập vị trí để tính khoảng cách.");
+      } else {
+        setError("Không thể lấy vị trí của bạn. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
   const compareMultipleEvents = async (events: EventFull[]): Promise<ComparisonResult> => {
     // Convert events to comparison data and fetch organizer ratings
     const eventDataPromises = events.map(async (event) => {
@@ -294,11 +422,44 @@ export function EventCompareModal({
         organizerRating = await fetchOrganizerRating(event.organizer.id);
       }
 
+      // Calculate showing information
+      const showings = event.showings || [];
+      const activeShowings = showings.filter(s => s?.isActive !== false);
+      
+      // Get valid start times
+      const startTimes = showings
+        .map(s => s?.startTime ? new Date(s.startTime).getTime() : null)
+        .filter((time): time is number => time !== null && !isNaN(time));
+      
+      // Get valid end times
+      const endTimes = showings
+        .map(s => s?.endTime ? new Date(s.endTime).getTime() : null)
+        .filter((time): time is number => time !== null && !isNaN(time));
+      
+      const earliestStartTime = startTimes.length > 0 ? new Date(Math.min(...startTimes)) : null;
+      const latestEndTime = endTimes.length > 0 ? new Date(Math.max(...endTimes)) : null;
+
+      // Geocode event location
+      const locationCoordinates = await geocodeAddress(event.location || "");
+      
+      // Calculate distance from user location if available
+      let distanceFromUser: number | undefined;
+      if (userLocation && locationCoordinates) {
+        distanceFromUser = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          locationCoordinates.lat,
+          locationCoordinates.lng
+        );
+      }
+
       return {
         id: event.id,
         name: event.name,
         price: { min: minPrice, max: maxPrice, avg: avgPrice },
         location: event.location || "Không có thông tin",
+        locationCoordinates: locationCoordinates || undefined,
+        distanceFromUser,
         organizer: {
           id: event.organizer?.id || "",
           name: event.organizer?.name || "Không có thông tin",
@@ -306,6 +467,12 @@ export function EventCompareModal({
           rating: organizerRating,
         },
         category: event.type || "Không có thông tin",
+        showings: {
+          total: showings.length,
+          active: activeShowings.length,
+          earliestStartTime,
+          latestEndTime,
+        },
       };
     });
 
@@ -318,11 +485,26 @@ export function EventCompareModal({
       const bRating = b.organizer.rating?.average || 0;
       return bRating - aRating; // Higher rating first
     });
+    const showingRanking = [...eventData].sort((a, b) => {
+      // Sort by total number of showings (descending), then by active showings
+      if (b.showings.total !== a.showings.total) {
+        return b.showings.total - a.showings.total;
+      }
+      return b.showings.active - a.showings.active;
+    });
+    const distanceRanking = [...eventData].sort((a, b) => {
+      // Sort by distance (ascending - closest first)
+      const aDistance = a.distanceFromUser ?? Infinity;
+      const bDistance = b.distanceFromUser ?? Infinity;
+      return aDistance - bDistance;
+    });
 
     return {
       events: eventData,
       priceRanking,
       organizerRanking,
+      showingRanking,
+      distanceRanking,
     };
   };
 
@@ -333,6 +515,25 @@ export function EventCompareModal({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Không có";
+    return new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(date));
+  };
+
+  const formatDistance = (distance: number | undefined) => {
+    if (distance === undefined || distance === null) return "Không có";
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
   };
 
 
@@ -357,7 +558,34 @@ export function EventCompareModal({
 
         {/* Search Input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Tìm kiếm sự kiện để so sánh</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Tìm kiếm sự kiện để so sánh</label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGetUserLocation}
+              disabled={isGettingLocation || !!userLocation}
+              className="text-xs"
+            >
+              {isGettingLocation ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Đang lấy vị trí...
+                </>
+              ) : userLocation ? (
+                <>
+                  <Navigation className="h-3 w-3 mr-1" />
+                  Đã có vị trí
+                </>
+              ) : (
+                <>
+                  <Navigation className="h-3 w-3 mr-1" />
+                  Lấy vị trí
+                </>
+              )}
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -368,13 +596,24 @@ export function EventCompareModal({
               className="pl-10"
             />
           </div>
+          {userLocation && (
+            <p className="text-xs text-green-600 flex items-center">
+              <Navigation className="h-3 w-3 mr-1" />
+              Đã lấy vị trí của bạn. Khoảng cách sẽ được tính khi so sánh.
+            </p>
+          )}
+          {locationPermissionDenied && (
+            <p className="text-xs text-amber-600">
+              Quyền truy cập vị trí bị từ chối. Không thể tính khoảng cách.
+            </p>
+          )}
           {isSearching && (
             <p className="text-sm text-gray-500">Đang tìm kiếm...</p>
           )}
           {isLoadingSuggestions && !searchQuery.trim() && (
             <p className="text-sm text-gray-500">Đang tải sự kiện gợi ý...</p>
           )}
-          {error && (
+          {error && !locationPermissionDenied && (
             <p className="text-red-500 text-sm">{error}</p>
           )}
         </div>
@@ -501,10 +740,19 @@ export function EventCompareModal({
                 <CardContent className="space-y-2">
                   {comparisonResult.events.map((event) => (
                     <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
-                      <span className="text-sm text-gray-600 truncate max-w-32" title={event.location}>
-                        {event.location}
-                      </span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
+                        <span className="text-xs text-gray-500 truncate block" title={event.location}>
+                          {event.location}
+                        </span>
+                      </div>
+                      {event.distanceFromUser !== undefined && (
+                        <div className="text-right ml-2 flex-shrink-0">
+                          <span className="text-sm font-medium text-blue-600">
+                            {formatDistance(event.distanceFromUser)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </CardContent>
@@ -575,6 +823,118 @@ export function EventCompareModal({
                   ))}
                 </CardContent>
               </Card>
+
+              {/* Distance Ranking */}
+              {userLocation && comparisonResult.distanceRanking.some(e => e.distanceFromUser !== undefined) && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center space-x-2 text-lg">
+                      <Navigation className="h-5 w-5" />
+                      <span>Xếp hạng khoảng cách</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {comparisonResult.distanceRanking
+                      .filter(event => event.distanceFromUser !== undefined)
+                      .map((event, index) => (
+                        <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                          <div className="flex items-center space-x-2">
+                            <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
+                            <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-sm font-medium text-blue-600">
+                              {formatDistance(event.distanceFromUser)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+
+            {/* Showing Comparison Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center space-x-2">
+                <Film className="h-5 w-5" />
+                <span>So sánh xuất chiếu</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Showing Ranking */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center space-x-2 text-lg">
+                      <Film className="h-5 w-5" />
+                      <span>Xếp hạng số lượng xuất chiếu</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {comparisonResult.showingRanking.map((event, index) => (
+                      <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
+                          <div>
+                            <p className="text-sm font-medium truncate" title={event.name}>{event.name}</p>
+                            <p className="text-xs text-gray-500">
+                              {event.showings.active} / {event.showings.total} xuất chiếu
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <span className="text-sm font-medium">
+                            {event.showings.total} xuất
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+
+                {/* Showing Details */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center space-x-2 text-lg">
+                      <Calendar className="h-5 w-5" />
+                      <span>Chi tiết xuất chiếu</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {comparisonResult.events.map((event) => (
+                      <div key={event.id} className="p-3 rounded bg-gray-50 space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-sm font-medium truncate flex-1" title={event.name}>
+                            {event.name}
+                          </span>
+                        </div>
+                        <div className="space-y-1 text-xs text-gray-600">
+                          <div className="flex justify-between">
+                            <span>Tổng số xuất:</span>
+                            <span className="font-medium">{event.showings.total}</span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Xuất đang hoạt động:</span>
+                            <span className="font-medium text-green-600">{event.showings.active}</span>
+                          </div>
+                          {event.showings.earliestStartTime && (
+                            <div className="flex justify-between">
+                              <span>Xuất sớm nhất:</span>
+                              <span className="font-medium">{formatDate(event.showings.earliestStartTime)}</span>
+                            </div>
+                          )}
+                          {event.showings.latestEndTime && (
+                            <div className="flex justify-between">
+                              <span>Xuất muộn nhất:</span>
+                              <span className="font-medium">{formatDate(event.showings.latestEndTime)}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Action Buttons */}
