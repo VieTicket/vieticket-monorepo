@@ -143,9 +143,6 @@ export const createSVG = (
 
     const processedSVG = preprocessSVGContent(svgContent);
 
-    console.log("Original SVG:", svgContent);
-    console.log("Processed SVG:", processedSVG);
-
     graphics.svg(processedSVG);
 
     const bounds = graphics.getLocalBounds();

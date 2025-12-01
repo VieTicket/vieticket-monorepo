@@ -198,9 +198,6 @@ export const cleanupEmptyGrids = (): void => {
 /**
  * Create seat grid (updated for new structure)
  */
-/**
- * Create seat grid (updated for new structure) - FIXED positioning
- */
 export const createSeatGrid = (
   startX: number,
   startY: number,

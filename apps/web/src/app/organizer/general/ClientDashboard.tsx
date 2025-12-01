@@ -98,11 +98,11 @@ export default function OrganizerDashboardModern({
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length && label) {
       const formattedDate = new Date(label).toLocaleDateString("vi-VN", {
-        day: "2-digit", 
+        day: "2-digit",
         month: "2-digit",
         year: "2-digit",
       });
-      
+
       return (
         <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
           <div className="flex flex-col space-y-1 text-center">
@@ -123,7 +123,7 @@ export default function OrganizerDashboardModern({
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0].payload;
-      
+
       return (
         <div className="rounded-lg border bg-background p-1.5 sm:p-2 shadow-lg max-w-[200px] sm:max-w-[250px] mx-auto">
           <div className="flex flex-col space-y-1 text-center">
@@ -134,7 +134,15 @@ export default function OrganizerDashboardModern({
               {formatCurrencyVND(data.total)}
             </span>
             <span className="text-[0.60rem] text-muted-foreground">
-              {((data.total / revenueDistribution.reduce((sum, item) => sum + item.total, 0)) * 100).toFixed(1)}%
+              {(
+                (data.total /
+                  revenueDistribution.reduce(
+                    (sum, item) => sum + item.total,
+                    0
+                  )) *
+                100
+              ).toFixed(1)}
+              %
             </span>
           </div>
         </div>
@@ -144,16 +152,6 @@ export default function OrganizerDashboardModern({
     return null;
   };
 
-  useEffect(() => {
-    console.log({
-      totalRevenue,
-      totalEvents,
-      totalTicketsSold,
-    });
-    console.log('Revenue Distribution Data:', revenueDistribution);
-    console.log('Revenue Over Time Data:', revenueOverTime);
-    console.log('Top Events Data:', topEvents);
-  }, [totalRevenue, totalEvents, totalTicketsSold, revenueDistribution, revenueOverTime, topEvents]);
   // Generate dynamic color array
   const generateColors = (count: number): string[] => {
     const colors: string[] = [];
@@ -227,7 +225,7 @@ export default function OrganizerDashboardModern({
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
               <CardTitle className="text-xs sm:text-sm font-medium">
-               {t("totalRevenue")}
+                {t("totalRevenue")}
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -291,8 +289,12 @@ export default function OrganizerDashboardModern({
             <CardHeader className="px-3 sm:px-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:justify-between lg:items-center">
                 <div>
-                  <CardTitle className="text-sm sm:text-base">{t("revenueFluctuation")}</CardTitle>
-                  <CardDescription className="text-xs sm:text-sm">{t("revenueOverTime")}</CardDescription>
+                  <CardTitle className="text-sm sm:text-base">
+                    {t("revenueFluctuation")}
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    {t("revenueOverTime")}
+                  </CardDescription>
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
                   <select
@@ -380,8 +382,12 @@ export default function OrganizerDashboardModern({
 
           <Card>
             <CardHeader className="px-3 sm:px-6">
-              <CardTitle className="text-sm sm:text-base">{t("revenueStructure")}</CardTitle>
-              <CardDescription className="text-xs sm:text-sm">{t("revenueDistributionByEvent")}</CardDescription>
+              <CardTitle className="text-sm sm:text-base">
+                {t("revenueStructure")}
+              </CardTitle>
+              <CardDescription className="text-xs sm:text-sm">
+                {t("revenueDistributionByEvent")}
+              </CardDescription>
             </CardHeader>
             <CardContent className="h-[250px] sm:h-[350px] w-full p-0 flex flex-col items-center justify-center">
               {revenueDistribution && revenueDistribution.length > 0 ? (
@@ -400,7 +406,10 @@ export default function OrganizerDashboardModern({
                         paddingAngle={5}
                       >
                         {revenueDistribution.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={dynamicColors[index]} />
+                          <Cell
+                            key={`cell-${index}`}
+                            fill={dynamicColors[index]}
+                          />
                         ))}
                       </Pie>
                       <Tooltip content={<CustomPieTooltip />} />
@@ -438,23 +447,36 @@ export default function OrganizerDashboardModern({
         {/* --- Top Events Table --- */}
         <Card>
           <CardHeader className="px-3 sm:px-6">
-            <CardTitle className="text-sm sm:text-base">{t("topEventsByRevenue")}</CardTitle>
+            <CardTitle className="text-sm sm:text-base">
+              {t("topEventsByRevenue")}
+            </CardTitle>
           </CardHeader>
           <CardContent className="overflow-x-auto px-3 sm:px-6">
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="text-xs sm:text-sm">{t("event")}</TableHead>
-                  <TableHead className="text-center text-xs sm:text-sm">{t("status")}</TableHead>
-                  <TableHead className="text-center text-xs sm:text-sm hidden sm:table-cell">{t("ticketsSold")}</TableHead>
-                  <TableHead className="text-right text-xs sm:text-sm">{t("revenue")}</TableHead>
+                  <TableHead className="text-xs sm:text-sm">
+                    {t("event")}
+                  </TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm">
+                    {t("status")}
+                  </TableHead>
+                  <TableHead className="text-center text-xs sm:text-sm hidden sm:table-cell">
+                    {t("ticketsSold")}
+                  </TableHead>
+                  <TableHead className="text-right text-xs sm:text-sm">
+                    {t("revenue")}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {topEvents.map((event, index) => (
                   <TableRow key={event.eventId}>
                     <TableCell className="py-2 sm:py-3">
-                      <div className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none" title={event.eventName}>
+                      <div
+                        className="font-medium text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none"
+                        title={event.eventName}
+                      >
                         {event.eventName}
                       </div>
                       <div className="hidden text-xs text-muted-foreground lg:block">
@@ -465,7 +487,10 @@ export default function OrganizerDashboardModern({
                       </div>
                     </TableCell>
                     <TableCell className="text-center py-2 sm:py-3">
-                      <Badge variant={index < 2 ? "default" : "secondary"} className="text-xs">
+                      <Badge
+                        variant={index < 2 ? "default" : "secondary"}
+                        className="text-xs"
+                      >
                         {index < 2 ? "Hot" : "Stable"}
                       </Badge>
                     </TableCell>

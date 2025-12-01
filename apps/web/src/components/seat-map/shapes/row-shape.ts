@@ -388,7 +388,7 @@ export const updateSeatLabelNumberingInRow = (
       return a.x - b.x;
     }
   });
-  console.log(sortedSeats);
+
   sortedSeats.forEach((seat, index) => {
     if (numberingStyle === "numerical") {
       seat.name = (index + 1).toString();
@@ -509,7 +509,7 @@ export const handleRowsLabelPlacementChange = (
       },
     },
   };
-  console.log(beforeRows, grid.children);
+
   const action = useSeatMapStore.getState()._saveToHistory(
     {
       shapes: beforeRows,
@@ -567,7 +567,7 @@ export const handleRowLabelPlacementChange = (
       },
     },
   };
-  console.log(beforeRow, row);
+
   const action = useSeatMapStore.getState()._saveToHistory(
     {
       shapes: [beforeRow],

@@ -91,7 +91,7 @@ export const getRevenueOverTimeByEvent = async (eventId: string) => {
   const result = await db
     .select({
       date: sql<string>`DATE_TRUNC('day', ${orders.orderDate})`,
-      total: sql<number>`SUM(${orders.totalAmount})`,
+      total: sql<number>`SUM(${areas.price})`, // Adjusted logic to sum areas.price
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
@@ -101,7 +101,7 @@ export const getRevenueOverTimeByEvent = async (eventId: string) => {
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(and(eq(orders.status, "paid"), eq(events.id, eventId)))
     .groupBy(sql`DATE_TRUNC('day', ${orders.orderDate})`)
-    .orderBy(sql`DATE_TRUNC('day', ${orders.orderDate})`);
+    .orderBy(sql`DATE_TRUNC('day', ${orders.orderDate}) ASC`); // Ensure ascending order
 
   return result.map((row) => ({
     ...row,
@@ -167,7 +167,7 @@ export const getTotalAvailableSeatsByEvent = async (eventId: string) => {
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(eq(events.id, eventId));
-
+  console.log("total ticket sold", result);
   const total = result[0]?.totalSeats ?? 0;
   return typeof total === "string" ? Number(total) : total;
 };
@@ -177,11 +177,10 @@ export const getOrdersByEvent = async (eventId: string) => {
       id: orders.id,
       date: orders.orderDate,
       ticketType: areas.name,
-      amount: areas.price,
+      quantity: sql<number>`COUNT(${tickets.id})`,
+      amount: sql<number>`SUM(${areas.price})`,
       status: orders.status,
-      userId: user.id,
       userName: user.name,
-      userEmail: user.email,
     })
     .from(orders)
     .innerJoin(user, eq(orders.userId, user.id))
@@ -206,7 +205,10 @@ export const getOrdersByEvent = async (eventId: string) => {
     id: row.id,
     date: row.date ? row.date.toISOString().split("T")[0] : "Chưa xác định",
     ticketType: row.ticketType,
+    quantity:
+      typeof row.quantity === "string" ? Number(row.quantity) : row.quantity,
     amount: typeof row.amount === "string" ? Number(row.amount) : row.amount,
     status: row.status as OrderStatus, // ép kiểu nếu bạn có enum
+    userName: row.userName,
   }));
 };

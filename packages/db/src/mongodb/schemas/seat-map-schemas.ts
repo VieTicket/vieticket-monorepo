@@ -22,6 +22,11 @@ const seatMapSchema = new mongoose.Schema(
       type: String,
       required: [true, "Image is required"],
     },
+    usedByEvent: {
+      type: String,
+      required: false,
+      default: null,
+    },
     createdBy: {
       type: String,
       required: [true, "CreatedBy is required"],
@@ -75,7 +80,7 @@ seatMapSchema.index({ createdAt: -1 });
 
 // Add pre-save hook
 seatMapSchema.pre("save", function () {
-  console.log("📝 Pre-save hook called with data:", {
+  console.log("Pre-save hook called with data:", {
     name: this.name,
     createdBy: this.createdBy,
     publicity: this.publicity,
@@ -90,6 +95,7 @@ export type SeatMapDocument = mongoose.Document & {
   name: string;
   shapes: CanvasItem[];
   image: string;
+  usedByEvent?: string | null;
   createdBy: string;
   publicity: "public" | "private";
   draftedFrom?: mongoose.Types.ObjectId;

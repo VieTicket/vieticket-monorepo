@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
@@ -22,6 +23,32 @@ import {
 
 export default function AboutPage() {
   const t = useTranslations("about");
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  // Mouse tracking for glow effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (glowRef.current) {
+        const { clientX, clientY } = e;
+        glowRef.current.style.left = `${clientX}px`;
+        glowRef.current.style.top = `${clientY}px`;
+        glowRef.current.style.opacity = '1';
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (glowRef.current) {
+        glowRef.current.style.opacity = '0';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
 
   const stats = [
     {
@@ -179,177 +206,198 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-yellow-50/20 to-white">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-r from-[#2A273F] via-[#3A3555] to-[#2A273F] text-white py-20 px-6">
-        <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-300 to-yellow-100 bg-clip-text text-transparent">
-            {t("hero.title")}
-          </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-            {t("hero.subtitle")}
-          </p>
-          
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
-            {stats.map((stat, index) => {
-              const Icon = stat.icon;
-              return (
-                <div key={index} className="text-center">
-                  <Icon className="w-8 h-8 mx-auto mb-2 text-yellow-400" />
-                  <div className="text-3xl font-bold text-white">{stat.value}</div>
-                  <div className="text-sm text-gray-300">{stat.label}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+    <>
+      {/* Background */}
+      <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
+      
+      {/* Gradient overlays */}
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+      
+      {/* Mouse glow effect */}
+      <div 
+        ref={glowRef}
+        className="fixed w-[400px] h-[400px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
+        style={{
+          background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)',
+          filter: 'blur(20px)',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 2
+        }}
+      />
 
-      {/* Mission & Vision */}
-      <section className="py-20 px-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <h2 className="text-4xl font-bold text-gray-900 mb-6">
-                {t("mission.title")}
+      <div className="relative z-10 min-h-screen">
+        {/* Hero Section */}
+        <section className="relative py-20 px-6">
+          <div className="max-w-6xl mx-auto text-center">
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-violet-300 to-purple-200 bg-clip-text text-transparent">
+              {t("hero.title")}
+            </h1>
+            <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+              {t("hero.subtitle")}
+            </p>
+            
+            {/* Stats */}
+            {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
+              {stats.map((stat, index) => {
+                const Icon = stat.icon;
+                return (
+                  <div key={index} className="text-center bg-slate-800/30 backdrop-blur-sm border border-slate-700/30 rounded-lg p-4 hover:border-violet-400/30 transition-all duration-300">
+                    <Icon className="w-8 h-8 mx-auto mb-2 text-violet-400" />
+                    <div className="text-3xl font-bold text-white">{stat.value}</div>
+                    <div className="text-sm text-slate-300">{stat.label}</div>
+                  </div>
+                );
+              })}
+            </div> */}
+          </div>
+        </section>
+
+        {/* Mission & Vision */}
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid md:grid-cols-2 gap-12 items-center">
+              <div>
+                <h2 className="text-4xl font-bold text-white mb-6">
+                  {t("mission.title")}
+                </h2>
+                <p className="text-lg text-slate-300 mb-6">
+                  {t("mission.content")}
+                </p>
+                {/* <div className="bg-gradient-to-br from-violet-900/30 to-purple-900/30 p-6 rounded-xl border border-violet-400/30 backdrop-blur-sm">
+                  <h3 className="text-xl font-bold text-white mb-3">{t("mission.vision.title")}</h3>
+                  <p className="text-slate-300">{t("mission.vision.content")}</p>
+                </div> */}
+              </div>
+              <div className="relative">
+                <div className="bg-gradient-to-br from-violet-900/30 to-purple-900/30 rounded-2xl p-8 h-96 flex items-center justify-center border border-violet-400/30 backdrop-blur-sm">
+                  <div className="text-center">
+                    <div className="w-32 h-32 bg-gradient-to-br from-violet-600 to-purple-600 rounded-full mx-auto mb-6 flex items-center justify-center">
+                      <Heart className="w-16 h-16 text-white" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2">Đam mê sự kiện</h3>
+                    <p className="text-slate-300">Kết nối cộng đồng qua trải nghiệm</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Features */}
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-white mb-4">
+                {t("features.title")}
               </h2>
-              <p className="text-lg text-gray-600 mb-6">
-                {t("mission.content")}
-              </p>
-              <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-xl">
-                <h3 className="text-xl font-bold text-gray-900 mb-3">{t("mission.vision.title")}</h3>
-                <p className="text-gray-700">{t("mission.vision.content")}</p>
-              </div>
             </div>
-            <div className="relative">
-              <div className="bg-gradient-to-br from-yellow-100 to-yellow-50 rounded-2xl p-8 h-96 flex items-center justify-center">
-                <div className="text-center">
-                  <div className="w-32 h-32 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full mx-auto mb-6 flex items-center justify-center">
-                    <Heart className="w-16 h-16 text-white" />
-                  </div>
-                  <h3 className="text-2xl font-bold text-gray-900 mb-2">Đam mê sự kiện</h3>
-                  <p className="text-gray-600">Kết nối cộng đồng qua trải nghiệm</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Features */}
-      <section className="py-20 px-6 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              {t("features.title")}
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <Card key={index} className="group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-6">
-                    <div className="flex items-center gap-4 mb-4">
-                      <div className={`p-3 rounded-lg bg-gray-100 group-hover:bg-white transition-colors`}>
-                        <Icon className={`w-6 h-6 ${feature.color}`} />
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {features.map((feature, index) => {
+                const Icon = feature.icon;
+                return (
+                  <Card key={index} className="group bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 hover:border-violet-400/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
+                    <CardContent className="p-6">
+                      <div className="flex items-center gap-4 mb-4">
+                        <div className={`p-3 rounded-lg bg-slate-700/50 group-hover:bg-violet-600/20 transition-colors`}>
+                          <Icon className={`w-6 h-6 ${feature.color}`} />
+                        </div>
+                        <h3 className="text-xl font-semibold text-white">{feature.title}</h3>
                       </div>
-                      <h3 className="text-xl font-semibold text-gray-900">{feature.title}</h3>
+                      <p className="text-slate-300 leading-relaxed">{feature.description}</p>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        {/* Timeline */}
+        <section className="py-20 px-6">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-16">
+              <h2 className="text-4xl font-bold text-white mb-4">
+                {t("timeline.title")}
+              </h2>
+            </div>
+
+            <div className="space-y-8">
+              {timeline.map((item, index) => (
+                <div key={index} className="flex items-start gap-8">
+                  <div className="flex-shrink-0">
+                    <div className="w-16 h-16 bg-gradient-to-r from-violet-600 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-lg">
+                      {item.year}
                     </div>
-                    <p className="text-gray-600 leading-relaxed">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* Timeline */}
-      <section className="py-20 px-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              {t("timeline.title")}
-            </h2>
-          </div>
-
-          <div className="space-y-8">
-            {timeline.map((item, index) => (
-              <div key={index} className="flex items-start gap-8">
-                <div className="flex-shrink-0">
-                  <div className="w-16 h-16 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                    {item.year}
+                  </div>
+                  <div className="flex-1 bg-slate-800/30 backdrop-blur-sm border border-slate-700/30 rounded-lg p-6 hover:border-violet-400/30 transition-all duration-300">
+                    <h3 className="text-xl font-semibold text-white mb-2">{item.title}</h3>
+                    <p className="text-slate-300">{item.description}</p>
                   </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
-                  <p className="text-gray-600">{item.description}</p>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Team */}
-      <section className="py-20 px-6 bg-white">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">{t("team.title")}</h2>
-            <p className="text-lg text-gray-600">{t("team.subtitle")}</p>
+        {/* Team */}
+        <section className="py-20 px-6">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-white mb-4">{t("team.title")}</h2>
+              <p className="text-lg text-slate-300">{t("team.subtitle")}</p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.isArray(teamMembers) && teamMembers.length > 0 ? (
+                teamMembers.map((m) => (
+                  <Card key={m.id} className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 hover:border-violet-400/30 hover:shadow-xl transition-all duration-300">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col items-center text-center">
+                        <Avatar src={m.avatar} name={m.name} />
+                        <h3 className="mt-4 text-lg font-semibold text-white">{m.name}</h3>
+                        <p className="text-sm text-violet-400 font-medium">{m.role}</p>
+                        {m.bio ? <p className="mt-3 text-sm text-slate-300">{m.bio}</p> : null}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                <p className="text-slate-300 col-span-full text-center">
+                  Chúng tôi sẽ cập nhật danh sách team sớm.
+                </p>
+              )}
+            </div>
           </div>
+        </section>
 
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {Array.isArray(teamMembers) && teamMembers.length > 0 ? (
-              teamMembers.map((m) => (
-                <Card key={m.id} className="hover:shadow-xl transition-all duration-300">
-                  <CardContent className="p-6">
-                    <div className="flex flex-col items-center text-center">
-                      <Avatar src={m.avatar} name={m.name} />
-                      <h3 className="mt-4 text-lg font-semibold text-gray-900">{m.name}</h3>
-                      <p className="text-sm text-yellow-700 font-medium">{m.role}</p>
-                      {m.bio ? <p className="mt-3 text-sm text-gray-600">{m.bio}</p> : null}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
-            ) : (
-              <p className="text-gray-600 col-span-full text-center">
-                Chúng tôi sẽ cập nhật danh sách team sớm.
-              </p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Call to Action */}
-      <section className="py-20 px-6 bg-gradient-to-r from-[#2A273F] to-[#3A3555] text-white">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold mb-6">
-            {t("cta.title")}
-          </h2>
-          <p className="text-xl text-gray-300 mb-8">
-            {t("cta.subtitle")}
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <a 
-              href="/events"
-              className="bg-yellow-400 text-black px-8 py-4 rounded-lg font-semibold hover:bg-yellow-300 transition-colors"
-            >
-              {t("cta.buttons.events")}
-            </a>
+        {/* Call to Action */}
+        <section className="py-20 px-6">
+          <div className="max-w-4xl mx-auto text-center bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 rounded-xl p-12">
+            <h2 className="text-4xl font-bold mb-6 text-white">
+              {t("cta.title")}
+            </h2>
+            <p className="text-xl text-slate-300 mb-8">
+              {t("cta.subtitle")}
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <a 
+                href="/events"
+                className="bg-violet-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-violet-700 transition-colors"
+              >
+                {t("cta.buttons.events")}
+              </a>
             <a 
               href="/contact"
-              className="border-2 border-white text-white px-8 py-4 rounded-lg font-semibold hover:bg-white hover:text-gray-900 transition-colors"
+              className="border-2 border-violet-400 text-violet-300 px-8 py-4 rounded-lg font-semibold hover:bg-violet-600 hover:text-white transition-colors"
             >
               {t("cta.buttons.organizer")}
             </a>
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

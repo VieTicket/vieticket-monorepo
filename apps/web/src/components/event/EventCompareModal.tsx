@@ -20,7 +20,10 @@ import {
   Search,
   X,
   Plus,
-  Check
+  Check,
+  Film,
+  Navigation,
+  Loader2
 } from "lucide-react";
 import { EventFull } from "@vieticket/db/pg/schema";
 
@@ -45,11 +48,18 @@ interface SearchEvent {
   };
 }
 
+interface LocationCoordinates {
+  lat: number;
+  lng: number;
+}
+
 interface EventComparisonData {
   id: string;
   name: string;
   price: { min: number; max: number; avg: number };
   location: string;
+  locationCoordinates?: LocationCoordinates;
+  distanceFromUser?: number; // in kilometers
   organizer: { 
     id: string;
     name: string; 
@@ -57,13 +67,103 @@ interface EventComparisonData {
     rating?: { average: number; count: number };
   };
   category: string;
+  showings: {
+    total: number;
+    active: number;
+    earliestStartTime: Date | null;
+    latestEndTime: Date | null;
+  };
+  ticketSaleRate?: {
+    rate: number; // percentage
+    totalTicketsSold: number;
+    totalAvailableTickets: number;
+  };
 }
 
 interface ComparisonResult {
   events: EventComparisonData[];
   priceRanking: EventComparisonData[];
   organizerRanking: EventComparisonData[];
+  showingRanking: EventComparisonData[];
+  distanceRanking: EventComparisonData[];
+  ticketSaleRateRanking: EventComparisonData[];
 }
+
+// Utility functions for location and distance
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+  const R = 6371; // Radius of the Earth in kilometers
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c; // Distance in kilometers
+};
+
+const geocodeAddress = async (address: string): Promise<LocationCoordinates | null> => {
+  if (!address) return null;
+  
+  try {
+    // Use our geocode API endpoint which tries multiple variations and services
+    const response = await fetch(
+      `/api/geocode?address=${encodeURIComponent(address)}`
+    );
+    
+    if (!response.ok) {
+      console.warn(`Geocoding API failed for "${address}": HTTP ${response.status}`);
+      return null;
+    }
+    
+    const data = await response.json();
+    
+    if (data.success && data.lat && data.lng) {
+      const lat = parseFloat(data.lat);
+      const lng = parseFloat(data.lng);
+      
+      // Validate coordinates
+      if (!isNaN(lat) && !isNaN(lng) && lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180) {
+        console.log(`Successfully geocoded "${address}" using "${data.matchedQuery}": (${lat}, ${lng})`);
+        return { lat, lng };
+      } else {
+        console.warn(`Invalid coordinates for "${address}": (${lat}, ${lng})`);
+      }
+    }
+    
+    console.warn(`Geocoding failed for "${address}"`);
+    return null;
+  } catch (error) {
+    console.error("Error geocoding address:", error);
+    return null;
+  }
+};
+
+const getUserLocation = (): Promise<LocationCoordinates> => {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error("Geolocation is not supported by your browser"));
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        });
+      },
+      (error) => {
+        reject(error);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      }
+    );
+  });
+};
 
 export function EventCompareModal({ 
   isOpen, 
@@ -73,17 +173,62 @@ export function EventCompareModal({
 }: EventCompareModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchEvent[]>([]);
+  const [suggestedEvents, setSuggestedEvents] = useState<SearchEvent[]>([]);
   const [selectedEvents, setSelectedEvents] = useState<Set<string>>(new Set());
   const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false);
   const [comparisonResult, setComparisonResult] = useState<ComparisonResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTimeout, setSearchTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [userLocation, setUserLocation] = useState<LocationCoordinates | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+  const [locationPermissionDenied, setLocationPermissionDenied] = useState(false);
+
+  // Load suggested events when modal opens and search query is empty
+  const loadSuggestedEvents = useCallback(async () => {
+    setIsLoadingSuggestions(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/events?limit=10&page=1`);
+      if (!response.ok) {
+        throw new Error('Failed to load suggested events');
+      }
+      const data = await response.json();
+      
+      // Transform events to match SearchEvent interface and exclude current event
+      const events: SearchEvent[] = (data.events || [])
+        .filter((event: any) => event.id !== currentEvent.id) // Exclude current event
+        .map((event: any) => ({
+          id: event.id,
+          name: event.name,
+          location: event.location || "",
+          bannerUrl: event.bannerUrl,
+          posterUrl: event.posterUrl,
+          type: event.type || "",
+          typicalTicketPrice: event.typicalTicketPrice || 0,
+          organizer: event.organizer ? {
+            name: event.organizer.name || "",
+            organizerType: event.organizer.organizerType || ""
+          } : undefined,
+        }));
+      
+      setSuggestedEvents(events);
+    } catch (err) {
+      console.error("Error loading suggested events:", err);
+      setSuggestedEvents([]);
+    } finally {
+      setIsLoadingSuggestions(false);
+    }
+  }, [currentEvent.id]);
 
   // Search events with debounce
   const searchEvents = useCallback(async (query: string) => {
     if (!query.trim()) {
       setSearchResults([]);
+      // Load suggested events when search query is cleared
+      loadSuggestedEvents();
       return;
     }
 
@@ -96,14 +241,16 @@ export function EventCompareModal({
         throw new Error('Failed to search events');
       }
       const data = await response.json();
-      setSearchResults(data.events || []);
+      // Filter out current event from search results
+      const filteredEvents = (data.events || []).filter((event: SearchEvent) => event.id !== currentEvent.id);
+      setSearchResults(filteredEvents);
     } catch (err) {
       setError("Có lỗi xảy ra khi tìm kiếm sự kiện");
       setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
-  }, []);
+  }, [loadSuggestedEvents, currentEvent.id]);
 
   // Handle search input with debounce
   const handleSearchChange = (value: string) => {
@@ -185,6 +332,21 @@ export function EventCompareModal({
     }
   };
 
+  // Load suggested events when modal opens
+  useEffect(() => {
+    if (isOpen && !searchQuery.trim()) {
+      loadSuggestedEvents();
+    }
+  }, [isOpen, loadSuggestedEvents, searchQuery]);
+
+  // Request user location when modal opens (optional)
+  useEffect(() => {
+    if (isOpen && !userLocation && !locationPermissionDenied) {
+      // Don't auto-request, let user click button instead
+      // This respects user privacy better
+    }
+  }, [isOpen, userLocation, locationPermissionDenied]);
+
   const handleClose = () => {
     resetModal();
     onClose();
@@ -229,6 +391,58 @@ export function EventCompareModal({
     }
   };
 
+  // Fetch ticket sale rate
+  const fetchTicketSaleRate = async (eventId: string): Promise<{ rate: number; totalTicketsSold: number; totalAvailableTickets: number } | undefined> => {
+    try {
+      const response = await fetch(`/api/events/${eventId}/ticket-sale-rate`);
+      if (!response.ok) {
+        return undefined;
+      }
+      const data = await response.json();
+      if (data.success && data.ticketSaleRate !== undefined) {
+        return {
+          rate: data.ticketSaleRate,
+          totalTicketsSold: data.totalTicketsSold || 0,
+          totalAvailableTickets: data.totalAvailableTickets || 0,
+        };
+      }
+      return undefined;
+    } catch (error) {
+      console.error("Error fetching ticket sale rate:", error);
+      return undefined;
+    }
+  };
+
+  // Get user location
+  const handleGetUserLocation = async () => {
+    setIsGettingLocation(true);
+    setLocationPermissionDenied(false);
+    setError(null);
+    
+    try {
+      const location = await getUserLocation();
+      setUserLocation(location);
+      
+      // Auto re-compare if there are selected events and comparison result exists
+      if (selectedEvents.size > 0 && comparisonResult) {
+        // Trigger re-comparison with new location
+        setTimeout(() => {
+          handleCompare();
+        }, 500);
+      }
+    } catch (error: any) {
+      console.error("Error getting user location:", error);
+      if (error.code === 1) {
+        setLocationPermissionDenied(true);
+        setError("Quyền truy cập vị trí bị từ chối. Vui lòng cho phép truy cập vị trí để tính khoảng cách.");
+      } else {
+        setError("Không thể lấy vị trí của bạn. Vui lòng thử lại.");
+      }
+    } finally {
+      setIsGettingLocation(false);
+    }
+  };
+
   const compareMultipleEvents = async (events: EventFull[]): Promise<ComparisonResult> => {
     // Convert events to comparison data and fetch organizer ratings
     const eventDataPromises = events.map(async (event) => {
@@ -243,11 +457,55 @@ export function EventCompareModal({
         organizerRating = await fetchOrganizerRating(event.organizer.id);
       }
 
+      // Fetch ticket sale rate
+      const ticketSaleRate = await fetchTicketSaleRate(event.id);
+
+      // Calculate showing information
+      const showings = event.showings || [];
+      const activeShowings = showings.filter(s => s?.isActive !== false);
+      
+      // Get valid start times
+      const startTimes = showings
+        .map(s => s?.startTime ? new Date(s.startTime).getTime() : null)
+        .filter((time): time is number => time !== null && !isNaN(time));
+      
+      // Get valid end times
+      const endTimes = showings
+        .map(s => s?.endTime ? new Date(s.endTime).getTime() : null)
+        .filter((time): time is number => time !== null && !isNaN(time));
+      
+      const earliestStartTime = startTimes.length > 0 ? new Date(Math.min(...startTimes)) : null;
+      const latestEndTime = endTimes.length > 0 ? new Date(Math.max(...endTimes)) : null;
+
+      // Geocode event location
+      const locationCoordinates = await geocodeAddress(event.location || "");
+      
+      // Log if geocoding failed
+      if (!locationCoordinates && event.location) {
+        console.warn(`Failed to geocode location for event "${event.name}": "${event.location}"`);
+      }
+      
+      // Calculate distance from user location if available
+      let distanceFromUser: number | undefined;
+      if (userLocation && locationCoordinates) {
+        distanceFromUser = calculateDistance(
+          userLocation.lat,
+          userLocation.lng,
+          locationCoordinates.lat,
+          locationCoordinates.lng
+        );
+        console.log(`Calculated distance for "${event.name}": ${distanceFromUser.toFixed(2)}km`);
+      } else if (userLocation && !locationCoordinates) {
+        console.warn(`Cannot calculate distance for "${event.name}": location geocoding failed`);
+      }
+
       return {
         id: event.id,
         name: event.name,
         price: { min: minPrice, max: maxPrice, avg: avgPrice },
         location: event.location || "Không có thông tin",
+        locationCoordinates: locationCoordinates || undefined,
+        distanceFromUser,
         organizer: {
           id: event.organizer?.id || "",
           name: event.organizer?.name || "Không có thông tin",
@@ -255,6 +513,13 @@ export function EventCompareModal({
           rating: organizerRating,
         },
         category: event.type || "Không có thông tin",
+        showings: {
+          total: showings.length,
+          active: activeShowings.length,
+          earliestStartTime,
+          latestEndTime,
+        },
+        ticketSaleRate,
       };
     });
 
@@ -267,11 +532,33 @@ export function EventCompareModal({
       const bRating = b.organizer.rating?.average || 0;
       return bRating - aRating; // Higher rating first
     });
+    const showingRanking = [...eventData].sort((a, b) => {
+      // Sort by total number of showings (descending), then by active showings
+      if (b.showings.total !== a.showings.total) {
+        return b.showings.total - a.showings.total;
+      }
+      return b.showings.active - a.showings.active;
+    });
+    const distanceRanking = [...eventData].sort((a, b) => {
+      // Sort by distance (ascending - closest first)
+      const aDistance = a.distanceFromUser ?? Infinity;
+      const bDistance = b.distanceFromUser ?? Infinity;
+      return aDistance - bDistance;
+    });
+    const ticketSaleRateRanking = [...eventData].sort((a, b) => {
+      // Sort by ticket sale rate (descending - highest rate first)
+      const aRate = a.ticketSaleRate?.rate || 0;
+      const bRate = b.ticketSaleRate?.rate || 0;
+      return bRate - aRate;
+    });
 
     return {
       events: eventData,
       priceRanking,
       organizerRanking,
+      showingRanking,
+      distanceRanking,
+      ticketSaleRateRanking,
     };
   };
 
@@ -282,6 +569,25 @@ export function EventCompareModal({
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
+  };
+
+  const formatDate = (date: Date | null) => {
+    if (!date) return "Không có";
+    return new Intl.DateTimeFormat('vi-VN', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    }).format(new Date(date));
+  };
+
+  const formatDistance = (distance: number | undefined) => {
+    if (distance === undefined || distance === null) return "Không có";
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)}m`;
+    }
+    return `${distance.toFixed(1)}km`;
   };
 
 
@@ -306,7 +612,34 @@ export function EventCompareModal({
 
         {/* Search Input */}
         <div className="space-y-2">
-          <label className="text-sm font-medium">Tìm kiếm sự kiện để so sánh</label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium">Tìm kiếm sự kiện để so sánh</label>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleGetUserLocation}
+              disabled={isGettingLocation || !!userLocation}
+              className="text-xs"
+            >
+              {isGettingLocation ? (
+                <>
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Đang lấy vị trí...
+                </>
+              ) : userLocation ? (
+                <>
+                  <Navigation className="h-3 w-3 mr-1" />
+                  Đã có vị trí
+                </>
+              ) : (
+                <>
+                  <Navigation className="h-3 w-3 mr-1" />
+                  Lấy vị trí
+                </>
+              )}
+            </Button>
+          </div>
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
@@ -317,20 +650,36 @@ export function EventCompareModal({
               className="pl-10"
             />
           </div>
+          {userLocation && (
+            <p className="text-xs text-green-600 flex items-center">
+              <Navigation className="h-3 w-3 mr-1" />
+              Đã lấy vị trí của bạn. Khoảng cách sẽ được tính khi so sánh.
+            </p>
+          )}
+          {locationPermissionDenied && (
+            <p className="text-xs text-amber-600">
+              Quyền truy cập vị trí bị từ chối. Không thể tính khoảng cách.
+            </p>
+          )}
           {isSearching && (
             <p className="text-sm text-gray-500">Đang tìm kiếm...</p>
           )}
-          {error && (
+          {isLoadingSuggestions && !searchQuery.trim() && (
+            <p className="text-sm text-gray-500">Đang tải sự kiện gợi ý...</p>
+          )}
+          {error && !locationPermissionDenied && (
             <p className="text-red-500 text-sm">{error}</p>
           )}
         </div>
 
-        {/* Search Results */}
-        {searchResults.length > 0 && (
+        {/* Search Results or Suggested Events */}
+        {(searchQuery.trim() ? searchResults.length > 0 : suggestedEvents.length > 0) && (
           <div className="space-y-2">
-            <h3 className="text-sm font-medium">Kết quả tìm kiếm</h3>
+            <h3 className="text-sm font-medium">
+              {searchQuery.trim() ? "Kết quả tìm kiếm" : "Sự kiện gợi ý"}
+            </h3>
             <div className="max-h-60 overflow-y-auto space-y-2">
-              {searchResults.map((event) => (
+              {(searchQuery.trim() ? searchResults : suggestedEvents).map((event) => (
                 <div
                   key={event.id}
                   className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -389,7 +738,7 @@ export function EventCompareModal({
               <h3 className="font-semibold text-green-900 mb-2">Sự kiện đã chọn để so sánh</h3>
               <div className="space-y-2">
                 {Array.from(selectedEvents).map((eventId) => {
-                  const event = searchResults.find(e => e.id === eventId);
+                  const event = searchResults.find(e => e.id === eventId) || suggestedEvents.find(e => e.id === eventId);
                   if (!event) return null;
                   return (
                     <div key={eventId} className="flex items-center space-x-2">
@@ -411,30 +760,83 @@ export function EventCompareModal({
 
             {/* Detailed Comparison */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Price Ranking */}
+              {/* Price with Ranking */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
                     <DollarSign className="h-5 w-5" />
-                    <span>Xếp hạng giá cả</span>
+                    <span>Giá cả</span>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {comparisonResult.priceRanking.map((event, index) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                        <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                    <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
+                      <div className="flex justify-between items-center">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                          <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                        </div>
+                        <span className="text-sm font-medium flex-shrink-0 ml-2">
+                          {formatCurrency(event.price.avg)}
+                        </span>
                       </div>
-                      <span className="text-sm font-medium">
-                        {formatCurrency(event.price.avg)}
-                      </span>
+                      <div className="flex items-center space-x-3 text-xs text-gray-500 pl-7">
+                        <span>Min: {formatCurrency(event.price.min)}</span>
+                        <span>Max: {formatCurrency(event.price.max)}</span>
+                      </div>
                     </div>
                   ))}
                 </CardContent>
               </Card>
 
-              {/* Location List */}
+              {/* Ticket Sale Rate Ranking */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="flex items-center space-x-2 text-lg">
+                    <TrendingUp className="h-5 w-5" />
+                    <span>Tỷ lệ bán vé</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {comparisonResult.ticketSaleRateRanking.map((event, index) => {
+                    const ticketSaleRate = event.ticketSaleRate;
+                    return (
+                      <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
+                        <div className="flex justify-between items-center">
+                          <div className="flex items-center space-x-2 flex-1 min-w-0">
+                            <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                            <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                          </div>
+                          {ticketSaleRate ? (
+                            <span className="text-sm font-medium flex-shrink-0 ml-2 text-purple-600">
+                              {ticketSaleRate.rate.toFixed(1)}%
+                            </span>
+                          ) : (
+                            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">N/A</span>
+                          )}
+                        </div>
+                        {ticketSaleRate && (
+                          <div className="flex items-center space-x-3 text-xs text-gray-500 pl-7">
+                            <span>
+                              {ticketSaleRate.totalTicketsSold.toLocaleString()} / {ticketSaleRate.totalAvailableTickets.toLocaleString()} vé
+                            </span>
+                            <div className="flex-1 max-w-[100px]">
+                              <div className="w-full bg-gray-200 rounded-full h-1.5 dark:bg-gray-700">
+                                <div
+                                  className="bg-purple-500 h-1.5 rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, ticketSaleRate.rate)}%` }}
+                                ></div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+
+              {/* Location List with Distance Ranking */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="flex items-center space-x-2 text-lg">
@@ -443,14 +845,65 @@ export function EventCompareModal({
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  {comparisonResult.events.map((event) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
-                      <span className="text-sm text-gray-600 truncate max-w-32" title={event.location}>
-                        {event.location}
-                      </span>
-                    </div>
-                  ))}
+                  {(userLocation && comparisonResult.distanceRanking.some(e => e.distanceFromUser !== undefined)
+                    ? comparisonResult.distanceRanking.map((event, index) => {
+                        // Find original event data to ensure we show all events
+                        const hasDistance = event.distanceFromUser !== undefined;
+                        const rankIndex = hasDistance ? index + 1 : null;
+                        
+                        return (
+                          <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              {rankIndex && (
+                                <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{rankIndex}</span>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
+                                <span className="text-xs text-gray-500 truncate block" title={event.location}>
+                                  {event.location}
+                                </span>
+                              </div>
+                            </div>
+                            {hasDistance ? (
+                              <div className="text-right ml-2 flex-shrink-0">
+                                <span className="text-sm font-medium text-blue-600">
+                                  {formatDistance(event.distanceFromUser)}
+                                </span>
+                              </div>
+                            ) : (
+                              <div className="text-right ml-2 flex-shrink-0">
+                                <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
+                                  N/A
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    : comparisonResult.events.map((event) => (
+                        <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                          <div className="flex-1 min-w-0">
+                            <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
+                            <span className="text-xs text-gray-500 truncate block" title={event.location}>
+                              {event.location}
+                            </span>
+                          </div>
+                          {event.distanceFromUser !== undefined ? (
+                            <div className="text-right ml-2 flex-shrink-0">
+                              <span className="text-sm font-medium text-blue-600">
+                                {formatDistance(event.distanceFromUser)}
+                              </span>
+                            </div>
+                          ) : event.location && (
+                            <div className="text-right ml-2 flex-shrink-0">
+                              <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
+                                N/A
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      ))
+                  )}
                 </CardContent>
               </Card>
 
@@ -519,6 +972,67 @@ export function EventCompareModal({
                   ))}
                 </CardContent>
               </Card>
+
+            </div>
+
+            {/* Showing Comparison Section */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold flex items-center space-x-2">
+                <Film className="h-5 w-5" />
+                <span>So sánh suất chiếu</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
+                {/* Showing Details with Ranking */}
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center space-x-2 text-lg">
+                      <Calendar className="h-5 w-5" />
+                      <span>Chi tiết suất chiếu</span>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {comparisonResult.showingRanking.map((event, index) => {
+                      // Find original event data for detailed information
+                      const originalEvent = comparisonResult.events.find(e => e.id === event.id) || event;
+                      return (
+                        <div key={event.id} className="p-3 rounded bg-gray-50 space-y-2">
+                          <div className="flex justify-between items-start">
+                            <div className="flex items-center space-x-2 flex-1 min-w-0">
+                              <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                              <span className="text-sm font-medium truncate flex-1" title={originalEvent.name}>
+                                {originalEvent.name}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="space-y-1 text-xs text-gray-600 pl-7">
+                            <div className="flex justify-between">
+                              <span>Tổng số suất:</span>
+                              <span className="font-medium">{originalEvent.showings.total}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Suất đang hoạt động:</span>
+                              <span className="font-medium text-green-600">{originalEvent.showings.active}</span>
+                            </div>
+                            {originalEvent.showings.earliestStartTime && (
+                              <div className="flex justify-between">
+                                <span>Suất sớm nhất:</span>
+                                <span className="font-medium">{formatDate(originalEvent.showings.earliestStartTime)}</span>
+                              </div>
+                            )}
+                            {originalEvent.showings.latestEndTime && (
+                              <div className="flex justify-between">
+                                <span>Suất muộn nhất:</span>
+                                <span className="font-medium">{formatDate(originalEvent.showings.latestEndTime)}</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </CardContent>
+                </Card>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -531,7 +1045,11 @@ export function EventCompareModal({
         )}
 
         {/* No comparison results yet */}
-        {!comparisonResult && searchResults.length === 0 && (
+        {!comparisonResult && 
+         !isLoadingSuggestions && 
+         searchResults.length === 0 && 
+         suggestedEvents.length === 0 && 
+         !searchQuery.trim() && (
           <div className="text-center py-8 text-gray-500">
             <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
             <p>Nhập tên sự kiện để tìm kiếm và so sánh</p>

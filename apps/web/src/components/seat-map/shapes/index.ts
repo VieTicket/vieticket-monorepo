@@ -931,7 +931,6 @@ export const deleteShapes = () => {
   if (affectedRowIds.size > 0) {
     affectedRowIds.forEach((rowId) => {
       const row = getRowByIdFromAllGrids(rowId);
-      console.log(row);
       if (row && row.children.length > 0) {
         // Only update rows that still have seats
         updateRowLabelPosition(row);

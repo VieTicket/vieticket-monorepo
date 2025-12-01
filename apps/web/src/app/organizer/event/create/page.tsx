@@ -370,7 +370,6 @@ function CreateEventPageInner() {
         });
 
         if (event.seatMapId) {
-          console.log("📥 Loading existing seat map:", event.seatMapId);
           const gridDataResult = await getSeatMapGridDataAction(
             event.seatMapId
           );
@@ -398,18 +397,18 @@ function CreateEventPageInner() {
           }
         } else {
           // Load simple ticketing areas from showings
-          if (event.showings?.length > 0) {
-            const firstShowing = event.showings[0];
-            if (firstShowing.areas?.length > 0) {
-              setAreas(
-                firstShowing.areas.map((area: any) => ({
-                  name: area.name,
-                  ticketPrice: area.price.toString(),
-                  seatCount: area.seatCount?.toString() || "0",
-                }))
-              );
-            }
-          } else if (event.areas?.length > 0) {
+          // if (event.showings?.length > 0) {
+          //   const firstShowing = event.showings[0];
+          //   if (firstShowing.areas?.length > 0) {
+          //     setAreas(
+          //       firstShowing.areas.map((area: any) => ({
+          //         name: area.name,
+          //         ticketPrice: area.price.toString(),
+          //         seatCount: area.seatCount?.toString() || "0",
+          //       }))
+          //     );
+          //   }
+          if (event.areas?.length > 0) {
             setAreas(
               event.areas.map((area: any) => ({
                 name: area.name,
@@ -498,8 +497,6 @@ function CreateEventPageInner() {
 
   // ✅ Corrected seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
-    console.log("📥 Processing seat map selection:", seatMap.name);
-
     try {
       const result = await getSeatMapGridDataAction(seatMap.id);
 

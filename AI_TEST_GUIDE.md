@@ -1,7 +1,7 @@
 # AI Personalization Integration Test Guide
 # Hướng dẫn test tích hợp AI cá nhân hóa trong ứng dụng thực
 
-## 🚀 AI đã được tích hợp vào:
+## AI đã được tích hợp vào:
 1. **Homepage** (http://localhost:3000/) - Có AI recommendations và smart ordering
 2. **Events Page** (http://localhost:3000/events) - Có AI recommendations và smart filtering  
 3. **Global tracking** - Theo dõi user behavior trên toàn bộ app
@@ -62,7 +62,7 @@
 // AI Analysis
 🧠 Reordering events based on AI recommendations
 📊 Events reordered: [...]
-🤖 AI Personalization: Starting recommendation generation
+AI Personalization: Starting recommendation generation
 
 // User behavior tracking
 🔍 Tracking search: rock
@@ -82,7 +82,7 @@ Developer Tools → Application → Local Storage:
 - `vieticket_recommendations`: AI recommendations
 - `vieticket_last_update`: Last analysis timestamp
 
-## 🎯 Expected Results:
+## Expected Results:
 
 ### **Immediate (< 5 seconds):**
 - ✅ Search queries được track

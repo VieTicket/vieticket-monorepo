@@ -36,24 +36,27 @@ export function SmartEventGridSection({
 
     startTransition(async () => {
       try {
-        // Calculate next page 
+        // Calculate next page
         const currentPage = Math.floor(events.length / limit) + 1;
-        
+
         const result = await getFilteredEvents({
           page: currentPage,
           limit,
           price: "all",
           date: "all",
-          location: "all", 
+          location: "all",
           category: "all",
           q: "",
         });
 
-        const newEvents = result.events.filter(newEvent => 
-          !events.some(existingEvent => existingEvent.id === newEvent.id)
+        const newEvents = result.events.filter(
+          (newEvent) =>
+            !events.some((existingEvent) => existingEvent.id === newEvent.id)
         );
 
-        console.log(`🔄 Loaded ${newEvents.length} more events. Total: ${events.length + newEvents.length}`);
+        console.log(
+          `Loaded ${newEvents.length} more events. Total: ${events.length + newEvents.length}`
+        );
         setEvents((prev) => [...prev, ...newEvents]);
         setHasMore(result.hasMore);
       } catch (error) {
@@ -66,13 +69,14 @@ export function SmartEventGridSection({
   useEffect(() => {
     // Add a small delay to ensure userBehavior is fully loaded
     const checkAndLoad = () => {
-      const hasBehavior = userBehavior.searchQueries.length > 0 || 
-                         userBehavior.viewedEvents.length > 0 || 
-                         userBehavior.clickedEvents.length > 0 ||
-                         userBehavior.eventEngagement.length > 0;
+      const hasBehavior =
+        userBehavior.searchQueries.length > 0 ||
+        userBehavior.viewedEvents.length > 0 ||
+        userBehavior.clickedEvents.length > 0 ||
+        userBehavior.eventEngagement.length > 0;
 
       // Enhanced debug logging
-      console.log('🔍 Smart-loading condition check:', {
+      console.log("🔍 Smart-loading condition check:", {
         hasBehavior,
         hasSmartLoaded,
         hasMore,
@@ -81,14 +85,16 @@ export function SmartEventGridSection({
           searches: userBehavior.searchQueries.length,
           views: userBehavior.viewedEvents.length,
           clicks: userBehavior.clickedEvents.length,
-          engagements: userBehavior.eventEngagement.length
-        }
+          engagements: userBehavior.eventEngagement.length,
+        },
       });
 
       if (hasBehavior && !hasSmartLoaded && hasMore && events.length <= 12) {
-        console.log('🧠 TRIGGERING smart-loading more events for better AI personalization');
+        console.log(
+          "🧠 TRIGGERING smart-loading more events for better AI personalization"
+        );
         setHasSmartLoaded(true);
-        
+
         // Load significantly more events for better AI personalization
         startTransition(async () => {
           try {
@@ -99,16 +105,18 @@ export function SmartEventGridSection({
               price: "all",
               date: "all",
               location: "all",
-              category: "all", 
+              category: "all",
               q: "",
             });
 
             // Replace current events with larger dataset
-            const newEvents = result.events.filter((newEvent, index) => 
-              index >= events.length // Only take events beyond current set
+            const newEvents = result.events.filter(
+              (newEvent, index) => index >= events.length // Only take events beyond current set
             );
 
-            console.log(`🎯 Smart-loaded ${newEvents.length} events for AI personalization. Total: ${result.events.length}`);
+            console.log(
+              `Smart-loaded ${newEvents.length} events for AI personalization. Total: ${result.events.length}`
+            );
             setEvents(result.events); // Replace with full dataset
             setHasMore(result.hasMore);
           } catch (error) {
@@ -121,7 +129,7 @@ export function SmartEventGridSection({
     // Run immediately and also with a slight delay to catch late-loading userBehavior
     checkAndLoad();
     const timer = setTimeout(checkAndLoad, 500);
-    
+
     return () => clearTimeout(timer);
   }, [userBehavior, hasSmartLoaded, hasMore, events.length, startTransition]);
 

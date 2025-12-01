@@ -1,4 +1,5 @@
 import { User } from "@vieticket/db/pg/schemas/users";
+import { Event, NewEvent } from "@vieticket/db/pg/schema";
 import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
 import {
   createSeatMap,
@@ -14,9 +15,9 @@ import {
   deleteSeatMapById,
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
+import { findEventById } from "@vieticket/repos";
 
 function validateShapesByType(shape: any): boolean {
-  // ✅ Updated valid types to include freeshape
   const validTypes = [
     "rectangle",
     "ellipse",
@@ -25,7 +26,7 @@ function validateShapesByType(shape: any): boolean {
     "image",
     "svg",
     "container",
-    "freeshape", // ✅ Added freeshape support
+    "freeshape",
   ];
 
   if (!validTypes.includes(shape.type)) return false;
@@ -58,7 +59,6 @@ function validateShapesByType(shape: any): boolean {
 
       if (!hasEllipseProps) return false;
 
-      // ✅ Enhanced validation for SeatShape
       if (shape.rowId && shape.gridId) {
         return (
           typeof shape.rowId === "string" &&
@@ -128,7 +128,6 @@ function validateShapesByType(shape: any): boolean {
         shape.originalHeight > 0
       );
 
-    // ✅ Enhanced freeshape validation
     case "freeshape":
       return (
         Array.isArray(shape.points) &&
@@ -159,9 +158,6 @@ function validateShapesByType(shape: any): boolean {
 
       if (!hasContainerProps) return false;
 
-      // ✅ Enhanced validation for specific container types
-
-      // AreaModeContainer validation
       if (shape.defaultSeatSettings) {
         const hasAreaModeProps =
           typeof shape.defaultSeatSettings === "object" &&
@@ -180,7 +176,6 @@ function validateShapesByType(shape: any): boolean {
 
         if (!hasAreaModeProps) return false;
 
-        // Validate children are GridShapes
         return shape.children.every(
           (child: any) =>
             child.type === "container" &&
@@ -189,7 +184,6 @@ function validateShapesByType(shape: any): boolean {
         );
       }
 
-      // GridShape validation
       if (shape.gridName) {
         const hasGridProps =
           typeof shape.gridName === "string" &&
@@ -200,7 +194,6 @@ function validateShapesByType(shape: any): boolean {
 
         if (!hasGridProps) return false;
 
-        // Validate children are RowShapes
         return shape.children.every(
           (child: any) =>
             child.type === "container" &&
@@ -210,7 +203,6 @@ function validateShapesByType(shape: any): boolean {
         );
       }
 
-      // RowShape validation
       if (shape.rowName && !shape.gridName) {
         const hasRowProps =
           typeof shape.rowName === "string" &&
@@ -224,7 +216,6 @@ function validateShapesByType(shape: any): boolean {
 
         if (!hasRowProps) return false;
 
-        // Validate children are SeatShapes
         return shape.children.every(
           (child: any) =>
             child.type === "ellipse" &&
@@ -235,7 +226,6 @@ function validateShapesByType(shape: any): boolean {
         );
       }
 
-      // ✅ Recursively validate children for regular containers
       return shape.children.every((child: any) => validateShapesByType(child));
 
     default:
@@ -243,7 +233,6 @@ function validateShapesByType(shape: any): boolean {
   }
 }
 
-// ✅ Helper function to validate seat grid settings
 function validateSeatGridSettings(settings: any): boolean {
   return (
     settings &&
@@ -274,12 +263,10 @@ export async function saveSeatMap(
   imageUrl: string,
   user: User
 ) {
-  // 1. Authorization check - only organizers can create seat maps
   if (user.role !== "organizer") {
     throw new Error("Unauthorized: Only organizers can create seat maps");
   }
 
-  // 2. Input validation
   if (!name || name.trim().length === 0) {
     throw new Error("Seat map name is required");
   }
@@ -292,7 +279,6 @@ export async function saveSeatMap(
     throw new Error("Image URL is required");
   }
 
-  // Validate URL format
   try {
     new URL(imageUrl);
   } catch {
@@ -303,7 +289,6 @@ export async function saveSeatMap(
     throw new Error("Shapes must be an array");
   }
 
-  // ✅ Enhanced shape validation with hierarchical support
   const invalidShapes = shapes.filter((shape) => {
     return !validateShapesByType(shape);
   });
@@ -315,7 +300,6 @@ export async function saveSeatMap(
     );
   }
 
-  // 4. Prepare seat map data
   const seatMapData: CreateSeatMapInput = {
     name: name.trim(),
     shapes: shapes,
@@ -324,13 +308,10 @@ export async function saveSeatMap(
   };
 
   try {
-    // 5. Save to database using repository
     const savedSeatMap = await createSeatMap(seatMapData);
 
-    // 6. Return the created seat map (with MongoDB _id transformed to id)
     return savedSeatMap;
   } catch (error) {
-    // Handle database errors
     if (error instanceof Error) {
       throw new Error(`Failed to save seat map: ${error.message}`);
     }
@@ -349,12 +330,10 @@ export async function updateSeatMap(
   name?: string,
   imageUrl?: string
 ) {
-  // 1. Authorization check - only organizers can update seat maps
   if (user.role !== "organizer") {
     throw new Error("Unauthorized: Only organizers can update seat maps");
   }
 
-  // 2. Input validation
   if (!seatMapId || seatMapId.trim().length === 0) {
     throw new Error("Seat map ID is required");
   }
@@ -364,19 +343,12 @@ export async function updateSeatMap(
   }
 
   try {
-    // 4. First verify the seat map exists and user owns it
     const existingSeatMap = await findSeatMapWithShapesById(seatMapId.trim());
 
     if (!existingSeatMap) {
       throw new Error("Seat map not found");
     }
 
-    // Add ownership check
-    // if (existingSeatMap.createdBy !== user.id) {
-    //   throw new Error("You don't have permission to update this seat map");
-    // }
-
-    // 5. Prepare update data
     const updateData: any = {
       shapes: shapes,
     };
@@ -397,7 +369,6 @@ export async function updateSeatMap(
       updateData.image = imageUrl.trim();
     }
 
-    // 6. Update the seat map
     const updatedSeatMap = await updateSeatMapById(
       seatMapId.trim(),
       updateData
@@ -409,15 +380,70 @@ export async function updateSeatMap(
 
     return updatedSeatMap;
   } catch (error) {
-    // Handle database errors
     if (error instanceof Error) {
-      throw error; // Re-throw the error to preserve the message
+      throw error;
     }
     throw new Error("An unknown error occurred while updating the seat map");
   }
 }
 
-// ✅ Keep all other existing functions unchanged
+export async function getUserSeatMapsWithEventInfo(user: User) {
+  if (user.role !== "organizer") {
+    throw new Error("Unauthorized: Only organizers can access seat maps");
+  }
+
+  try {
+    const seatMaps = await findSeatMapsByCreator(user.id);
+
+    // Enrich seat maps with event information
+    const enrichedSeatMaps = await Promise.all(
+      seatMaps.map(async (seatMap) => {
+        let eventInfo = null;
+
+        if (seatMap.usedByEvent) {
+          try {
+            const event = await findEventById(seatMap.usedByEvent);
+            if (event) {
+              eventInfo = {
+                id: event.id,
+                name: event.name,
+                startTime: event.startTime,
+                endTime: event.endTime,
+                location: event.location,
+              };
+            }
+          } catch (error) {
+            console.warn(
+              `Failed to fetch event info for seat map ${seatMap.id}:`,
+              error
+            );
+          }
+        }
+
+        return {
+          id: seatMap.id,
+          name: seatMap.name,
+          shapes: seatMap.shapes,
+          image: seatMap.image,
+          createdBy: seatMap.createdBy,
+          publicity: seatMap.publicity,
+          usedByEvent: seatMap.usedByEvent,
+          eventInfo,
+          createdAt: seatMap.createdAt,
+          updatedAt: seatMap.updatedAt,
+        };
+      })
+    );
+
+    return enrichedSeatMaps;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch seat maps: ${error.message}`);
+    }
+    throw new Error("An unknown error occurred while fetching seat maps");
+  }
+}
+
 export async function getUserSeatMaps(user: User) {
   if (user.role !== "organizer") {
     throw new Error("Unauthorized: Only organizers can access seat maps");
@@ -506,7 +532,6 @@ export async function getSeatMapById(seatMapId: string) {
   }
 }
 
-// Keep all other existing functions (getPublicSeatMaps, createSeatMapDraft, etc.) unchanged...
 export async function getPublicSeatMaps(
   page: number = 1,
   limit: number = 10,
@@ -654,7 +679,6 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
       throw new Error("Seat map not found");
     }
 
-    // Add strict ownership check
     if (existingSeatMap.createdBy !== user.id) {
       throw new Error("You can only delete your own seat maps");
     }
@@ -668,7 +692,7 @@ export async function deleteSeatMapService(seatMapId: string, user: User) {
     return deletedSeatMap;
   } catch (error) {
     if (error instanceof Error) {
-      throw error; // Re-throw to preserve error message
+      throw error;
     }
     throw new Error("An unknown error occurred while deleting the seat map");
   }

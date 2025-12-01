@@ -38,8 +38,6 @@ export function SeatMapTicketingMode({
 
   return (
     <div className="space-y-4">
-      <h3 className="text-lg font-medium">Select Seat Map</h3>
-
       <div className="space-y-2">
         <Label htmlFor="seatmap-select">Choose a Seat Map</Label>
         <div className="flex gap-2">
@@ -68,17 +66,6 @@ export function SeatMapTicketingMode({
             </Button>
           )}
         </div>
-      </div>
-
-      <div className="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-        <div>
-          <p className="text-sm text-gray-600">
-            Don&apos;t have a seat map? Create one first.
-          </p>
-        </div>
-        <Button variant="outline" asChild>
-          <Link href="/organizer/seat-map">Manage Seat Maps</Link>
-        </Button>
       </div>
 
       {/* ✅ Enhanced Preview Section */}

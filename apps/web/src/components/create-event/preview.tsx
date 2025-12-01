@@ -11,9 +11,11 @@ import {
   ChevronDown,
   Clock,
   Star,
+  Scale,
 } from "lucide-react";
 import { formatCurrencyVND, formatDateVi } from "@/lib/utils";
 import { BuyTicketButton } from "../checkout/buy-ticket-button";
+import { EventCompareModal } from "../event/EventCompareModal";
 
 // RatingList component integrated for preview
 const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: boolean }) => {
@@ -391,6 +393,8 @@ export type EventPreviewData = {
 
 type Props = {
   data: EventPreviewData;
+  rawEvent?: any;
+  isAuthenticated?: boolean;
 };
 
 // Inline RatingStars component to avoid external styling conflicts
@@ -433,26 +437,40 @@ const InlineRatingStars = ({ rating, size = "sm", showNumber = false }: { rating
   );
 };
 
-export function PreviewEvent({ data }: Props) {
+export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
   const t = useTranslations("event.details");
   const [selectedShowing, setSelectedShowing] = useState(0);
   const [showingDropdownOpen, setShowingDropdownOpen] = useState(false);
+  const [compareModalOpen, setCompareModalOpen] = useState(false);
   const glowRef = useRef<HTMLDivElement>(null);
 
   const currentShowing = data.showings[selectedShowing] || data.showings[0];
+
+  // Check if this is embedded preview (not full page)
+  const isEmbedded = data.isPreview;
 
   // Mouse tracking for glow effect
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (glowRef.current) {
-        glowRef.current.style.left = `${e.clientX}px`;
-        glowRef.current.style.top = `${e.clientY}px`;
+        if (isEmbedded) {
+          const rect = glowRef.current.closest('.preview-container')?.getBoundingClientRect();
+          if (rect) {
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            glowRef.current.style.left = `${x}px`;
+            glowRef.current.style.top = `${y}px`;
+          }
+        } else {
+          glowRef.current.style.left = `${e.clientX}px`;
+          glowRef.current.style.top = `${e.clientY}px`;
+        }
       }
     };
 
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  }, [isEmbedded]);
 
   // Calculate event start and end dates from all showings
   const eventStartDate =
@@ -470,33 +488,50 @@ export function PreviewEvent({ data }: Props) {
 
   return (
     <>
-      {/* Professional Dark Background */}
-      <div
-        className="fixed inset-0 bg-slate-950"
-        style={{ zIndex: 0 }}
-      />
+      {!isEmbedded && (
+        <>
+          {/* Professional Dark Background */}
+          <div 
+            className="fixed inset-0 bg-slate-950"
+            style={{ zIndex: 0 }}
+          />
+          
+          {/* Static Gradient Accents */}
+          <div 
+            className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"
+            style={{ zIndex: 1 }}
+          />
+          <div 
+            className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none"
+            style={{ zIndex: 1 }}
+          />
+          
+          {/* Interactive Mouse Glow */}
+          <div 
+            ref={glowRef}
+            className="fixed w-[400px] h-[400px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
+            style={{
+              background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)',
+              filter: 'blur(20px)',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 2
+            }}
+          />
+        </>
+      )}
 
-      {/* Static Gradient Accents */}
-      <div
-        className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"
-        style={{ zIndex: 1 }}
-      />
-      <div
-        className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none"
-        style={{ zIndex: 1 }}
-      />
-
-      {/* Interactive Mouse Glow */}
-      <div
-        ref={glowRef}
-        className="fixed w-[400px] h-[400px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
-        style={{
-          background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)',
-          filter: 'blur(20px)',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 2
-        }}
-      />
+      {isEmbedded && (
+        <div 
+          ref={glowRef}
+          className="absolute w-[200px] h-[200px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
+          style={{
+            background: 'radial-gradient(circle, rgba(139,92,246,0.2) 0%, rgba(139,92,246,0) 70%)',
+            filter: 'blur(15px)',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 2
+          }}
+        />
+      )}
 
       {/* Clean CSS Styles */}
       <style jsx>{`
@@ -533,7 +568,7 @@ export function PreviewEvent({ data }: Props) {
         }
       `}</style>
 
-      <div className="relative z-10">
+      <div className={`relative z-10 ${isEmbedded ? 'preview-container' : ''}`}>
         <header className="relative flex flex-col lg:flex-row professional-card rounded-lg sm:rounded-xl overflow-hidden shadow-xl">
           <div className="w-full lg:w-[30%] p-2 sm:p-3 lg:p-6 flex flex-col justify-between z-20 professional-card rounded-lg sm:rounded-xl border lg:border-r-0 order-2 lg:order-1 relative group">
             {/* Clean ticket tear lines */}
@@ -542,7 +577,7 @@ export function PreviewEvent({ data }: Props) {
 
             <div className="space-y-2 sm:space-y-3 lg:space-y-4">
               <div>
-                <h1 className="text-base sm:text-lg lg:text-2xl font-bold text-white line-clamp-2 leading-tight transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105 glow-text">{data.name}</h1>
+                <h1 className="text-sm sm:text-sm lg:text-sm font-bold text-white line-clamp-2 leading-tight transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105 glow-text">{data.name}</h1>
                 <p className="text-xs text-slate-400">{data.type}</p>
               </div>
 
@@ -580,14 +615,18 @@ export function PreviewEvent({ data }: Props) {
                   isPreview={data.isPreview}
                 />
                 {/* Professional compare button */}
-                {!data.isPreview && (
+                {!data.isPreview && rawEvent && (
                   <button
                     className="w-full px-3 py-2 text-sm font-medium text-white professional-button rounded-lg flex items-center justify-center gap-2 group"
                     onClick={() => {
-                      console.log('So sánh sự kiện:', data.eventId);
+                      if (!isAuthenticated) {
+                        window.location.href = "/auth/sign-in?redirectTo=" + encodeURIComponent(window.location.pathname);
+                        return;
+                      }
+                      setCompareModalOpen(true);
                     }}
                   >
-                    <Star className="w-4 h-4 transition-transform duration-300 group-hover:rotate-12 group-hover:scale-110" />
+                    <Scale className="w-4 h-4 transition-transform duration-300 group-hover:scale-110" />
                     So sánh sự kiện
                   </button>
                 )}
@@ -950,6 +989,19 @@ export function PreviewEvent({ data }: Props) {
           <RatingList eventId={data.eventId} isPreview={data.isPreview} />
         </section>
       </div>
+
+      {/* Compare Modal */}
+      {!data.isPreview && rawEvent && (
+        <EventCompareModal
+          isOpen={compareModalOpen}
+          onClose={() => setCompareModalOpen(false)}
+          currentEvent={rawEvent}
+          onAddToCompare={(eventIds) => {
+            console.log('Đã thêm sự kiện vào danh sách so sánh:', eventIds);
+            // You can implement additional logic here
+          }}
+        />
+      )}
     </>
   );
 }

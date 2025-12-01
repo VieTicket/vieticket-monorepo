@@ -38,6 +38,7 @@ import {
   updateRowLabelRotation,
 } from "../shapes/row-shape";
 import { before } from "node:test";
+import { createPolygonEdges, getGuideLines } from "../guide-lines";
 
 export interface TransformHandle {
   type: "corner" | "edge" | "rotate" | "bend" | "vertex" | "control-point";
@@ -491,9 +492,6 @@ export class SelectionTransform {
     }
   }
 
-  /**
-   * ✅ Transform a local polygon point to world coordinates considering all transformations
-   */
   private transformPointWithPolygon(
     localPoint: { x: number; y: number },
     polygon: PolygonShape
@@ -563,9 +561,6 @@ export class SelectionTransform {
     return { x: worldX, y: worldY };
   }
 
-  /**
-   * ✅ Updated handleVertexMove to work with transformed coordinates
-   */
   private handleVertexMove(deltaX: number, deltaY: number) {
     if (
       this.state.transformType !== "vertex" ||
@@ -579,14 +574,55 @@ export class SelectionTransform {
     const vertexIndex = this.state.editingVertexIndex;
     if (vertexIndex < 0 || vertexIndex >= polygon.points.length) return;
 
-    // ✅ Transform delta from world space to local polygon space
-    const localDelta = this.worldToLocalDelta(deltaX, deltaY, polygon);
+    const currentWorldPoint = this.transformPointWithPolygon(
+      this.state.originalPolygonPoints[vertexIndex],
+      polygon
+    );
+    const newWorldX = currentWorldPoint.x + deltaX;
+    const newWorldY = currentWorldPoint.y + deltaY;
+
+    // ✅ Apply enhanced snapping with guide lines
+    const guideLines = getGuideLines();
+    let snappedWorldPoint = { x: newWorldX, y: newWorldY };
+
+    if (guideLines) {
+      const snapPoints = this.getVertexSnapPoints(polygon, vertexIndex);
+      const polygonEdges = this.getPolygonEdgesForVertex(polygon, vertexIndex);
+
+      // Apply enhanced snapping
+      snappedWorldPoint = this.applyEnhancedVertexSnapping(
+        newWorldX,
+        newWorldY,
+        snapPoints,
+        polygonEdges,
+        guideLines
+      );
+
+      // ✅ Show guide lines during vertex editing
+      guideLines.showSnapGuides(
+        snappedWorldPoint.x,
+        snappedWorldPoint.y,
+        snapPoints
+      );
+      guideLines.showPolygonEdgeGuides(
+        snappedWorldPoint.x,
+        snappedWorldPoint.y,
+        polygonEdges
+      );
+    }
+
+    // Transform snapped world coordinates back to local polygon space
+    const snappedLocalDelta = this.worldToLocalDelta(
+      snappedWorldPoint.x - currentWorldPoint.x,
+      snappedWorldPoint.y - currentWorldPoint.y,
+      polygon
+    );
 
     const originalPoint = this.state.originalPolygonPoints[vertexIndex];
     polygon.points[vertexIndex] = {
       ...originalPoint,
-      x: originalPoint.x + localDelta.x,
-      y: originalPoint.y + localDelta.y,
+      x: originalPoint.x + snappedLocalDelta.x,
+      y: originalPoint.y + snappedLocalDelta.y,
     };
 
     updatePolygonGraphics(polygon);
@@ -605,9 +641,210 @@ export class SelectionTransform {
     this.updateSelection(this.selectedShapes);
   }
 
-  /**
-   * ✅ Convert world space delta to local polygon space delta
-   */
+  private applyEnhancedVertexSnapping = (
+    x: number,
+    y: number,
+    snapPoints: Array<{ x: number; y: number }>,
+    polygonEdges: Array<{
+      start: { x: number; y: number };
+      end: { x: number; y: number };
+      slope: number | null;
+      intercept: number | null;
+    }>,
+    guideLines: any
+  ): { x: number; y: number } => {
+    const GUIDE_LINE_SNAP_THRESHOLD = 5; // 5px threshold for guide line snapping
+
+    let finalX = x;
+    let finalY = y;
+
+    // First apply grid snapping
+    const gridSnap = guideLines.snapToGrid(x, y);
+
+    // Then apply object snapping
+    const objectSnap = guideLines.snapToPoints(x, y, snapPoints);
+
+    // ✅ Apply polygon edge snapping
+    const edgeSnap = guideLines.snapToPolygonEdges(x, y, polygonEdges);
+
+    // Check for guide line alignment (vertical and horizontal lines through snap points)
+    let alignedToVerticalGuide = false;
+    let alignedToHorizontalGuide = false;
+
+    // Check if current position is near any vertical guide lines
+    for (const point of snapPoints) {
+      const distanceToVerticalLine = Math.abs(x - point.x);
+      if (distanceToVerticalLine <= GUIDE_LINE_SNAP_THRESHOLD) {
+        finalX = point.x; // Snap to the vertical guide line
+        alignedToVerticalGuide = true;
+        break;
+      }
+    }
+
+    // Check if current position is near any horizontal guide lines
+    for (const point of snapPoints) {
+      const distanceToHorizontalLine = Math.abs(y - point.y);
+      if (distanceToHorizontalLine <= GUIDE_LINE_SNAP_THRESHOLD) {
+        finalY = point.y; // Snap to the horizontal guide line
+        alignedToHorizontalGuide = true;
+        break;
+      }
+    }
+
+    // ✅ Check for polygon edge alignment (highest priority)
+    const edgeDistance = Math.sqrt(
+      Math.pow(edgeSnap.x - x, 2) + Math.pow(edgeSnap.y - y, 2)
+    );
+    if (edgeDistance < GUIDE_LINE_SNAP_THRESHOLD) {
+      return edgeSnap; // Polygon edge snapping takes highest priority
+    }
+
+    // If not aligned to guide lines, use standard snapping priority
+    if (!alignedToVerticalGuide) {
+      const gridDistanceX = Math.abs(gridSnap.x - x);
+      const objectDistanceX = Math.abs(objectSnap.x - x);
+      finalX = objectDistanceX < gridDistanceX ? objectSnap.x : gridSnap.x;
+    }
+
+    if (!alignedToHorizontalGuide) {
+      const gridDistanceY = Math.abs(gridSnap.y - y);
+      const objectDistanceY = Math.abs(objectSnap.y - y);
+      finalY = objectDistanceY < gridDistanceY ? objectSnap.y : gridSnap.y;
+    }
+
+    return { x: finalX, y: finalY };
+  };
+
+  private getVertexSnapPoints(
+    currentPolygon: PolygonShape,
+    excludeVertexIndex: number
+  ): Array<{ x: number; y: number }> {
+    const snapPoints: Array<{ x: number; y: number }> = [];
+
+    // Add snap points from other shapes
+    shapes.forEach((shape) => {
+      if (shape.type === "container" || shape.id === currentPolygon.id) return;
+
+      // Add shape center
+      snapPoints.push({ x: shape.x, y: shape.y });
+
+      // Add shape corners/edges based on type
+      if (shape.type === "rectangle") {
+        const halfWidth = shape.width / 2;
+        const halfHeight = shape.height / 2;
+
+        snapPoints.push(
+          { x: shape.x - halfWidth, y: shape.y - halfHeight }, // Top-left
+          { x: shape.x + halfWidth, y: shape.y - halfHeight }, // Top-right
+          { x: shape.x - halfWidth, y: shape.y + halfHeight }, // Bottom-left
+          { x: shape.x + halfWidth, y: shape.y + halfHeight }, // Bottom-right
+          { x: shape.x, y: shape.y - halfHeight }, // Top-center
+          { x: shape.x, y: shape.y + halfHeight }, // Bottom-center
+          { x: shape.x - halfWidth, y: shape.y }, // Left-center
+          { x: shape.x + halfWidth, y: shape.y } // Right-center
+        );
+      } else if (shape.type === "ellipse") {
+        snapPoints.push(
+          { x: shape.x - shape.radiusX, y: shape.y }, // Left
+          { x: shape.x + shape.radiusX, y: shape.y }, // Right
+          { x: shape.x, y: shape.y - shape.radiusY }, // Top
+          { x: shape.x, y: shape.y + shape.radiusY } // Bottom
+        );
+      } else if (shape.type === "polygon" && shape.points) {
+        // Add existing polygon points
+        shape.points.forEach((point) => {
+          snapPoints.push({ x: shape.x + point.x, y: shape.y + point.y });
+        });
+      }
+    });
+
+    // Add other vertices from the current polygon (excluding the one being edited)
+    currentPolygon.points.forEach((point, index) => {
+      if (index !== excludeVertexIndex) {
+        const worldPoint = this.transformPointWithPolygon(
+          point,
+          currentPolygon
+        );
+        snapPoints.push(worldPoint);
+      }
+    });
+
+    return snapPoints;
+  }
+
+  private getPolygonEdgesForVertex(
+    currentPolygon: PolygonShape,
+    excludeVertexIndex: number
+  ): Array<{
+    start: { x: number; y: number };
+    end: { x: number; y: number };
+    slope: number | null;
+    intercept: number | null;
+  }> {
+    const allEdges: Array<{
+      start: { x: number; y: number };
+      end: { x: number; y: number };
+      slope: number | null;
+      intercept: number | null;
+    }> = [];
+
+    // Get edges from other polygon shapes (excluding current polygon)
+    shapes.forEach((shape) => {
+      if (
+        shape.type === "polygon" &&
+        shape.id !== currentPolygon.id &&
+        shape.points &&
+        shape.points.length >= 3
+      ) {
+        // Convert relative points to world coordinates
+        const worldPoints = shape.points.map((point) => ({
+          x: shape.x + point.x,
+          y: shape.y + point.y,
+        }));
+
+        const edges = createPolygonEdges(worldPoints);
+        allEdges.push(...edges);
+      }
+    });
+
+    // Add edges from current polygon (excluding edges connected to the vertex being edited)
+    if (currentPolygon.points.length >= 3) {
+      const worldPoints = currentPolygon.points.map((point) =>
+        this.transformPointWithPolygon(point, currentPolygon)
+      );
+
+      // Create edges but exclude ones connected to the vertex being edited
+      for (let i = 0; i < worldPoints.length; i++) {
+        const nextIndex = (i + 1) % worldPoints.length;
+
+        // Skip edges that involve the vertex being edited
+        if (i === excludeVertexIndex || nextIndex === excludeVertexIndex) {
+          continue;
+        }
+
+        const start = worldPoints[i];
+        const end = worldPoints[nextIndex];
+        const deltaX = end.x - start.x;
+        const deltaY = end.y - start.y;
+
+        let slope: number | null;
+        let intercept: number | null;
+
+        if (Math.abs(deltaX) < 0.001) {
+          slope = null;
+          intercept = start.x;
+        } else {
+          slope = deltaY / deltaX;
+          intercept = start.y - slope * start.x;
+        }
+
+        allEdges.push({ start, end, slope, intercept });
+      }
+    }
+
+    return allEdges;
+  }
+
   private worldToLocalDelta(
     worldDeltaX: number,
     worldDeltaY: number,
@@ -657,9 +894,6 @@ export class SelectionTransform {
     return { x: localDeltaX, y: localDeltaY };
   }
 
-  /**
-   * ✅ Matrix-based approach for delta conversion (more accurate)
-   */
   private worldToLocalDeltaMatrix(
     worldDeltaX: number,
     worldDeltaY: number,
@@ -695,6 +929,12 @@ export class SelectionTransform {
     if (polygon.type !== "polygon") return;
 
     const localPoint = event.getLocalPosition(stage);
+
+    const guideLines = getGuideLines();
+    if (guideLines && stage) {
+      const bounds = stage.getBounds();
+      guideLines.createGrid(bounds.width * 2, bounds.height * 2);
+    }
 
     this.state = {
       ...this.state,
@@ -956,6 +1196,13 @@ export class SelectionTransform {
     const transformType = this.state.transformType;
     const editingVertexIndex = this.state.editingVertexIndex;
     const originalPolygonPoints = [...this.state.originalPolygonPoints];
+
+    if (transformType === "vertex") {
+      const guideLines = getGuideLines();
+      if (guideLines) {
+        guideLines.clearAll();
+      }
+    }
 
     if (transformType === "vertex" && editingVertexIndex !== null) {
       const beforeState = cloneCanvasItems(this.selectedShapes);

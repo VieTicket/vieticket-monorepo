@@ -47,7 +47,13 @@
       }
     },
     "titlecategories": "Khám Phá Những Sự Kiện Trực Tuyến Tuyệt Vời",
-    "seeMore": "Xem Thêm"
+    "seeMore": "Xem Thêm",
+    "trending": {
+      "title": "Sự kiện xu hướng"
+    },
+    "newEvents": {
+      "title": "Sự kiện mới"
+    }
   },
   "footer": {
     "companyInfo": {
@@ -186,7 +192,7 @@
       "seatMap": "Sơ Đồ Chỗ Ngồi",
       "createEvent": "Tạo Sự Kiện",
       "editEvent": "Chỉnh Sửa Sự Kiện",
-      "seatMapUpdateRequired": "⚠️ Cần Cập Nhật Sơ Đồ Chỗ Ngồi",
+      "seatMapUpdateRequired": "Cần Cập Nhật Sơ Đồ Chỗ Ngồi",
       "text1": "Bạn đã thay đổi cấu hình chỗ ngồi. Điều này sẽ:",
       "text2": "Xóa tất cả các khu vực và chỗ ngồi hiện có.",
       "text3": "Tạo lại toàn bộ cấu trúc chỗ ngồi.",
@@ -196,7 +202,7 @@
       "updating": "Đang Cập Nhật...",
       "creating": "Đang Tạo...",
       "updateEvent": "Cập Nhật Sự Kiện",
-      "createEventt": "🎉 Tạo Sự Kiện Mới",
+      "createEventt": "Tạo Sự Kiện Mới",
       "saveandcontinue": "Lưu & Tiếp Tục",
       "areaA": "Khu vực A",
       "mainShowing": "Buổi chiếu chính",
@@ -237,9 +243,9 @@
         "failedLoadSeatMap": "Tải chi tiết sơ đồ chỗ ngồi thất bại",
         "seatMapLoadError": "Đã xảy ra lỗi khi tải sơ đồ chỗ ngồi",
         "uploadFailed": "Tải lên thất bại: {message}",
-        "eventUpdated": "✅ Cập nhật sự kiện thành công!",
-        "eventAndSeatMapCreated": "🎉 Tạo sự kiện và sơ đồ chỗ ngồi thành công!",
-        "eventCreated": "🎉 Tạo sự kiện thành công!",
+        "eventUpdated": "Cập nhật sự kiện thành công!",
+        "eventAndSeatMapCreated": "Tạo sự kiện và sơ đồ chỗ ngồi thành công!",
+        "eventCreated": "Tạo sự kiện thành công!",
         "createEventFailed": "Đã xảy ra sự cố khi tạo sự kiện."
       },
       "steps": {
@@ -291,10 +297,10 @@
       },
       "ai": {
         "text": {
-          "trigger": "✨ Mô tả AI",
+          "trigger": "Mô tả AI",
           "title": "Tạo mô tả sự kiện bằng AI",
-          "description": "💡 Nhập chỉ dẫn và gợi ý sáng tạo để AI tạo mô tả marketing hấp dẫn.",
-          "eventInfoTitle": "🎯 Thông tin sự kiện hiện tại",
+          "description": "Nhập chỉ dẫn và gợi ý sáng tạo để AI tạo mô tả marketing hấp dẫn.",
+          "eventInfoTitle": "Thông tin sự kiện hiện tại",
           "labels": {
             "name": "Tên:",
             "type": "Loại:",
@@ -303,12 +309,12 @@
             "end": "Kết thúc:",
             "price": "Giá vé:"
           },
-          "promptLabel": "🎨 Yêu cầu sáng tạo cho mô tả",
-          "placeholder": "💡 Ví dụ sáng tạo:\n• Nhấn mạnh cơ hội networking độc đáo\n• Giới thiệu diễn giả/nghệ sĩ nổi tiếng\n• Tạo FOMO với số lượng vé giới hạn\n• Nhấn mạnh trải nghiệm độc quyền\n• Nhắc ưu đãi early bird",
+          "promptLabel": "Yêu cầu sáng tạo cho mô tả",
+          "placeholder": "Ví dụ sáng tạo:\n• Nhấn mạnh cơ hội networking độc đáo\n• Giới thiệu diễn giả/nghệ sĩ nổi tiếng\n• Tạo FOMO với số lượng vé giới hạn\n• Nhấn mạnh trải nghiệm độc quyền\n• Nhắc ưu đãi early bird",
           "tipTitle": "Mẹo:",
           "tipText": "Càng cụ thể thì AI sẽ tạo nội dung càng phù hợp.",
-          "suggestionsTitle": "🚀 Gợi ý sáng tạo:",
-          "templatesTitle": "📝 Template mẫu (click để copy):",
+          "suggestionsTitle": "Gợi ý sáng tạo:",
+          "templatesTitle": "Template mẫu (click để copy):",
           "templates": {
             "workshop": "Tạo không khí sôi động cho sự kiện học tập: networking, diễn giả, vé giới hạn.",
             "workshopTitle": "Workshop/Hội thảo",
@@ -327,7 +333,7 @@
           "debugDisabled": "disabled=",
           "footer": {
             "cancel": "Hủy",
-            "generating": "🎨 Đang tạo...",
+            "generating": "Đang tạo...",
             "generate": "Tạo mô tả siêu hấp dẫn"
           },
           "toasts": {
@@ -397,9 +403,9 @@
       "searchLabel": "Tìm kiếm",
       "searchPlaceholder": "Tìm theo tên sự kiện...",
       "allEvents": "Tất cả sự kiện",
-      "approved": "✓ Đã duyệt",
-      "pending": "⏳ Đang chờ",
-      "rejected": "✗ Bị từ chối"
+      "approved": "Đã duyệt",
+      "pending": "Đang chờ",
+      "rejected": "Bị từ chối"
     },
     "Rating": {
       "rating": "Đánh Giá"
@@ -605,7 +611,7 @@
   },
   "about": {
     "hero": {
-      "badge": "🚀 Về VieTicket",
+      "badge": "Về VieTicket",
       "title": "Nền tảng vé sự kiện hàng đầu Việt Nam",
       "subtitle": "Kết nối người tham gia với những trải nghiệm sự kiện tuyệt vời, từ âm nhạc, thể thao đến hội nghị và nhiều hơn nữa."
     },
@@ -628,7 +634,7 @@
       }
     },
     "mission": {
-      "badge": "🎯 Sứ mệnh",
+      "badge": "Sứ mệnh",
       "title": "Tại sao VieTicket được ra đời?",
       "content": "VieTicket được sinh ra với sứ mệnh dân chủ hóa việc tiếp cận sự kiện tại Việt Nam. Chúng tôi tin rằng mọi người đều xứng đáng có những trải nghiệm sự kiện tuyệt vời, bất kể họ ở đâu, làm gì. Từ concert, hội nghị, workshop đến các sự kiện thể thao - tất cả đều nên dễ dàng tìm kiếm, đặt vé và tham gia.",
       "vision": {
@@ -637,7 +643,7 @@
       }
     },
     "features": {
-      "badge": "⚡ Tính năng",
+      "badge": "Tính năng",
       "title": "Tại sao chọn VieTicket?",
       "list": {
         "fastBooking": {
@@ -667,7 +673,7 @@
       }
     },
     "timeline": {
-      "badge": "📈 Hành trình",
+      "badge": "Hành trình",
       "title": "Hành trình phát triển VieTicket",
       "events": {
         "2024": {
@@ -688,7 +694,7 @@
       }
     },
     "team": {
-      "badge": "👥 Đội ngũ phát triển",
+      "badge": "Đội ngũ phát triển",
       "title": "Những người đứng sau VieTicket",
       "subtitle": "Đội ngũ đam mê công nghệ và sự kiện, cam kết tạo ra trải nghiệm tuyệt vời cho người dùng.",
       "members": {
@@ -720,7 +726,7 @@
       }
     },
     "cta": {
-      "badge": "🚀 Tham gia ngay",
+      "badge": "Tham gia ngay",
       "title": "Sẵn sàng khám phá?",
       "subtitle": "Hãy trở thành một phần của cộng đồng VieTicket ngay hôm nay",
       "buttons": {
@@ -731,7 +737,7 @@
   },
   "contact": {
     "hero": {
-      "badge": "📞 Liên hệ",
+      "badge": "Liên hệ",
       "title": "Chúng tôi luôn sẵn sàng hỗ trợ bạn",
       "subtitle": "Có thắc mắc hay cần hỗ trợ? Đội ngũ VieTicket luôn sẵn sàng giúp đỡ bạn 24/7. Hãy liên hệ với chúng tôi qua bất kỳ kênh nào dưới đây."
     },
@@ -790,7 +796,7 @@
       }
     },
     "faq": {
-      "badge": "❓ Câu hỏi thường gặp",
+      "badge": "Câu hỏi thường gặp",
       "title": "Có thể bạn cần biết",
       "subtitle": "Những câu hỏi được đặt nhiều nhất từ người dùng VieTicket",
       "items": {
@@ -816,7 +822,7 @@
       "emailSupport": "Email hỗ trợ"
     },
     "office": {
-      "badge": "📍 Địa chỉ",
+      "badge": "Địa chỉ",
       "title": "Ghé thăm văn phòng của chúng tôi",
       "headquarters": "VieTicket - Trụ sở chính",
       "mapPlaceholder": "Google Maps sẽ được tích hợp tại đây",
@@ -888,7 +894,9 @@
       "creatingOrder": "Đang tạo đơn hàng...",
       "orderCreated": "Đã tạo đơn hàng thành công!",
       "orderSummary": "Đơn hàng",
+      "Tickets": "Vé",
       "tickets": "vé",
+      "clearAll": "Xóa tất cả",
       "seat": "Ghế",
       "errorLoadingTickets": "Lỗi khi tải thông tin vé:",
       "goBack": "Quay lại",

@@ -66,18 +66,13 @@ export const DebouncedInput = React.memo(
 
       const selectedItems = useSeatMapStore.getState().selectedShapes;
       const currentShape = selectedItems.length === 1 ? selectedItems[0] : null;
-      console.log(
-        !previouslyClickedShape,
-        currentShape &&
-          previouslyClickedShape &&
-          previouslyClickedShape.id === currentShape.id
-      );
+
       if (
         !previouslyClickedShape ||
         (currentShape && previouslyClickedShape.id === currentShape.id)
       ) {
         // ✅ Only update if the value has actually changed from user input
-        console.log(`Updating value from ${value} to ${numericValue}`);
+
         onUpdate(numericValue);
       } else {
         setLocalValue(formatNumber(value, isFloat));

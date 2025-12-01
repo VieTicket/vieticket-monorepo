@@ -14,7 +14,9 @@ interface SmartHomePageLoaderProps {
   };
 }
 
-export function SmartHomePageLoader({ initialEvents }: SmartHomePageLoaderProps) {
+export function SmartHomePageLoader({
+  initialEvents,
+}: SmartHomePageLoaderProps) {
   const [events, setEvents] = useState<EventSummary[]>(initialEvents.events);
   const [hasMore, setHasMore] = useState(initialEvents.hasMore);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,14 +31,15 @@ export function SmartHomePageLoader({ initialEvents }: SmartHomePageLoaderProps)
   // Smart loading effect - load more events if user has behavior data
   useEffect(() => {
     // Always log the check, regardless of frequency reduction
-    console.log('🔍 [SmartHomePage] Checking conditions every render...');
-    
-    const hasBehavior = userBehavior.searchQueries.length > 0 || 
-                       userBehavior.viewedEvents.length > 0 || 
-                       userBehavior.clickedEvents.length > 0 ||
-                       userBehavior.eventEngagement.length > 0;
+    console.log("🔍 [SmartHomePage] Checking conditions every render...");
 
-    console.log('🔍 [SmartHomePage] Detailed check:', {
+    const hasBehavior =
+      userBehavior.searchQueries.length > 0 ||
+      userBehavior.viewedEvents.length > 0 ||
+      userBehavior.clickedEvents.length > 0 ||
+      userBehavior.eventEngagement.length > 0;
+
+    console.log("🔍 [SmartHomePage] Detailed check:", {
       hasBehavior,
       hasLoadedMore,
       hasMore,
@@ -49,14 +52,16 @@ export function SmartHomePageLoader({ initialEvents }: SmartHomePageLoaderProps)
         searchQueriesData: userBehavior.searchQueries,
         viewedEventsData: userBehavior.viewedEvents,
       },
-      shouldTrigger: hasBehavior && !hasLoadedMore && hasMore
+      shouldTrigger: hasBehavior && !hasLoadedMore && hasMore,
     });
 
     if (hasBehavior && !hasLoadedMore && hasMore) {
-      console.log('🧠 [SmartHomePage] TRIGGERING smart-loading! User has behavior data, loading more events for AI personalization');
+      console.log(
+        "🧠 [SmartHomePage] TRIGGERING smart-loading! User has behavior data, loading more events for AI personalization"
+      );
       setHasLoadedMore(true);
       setIsLoading(true);
-      
+
       // Load significantly more events for better AI personalization
       getFilteredEvents({
         page: 1,
@@ -64,32 +69,41 @@ export function SmartHomePageLoader({ initialEvents }: SmartHomePageLoaderProps)
         price: "all",
         date: "all",
         location: "all",
-        category: "all", 
+        category: "all",
         q: "",
       })
-      .then(result => {
-        console.log(`🎯 [SmartHomePage] Smart-loaded ${result.events.length} total events for AI personalization`);
-        setEvents(result.events);
-        setHasMore(result.hasMore);
-      })
-      .catch(error => {
-        console.error("[SmartHomePage] Failed to smart-load events for AI:", error);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+        .then((result) => {
+          console.log(
+            `[SmartHomePage] Smart-loaded ${result.events.length} total events for AI personalization`
+          );
+          setEvents(result.events);
+          setHasMore(result.hasMore);
+        })
+        .catch((error) => {
+          console.error(
+            "[SmartHomePage] Failed to smart-load events for AI:",
+            error
+          );
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     } else {
-      console.log('🚫 [SmartHomePage] Not triggering smart-loading:', {
-        reason: !hasBehavior ? 'No behavior data' : 
-                !hasMore ? 'No more events' :
-                hasLoadedMore ? 'Already loaded more' : 'Unknown'
+      console.log("🚫 [SmartHomePage] Not triggering smart-loading:", {
+        reason: !hasBehavior
+          ? "No behavior data"
+          : !hasMore
+            ? "No more events"
+            : hasLoadedMore
+              ? "Already loaded more"
+              : "Unknown",
       });
     }
   }, [userBehavior, hasLoadedMore, hasMore]);
 
   const handleLoadMore = async () => {
     if (!hasMore || isLoading) return;
-    
+
     setIsLoading(true);
     try {
       const currentPage = Math.floor(events.length / 12) + 1;
@@ -103,12 +117,15 @@ export function SmartHomePageLoader({ initialEvents }: SmartHomePageLoaderProps)
         q: "",
       });
 
-      const newEvents = result.events.filter(newEvent => 
-        !events.some(existingEvent => existingEvent.id === newEvent.id)
+      const newEvents = result.events.filter(
+        (newEvent) =>
+          !events.some((existingEvent) => existingEvent.id === newEvent.id)
       );
 
-      console.log(`🔄 Manually loaded ${newEvents.length} more events. Total: ${events.length + newEvents.length}`);
-      setEvents(prev => [...prev, ...newEvents]);
+      console.log(
+        `Manually loaded ${newEvents.length} more events. Total: ${events.length + newEvents.length}`
+      );
+      setEvents((prev) => [...prev, ...newEvents]);
       setHasMore(result.hasMore);
     } catch (error) {
       console.error("Failed to load more events:", error);

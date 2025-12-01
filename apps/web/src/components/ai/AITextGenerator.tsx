@@ -75,21 +75,21 @@ export function AITextGenerator({
 
     return `Tạo mô tả sự kiện MARKETING chuyên nghiệp và CỰC KỲ HẤP DẪN bằng tiếng Việt cho:
 
-🎯 THÔNG TIN SỰ KIỆN:
+THÔNG TIN SỰ KIỆN:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ✨ TÊN: ${data.name || "Chưa có tên"}
 🎪 LOẠI: ${data.type || "Sự kiện"}  
-📍 ĐỊA ĐIỂM: ${data.location || "Sẽ thông báo"}
+ĐỊA ĐIỂM: ${data.location || "Sẽ thông báo"}
 ⏰ THỜI GIAN: ${startDate} ${startTime} → ${endDate} ${endTime}
 🎫 BÁN VÉ: ${data.ticketSaleStart ? new Date(data.ticketSaleStart).toLocaleDateString("vi-VN") : "Sẽ thông báo"} → ${data.ticketSaleEnd ? new Date(data.ticketSaleEnd).toLocaleDateString("vi-VN") : "Sẽ thông báo"}${data.ticketPrice ? `\n💰 GIÁ VÉ: ${parseInt(data.ticketPrice).toLocaleString("vi-VN")} VND` : ""}
 
-🎨 YÊU CẦU ĐẶC BIỆT: ${userPrompt}
+YÊU CẦU ĐẶC BIỆT: ${userPrompt}
 
 🔥 NHIỆM VỤ: Tạo mô tả sự kiện SIÊU HẤP DẪN theo mẫu bên dưới:
 
 � CẤU TRÚC THEO MẪU MỚI (dựa trên ví dụ "ĐÊM NHẠC HUYỀN ẢO"):
 
-1. 🎯 TIÊU ĐỀ CHÍNH hấp dẫn với emoji + tên sự kiện + slogan cảm xúc
+1. TIÊU ĐỀ CHÍNH hấp dẫn với emoji + tên sự kiện + slogan cảm xúc
    Ví dụ: "🔥 [TÊN SỰ KIỆN]: [Slogan hấp dẫn] – [Cảm xúc mạnh] Tại [Địa điểm]! 🔥"
 
 2. 🌟 ĐOẠN MỞ ĐẦU tạo cảm xúc và FOMO (2-3 câu)
@@ -107,12 +107,12 @@ export function AITextGenerator({
    - Trải nghiệm độc quyền
    - Kỷ niệm/giá trị mang về
 
-5. 🎯 CALL TO ACTION mạnh mẽ cuối bài
+5. CALL TO ACTION mạnh mẽ cuối bài
    - Tạo urgency với thời hạn cụ thể
    - Nhấn mạnh số lượng có hạn
    - Kêu gọi hành động ngay lập tức
 
-💡 QUY TẮC VÀNG:
+QUY TẮC VÀNG:
 - Sử dụng NHIỀU EMOJIS để tạo điểm nhấn thị giác
 - Tạo FOMO mạnh mẽ (Fear of Missing Out)
 - Ngôn ngữ cảm xúc, năng động, trẻ trung
@@ -181,7 +181,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
       const htmlContent = convertToTipTapHTML(fullResponse);
       onTextGenerated(htmlContent);
-  toast.success(t("ai.text.toasts.success"));
+      toast.success(t("ai.text.toasts.success"));
       handleOpenChange(false);
     } catch (error) {
       console.error("Error in API call:", error);
@@ -243,7 +243,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
         // Add call to action
         styledContent += `<div style="text-align: center; margin: 25px 0; padding: 20px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px;">
-          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">🎯 ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!</p>
+          <p style="color: white; font-size: 18px; font-weight: bold; margin: 0;">ĐĂNG KÝ NGAY - CHƯƠNG TRÌNH HẤP DẪN!</p>
         </div>`;
 
         htmlContent = styledContent;
@@ -260,13 +260,14 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-        <DialogTrigger asChild>
+      <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
           className="gap-2 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 hover:from-purple-100 hover:to-pink-100 text-purple-700 font-medium"
         >
-          <Sparkles className="h-4 w-4" />{t("ai.text.trigger")}
+          <Sparkles className="h-4 w-4" />
+          {t("ai.text.trigger")}
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -295,21 +296,27 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                    <span className="font-medium">{t("ai.text.labels.name")}</span>
+                    <span className="font-medium">
+                      {t("ai.text.labels.name")}
+                    </span>
                     <span className="text-blue-600 font-semibold">
                       {eventData.name || "Chưa có tên"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                    <span className="font-medium">{t("ai.text.labels.type")}</span>
+                    <span className="font-medium">
+                      {t("ai.text.labels.type")}
+                    </span>
                     <span className="text-green-600 font-semibold">
                       {eventData.type || "Chưa xác định"}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                    <span className="font-medium">{t("ai.text.labels.location")}</span>
+                    <span className="font-medium">
+                      {t("ai.text.labels.location")}
+                    </span>
                     <span className="text-orange-600 font-semibold">
                       {eventData.location || "Chưa xác định"}
                     </span>
@@ -318,7 +325,9 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 <div className="space-y-2">
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-purple-500 rounded-full"></span>
-                    <span className="font-medium">{t("ai.text.labels.start")}</span>
+                    <span className="font-medium">
+                      {t("ai.text.labels.start")}
+                    </span>
                     <span className="text-purple-600 font-semibold">
                       {eventData.startTime
                         ? new Date(eventData.startTime).toLocaleString("vi-VN")
@@ -327,7 +336,9 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="w-2 h-2 bg-red-500 rounded-full"></span>
-                    <span className="font-medium">{t("ai.text.labels.end")}</span>
+                    <span className="font-medium">
+                      {t("ai.text.labels.end")}
+                    </span>
                     <span className="text-red-600 font-semibold">
                       {eventData.endTime
                         ? new Date(eventData.endTime).toLocaleString("vi-VN")
@@ -337,7 +348,9 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   {eventData.ticketPrice && (
                     <div className="flex items-center gap-2">
                       <span className="w-2 h-2 bg-yellow-500 rounded-full"></span>
-                      <span className="font-medium">{t("ai.text.labels.price")}</span>
+                      <span className="font-medium">
+                        {t("ai.text.labels.price")}
+                      </span>
                       <span className="text-yellow-600 font-bold">
                         {parseInt(eventData.ticketPrice).toLocaleString(
                           "vi-VN"
@@ -371,7 +384,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 value={prompt}
                 onChange={(e) => {
                   const newValue = e.target.value;
-                  console.log("🔄 Prompt changing:", newValue);
+                  console.log("Prompt changing:", newValue);
                   setPrompt(newValue);
                 }}
                 placeholder={t("ai.text.placeholder")}
@@ -383,8 +396,9 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 <div className="p-1 bg-blue-100 rounded-full">
                   <span className="text-blue-600 text-xs">💡</span>
                 </div>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                  <strong>{t("ai.text.tipTitle")}</strong> {t("ai.text.tipText")}
+                <p className="text-sm text-gray-600 leading-relaxed">
+                  <strong>{t("ai.text.tipTitle")}</strong>{" "}
+                  {t("ai.text.tipText")}
                 </p>
               </div>
             </div>
@@ -392,7 +406,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
             {/* Creative Suggestions */}
             <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-4">
               <h5 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
-                🚀 Gợi ý sáng tạo:
+                Gợi ý sáng tạo:
               </h5>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
                 <div className="flex items-center gap-2 text-purple-700">
@@ -425,28 +439,32 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                   onClick={() => setPrompt(t("ai.text.templates.workshop"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎯 <strong>{t("ai.text.templates.workshopTitle")}</strong> {t("ai.text.templates.workshopShort")}
+                  <strong>{t("ai.text.templates.workshopTitle")}</strong>{" "}
+                  {t("ai.text.templates.workshopShort")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrompt(t("ai.text.templates.concert"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🎵 <strong>{t("ai.text.templates.concertTitle")}</strong> {t("ai.text.templates.concertShort")}
+                  🎵 <strong>{t("ai.text.templates.concertTitle")}</strong>{" "}
+                  {t("ai.text.templates.concertShort")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrompt(t("ai.text.templates.tech"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  💻 <strong>{t("ai.text.templates.techTitle")}</strong> {t("ai.text.templates.techShort")}
+                  💻 <strong>{t("ai.text.templates.techTitle")}</strong>{" "}
+                  {t("ai.text.templates.techShort")}
                 </button>
                 <button
                   type="button"
                   onClick={() => setPrompt(t("ai.text.templates.night"))}
                   className="w-full text-left p-2 bg-white/70 rounded border hover:bg-white text-sm text-amber-700"
                 >
-                  🔥 <strong>{t("ai.text.templates.nightTitle")}</strong> {t("ai.text.templates.nightShort")}
+                  🔥 <strong>{t("ai.text.templates.nightTitle")}</strong>{" "}
+                  {t("ai.text.templates.nightShort")}
                 </button>
               </div>
             </div>
@@ -457,7 +475,9 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
           {/* Debug info - chỉ hiện khi development */}
           {process.env.NODE_ENV === "development" && (
             <div className="text-xs text-gray-500 flex-1 space-y-1">
-              <div>{t("ai.text.debug")} prompt="{prompt}"</div>
+              <div>
+                {t("ai.text.debug")} prompt="{prompt}"
+              </div>
               <div>
                 length={prompt.length} | trimmed="{prompt.trim()}" |
                 trim().length={prompt.trim().length}
@@ -466,7 +486,10 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
                 isGenerating={isGenerating.toString()} | !prompt.trim()=
                 {(!prompt.trim()).toString()}
               </div>
-              <div>{t("ai.text.debugDisabled")} {(isGenerating || !prompt.trim()).toString()}</div>
+              <div>
+                {t("ai.text.debugDisabled")}{" "}
+                {(isGenerating || !prompt.trim()).toString()}
+              </div>
             </div>
           )}
 
@@ -496,7 +519,7 @@ CHỈ TRẢ VỀ NỘI DUNG TEXT, KHÔNG HTML!`;
           <Button
             type="button"
             onClick={(e) => {
-              console.log("🎯 Button onClick triggered");
+              console.log("Button onClick triggered");
               handleGenerateClick(e);
             }}
             onMouseDown={() => console.log("🖱️ Button mouseDown")}

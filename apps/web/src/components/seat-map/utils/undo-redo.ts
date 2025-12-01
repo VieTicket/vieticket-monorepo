@@ -551,7 +551,6 @@ const applyDeltaRestore = async (
       );
       if (stateToApply.selectedShapes) {
         const parentContainer = findParentContainer(items[0] as CanvasItem);
-        console.log("Parent Container for Grouping:", parentContainer);
         if (parentContainer) {
           setSelectedContainer([parentContainer]);
         }
@@ -1129,9 +1128,6 @@ export const handleRemoteUndoRedo = async (
   );
 
   if (actionIndex === -1) {
-    console.log(
-      `⚠️ Remote ${operation} action ${actionId} not found in local history`
-    );
     return false;
   }
 
@@ -1151,10 +1147,6 @@ export const handleRemoteUndoRedo = async (
     historyStack: newHistoryStack,
     currentHistoryIndex: newCurrentIndex,
   });
-
-  console.log(
-    `✅ Applied remote ${operation} from user ${fromUserId} for action: ${actionId}`
-  );
 
   return true;
 };
