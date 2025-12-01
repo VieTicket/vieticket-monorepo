@@ -26,6 +26,7 @@ export type SeatMapItem = {
   image?: string;
   createdBy: string;
   publicity?: "public" | "private";
+  draftedFrom?: string;
   usedByEvent?: string;
   eventInfo?: {
     id: string;
@@ -289,42 +290,36 @@ export default function SeatMapDirectory() {
   }
 
   return (
-    <div className="flex h-full">
-      {/* <Sidebar
-        onShowTemplates={handleShowTemplates}
-        onShowDrafts={handleShowDrafts}
-      /> */}
+    <div className="flex-1 flex flex-col  h-full overflow-hidden">
+      {currentView === "drafts" && (
+        <DraftsView
+          filteredSeatMaps={filteredDrafts}
+          eventSeatMaps={getEventSeatMaps()}
+          isLoading={isLoading}
+          draftsSearchQuery={draftsSearchQuery}
+          setDraftsSearchQuery={setDraftsSearchQuery}
+          viewMode={viewMode}
+          onShowTemplates={handleShowTemplates}
+          setViewMode={setViewMode}
+          onPublish={handlePublishSeatMap}
+          onDelete={handleDeleteSeatMap}
+          publishingIds={publishingIds}
+          deletingIds={deletingIds}
+        />
+      )}
 
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {currentView === "drafts" && (
-          <DraftsView
-            filteredSeatMaps={filteredDrafts}
-            eventSeatMaps={getEventSeatMaps()}
-            isLoading={isLoading}
-            draftsSearchQuery={draftsSearchQuery}
-            setDraftsSearchQuery={setDraftsSearchQuery}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            onPublish={handlePublishSeatMap}
-            onDelete={handleDeleteSeatMap}
-            publishingIds={publishingIds}
-            deletingIds={deletingIds}
-          />
-        )}
-
-        {currentView === "templates" && (
-          <TemplatesView
-            publicSeatMaps={publicSeatMaps}
-            isLoadingTemplates={isLoadingTemplates}
-            templatesSearchQuery={templatesSearchQuery}
-            setTemplatesSearchQuery={setTemplatesSearchQuery}
-            onBack={() => setCurrentView("drafts")}
-            onCreateDraft={handleCreateDraft}
-            isCreatingDraft={isCreatingDraft}
-            formatDate={formatDate}
-          />
-        )}
-      </div>
+      {currentView === "templates" && (
+        <TemplatesView
+          publicSeatMaps={publicSeatMaps}
+          isLoadingTemplates={isLoadingTemplates}
+          templatesSearchQuery={templatesSearchQuery}
+          setTemplatesSearchQuery={setTemplatesSearchQuery}
+          onBack={() => setCurrentView("drafts")}
+          onCreateDraft={handleCreateDraft}
+          isCreatingDraft={isCreatingDraft}
+          formatDate={formatDate}
+        />
+      )}
     </div>
   );
 }

@@ -43,6 +43,14 @@ export function TemplatesView({
       {/* Templates View Header */}
       <div className="border-b dark:border-gray-800 p-4 flex justify-between items-center h-20">
         <div className="flex items-center gap-4">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onBack}
+            aria-label="Back to Seat Maps"
+          >
+            <ArrowLeft size={20} />
+          </Button>
           <h1 className="text-xl font-semibold flex items-center gap-2">
             Community Templates
           </h1>

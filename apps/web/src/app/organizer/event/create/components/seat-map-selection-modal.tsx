@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Eye, Check, Grid3x3, AlertCircle } from "lucide-react";
+import { Search, Eye, Check, Grid3x3, AlertCircle, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { getUserSeatMapsAction } from "@/lib/actions/organizer/seat-map-actions";
 import { Card } from "@/components/ui/card";
@@ -28,6 +28,7 @@ interface SeatMapSelectionModalProps {
   onOpenChange: (open: boolean) => void;
   onSelect: (seatMap: SeatMapData) => void;
   selectedSeatMapId?: string;
+  selectedSeatMapData?: SeatMapData | null; // Add this to identify the current seat map used by the event
 }
 
 export function SeatMapSelectionModal({
@@ -35,6 +36,7 @@ export function SeatMapSelectionModal({
   onOpenChange,
   onSelect,
   selectedSeatMapId,
+  selectedSeatMapData,
 }: SeatMapSelectionModalProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [seatMaps, setSeatMaps] = useState<SeatMapData[]>([]);
@@ -47,15 +49,22 @@ export function SeatMapSelectionModal({
       const result = await getUserSeatMapsAction();
 
       if (result.success) {
-        const processedSeatMaps = result.data!.map((seatMap: any) => {
+        let draftedFrom: any = result.data!.filter((seatMap: any) => {
+          return seatMap.id === selectedSeatMapId;
+        });
+        // ✅ Filter out seat maps that are used by events
+        const availableSeatMaps = result.data!.filter((seatMap: any) => {
+          return !seatMap.usedByEvent;
+        });
+
+        const processedSeatMaps = availableSeatMaps.map((seatMap: any) => {
           const areaModeContainer = seatMap.shapes?.find(
             (shape: any) =>
               shape.id === "area-mode-container-id" &&
               shape.type === "container" &&
-              shape.defaultSeatSettings // This identifies it as an AreaModeContainer
+              shape.defaultSeatSettings
           ) as AreaModeContainer | undefined;
 
-          // ✅ Extract grids with proper type checking
           const grids: GridShape[] =
             areaModeContainer?.children?.filter(
               (child): child is GridShape =>
@@ -65,12 +74,17 @@ export function SeatMapSelectionModal({
                 Array.isArray(child.children)
             ) || [];
 
-          // ✅ Calculate statistics
           const { gridCount, totalSeats, totalRevenue } = calculateSeatMapStats(
             grids,
             areaModeContainer?.defaultSeatSettings
           );
-
+          console.log(
+            seatMap,
+            draftedFrom,
+            seatMap.id === draftedFrom[0].draftedFrom
+          );
+          const isDraftedFromCurrent =
+            seatMap.id === draftedFrom[0].draftedFrom;
           return {
             ...seatMap,
             grids: grids.map((grid) => ({
@@ -105,6 +119,8 @@ export function SeatMapSelectionModal({
             })),
             defaultSeatSettings: areaModeContainer?.defaultSeatSettings || null,
             hasGrids: gridCount > 0,
+            isDraftedFromCurrent, // ✅ Add this flag
+            isCurrentEventSeatMap: seatMap.id === selectedSeatMapData?.id, // ✅ Flag for current seat map
             statistics: {
               gridCount,
               totalSeats,
@@ -128,7 +144,6 @@ export function SeatMapSelectionModal({
     }
   };
 
-  // ✅ Enhanced statistics calculation
   const calculateSeatMapStats = (
     grids: GridShape[],
     defaultSettings?: SeatGridSettings
@@ -141,7 +156,6 @@ export function SeatMapSelectionModal({
     let totalRevenue = 0;
 
     const validGrids = grids.filter((grid: GridShape) => {
-      // Only count grids that have valid rows with seats
       return (
         Array.isArray(grid.children) &&
         grid.children.some(
@@ -182,7 +196,7 @@ export function SeatMapSelectionModal({
     if (open) {
       loadSeatMaps();
     }
-  }, [open]);
+  }, [open, selectedSeatMapData]);
 
   useEffect(() => {
     if (searchQuery.trim()) {
@@ -204,7 +218,6 @@ export function SeatMapSelectionModal({
     });
   };
 
-  // ✅ Updated to use new statistics structure
   const getSeatMapDisplayStats = (seatMap: any) => {
     if (!seatMap.statistics) {
       return { gridCount: 0, totalSeats: 0, isUsable: false };
@@ -217,7 +230,6 @@ export function SeatMapSelectionModal({
     };
   };
 
-  // ✅ Enhanced formatting for revenue
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -248,7 +260,7 @@ export function SeatMapSelectionModal({
               size={18}
             />
             <Input
-              placeholder="Search your seat maps..."
+              placeholder="Search your available seat maps..."
               className="w-full pl-10"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -279,6 +291,16 @@ export function SeatMapSelectionModal({
                         selectedSeatMapId === seatMap.id
                           ? "ring-2 ring-primary bg-primary/5"
                           : ""
+                      } ${
+                        // ✅ Highlight drafted seat maps with special border
+                        seatMap.isDraftedFromCurrent
+                          ? "ring-2 ring-blue-400 bg-blue-50 dark:bg-blue-950/20"
+                          : ""
+                      } ${
+                        // ✅ Highlight current event seat map
+                        seatMap.isCurrentEventSeatMap
+                          ? "ring-2 ring-green-400 bg-green-50 dark:bg-green-950/20"
+                          : ""
                       }`}
                       onClick={() => isUsable && onSelect(seatMap)}
                     >
@@ -294,6 +316,18 @@ export function SeatMapSelectionModal({
                         />
                         {selectedSeatMapId === seatMap.id && (
                           <div className="absolute top-2 right-2 bg-primary text-white rounded-full p-1 shadow-lg">
+                            <Check className="w-4 h-4" />
+                          </div>
+                        )}
+                        {/* ✅ Draft indicator */}
+                        {seatMap.isDraftedFromCurrent && (
+                          <div className="absolute top-2 left-2 bg-blue-500 text-white rounded-full p-1 shadow-lg">
+                            <Copy className="w-4 h-4" />
+                          </div>
+                        )}
+                        {/* ✅ Current seat map indicator */}
+                        {seatMap.isCurrentEventSeatMap && (
+                          <div className="absolute top-2 left-2 bg-green-500 text-white rounded-full p-1 shadow-lg">
                             <Check className="w-4 h-4" />
                           </div>
                         )}
@@ -316,14 +350,27 @@ export function SeatMapSelectionModal({
                           <h3 className="font-medium truncate mr-2 flex-1">
                             {seatMap.name}
                           </h3>
-                          {isUsable && (
-                            <Badge
-                              variant="outline"
-                              className="text-xs flex-shrink-0"
-                            >
-                              Ready
-                            </Badge>
-                          )}
+                          <div className="flex gap-1 flex-shrink-0">
+                            {/* ✅ Special badges for different states */}
+                            {seatMap.isCurrentEventSeatMap && (
+                              <Badge variant="default" className="text-xs">
+                                Current
+                              </Badge>
+                            )}
+                            {seatMap.isDraftedFromCurrent && (
+                              <Badge variant="secondary" className="text-xs">
+                                <Copy className="w-3 h-3 mr-1" />
+                                Draft
+                              </Badge>
+                            )}
+                            {isUsable &&
+                              !seatMap.isCurrentEventSeatMap &&
+                              !seatMap.isDraftedFromCurrent && (
+                                <Badge variant="outline" className="text-xs">
+                                  Available
+                                </Badge>
+                              )}
+                          </div>
                         </div>
 
                         {/* Enhanced Stats */}
@@ -384,7 +431,7 @@ export function SeatMapSelectionModal({
                           <Button
                             size="sm"
                             className="flex-1"
-                            disabled={!isUsable}
+                            disabled={!isUsable || seatMap.isDraftedFromCurrent}
                             onClick={(e) => {
                               e.stopPropagation();
                               if (isUsable) {
@@ -393,7 +440,11 @@ export function SeatMapSelectionModal({
                               }
                             }}
                           >
-                            {isUsable ? "Select" : "Empty"}
+                            {seatMap.isDraftedFromCurrent
+                              ? "Using"
+                              : isUsable
+                                ? "Select"
+                                : "Empty"}
                           </Button>
                         </div>
                       </div>
@@ -405,12 +456,14 @@ export function SeatMapSelectionModal({
               <div className="text-center py-10">
                 <Grid3x3 className="w-12 h-12 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  {searchQuery ? "No matching seat maps" : "No seat maps found"}
+                  {searchQuery
+                    ? "No matching seat maps"
+                    : "No available seat maps found"}
                 </h3>
                 <p className="text-gray-500 dark:text-gray-400 mb-4">
                   {searchQuery
                     ? "Try adjusting your search terms"
-                    : "Create your first seat map to get started"}
+                    : "All your seat maps are currently being used by other events. Create a new one or use drafts."}
                 </p>
                 {!searchQuery && (
                   <Button

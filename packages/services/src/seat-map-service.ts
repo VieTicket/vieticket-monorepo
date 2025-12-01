@@ -1,6 +1,6 @@
 import { User } from "@vieticket/db/pg/schemas/users";
 import { Event, NewEvent } from "@vieticket/db/pg/schema";
-import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
+import { CanvasItem, SeatMap } from "@vieticket/db/mongo/models/seat-map";
 import {
   createSeatMap,
   findSeatMapsByCreator,
@@ -397,7 +397,7 @@ export async function getUserSeatMapsWithEventInfo(user: User) {
 
     // Enrich seat maps with event information
     const enrichedSeatMaps = await Promise.all(
-      seatMaps.map(async (seatMap) => {
+      seatMaps.map(async (seatMap: SeatMap) => {
         let eventInfo = null;
 
         if (seatMap.usedByEvent) {
@@ -427,6 +427,7 @@ export async function getUserSeatMapsWithEventInfo(user: User) {
           image: seatMap.image,
           createdBy: seatMap.createdBy,
           publicity: seatMap.publicity,
+          draftedFrom: seatMap.draftedFrom,
           usedByEvent: seatMap.usedByEvent,
           eventInfo,
           createdAt: seatMap.createdAt,

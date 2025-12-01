@@ -346,7 +346,7 @@ function CreateEventPageInner() {
           toast.error("Event not found");
           return;
         }
-        
+
         const event = result.data;
 
         setFormData({
@@ -956,7 +956,7 @@ function CreateEventPageInner() {
           >
             {t("goback")}
           </Button>
-          <Button 
+          <Button
             onClick={handleNextStep}
             className="w-full sm:w-auto order-1 sm:order-2"
           >
