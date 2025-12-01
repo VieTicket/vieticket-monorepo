@@ -1,0 +1,45 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06
+Can connect with server,Precondition,,,,,,
+,Precondition,,,,,,
+Precondition,Precondition,,,,,,
+,Server Connection,,O,O,O,O,O,O
+,,,,,,,
+Authentication,,,,,,,
+,Valid admin session,,O,O,O,O,,,
+,No session (unauthenticated),,,,,O,
+,,,,,,,
+Pagination Parameters,,,,,,,
+,Default page & limit (page=1, limit=10),,O,,,O,,
+,Custom page & limit (page=2, limit=5),,,O,,,
+,,,,,,,
+Status Filter,,,,,,,
+,With status filter (pending),, ,O,,,,
+,Without status filter (all statuses),,O,,O,O,,
+,,,,,,,
+Service Call Parameters,,,,,,,
+,Correct offset for page=1, limit=10 (offset=0),,O,,,O,,
+,Correct offset for page=2, limit=5 (offset=5),,,O,,,
+,Status passed to service layer,, ,O,,,,
+,,,,,,,
+Return,Confirm,,,,,,,
+,Success: 200 equivalent (success=true),,O,O,O,O,,
+,Error: Unauthorized (success=false),,,,,O,
+,Error: Service failure (success=false),,,,,,O
+,,,,,,,
+Log message,,,,,,,
+,Console error logged on service failure,,,,,,O
+,,,,,,,
+"""TC Description""",,,,,,
+,"""Get payout requests with valid admin session (Normal)""",,O,,,,,
+,"""Get payout requests with pending status filter (Normal)""",, ,O,,,,
+,"""Get payout requests with custom page & limit (Normal)""",,,O,,,
+,"""Get payout requests with default parameters (Boundary)""",,,,O,,
+,"""Get payout requests without session (Abnormal)""",,,,,O,
+,"""Get payout requests when service throws error (Abnormal)""",,,,,,O
+,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,N,N,N,B,A,A
+,Passed/Failed,,P,P,P,P,P,P
+,Executed Date,,2025-12-01,2025-12-01,2025-12-01,2025-12-01,2025-12-01,2025-12-01
+,Defect ID,,,,,,
+
+

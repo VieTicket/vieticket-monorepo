@@ -1,0 +1,42 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06
+Can connect with server,Precondition,,,,,,
+,Precondition,,,,,,
+Precondition,Precondition,,,,,,
+,Server Connection,,O,O,O,O,O,O
+,,,,,,,
+Authentication,,,,,,,
+,Valid organizer session,,O,O,O,O,,
+,No session (unauthenticated),,,,,O,
+,,,,,,,
+Pagination Parameters,,,,,,,
+,Default page & limit (page=1, limit=10),,O,,,O,,
+,Custom page & limit (page=2, limit=5),,,O,,,
+,Single item per page (limit=1),,,,O,,
+,,,,,,,
+Service Call Parameters,,,,,,,
+,Correct offset for page=1, limit=10 (offset=0),,O,,,O,,
+,Correct offset for page=2, limit=5 (offset=5),,,O,,,
+,Correct offset for single-item page (offset=0, limit=1),,,,O,,
+,,,,,,,
+Return,Confirm,,,,,,,
+,Success: Data returned (Normal),,O,O,O,O,,
+,Error: Unauthorized (Abnormal),,,,,O,
+,Error: Service failure (Abnormal),,,,,,O
+,,,,,,,
+Log message,,,,,,,
+,Console error logged on service failure,,,,,,,
+,,,,,,,
+"""TC Description""",,,,,,
+,"""Get payout requests with valid organizer session (Normal)""",,O,,,,,
+,"""Get payout requests with custom page & limit (Normal)""",,,O,,,
+,"""Get payout requests with single item per page (Normal)""",,,,O,,
+,"""Get payout requests with default parameters (Boundary)""",,,,,O,
+,"""Get payout requests without session (Abnormal)""",,,,,O,
+,"""Get payout requests when service throws error (Abnormal)""",,,,,,O
+,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,N,N,N,B,A,A
+,Passed/Failed,,P,P,P,P,P,P
+,Executed Date,,2025-12-01,2025-12-01,2025-12-01,2025-12-01,2025-12-01,2025-12-01
+,Defect ID,,,,,,
+
+
