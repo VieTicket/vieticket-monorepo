@@ -2,7 +2,7 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
 import { db } from "@vieticket/db/pg/direct";
-import { user, organizers, Role } from "@vieticket/db/pg/schema";
+import { user, Role } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
 type PermissionMap = {
@@ -262,4 +262,5 @@ export const config = {
      */
     "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|_vercel/speed-insights).*)",
   ],
+  runtime: "nodejs",
 };
