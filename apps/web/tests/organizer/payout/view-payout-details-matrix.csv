@@ -1,0 +1,52 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06,TC07,TC09
+Can connect with server,Precondition,,,,,,,,
+,Precondition,,,,,,,,
+Precondition,Precondition,,,,,,,,
+,Server Connection,,O,O,O,O,O,O,O,O
+,,,,,,,,,
+User Authentication,,,,,,,,,
+,Valid organizer session,,O,O,O,O,O,,,
+,Unauthorized user (no session),,,,,,,O,
+,,,,,,,,,
+Payout Request ID,,,,,,,,,
+,Valid UUID format,,O,O,O,,O,,,O
+,Maximum length UUID (boundary),,,,O,,,O,
+,Minimum length ID (boundary),,,,,O,,,
+,Empty string (abnormal),,,,,,,,O
+,Invalid format (abnormal),,,,,,,,O
+,,,,,,,,,
+Data Retrieval,,,,,,,,,
+,Complete payout data,,,O,,,,,
+,Minimal required data,,,,O,,,,
+,Valid payout request,,O,,,O,O,,
+,,,,,,,,,
+Service Response,,,,,,,,,
+,Successful fetch,,O,O,O,O,O,O,
+,Unauthorized access,,,,,,,O,
+,Service error (not found),,,,,,,
+,,,,,,,,,
+Business Rules,,,,,,,,,
+,Organizer can view own payouts,,O,O,O,O,O,,
+,Request ID validation,,O,O,O,O,O,,O
+,Data format validation,,O,O,O,O,O,,
+,,,,,,,,,
+Return,Confirm,,,,,,,,
+,Success response (200),,O,O,O,O,O,O,
+,Unauthorized response (401),,,,,,,O,
+,Error response (other),,,,,,,
+,,,,,,,,,
+Log message,,,,,,,,,
+,,,,,,,,,
+,"""Successfully fetch valid payout request (Normal)""",,O,,,,,
+,"""Fetch payout with complete data (Normal)""",,,O,,,,
+,"""Fetch payout with minimal data (Normal)""",,,,O,,,
+,"""Maximum length ID boundary test (Boundary)""",,,,,O,,
+,"""Minimum length ID boundary test (Boundary)"""",,,,,,O,
+,"""Unauthorized access test (Abnormal)""",,,,,,,O,
+,"""Empty ID validation test (Abnormal)""",,,,,,,,O
+,"""Invalid ID format test (Abnormal)""",,,,,,,,O
+,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,N,N,N,B,B,A,A,A
+,Passed/Failed,,P,P,P,P,P,P,P,P
+,Executed Date,,2024-12-01,2024-12-01,2024-12-01,2024-12-01,2024-12-01,2024-12-01,2024-12-01,2024-12-01
+,Defect ID,,,,,,,,
