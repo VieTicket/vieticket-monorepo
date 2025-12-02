@@ -376,23 +376,39 @@
           "downloadBtn": "Tải xuống"
         },
         "media": {
-          "posterTitle": "Event Poster",
-          "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+          "posterTitle": "Ảnh Poster Sự Kiện",
+          "posterRecommended": "(Khuyến nghị: 600x800px hoặc tỷ lệ 3:4)",
           "posterAlt": "Xem trước poster sự kiện",
-          "uploadYourOwn": "Upload Your Own",
-          "uploadButtonPoster": "Upload Poster",
-          "removePoster": "Remove Poster",
-          "generateWithAI": "Generate with AI",
-          "bannerTitle": "Event Banner",
-          "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+          "uploadYourOwn": "Tải Lên Ảnh Của Bạn",
+          "uploadButtonPoster": "Tải Lên Poster",
+          "removePoster": "Xóa Poster",
+          "generateWithAI": "Tạo Bằng AI",
+          "bannerTitle": "Ảnh Banner Sự Kiện",
+          "bannerRecommended": "(Khuyến nghị: 1280x720px hoặc tỷ lệ 16:9)",
           "bannerAlt": "Xem trước banner sự kiện",
-          "uploadButtonBanner": "Upload Banner",
-          "removeBanner": "Remove Banner",
-          "generateBannerWithAI": "Generate Banner with AI"
+          "uploadButtonBanner": "Tải Lên Banner",
+          "removeBanner": "Xóa Banner",
+          "generateBannerWithAI": "Tạo Banner Bằng AI"
         }
       },
       "help": {
         "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
+      },
+      "ticketing": {
+        "title": "Bán Vé & Chỗ Ngồi",
+        "seatMapChangesWarning": "Phát hiện thay đổi sẽ ảnh hưởng đến việc gán chỗ ngồi",
+        "chooseModeLabel": "Chọn Chế Độ Bán Vé",
+        "simpleMode": {
+          "title": "Bán Vé Đơn Giản",
+          "description": "Tạo vé với giá theo khu vực cơ bản (không chọn chỗ ngồi cụ thể)"
+        },
+        "seatMapMode": {
+          "title": "Bán Vé Theo Sơ Đồ Chỗ Ngồi",
+          "description": "Sử dụng sơ đồ chỗ ngồi đã thiết kế với chọn chỗ ngồi cụ thể"
+        }
+      },
+      "preview": {
+        "title": "Xem Trước Sự Kiện"
       }
     },
     "SeatMap": {
@@ -727,7 +743,7 @@
       "address": {
         "title": "Địa chỉ",
         "details": [
-          "123 Đường Nguyễn Văn Linh, Q.Hải Châu, TP.Đà Nẵng"
+          "10 Cẩm Bắc 3, Hòa Thọ Đông, Cẩm Lệ, Đà Nẵng"
         ]
       },
       "hours": {
@@ -799,7 +815,7 @@
       "details": {
         "address": {
           "title": "Địa chỉ",
-          "line1": "123 Đường Nguyễn Văn Linh, Q.7, TP.HCM"
+          "line1": "10 Cẩm Bắc 3, Hòa Thọ Đông, Cẩm Lệ, Đà Nẵng"
         },
         "hours": {
           "title": "Giờ làm việc",
@@ -1080,6 +1096,18 @@
       "description": "Nếu bạn có thắc mắc về các điều khoản và điều kiện, hãy liên hệ với chúng tôi.",
       "supportButton": "Liên hệ hỗ trợ",
       "emailButton": "Gửi email"
+    }
+  },
+  "admin-dashboard": {
+    "Chat": {
+      "title": "Tin nhắn (Admin)",
+      "description": "Trao đổi với người dùng",
+      "new_chat": "Cuộc trò chuyện mới",
+      "select_organizer": "Chọn nhà tổ chức",
+      "select_organizer_description": "Chọn một nhà tổ chức để bắt đầu trò chuyện",
+      "search_organizer": "Tìm kiếm nhà tổ chức...",
+      "no_organizers_found": "Không tìm thấy nhà tổ chức",
+      "no_active_organizers": "Không có nhà tổ chức đang hoạt động"
     }
   }
 }

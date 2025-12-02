@@ -393,6 +393,22 @@
         "duplicateShowingTime": "Cannot have two showings with the same start time",
         "ticketSaleStartRequired": "Ticket sale start time is required",
         "ticketSaleEndRequired": "Ticket sale end time is required"
+      },
+      "ticketing": {
+        "title": "Ticketing & Seating",
+        "seatMapChangesWarning": "Changes detected that will affect seat assignments",
+        "chooseModeLabel": "Choose Ticketing Mode",
+        "simpleMode": {
+          "title": "Simple Ticketing",
+          "description": "Create tickets with basic area pricing (no specific seat selection)"
+        },
+        "seatMapMode": {
+          "title": "Seat Map Ticketing",
+          "description": "Use a pre-designed seat map with specific seat selection"
+        }
+      },
+      "preview": {
+        "title": "Event Preview"
       }
     },
     "SeatMap": {
@@ -727,7 +743,7 @@
       "address": {
         "title": "Address",
         "details": [
-          "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+          "10 Cam Bac 3, Hoa Tho Dong, Cam Le, Da Nang"
         ]
       },
       "hours": {
@@ -799,7 +815,7 @@
       "details": {
         "address": {
           "title": "Address",
-          "line1": "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+          "line1": "10 Cam Bac 3, Hoa Tho Dong, Cam Le, Da Nang"
         },
         "hours": {
           "title": "Working hours",
@@ -1080,6 +1096,18 @@
       "description": "If you have questions about the terms and conditions, please contact us.",
       "supportButton": "Contact support",
       "emailButton": "Send email"
+    }
+  },
+  "admin-dashboard": {
+    "Chat": {
+      "title": "Messages (Admin)",
+      "description": "Chat with users",
+      "new_chat": "New Chat",
+      "select_organizer": "Select Organizer",
+      "select_organizer_description": "Choose an organizer to start chatting",
+      "search_organizer": "Search organizer...",
+      "no_organizers_found": "No organizers found",
+      "no_active_organizers": "No active organizers"
     }
   }
 }

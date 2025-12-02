@@ -2,6 +2,7 @@
 
 import { Label } from "@/components/ui/label";
 import { ShowingsTicketing } from "./showings-ticketing";
+import { useTranslations } from "next-intl";
 import type {
   Area,
   SeatMapData,
@@ -41,9 +42,11 @@ export function TicketingStep({
   showings,
   hasSeatMapChanges = false,
 }: TicketingStepProps) {
+  const t = useTranslations("organizer-dashboard.CreateEvent.ticketing");
+  
   return (
     <div className="space-y-4 sm:space-y-6">
-      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">Ticketing & Seating</h2>
+      <h2 className="text-lg sm:text-xl font-semibold mb-3 sm:mb-4">{t("title")}</h2>
 
       {/* Seat Map Changes Warning */}
       {hasSeatMapChanges && (
@@ -51,7 +54,7 @@ export function TicketingStep({
           <div className="flex items-center space-x-2">
             <span className="text-yellow-600">⚠️</span>
             <span className="text-xs sm:text-sm text-yellow-800 font-medium">
-              Changes detected that will affect seat assignments
+              {t("seatMapChangesWarning")}
             </span>
           </div>
         </div>
@@ -59,7 +62,7 @@ export function TicketingStep({
 
       {/* Mode Selection */}
       <div className="space-y-3 sm:space-y-4 mb-4 sm:mb-6">
-        <Label className="text-sm sm:text-base font-medium">Choose Ticketing Mode</Label>
+        <Label className="text-sm sm:text-base font-medium">{t("chooseModeLabel")}</Label>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
           <button
             type="button"
@@ -70,10 +73,9 @@ export function TicketingStep({
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Simple Ticketing</div>
+            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">{t("simpleMode.title")}</div>
             <div className="text-xs sm:text-sm text-gray-600 leading-snug">
-              Create tickets with basic area pricing (no specific seat
-              selection)
+              {t("simpleMode.description")}
             </div>
           </button>
 
@@ -86,9 +88,9 @@ export function TicketingStep({
                 : "border-gray-200 hover:border-gray-300"
             }`}
           >
-            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">Seat Map Ticketing</div>
+            <div className="font-medium mb-1 sm:mb-2 text-sm sm:text-base">{t("seatMapMode.title")}</div>
             <div className="text-xs sm:text-sm text-gray-600 leading-snug">
-              Use a pre-designed seat map with specific seat selection
+              {t("seatMapMode.description")}
             </div>
           </button>
         </div>
