@@ -1,0 +1,369 @@
+/* Professional Auth Styles for Better Auth UI - Clean Override */
+
+/* Target Sign Up Organizer specific element */
+div[data-slot="card-title"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+div[data-slot="card-title"].font-semibold {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Main container */
+.auth-card-container {
+  width: 100% !important;
+  max-width: 360px !important;
+  margin: 0 auto !important;
+  overflow: hidden !important;
+}
+
+/* Reset all child elements */
+.auth-card-container *,
+.auth-card-container *:before,
+.auth-card-container *:after {
+  box-sizing: border-box !important;
+}
+
+/* Remove default styling from main container children */
+.auth-card-container > div,
+.auth-card-container > div > div {
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Headers - More specific targeting */
+.auth-card-container h1,
+.auth-card-container h2,
+.auth-card-container div > h1,
+.auth-card-container div > h2,
+.auth-card-container * h1,
+.auth-card-container * h2,
+.auth-card-container [role="heading"],
+.auth-card-container div[data-testid] h1,
+.auth-card-container div[data-testid] h2 {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  margin: 0 0 0.25rem 0 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+
+/* Description - More specific targeting */
+.auth-card-container p,
+.auth-card-container div > p:first-of-type,
+.auth-card-container > div > p,
+.auth-card-container * p:not(:last-child),
+.auth-card-container div[data-testid] p,
+.auth-card-container p[class],
+.auth-card-container p[style] {
+  color: rgb(148 163 184) !important;
+  font-size: 0.8rem !important;
+  line-height: 1.3 !important;
+  margin: 0 0 1.25rem 0 !important;
+  text-align: center !important;
+}
+
+/* Form */
+.auth-card-container form {
+  width: 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Form field groups */
+.auth-card-container form > div {
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  position: relative !important;
+}
+
+/* Labels */
+.auth-card-container label {
+  color: rgb(148 163 184) !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  margin: 0 0 0.375rem 0 !important;
+  display: block !important;
+  line-height: 1.3 !important;
+}
+
+/* Input fields */
+.auth-card-container input[type="text"],
+.auth-card-container input[type="email"],
+.auth-card-container input[type="password"],
+.auth-card-container input[type="tel"],
+.auth-card-container
+  input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]),
+.auth-card-container textarea {
+  width: 100% !important;
+  padding: 0.75rem 1rem !important;
+  padding-right: 2.5rem !important;
+  margin: 0 !important;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.1),
+    rgba(79, 70, 229, 0.1)
+  ) !important;
+  border: 1px solid rgba(139, 92, 246, 0.3) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+  font-size: 0.8rem !important;
+  line-height: 1.3 !important;
+  transition: all 0.3s ease !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  box-shadow: none !important;
+}
+
+/* Input focus states */
+.auth-card-container input:focus {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.2),
+    rgba(79, 70, 229, 0.2)
+  ) !important;
+  border-color: rgba(139, 92, 246, 0.5) !important;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1) !important;
+  outline: none !important;
+}
+
+/* Placeholders */
+.auth-card-container input::placeholder,
+.auth-card-container textarea::placeholder {
+  color: rgb(148 163 184) !important;
+  opacity: 0.7 !important;
+}
+
+/* Buttons */
+.auth-card-container button,
+.auth-card-container [type="submit"] {
+  width: 100% !important;
+  padding: 0.75rem 1.25rem !important;
+  margin: 0 !important;
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.3),
+    rgba(79, 70, 229, 0.3)
+  ) !important;
+  border: 1px solid rgba(139, 92, 246, 0.5) !important;
+  border-radius: 0.5rem !important;
+  color: white !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  min-height: 42px !important;
+  max-height: 42px !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  box-shadow: none !important;
+}
+
+/* Password show/hide button */
+.auth-card-container button[type="button"] {
+  position: absolute !important;
+  right: 8px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  max-height: 32px !important;
+  padding: 4px !important;
+  background: transparent !important;
+  border: none !important;
+  border-radius: 4px !important;
+  z-index: 10 !important;
+}
+
+.auth-card-container button[type="button"]:hover {
+  background: rgba(139, 92, 246, 0.2) !important;
+  transform: translateY(-50%) !important;
+  box-shadow: none !important;
+}
+
+/* Button hover */
+.auth-card-container button:hover {
+  background: linear-gradient(
+    135deg,
+    rgba(139, 92, 246, 0.4),
+    rgba(79, 70, 229, 0.4)
+  ) !important;
+  border-color: rgba(139, 92, 246, 0.6) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 4px 12px rgba(139, 92, 246, 0.2) !important;
+}
+
+/* Button disabled */
+.auth-card-container button:disabled {
+  opacity: 0.5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* Links */
+.auth-card-container a {
+  color: rgb(139 92 246) !important;
+  text-decoration: none !important;
+  transition: color 0.3s ease !important;
+}
+
+.auth-card-container a:hover {
+  color: rgb(167 139 250) !important;
+  text-decoration: underline !important;
+}
+
+/* Divider lines */
+.auth-card-container hr {
+  border: none !important;
+  border-top: 1px solid rgb(71 85 105) !important;
+  margin: 0 !important;
+  flex-grow: 1 !important;
+}
+
+/* "Or continue with" container */
+.auth-card-container div[style*="display: flex"] {
+  display: flex !important;
+  align-items: center !important;
+  gap: 1rem !important;
+  margin: 1rem 0 !important;
+}
+
+/* "Or continue with" text */
+.auth-card-container span {
+  color: rgb(148 163 184) !important;
+  font-size: 0.75rem !important;
+  white-space: nowrap !important;
+}
+
+/* Force override all text elements with highest specificity */
+.auth-card-container div div h1,
+.auth-card-container div div h2,
+.auth-card-container div div h3 {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+  font-size: 1.25rem !important;
+  font-weight: 600 !important;
+  margin: 0 0 0.25rem 0 !important;
+  line-height: 1.2 !important;
+  text-align: center !important;
+}
+
+.auth-card-container div div p:not(:last-child),
+.auth-card-container div div p[style]:not(:last-child) {
+  color: rgb(148 163 184) !important;
+  font-size: 0.8rem !important;
+  line-height: 1.3 !important;
+  margin: 0 0 1.25rem 0 !important;
+  text-align: center !important;
+}
+
+/* Nuclear override for headers only */
+.auth-card-container h1,
+.auth-card-container h2,
+.auth-card-container h3,
+.auth-card-container h4,
+.auth-card-container h5,
+.auth-card-container h6 {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+.auth-card-container p:first-of-type {
+  color: rgb(148 163 184) !important;
+}
+
+/* Force specific text colors */
+.auth-card-container p {
+  color: rgb(148 163 184) !important;
+}
+
+.auth-card-container label {
+  color: rgb(148 163 184) !important;
+}
+
+.auth-card-container span {
+  color: rgb(148 163 184) !important;
+}
+
+.auth-card-container input {
+  color: white !important;
+}
+
+.auth-card-container button {
+  color: white !important;
+}
+
+/* Footer links */
+.auth-card-container > div > div:last-child {
+  margin-top: 1.25rem !important;
+  padding-top: 1.25rem !important;
+  border-top: 1px solid rgb(71 85 105) !important;
+  text-align: center !important;
+}
+
+.auth-card-container > div > div:last-child p {
+  margin: 0 !important;
+  font-size: 0.75rem !important;
+  color: rgb(148 163 184) !important;
+  line-height: 1.3 !important;
+}
+
+/* Footer links styling */
+.auth-card-container > div > div:last-child a {
+  color: rgb(139 92 246) !important;
+  text-decoration: none !important;
+  font-size: 0.75rem !important;
+  font-weight: 500 !important;
+  transition: color 0.3s ease !important;
+  padding: 0.125rem 0.375rem !important;
+  border-radius: 0.25rem !important;
+  display: inline-block !important;
+}
+
+.auth-card-container > div > div:last-child a:hover {
+  color: rgb(167 139 250) !important;
+  background: rgba(139, 92, 246, 0.1) !important;
+  text-decoration: none !important;
+}
+
+/* Fix first/last child spacing */
+.auth-card-container > div > div:first-child {
+  margin-bottom: 0 !important;
+}
+
+/* Compact social buttons */
+.auth-card-container button[aria-label],
+.auth-card-container button[title] {
+  padding: 0.625rem 1rem !important;
+  font-size: 0.75rem !important;
+}
+
+/* Grid layouts for name fields */
+.auth-card-container div[style*="grid"],
+.auth-card-container div[style*="flex"]:has(> div:nth-child(2)) {
+  display: grid !important;
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0.75rem !important;
+  margin: 0 !important;
+}
+
+.auth-card-container div[style*="grid"] > div,
+.auth-card-container div[style*="flex"]:has(> div:nth-child(2)) > div {
+  margin: 0 !important;
+}

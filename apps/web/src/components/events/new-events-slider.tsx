@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Calendar, Eye } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
-import { EventSummary } from '@/lib/queries/events';
-import { formatTimeRange, formatCurrencyVND } from '@/lib/utils';
+import React, { useRef, useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, MapPin, Calendar, Eye } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { EventSummary } from "@/lib/queries/events";
+import { formatTimeRange, formatCurrencyVND } from "@/lib/utils";
 
 interface NewEventsSliderProps {
   events: EventSummary[];
@@ -20,7 +20,11 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
 
   // Sắp xếp events theo thời gian tạo gần nhất (newest first) và lấy 15 sự kiện
   const newEvents = events
-    .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime())
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt || 0).getTime() -
+        new Date(a.createdAt || 0).getTime()
+    )
     .slice(0, 15);
 
   // Xử lý sự kiện scroll để ẩn/hiện nút điều hướng
@@ -33,15 +37,15 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
   };
 
   // Hàm cuộn sang trái/phải
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
       const { current } = scrollRef;
       const scrollAmount = 260; // Adjusted for smaller cards
-      
-      if (direction === 'left') {
-        current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+
+      if (direction === "left") {
+        current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
       } else {
-        current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        current.scrollBy({ left: scrollAmount, behavior: "smooth" });
       }
     }
   };
@@ -49,11 +53,11 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
   useEffect(() => {
     const ref = scrollRef.current;
     if (ref) {
-      ref.addEventListener('scroll', handleScroll);
+      ref.addEventListener("scroll", handleScroll);
       handleScroll();
     }
     return () => {
-      if (ref) ref.removeEventListener('scroll', handleScroll);
+      if (ref) ref.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -62,7 +66,7 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
   }
 
   return (
-    <section className="mb-12">
+    <section className="mb-12 mx-5">
       <div className="w-full max-w-7xl mx-auto">
         {/* Header Title */}
         <div className="flex items-center gap-3 mb-6">
@@ -78,8 +82,8 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
         <div className="relative group">
           {/* Nút Previous */}
           {showLeftArrow && (
-            <button 
-              onClick={() => scroll('left')}
+            <button
+              onClick={() => scroll("left")}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-slate-800/80 hover:bg-slate-700/90 text-white p-3 rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-violet-400/30 hover:border-violet-400/50"
             >
               <ChevronLeft size={24} />
@@ -88,8 +92,8 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
 
           {/* Nút Next */}
           {showRightArrow && (
-            <button 
-              onClick={() => scroll('right')}
+            <button
+              onClick={() => scroll("right")}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-slate-800/80 hover:bg-slate-700/90 text-white p-3 rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-violet-400/30 hover:border-violet-400/50"
             >
               <ChevronRight size={24} />
@@ -97,17 +101,17 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
           )}
 
           {/* Scroll Container */}
-          <div 
+          <div
             ref={scrollRef}
             className="flex gap-4 overflow-x-auto pb-8 pt-4 px-2 snap-x snap-mandatory scrollbar-hide"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
             {newEvents.map((event) => (
-              <Link 
-                key={event.id} 
+              <Link
+                key={event.id}
                 href={`/events/${event.slug}`}
                 className="flex-none w-[200px] md:w-[240px] snap-start group/card cursor-pointer"
               >
@@ -116,9 +120,9 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
                   {/* Poster Image - Full Size */}
                   <div className="relative w-full h-full overflow-hidden">
                     {event.posterUrl ? (
-                      <Image 
-                        src={event.posterUrl} 
-                        alt={event.name} 
+                      <Image
+                        src={event.posterUrl}
+                        alt={event.name}
                         fill
                         className="object-cover transition-transform duration-500 group-hover/card:scale-110"
                       />
@@ -127,7 +131,7 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
                         <span className="text-center">No Poster</span>
                       </div>
                     )}
-                    
+
                     {/* "NEW" Badge */}
                     <div className="absolute top-2 right-2 bg-gradient-to-r from-violet-500 to-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-full shadow-lg animate-pulse">
                       NEW

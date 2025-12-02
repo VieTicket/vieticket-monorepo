@@ -30,12 +30,12 @@ export default async function AuthPage({
       return (
         <div>
           <SignUpOrganizer />
-          <CardFooter className="pl-4 mr-6">
-            <div className="flex justify-center w-full border-t py-4">
-              <p className="text-center text-xs text-neutral-500">
+          <CardFooter className="px-0">
+            <div className="flex justify-center w-full border-t border-slate-600 py-4">
+              <p className="text-center text-xs text-slate-400">
                 <Link
                   href="/auth/sign-up"
-                  className="text-blue-500 hover:text-blue-700 transition-colors text-sm font-medium"
+                  className="text-violet-400 hover:text-violet-300 transition-colors text-sm font-medium"
                 >
                   Sign up as Customer
                 </Link>
@@ -50,12 +50,12 @@ export default async function AuthPage({
       return (
         <div>
           <AuthView pathname={pathname} />
-          <CardFooter className="pl-4 mr-6">
-            <div className="flex justify-center w-full border-t py-4">
-              <p className="text-center text-xs text-neutral-500">
+          <CardFooter className="px-0">
+            <div className="flex justify-center w-full border-t border-slate-600 py-4">
+              <p className="text-center text-xs text-slate-400">
                 <Link
                   href="/auth/sign-up-organizer"
-                  className="text-blue-500 hover:text-blue-700 transition-colors text-sm font-medium"
+                  className="text-violet-400 hover:text-violet-300 transition-colors text-sm font-medium"
                 >
                   Sign up as Organizer
                 </Link>

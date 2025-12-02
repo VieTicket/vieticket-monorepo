@@ -13,7 +13,12 @@ interface SmartHomePageGridProps {
 }
 
 // 🚫 DEBUG COMPONENT HIDDEN FOR PRODUCTION - Clean UI
-function DebugInfo({ events, displayedEvents, hasSignificantBehavior, smartDisplayEnabled }: {
+function DebugInfo({
+  events,
+  displayedEvents,
+  hasSignificantBehavior,
+  smartDisplayEnabled,
+}: {
   events: EventSummary[];
   displayedEvents: EventSummary[];
   hasSignificantBehavior: boolean;
@@ -23,9 +28,14 @@ function DebugInfo({ events, displayedEvents, hasSignificantBehavior, smartDispl
   return null;
 }
 
-export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePageGridProps) {
+export function SmartHomePageGrid({
+  initialEvents,
+  initialHasMore,
+}: SmartHomePageGridProps) {
   const [allEvents, setAllEvents] = useState<EventSummary[]>(initialEvents);
-  const [displayedEvents, setDisplayedEvents] = useState<EventSummary[]>(initialEvents.slice(0, 12));
+  const [displayedEvents, setDisplayedEvents] = useState<EventSummary[]>(
+    initialEvents.slice(0, 12)
+  );
   const [hasMore, setHasMore] = useState(initialHasMore);
   const [isLoading, setIsLoading] = useState(false);
   const [smartDisplayEnabled, setSmartDisplayEnabled] = useState(false);
@@ -35,25 +45,36 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
   // Check if user has significant behavior data - memoized to prevent re-computation
   const hasSignificantBehavior = useMemo(() => {
     if (!userBehavior) return false;
-    return userBehavior.searchQueries?.length > 0 || 
-           userBehavior.viewedEvents?.length > 2 || 
-           userBehavior.clickedEvents?.length > 1 ||
-           userBehavior.eventEngagement?.length > 0;
-  }, [userBehavior?.searchQueries?.length, userBehavior?.viewedEvents?.length, userBehavior?.clickedEvents?.length, userBehavior?.eventEngagement?.length]);
+    return (
+      userBehavior.searchQueries?.length > 0 ||
+      userBehavior.viewedEvents?.length > 2 ||
+      userBehavior.clickedEvents?.length > 1 ||
+      userBehavior.eventEngagement?.length > 0
+    );
+  }, [
+    userBehavior?.searchQueries?.length,
+    userBehavior?.viewedEvents?.length,
+    userBehavior?.clickedEvents?.length,
+    userBehavior?.eventEngagement?.length,
+  ]);
 
   // Smart display logic - simplified with minimal dependencies
   useEffect(() => {
-    if (hasSignificantBehavior && !smartDisplayEnabled && allEvents.length >= 24) {
-      setDisplayedEvents(prev => allEvents.slice(0, 24)); 
+    if (
+      hasSignificantBehavior &&
+      !smartDisplayEnabled &&
+      allEvents.length >= 24
+    ) {
+      setDisplayedEvents((prev) => allEvents.slice(0, 24));
       setSmartDisplayEnabled(true);
     }
   }, [hasSignificantBehavior, allEvents.length]); // Remove smartDisplayEnabled from deps to prevent loops
 
   const handleLoadMore = async () => {
     if (isLoading) return;
-    
+
     setIsLoading(true);
-    
+
     try {
       const currentPage = Math.ceil(allEvents.length / 12) + 1;
       const result = await getFilteredEvents({
@@ -61,7 +82,7 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
         limit: 12,
         price: "all",
         date: "all",
-        location: "all", 
+        location: "all",
         category: "all",
         q: "",
       });
@@ -70,16 +91,15 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
       setAllEvents(newEvents);
       setDisplayedEvents(newEvents.slice(0, displayedEvents.length + 12));
       setHasMore(result.hasMore);
-      
     } catch (error) {
-      console.error('[SmartHomePage] Failed to load more events:', error);
+      console.error("[SmartHomePage] Failed to load more events:", error);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <section className="my-5">
+    <section className="my-5 mx-5">
       <h2 className="text-2xl md:text-3xl font-bold text-white mb-8 text-center glow-text">
         <div className="bg-gradient-to-r from-violet-400 via-violet-300 to-indigo-400 bg-clip-text text-transparent">
           {t("titlecategories")}
@@ -115,7 +135,7 @@ export function SmartHomePageGrid({ initialEvents, initialHasMore }: SmartHomePa
         </div>
       )}
 
-      <DebugInfo 
+      <DebugInfo
         events={allEvents}
         displayedEvents={displayedEvents}
         hasSignificantBehavior={hasSignificantBehavior}

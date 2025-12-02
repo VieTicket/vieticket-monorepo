@@ -1,0 +1,36 @@
+/* Sign Up Organizer Specific Styles */
+
+/* Force white color for card title */
+div[data-slot="card-title"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Multiple selectors for higher specificity */
+.font-semibold[data-slot="card-title"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+div.font-semibold[data-slot="card-title"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Class combination targeting */
+[data-slot="card-title"][class*="text-lg"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Nuclear approach - target by exact class combination */
+.font-semibold.text-lg[data-slot="card-title"] {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
+
+/* Responsive variations */
+[data-slot="card-title"].md\:text-xl {
+  color: white !important;
+  text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+}
