@@ -64,9 +64,16 @@ const mockHeaders = mock().mockResolvedValue({
   authorization: "Bearer test-token",
 });
 
+const mockGetFullOrganization = mock().mockResolvedValue(null);
+
 // Mock modules
 mock.module("@/lib/auth/auth", () => ({
   getAuthSession: mockGetAuthSession,
+  auth: {
+    api: {
+      getFullOrganization: mockGetFullOrganization,
+    },
+  },
 }));
 
 mock.module("@/lib/queries/events-mutation", () => ({
@@ -118,6 +125,8 @@ describe("Function: fetchCurrentOrganizerEvents", () => {
     mockGetAuthSession.mockClear();
     mockGetEventsByOrganizerOptimized.mockClear();
     mockHeaders.mockClear();
+    mockGetFullOrganization.mockClear();
+    mockGetFullOrganization.mockResolvedValue(null);
   });
 
   describe("Normal Cases", () => {
@@ -304,7 +313,7 @@ describe("Function: fetchCurrentOrganizerEvents", () => {
       }
 
       expect(error).toBeDefined();
-      expect((error as Error)?.message).toBe("Forbidden: Only organizers can access this");
+      expect((error as Error)?.message).toBe("Forbidden: Only organizers or organization owners can access this");
       console.log("❌ FAILED as expected: Role authorization enforced");
     });
 
@@ -399,7 +408,7 @@ describe("Function: fetchCurrentOrganizerEvents", () => {
       }
 
       expect(error).toBeDefined();
-      expect((error as Error)?.message).toBe("Forbidden: Only organizers can access this");
+      expect((error as Error)?.message).toBe("Forbidden: Only organizers or organization owners can access this");
       console.log("❌ FAILED as expected: Admin role rejected");
     });
   });
