@@ -1,17 +1,16 @@
-import { SeatMapModel } from "@vieticket/db/mongo/schemas/seat-map";
-import {
-  SeatMap,
-  CreateSeatMapInput,
-  UpdateSeatMapInput,
-  CanvasItem,
-  GridShape,
-  AreaModeContainer,
-  RowShape,
-  SeatShape,
-} from "@vieticket/db/mongo/models/seat-map";
 import { ensureMongoConnection } from "@vieticket/db/mongo";
+import {
+  AreaModeContainer,
+  CanvasItem,
+  CreateSeatMapInput,
+  GridShape,
+  RowShape,
+  SeatMap,
+  SeatShape,
+  UpdateSeatMapInput,
+} from "@vieticket/db/mongo/models/seat-map";
+import { SeatMapModel } from "@vieticket/db/mongo/schemas/seat-map";
 import { v4 as uuidv4 } from "uuid";
-import { Event } from "@vieticket/db/pg/models/events";
 
 /**
  * Retrieves a seat map by its ID.
@@ -576,7 +575,7 @@ export async function findAccessibleSeatMaps(
   organizationId?: string | null
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  
+
   const filter: any = {
     $or: [
       { createdBy: userId },
@@ -607,7 +606,7 @@ export async function searchAccessibleSeatMaps(
   organizationId?: string | null
 ): Promise<SeatMap[]> {
   await ensureMongoConnection();
-  
+
   const filter: any = {
     name: { $regex: searchQuery, $options: "i" },
     $or: [

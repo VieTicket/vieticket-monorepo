@@ -122,7 +122,7 @@ export default function Sidebar() {
       icon: LogOut,
       visible: true,
     },
-  ].filter(item => item.visible !== false);
+  ].filter(item => item.visible);
 
   useEffect(() => {
     setHasMounted(true);

@@ -13,7 +13,7 @@ import { Role } from "@vieticket/db/pg/schema";
  * Uses better-auth to validate user sessions and optionally checks role-based permissions.
  * This function should be called at the beginning of protected server-side operations.
  * 
- * @deprecated - Authorisation should be implemented in service layer
+ * NOT-deprecated-ANYMORE - Authorisation should be implemented in service layer
  * 
  * @param userTypes - Optional role(s) required to access the resource. Can be:
  *   - Single role: `"customer"` or `"organizer"` 
