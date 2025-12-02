@@ -5,6 +5,7 @@ import {
   getPendingOrganizers,
   approveOrganizerApplication,
   rejectOrganizerApplication,
+  getActiveOrganizers,
 } from "@vieticket/services/organizer";
 import { headers as headersFn } from "next/headers";
 
@@ -75,6 +76,29 @@ export async function rejectOrganizerAction(userId: string, reason: string) {
     return { success: true, data: plainData };
   } catch (error) {
     console.error("Error in rejectOrganizerAction:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
+export async function getAllActiveOrganizersAction() {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in.");
+    }
+
+    const activeOrganizers = await getActiveOrganizers(user);
+
+    // Force the objects to be plain and serializable
+    const plainData = JSON.parse(JSON.stringify(activeOrganizers));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    console.error("Error in getAllActiveOrganizersAction:", error);
     const errorMessage =
       error instanceof Error ? error.message : "An unexpected error occurred.";
     return { success: false, error: errorMessage };

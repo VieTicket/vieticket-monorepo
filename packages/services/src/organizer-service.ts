@@ -7,6 +7,7 @@ import {
   approveOrganizer,
   rejectOrganizer,
   markRejectionAsSeen,
+  findActiveOrganizersWithUser,
 } from "@vieticket/repos/organizer";
 
 /**
@@ -175,6 +176,31 @@ export async function markOrganizerRejectionAsSeen(user: any) {
     }
     throw new Error(
       "An unknown error occurred while updating rejection status"
+    );
+  }
+}
+
+/**
+ * Service function to get all active organizers with user information.
+ * Only admins can access this.
+ * @param user - The authenticated admin user.
+ * @returns Array of active organizers with user data.
+ */
+export async function getActiveOrganizers(user: any) {
+  // Authorization check
+  if (user.role !== "admin") {
+    throw new Error("Unauthorized: Only admins can view active organizers");
+  }
+
+  try {
+    const activeOrganizers = await findActiveOrganizersWithUser();
+    return activeOrganizers;
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(`Failed to fetch active organizers: ${error.message}`);
+    }
+    throw new Error(
+      "An unknown error occurred while fetching active organizers"
     );
   }
 }

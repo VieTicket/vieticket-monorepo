@@ -210,6 +210,28 @@ export async function findActiveOrganizers(): Promise<Organizer[]> {
 }
 
 /**
+ * Finds all active organizers with their user information.
+ * @returns Array of active organizer profiles with user data.
+ */
+export async function findActiveOrganizersWithUser() {
+  const activeOrganizers = await db.query.organizers.findMany({
+    where: eq(organizers.isActive, true),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
+  });
+
+  return activeOrganizers;
+}
+
+/**
  * Counts all organizers by status.
  * @param isActive - Optional filter by active status.
  * @returns Count of organizers.
