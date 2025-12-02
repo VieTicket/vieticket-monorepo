@@ -29,13 +29,14 @@ interface DraftsViewProps {
   eventSeatMaps: SeatMapItem[];
   isLoading: boolean;
   draftsSearchQuery: string;
-  setDraftsSearchQuery: (query: string) => void;
   viewMode: "grid" | "list";
-  setViewMode: (mode: "grid" | "list") => void;
-  onPublish: (seatMapId: string) => void;
-  onDelete: (seatMapId: string) => void;
   publishingIds: Set<string>;
   deletingIds: Set<string>;
+  setDraftsSearchQuery: (query: string) => void;
+  setViewMode: (mode: "grid" | "list") => void;
+  onShowTemplates: () => void;
+  onPublish: (seatMapId: string) => void;
+  onDelete: (seatMapId: string) => void;
 }
 
 export function DraftsView({
@@ -48,6 +49,7 @@ export function DraftsView({
   setViewMode,
   onPublish,
   onDelete,
+  onShowTemplates,
   publishingIds,
   deletingIds,
 }: DraftsViewProps) {
@@ -108,17 +110,30 @@ export function DraftsView({
               Seat Map Manager
             </h1>
           </div>
-          <button
-            onClick={handleCreateNewSeatMap}
-            disabled={isCreating}
-            className="flex items-center rounded-lg gap-2 md:gap-3 p-2 md:p-3 bg-yellow-300 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-primary transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <div>
-              <span className="font-medium text-sm md:text-base">
-                {isCreating ? "Creating..." : "New Seat Map"}
-              </span>
-            </div>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onShowTemplates}
+              disabled={isCreating}
+              className="flex items-center rounded-lg gap-2 md:gap-3 p-2 md:p-3 bg-yellow-300 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-primary transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div>
+                <span className="font-medium text-sm md:text-base">
+                  View Templates
+                </span>
+              </div>
+            </button>
+            <button
+              onClick={handleCreateNewSeatMap}
+              disabled={isCreating}
+              className="flex items-center rounded-lg gap-2 md:gap-3 p-2 md:p-3 bg-yellow-300 hover:bg-yellow-500 dark:hover:bg-yellow-600 text-primary transition-colors group text-left disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <div>
+                <span className="font-medium text-sm md:text-base">
+                  {isCreating ? "Creating..." : "New Seat Map"}
+                </span>
+              </div>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -451,19 +466,23 @@ const DraftTemplateCard = ({
               Edit
             </Button>
           </Link>
-          {seatMap.publicity === "private" ? (
-            <Button
-              variant="default"
-              size="sm"
-              onClick={() => onPublish(seatMap.id)}
-              disabled={publishingIds.has(seatMap.id)}
-            >
-              {publishingIds.has(seatMap.id) ? "Publishing..." : "Publish"}
-            </Button>
-          ) : (
-            <Button variant="outline" size="sm" disabled>
-              Published
-            </Button>
+          {seatMap.draftedFrom !== null && (
+            <div>
+              {seatMap.publicity === "private" ? (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onPublish(seatMap.id)}
+                  disabled={publishingIds.has(seatMap.id)}
+                >
+                  {publishingIds.has(seatMap.id) ? "Publishing..." : "Publish"}
+                </Button>
+              ) : (
+                <Button variant="outline" size="sm" disabled>
+                  Published
+                </Button>
+              )}
+            </div>
           )}
           <Button
             variant="destructive"

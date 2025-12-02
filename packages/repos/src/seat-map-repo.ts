@@ -135,7 +135,8 @@ export async function deleteSeatMapById(id: string): Promise<SeatMap | null> {
 
 export async function duplicateSeatMapForEvent(
   originalSeatMapId: string,
-  event: Event,
+  eventName: string,
+  eventId: string,
   userId: string
 ): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
   try {
@@ -233,7 +234,7 @@ export async function duplicateSeatMapForEvent(
     });
 
     const timestamp = new Date().getDate();
-    const duplicatedName = `${originalSeatMap.name}_${event.name}_${timestamp}`;
+    const duplicatedName = `${originalSeatMap.name}_${eventName}_${timestamp}`;
 
     const duplicatedSeatMap = new SeatMapModel({
       name: duplicatedName,
@@ -241,7 +242,7 @@ export async function duplicateSeatMapForEvent(
       image: originalSeatMap.image,
       createdBy: userId,
       publicity: "private",
-      usedByEvent: event.id,
+      usedByEvent: eventId,
       draftedFrom: originalSeatMap._id,
       originalCreator: originalSeatMap.createdBy,
     });

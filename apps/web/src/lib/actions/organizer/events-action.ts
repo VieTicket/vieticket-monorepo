@@ -15,6 +15,7 @@ import {
   duplicateSeatMapForEvent,
   findSeatMapWithShapesById,
 } from "@vieticket/repos/seat-map";
+import { v4 as uuidv4 } from "uuid";
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
@@ -202,6 +203,7 @@ export async function handleCreateEvent(
   const session = await authorise("organizer");
   const organizerId = session.user.id;
 
+  const eventId = uuidv4();
   const eventName = formData.get("name") as string;
   const description = formData.get("description") as string;
   const location = formData.get("location") as string;
@@ -346,6 +348,7 @@ export async function handleCreateEvent(
     const duplicationResult = await duplicateSeatMapForEvent(
       originalSeatMapId,
       eventName,
+      eventId,
       organizerId
     );
 
@@ -380,6 +383,7 @@ export async function handleCreateEvent(
   }
 
   const eventPayload = {
+    id: eventId,
     name: eventName,
     slug,
     description: description || null,
@@ -656,6 +660,7 @@ export async function handleUpdateEvent(formData: FormData) {
         const duplicationResult = await duplicateSeatMapForEvent(
           originalSeatMapId,
           eventName,
+          eventId,
           organizerId
         );
 

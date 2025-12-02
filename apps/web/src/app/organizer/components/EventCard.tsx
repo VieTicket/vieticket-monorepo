@@ -165,7 +165,7 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
   const canDelete = event.approvalStatus !== "approved";
 
   return (
-    <div className="w-full max-w-full min-w-0 border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-all duration-200">
+    <div className="w-full max-w-full min-w-0 max-h-72 border rounded-xl overflow-hidden shadow-sm bg-white hover:shadow-md transition-all duration-200">
       {/* Banner Image */}
       {event.bannerUrl && (
         <div className="relative w-full h-1/2 sm:h-32 md:h-36 bg-gray-200">

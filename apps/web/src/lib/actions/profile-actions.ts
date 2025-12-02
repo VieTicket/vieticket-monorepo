@@ -38,6 +38,13 @@ const OrganizerProfileSchema = z.object({
   address: z.string().optional(),
   foundedDate: z.string().optional(),
   organizerType: z.string().optional(),
+  taxCode: z
+    .string()
+    .min(1, { message: "Tax code is required." })
+    .max(50, { message: "Tax code must not exceed 50 characters." })
+    .regex(/^[A-Za-z0-9\-]+$/, {
+      message: "Tax code can only contain letters, numbers, and hyphens.",
+    }),
 });
 
 // Combined schema for the entire form data
@@ -81,6 +88,7 @@ export async function updateProfileAction(
           ? new Date(organizerDetails.foundedDate)
           : null,
         organizerType: organizerDetails.organizerType || null,
+        taxCode: organizerDetails.taxCode,
       }
     : undefined;
 
@@ -141,6 +149,7 @@ export async function getProfileAction() {
             address: organizerData.address,
             foundedDate: organizerData.foundedDate,
             organizerType: organizerData.organizerType,
+            taxCode: organizerData.taxCode,
             isActive: organizerData.isActive,
             rejectionReason: organizerData.rejectionReason,
             rejectionSeen: organizerData.rejectionSeen,

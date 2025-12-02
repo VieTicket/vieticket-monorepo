@@ -160,7 +160,7 @@ export const updateFreeShapeGraphics = (shape: FreeShape): void => {
         prevPoint.cp2x || prevPoint.x,
         prevPoint.cp2y || prevPoint.y,
         point.cp1x,
-        point.cp1y,
+        point.cp1y!,
         point.x,
         point.y,
         shape.smoothness
