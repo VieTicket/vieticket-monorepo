@@ -30,7 +30,7 @@ const scrollbarHideStyle = `
 
 interface EventListProps {
   title: string;
-  events: Event[];
+  events: Omit<Event, "organizationId">[];
   onEventDeleted?: () => void;
 }
 

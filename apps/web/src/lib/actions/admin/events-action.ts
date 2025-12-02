@@ -10,8 +10,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
-import { SeatMapGridData } from "@/types/event-types";
-import type { Event } from "@vieticket/db/pg/schema";
+import { GridShape } from "@/components/seat-map/types";
 
 export async function fetchEventByIdForAdmin(eventId: string) {
   await authorise("admin");
@@ -195,6 +194,7 @@ export async function handleAdminUpdateEvent(formData: FormData) {
     seatMapId: seatMapId || null,
     updatedAt: new Date(),
     organizerId: existingEvent.organizerId, // Keep original organizer
+    organizationId: null,
     createdAt: existingEvent.createdAt
       ? new Date(existingEvent.createdAt)
       : new Date(),
@@ -205,7 +205,7 @@ export async function handleAdminUpdateEvent(formData: FormData) {
   try {
     if (ticketingMode === "seatmap" && seatMapId && seatMapData) {
       const parsedSeatMapData = JSON.parse(seatMapData);
-      const grids: SeatMapGridData[] = parsedSeatMapData.grids || [];
+      const grids: GridShape[] = parsedSeatMapData.grids || [];
       const defaultSeatSettings = parsedSeatMapData.defaultSeatSettings;
 
       if (grids.length === 0) {
@@ -224,7 +224,7 @@ export async function handleAdminUpdateEvent(formData: FormData) {
         );
       } else {
         // Individual seat map configs per showing
-        const showingSeatMapConfigs: SeatMapGridData[][] = [];
+        const showingSeatMapConfigs: GridShape[][] = [];
 
         for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
           const showingConfigData = formData.get(

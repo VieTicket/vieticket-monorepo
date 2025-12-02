@@ -9,7 +9,7 @@ import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth/auth-client";
 
 export default function OrganizerDashboardPage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Omit<Event, "organizationId">[]>([]);
   const [loading, setLoading] = useState(true);
   const t = useTranslations("organizer-dashboard.ListEvent");
   const router = useRouter();

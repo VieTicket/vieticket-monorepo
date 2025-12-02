@@ -45,7 +45,7 @@ export function TrackedEventCard({ event, ...props }: TrackedEventCardProps) {
       onClick={() => handleEventClick(event)}
       className="w-full h-full"
     >
-      <OriginalEventCard {...props} />
+      <OriginalEventCard id={event.id} {...props} />
     </div>
   );
 }

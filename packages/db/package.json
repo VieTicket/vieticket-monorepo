@@ -9,6 +9,7 @@
     "./pg/schema": "./src/postgres/schema.ts",
     "./pg/schemas/*": "./src/postgres/schemas/*-schemas.ts",
     "./pg/models/*": "./src/postgres/models/*-models.ts",
+    "./pg/enums": "./src/postgres/enums/public-enums.ts",
     "./mongo": "./src/mongodb/connection.ts",
     "./mongo/schema": "./src/mongodb/schema.ts",
     "./mongo/schemas/*": "./src/mongodb/schemas/*-schemas.ts",
