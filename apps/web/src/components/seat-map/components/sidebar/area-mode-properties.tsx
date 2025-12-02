@@ -457,7 +457,6 @@ export const AreaModeProperties = React.memo(
       });
 
       if (!hasChanges) {
-        console.log("No changes detected in seat update, skipping...");
         return;
       }
 

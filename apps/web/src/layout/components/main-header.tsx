@@ -2,21 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
-import { Star, Ticket, UserIcon, Menu, X } from "lucide-react";
+import { Star, Ticket, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useLocale } from "@/providers/LocaleProvider";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
   const pathname = usePathname();
-  const locale = useLocale();
   const t = useTranslations("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -62,8 +60,13 @@ export default function Header() {
 
         {/* Logo & Brand */}
         <Link className="flex items-center group" href="/">
-          <IoTicket size={32} className="text-yellow-400 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12" />
-          <h1 className="text-2xl bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent font-bold ml-2 transition-all duration-300 group-hover:scale-105">VieTicket</h1>
+          <IoTicket
+            size={32}
+            className="text-yellow-400 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12"
+          />
+          <h1 className="text-2xl bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent font-bold ml-2 transition-all duration-300 group-hover:scale-105">
+            VieTicket
+          </h1>
         </Link>
 
         {/* Desktop Navigation */}
@@ -95,8 +98,8 @@ export default function Header() {
               <div className="relative z-[51]">
                 <LanguageSwitcher />
               </div>
-              <Link 
-                href="/auth/sign-in" 
+              <Link
+                href="/auth/sign-in"
                 className="relative px-4 py-2 hover:text-violet-300 transition-all duration-300 group"
               >
                 {t("logIn")}
@@ -123,11 +126,6 @@ export default function Header() {
                 <span>Tickets</span>
                 <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </Link>
-              <div className="relative flex gap-2 items-center px-3 py-2 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
-                <Star className="w-5 h-5" />
-                <span>Interested</span>
-                <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
-              </div>
               <div className="relative flex gap-2 group items-center cursor-pointer px-3 py-2 hover:text-violet-300 transition-all duration-300">
                 <ProfileDropdown />
                 <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
@@ -202,8 +200,8 @@ export default function Header() {
           <div className="mt-auto p-6 border-t border-slate-700/50">
             {!session?.user ? (
               <div className="space-y-4">
-                <Link 
-                  href="/auth/sign-in" 
+                <Link
+                  href="/auth/sign-in"
                   onClick={toggleMobileMenu}
                   className="relative block py-3 px-4 hover:text-violet-300 transition-all duration-300 group"
                 >

@@ -178,24 +178,6 @@ export function EventDetailsStep({
         <p className="text-red-500 text-sm mt-1">{errors.showings}</p>
       )}
 
-      {/* Auto-calculated ticket sale info */}
-      {showings.length > 0 && showings[0].startTime && (
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
-          <div className="flex items-start gap-2">
-            <div className="text-blue-600 mt-0.5">ℹ️</div>
-            <div className="text-sm text-blue-800">
-              <p className="font-medium">{t("ticketSale.title")}</p>
-              <p>{t("ticketSale.description")}</p>
-              <ul className="mt-1 list-disc list-inside text-blue-700">
-                <li>{t("ticketSale.saleStarts")}</li>
-                <li>{t("ticketSale.saleEnds")}</li>
-              </ul>
-              <p className="mt-1 text-xs">{t("ticketSale.note")}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
       {renderField("location", t("labels.location"))}
 
       {/* Max Tickets per Order */}

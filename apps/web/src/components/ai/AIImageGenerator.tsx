@@ -59,10 +59,10 @@ export function AIImageGenerator({
       const seed = Math.floor(Math.random() * 100000000);
       const width = type === "poster" ? 600 : 1280;
       const height = type === "poster" ? 800 : 720;
-      const model = "kontext"; // kontext, flux, turbo, gptimage
+      const model = "flux"; // kontext, flux, turbo, gptimage
       const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?model=${model}&seed=${seed}&width=${width}&height=${height}&nologo=true`;
 
-      console.log("🎯 Fetching image from:", imageUrl);
+      console.log("Fetching image from:", imageUrl);
       const response = await fetch(imageUrl);
       if (!response.ok) throw new Error("Pollinations fetch failed");
 

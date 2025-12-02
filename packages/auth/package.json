@@ -4,12 +4,13 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./server": "./src/server/org-guards.ts"
   },
   "dependencies": {
     "@vieticket/db": "workspace:",
     "@vieticket/utils": "workspace:",
-    "better-auth": "^1.3.34"
+    "better-auth": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "latest"

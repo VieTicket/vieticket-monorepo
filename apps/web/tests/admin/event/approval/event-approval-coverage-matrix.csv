@@ -1,0 +1,68 @@
+Condition;Precondition;;TC01;TC02;TC03;TC04;TC05;TC06;TC07;TC08;TC09;TC10;TC11;TC12
+Can connect with server;Precondition;;;;;;;;;;;;;
+;Precondition;;;;;;;;;;;;;
+Precondition;Precondition;;;;;;;;;;;;;
+;Server Connection;;O;O;O;O;O;O;O;O;O;O;O;O
+;;;;;;;;;;;;;;
+Approval Status Validation;;;;;;;;;;;;;;
+;Valid status 'approved';;O;;;;;;;;;;;
+;Valid status 'rejected';;;O;;;;;;;;;;
+;Non-empty string;;O;O;;;;;;;;;;
+;Valid value in allowed list;;O;O;;;;;;;;;;
+;Empty string (rejected);;;;;O;;;;;;;;
+;Null value (rejected);;;;;;O;;;;;;;
+;Missing field (rejected);;;;;;;O;;;;;;
+;Invalid status 'pending' (rejected);;;;;;;;O;;;;;
+;Invalid status random string (rejected);;;;;;;;;O;;;;
+;Invalid status number (rejected);;;;;;;;;;O;;;
+;;;;;;;;;;;;;;
+Event ID;;;;;;;;;;;;;;
+;Valid event ID format;;O;O;O;O;O;O;O;O;O;O;;O
+;Non-empty event ID;;O;O;O;O;O;O;O;O;O;O;;O
+;Empty event ID (handled);;;;;;;;;;;;O;
+;;;;;;;;;;;;;;
+Database Operations;;;;;;;;;;;;;;
+;Database update succeeds;;O;O;;;;;;;O;;;O
+;Database update called;;O;O;;;;;;;O;O;O;O
+;Database where() called;;O;O;;;;;;;O;O;O;O
+;Database connection fails (error handled);;;;;;;;;;O;;;
+;Database error logged;;;;;;;;;;;O;;
+;;;;;;;;;;;;;;
+Request/Response;;;;;;;;;;;;;;
+;Valid request body;;O;O;;;;;;;;;O;
+;Request body parsing;;O;O;O;O;O;O;O;O;O;O;O;O
+;200: Success response;;O;O;;;;;;;O;;;O
+;400: Bad Request;;;;;O;O;O;O;O;;;;
+;500: Internal Server Error;;;;;;;;;;;O;;
+;Success message returned;;O;O;;;;;;;O;;;O
+;Error message returned;;;;;O;O;O;O;O;;;O;
+;;;;;;;;;;;;;;
+Integration Flow;;;;;;;;;;;;;;
+;Complete approval flow;;;;;;;;;;;;;O
+;Status validation before DB update;;O;O;O;O;O;O;O;O;O;O;O;O
+;DB update after validation;;O;O;;;;;;;O;O;O;O
+;Error handling in catch block;;;;;;;;;;;O;;
+;;;;;;;;;;;;;;
+Log message;;;;;;;;;;;;;;
+;"""Approve event with valid status (Normal)""";;O;;;;;;;;;;;
+;"""Reject event with valid status (Normal)""";;;O;;;;;;;;;;
+;"""Empty approval status (Boundary)""";;;;;O;;;;;;;;
+;"""Null approval status (Boundary)""";;;;;;O;;;;;;;
+;"""Missing approval_status field (Boundary)""";;;;;;;O;;;;;;
+;"""Invalid approval status - 'pending' (Abnormal)""";;;;;;;;O;;;;;
+;"""Invalid approval status - random string (Abnormal)""";;;;;;;;;O;;;;
+;"""Invalid approval status - number (Abnormal)""";;;;;;;;;;O;;;
+;"""Update event status in database (Normal)""";;;;;;;;;;O;;;
+;"""Database update fails (Abnormal)""";;;;;;;;;;;O;;
+;"""Invalid event ID format (Abnormal)""";;;;;;;;;;;;O;
+;"""Complete flow - Approve event (Normal)""";;;;;;;;;;;;;O
+;"""Event approved successfully""";;O;;;;;;;;;;;O
+;"""Event rejected successfully""";;;O;;;;;;;;;;
+;"""Invalid approval status. Must be 'approved' or 'rejected'""";;;;;O;O;O;O;O;O;;;
+;"""Failed to update event approval status""";;;;;;;;;;;O;;
+;"""Error updating event approval:""";;;;;;;;;;;O;;
+;;;;;;;;;;;;;;
+Result;Type(N : Normal, A : Abnormal, B : Boundary);;N;N;B;B;B;A;A;A;N;A;A;N
+;Passed/Failed;;P;P;P;P;P;P;P;P;P;P;P;P
+;Executed Date;;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX;2025-01-XX
+;Defect ID;;;;;;;;;;;;;

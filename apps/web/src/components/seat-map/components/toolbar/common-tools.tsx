@@ -156,12 +156,6 @@ export const CommonTools: React.FC = () => {
             </DropdownMenuItem>
           )}
           {!isAreaMode && (
-            <DropdownMenuItem onClick={handleOpenImportDialog}>
-              <ImageIcon className="w-4 h-4 mr-2" />
-              Import Image/SVG
-            </DropdownMenuItem>
-          )}
-          {!isAreaMode && (
             <DropdownMenuItem onClick={handleNewCanvas}>
               <Paperclip className="w-4 h-4 mr-2" />
               Blank

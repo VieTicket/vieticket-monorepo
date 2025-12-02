@@ -745,16 +745,12 @@ const duplicateSeatsWithGridRowLogic = (
 
     if (seatsInGrid.length === allGridSeats.length) {
       try {
-        console.log(`Duplicating entire grid ${gridId}`);
         const { newGrid, newSeats } = duplicateGrid(gridId, seatsInGrid);
 
         areaModeContainer!.children.push(newGrid);
         areaModeContainer!.graphics.addChild(newGrid.graphics);
 
         allNewSeats.push(...newSeats);
-        console.log(
-          `✅ Successfully duplicated grid with ${newSeats.length} seats`
-        );
       } catch (error) {
         console.error(`Failed to duplicate grid ${gridId}:`, error);
         seatsInGrid.forEach((seat) => {
@@ -782,16 +778,12 @@ const duplicateSeatsWithGridRowLogic = (
 
         if (seatsInRow.length === allRowSeats.length) {
           try {
-            console.log(`Duplicating entire row ${rowId}`);
             const { newRow, newSeats } = duplicateRow(rowId, seatsInRow);
 
             originalGrid.children.push(newRow);
             originalGrid.graphics.addChild(newRow.graphics);
 
             allNewSeats.push(...newSeats);
-            console.log(
-              `✅ Successfully duplicated row with ${newSeats.length} seats`
-            );
           } catch (error) {
             console.error(`Failed to duplicate row ${rowId}:`, error);
             seatsInRow.forEach((seat) => {
@@ -821,7 +813,6 @@ const duplicateSeatsWithGridRowLogic = (
     }
   });
 
-  console.log(`✅ Total duplicated seats: ${allNewSeats.length}`);
   return allNewSeats;
 };
 
@@ -875,7 +866,6 @@ const addShapeToAppropriateContainer = (shape: CanvasItem): void => {
       if (shapeContainer) {
         shapeContainer.addChild(shape.graphics);
       }
-      console.log(`✅ Added shape ${shape.name} to regular mode`);
     }
   }
 
@@ -992,10 +982,6 @@ export const duplicateShape = async (
       eventManager.addShapeEvents(duplicated);
     }
 
-    console.log(
-      `✅ Successfully duplicated ${shape.type} shape: ${shape.name}`
-    );
-
     return duplicated;
   } catch (error) {
     console.error(`Failed to duplicate ${shape.type} shape:`, error);
@@ -1005,7 +991,7 @@ export const duplicateShape = async (
 
 export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
   const selectedShapes = useSeatMapStore.getState().selectedShapes;
-  console.log("duplication", selectedShapes);
+
   if (selectedShapes.length === 0) {
     return [];
   }
@@ -1027,8 +1013,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
     );
 
     if (seatShapes.length > 0 && isAreaMode && areaModeContainer) {
-      console.log(`Duplicating ${seatShapes.length} seats with smart logic`);
-
       const smartDuplicatedSeats = duplicateSeatsWithGridRowLogic(seatShapes);
       duplicatedShapes.push(...smartDuplicatedSeats);
 
@@ -1070,10 +1054,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
     }
 
     if (areaModeContainerShapes.length > 0) {
-      console.log(
-        `Duplicating ${areaModeContainerShapes.length} area mode container shapes`
-      );
-
       for (const shape of areaModeContainerShapes) {
         const duplicated = await duplicateShape(shape);
         if (duplicated) {
@@ -1215,15 +1195,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
     }
 
     useSeatMapStore.getState().updateShapes([...shapes], false);
-
-    console.log(
-      `✅ Successfully duplicated ${duplicatedShapes.length} shapes:`,
-      {
-        seats: seatShapes.length,
-        areaModeContainers: areaModeContainerShapes.length,
-        regularShapes: regularShapes.length,
-      }
-    );
 
     return duplicatedShapes;
   } catch (error) {

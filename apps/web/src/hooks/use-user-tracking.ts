@@ -409,7 +409,7 @@ export function useUserTracking() {
             prev.preferences.locations,
             value
           );
-          console.log("📍 Tracked location filter:", value);
+          console.log("Tracked location filter:", value);
         } else if (
           filterType === "category" &&
           typeof value === "string" &&
@@ -484,7 +484,7 @@ export function useUserTracking() {
           // ALWAYS update timestamp, even if location already exists (tracks recency)
           updatedPreferences.filterTimestamps.location = now;
           console.log(
-            "📍 Location filter timestamp updated:",
+            "Location filter timestamp updated:",
             new Date(now).toISOString(),
             "- Current preferences:",
             newLocations
@@ -496,7 +496,7 @@ export function useUserTracking() {
           // Clear timestamp when filter is removed
           delete updatedPreferences.filterTimestamps.location;
           hasChanges = true;
-          console.log("📍 Location filter timestamp cleared (removed filter)");
+          console.log("Location filter timestamp cleared (removed filter)");
         }
 
         if (filters.category && filters.category !== "all") {
@@ -698,7 +698,7 @@ export function useAIRecommendations() {
       // Get fresh storage keys for current user to avoid stale closures
       const currentUserStorageKeys = getUserStorageKeys(userId);
 
-      console.log("🤖 Getting AI recommendations for user:", {
+      console.log("Getting AI recommendations for user:", {
         userId: userId || "anonymous",
         eventCount: events.length,
         storageKey: currentUserStorageKeys.USER_BEHAVIOR,
@@ -893,7 +893,7 @@ export function useAIRecommendations() {
             userId || "anonymous"
           );
           console.log(
-            "🎯 Event Scores (Top 10):",
+            "Event Scores (Top 10):",
             result.recommendations
               .slice(0, 10)
               .map((rec: RecommendationResult) => ({

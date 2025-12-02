@@ -7,7 +7,8 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Wallet, Ticket, DollarSign } from "lucide-react";
+import { Wallet, Ticket, Star } from "lucide-react";
+import Link from "next/link";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -43,10 +44,12 @@ type RecentTransaction = {
 };
 
 type Props = {
+  eventId: string;
   revenueOverTime: RevenueOverTimeItem[];
   ticketTypeRevenue: TicketTypeRevenue[];
   totalAvailableTickets: number; // Total available tickets for the event
   recentTransactions: RecentTransaction[];
+  ratingSummary: { average: number; count: number };
 };
 type AreaTooltipProps = {
   active?: boolean;
@@ -133,10 +136,12 @@ const CustomPieTooltip = ({ active, payload }: PieTooltipProps) => {
 };
 
 export function DashboardOverview({
+  eventId,
   revenueOverTime: initialRevenueOverTime,
   ticketTypeRevenue: initialTicketTypeRevenue,
   totalAvailableTickets: initialTotalAvailableTickets,
   recentTransactions: initialRecentTransactions,
+  ratingSummary,
 }: Props) {
   // Use the actual data from props
   const revenueOverTime = initialRevenueOverTime || [];
@@ -153,10 +158,6 @@ export function DashboardOverview({
   const totalTicketsSold = useMemo(() => {
     return ticketTypeRevenue.reduce((sum, item) => sum + item.ticketsSold, 0);
   }, [ticketTypeRevenue]);
-
-  const averageTicketPrice = useMemo(() => {
-    return totalTicketsSold > 0 ? totalRevenue / totalTicketsSold : 0;
-  }, [totalRevenue, totalTicketsSold]);
 
   // Calculate remaining tickets
   const remainingTickets = useMemo(() => {
@@ -274,8 +275,8 @@ export function DashboardOverview({
               {formatCurrencyVND(totalRevenue)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
-              actual -20% after receiving{" "}
-              {formatCurrencyVND((totalRevenue * 80) / 100)}
+              actual -5% after receiving{" "}
+              {formatCurrencyVND((totalRevenue * 95) / 100)}
             </p>
           </CardContent>
         </Card>
@@ -324,22 +325,31 @@ export function DashboardOverview({
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-3 sm:px-6">
-            <CardTitle className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400">
-              Average Ticket Price
-            </CardTitle>
-            <DollarSign className="h-4 w-4 sm:h-5 sm:w-5 text-yellow-500 dark:text-yellow-400" />
-          </CardHeader>
-          <CardContent className="px-3 sm:px-6">
-            <div className="text-lg sm:text-2xl lg:text-3xl font-bold text-gray-900 dark:text-gray-50">
-              {formatCurrencyVND(averageTicketPrice)}
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              Revenue / Tickets sold
-            </p>
-          </CardContent>
-        </Card>
+        <Link
+          href={`/organizer/general/create/ratings?id=${eventId}`}
+          className="block h-full"
+        >
+          <Card className="rounded-xl shadow-lg hover:shadow-xl transition-shadow duration-300 transform hover:-translate-y-1 cursor-pointer h-full">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
+                Average Rating
+              </CardTitle>
+              <Star className="h-5 w-5 text-yellow-500 dark:text-yellow-400 fill-yellow-500 dark:fill-yellow-400" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900 dark:text-gray-50">
+                {ratingSummary.average > 0
+                  ? ratingSummary.average.toFixed(1)
+                  : "0.0"}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {ratingSummary.count > 0
+                  ? `${ratingSummary.count} ${ratingSummary.count === 1 ? "review" : "reviews"}`
+                  : "No reviews yet"}
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       {/* Revenue fluctuation chart */}
@@ -458,8 +468,12 @@ export function DashboardOverview({
           ) : (
             <div className="flex items-center justify-center h-full px-4 py-8">
               <div className="text-center text-muted-foreground">
-                <p className="text-sm sm:text-base lg:text-lg mb-2">No revenue data available</p>
-                <p className="text-xs sm:text-sm">Revenue data will appear here once transactions are made</p>
+                <p className="text-sm sm:text-base lg:text-lg mb-2">
+                  No revenue data available
+                </p>
+                <p className="text-xs sm:text-sm">
+                  Revenue data will appear here once transactions are made
+                </p>
               </div>
             </div>
           )}
@@ -521,7 +535,10 @@ export function DashboardOverview({
             ) : (
               <div className="text-center text-muted-foreground">
                 <p className="text-lg">No ticket type data</p>
-                <p className="text-sm">Revenue distribution will appear here once ticket types are configured</p>
+                <p className="text-sm">
+                  Revenue distribution will appear here once ticket types are
+                  configured
+                </p>
               </div>
             )}
           </CardContent>
@@ -634,7 +651,10 @@ export function DashboardOverview({
                       >
                         <div className="flex flex-col items-center">
                           <p className="text-lg">No transactions yet</p>
-                          <p className="text-sm">Transaction history will appear here once tickets are sold</p>
+                          <p className="text-sm">
+                            Transaction history will appear here once tickets
+                            are sold
+                          </p>
                         </div>
                       </td>
                     </tr>

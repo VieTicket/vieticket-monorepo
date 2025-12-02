@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import Image from "next/image";
 
@@ -22,6 +23,32 @@ import {
 
 export default function AboutPage() {
   const t = useTranslations("about");
+  const glowRef = useRef<HTMLDivElement>(null);
+
+  // Mouse tracking for glow effect
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (glowRef.current) {
+        const { clientX, clientY } = e;
+        glowRef.current.style.left = `${clientX}px`;
+        glowRef.current.style.top = `${clientY}px`;
+        glowRef.current.style.opacity = '1';
+      }
+    };
+
+    const handleMouseLeave = () => {
+      if (glowRef.current) {
+        glowRef.current.style.opacity = '0';
+      }
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseleave', handleMouseLeave);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+    };
+  }, []);
 
   const stats = [
     {
@@ -179,11 +206,12 @@ export default function AboutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 relative">
-      {/* Background Effects */}
-      <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-yellow-400/10 to-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+    <>
+      <div className="min-h-screen bg-slate-950 relative">
+        {/* Background Effects */}
+        <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
+        <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-yellow-400/10 to-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+        <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
       
       {/* Hero Section */}
       <section className="relative py-20 px-6" style={{ zIndex: 2 }}>
@@ -237,8 +265,8 @@ export default function AboutPage() {
                   <div className="w-32 h-32 bg-gradient-to-br from-violet-400 to-indigo-500 rounded-full mx-auto mb-6 flex items-center justify-center shadow-lg">
                     <Heart className="w-16 h-16 text-white" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-2 glow-text">Đam mê sự kiện</h3>
-                  <p className="text-slate-300">Kết nối cộng đồng qua trải nghiệm</p>
+                  <h3 className="text-2xl font-bold text-white mb-2 glow-text">{t("mission.passion.title")}</h3>
+                  <p className="text-slate-300">{t("mission.passion.subtitle")}</p>
                 </div>
               </div>
             </div>
@@ -331,7 +359,7 @@ export default function AboutPage() {
               ))
             ) : (
               <p className="text-slate-400 col-span-full text-center">
-                Chúng tôi sẽ cập nhật danh sách team sớm.
+                {t("team.comingSoon")}
               </p>
             )}
           </div>
@@ -365,6 +393,7 @@ export default function AboutPage() {
           </div>
         </div>
       </section>
-    </div>
+      </div>
+    </>
   );
 }

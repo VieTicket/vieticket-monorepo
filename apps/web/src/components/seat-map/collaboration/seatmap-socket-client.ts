@@ -514,10 +514,6 @@ export class SeatMapCollaboration {
   }) {
     if (data.fromUserId === this.userId) return;
 
-    console.log(
-      `🔄 Remote ${data.operation} action from user ${data.fromUserId}, action ID: ${data.action.id}`
-    );
-
     // ✅ Apply the remote undo/redo action directly
     this.applyRemoteUndoRedoAction(data.action, data.operation);
 
@@ -541,8 +537,6 @@ export class SeatMapCollaboration {
         false, // updateHistory - don't save to local history
         false // broadcastToOthers - don't broadcast back
       );
-
-      console.log(`✅ Applied remote ${operation} action: ${action.id}`);
     } catch (error) {
       console.error(`Failed to apply remote ${operation} action:`, error);
     }
@@ -581,10 +575,6 @@ export class SeatMapCollaboration {
         fromUserId: this.userId,
         timestamp: Date.now(),
       });
-
-      console.log(
-        `📤 Broadcasted ${operation} action with full data: ${actionId}`
-      );
     } catch (error) {
       console.error(`Failed to broadcast ${operation} action:`, error);
     }
@@ -600,10 +590,6 @@ export class SeatMapCollaboration {
     }>;
     timestamp: number;
   }) {
-    console.log(
-      `📋 Received ${data.pendingChanges.length} pending changes for room ${data.seatMapId}`
-    );
-
     // ✅ Apply pending changes that are newer than our last known state
     this.applyPendingChanges(data.pendingChanges);
   }
@@ -621,8 +607,6 @@ export class SeatMapCollaboration {
         fromUserId: this.userId,
         timestamp: Date.now(),
       });
-
-      console.log("📤 Requested pending changes from server");
     } catch (error) {
       console.error("Failed to request pending changes:", error);
     }
@@ -639,8 +623,6 @@ export class SeatMapCollaboration {
     const collaboration = useSeatMapStore.getState().collaboration;
     const user = collaboration.roomUsers.find((u) => u.id === data.fromUserId);
     const userName = user?.name || `User ${data.fromUserId}`;
-
-    console.log(`🔔 ${userName} performed ${data.operation} action`);
 
     // ✅ You can add toast notification here if desired
     // Example: showToast(`${userName} performed ${data.operation}`, 'info');
@@ -670,8 +652,6 @@ export class SeatMapCollaboration {
       ({ change, fromUserId }) =>
         change.timestamp > lastKnownTimestamp && fromUserId !== this.userId
     );
-
-    console.log(`🔄 Applying ${newChanges.length} new pending changes`);
 
     for (const { change, fromUserId } of newChanges) {
       try {

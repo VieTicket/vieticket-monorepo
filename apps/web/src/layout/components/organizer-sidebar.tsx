@@ -16,56 +16,125 @@ import {
   TicketCheck,
   LogOut,
   User,
+  Building2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
+import { authClient } from "@/lib/auth/auth-client";
+import { useActiveOrganization } from "@/providers/active-organization-provider";
 
 export default function Sidebar() {
   const pathname = usePathname();
   const [hasMounted, setHasMounted] = useState(false);
-  const [isOpen, setIsOpen] = useState(false); // Changed to false for mobile by default
+  const [isOpen, setIsOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
   const t = useTranslations("organizer-dashboard");
+  const { data: session } = authClient.useSession();
+  const { data: activeOrg } = useActiveOrganization();
+  
+  // Determine if user is working in organization context or personal context
+  const isOrganizerRole = session?.user?.role === "organizer";
+  const isInOrgContext = !!activeOrg;
+  
+  // Get user's role in the active organization
+  const userOrgRole = activeOrg?.members?.find(
+    (m) => m.userId === session?.user?.id
+  )?.role as string | undefined;
+  
+  const isOwner = userOrgRole === "owner";
+  const isMember = userOrgRole === "member";
 
   const navItems = [
-  { label: t("General.general"), href: "/organizer/general", icon: Home },
-  { label: t("CreateEvent.createEvent"), href: "/organizer/event/create", icon: NotebookPen },
-  { label: t("SeatMap.seatMap"), href: "/organizer/seat-map", icon: Map },
-  { label: t("ListEvent.listEvent"), href: "/organizer", icon: Calendar },
-  { label: t("Rating.rating"), href: "/organizer/rating", icon: Star },
-  {
-    label: t("RequestPayout.requestPayout"),
-    href: "/organizer/payouts",
-    icon: Wallet,
-  },
-  {
-    label: t("InspectTicket.inspectTicket"),
-    href: "/inspector",
-    icon: TicketCheck,
-  },
-  {
-    label: t("ChatWithAdmin.chatWithAdmin"),
-    href: "/organizer/chat?recipientId=admin",
-    icon: MessageCircle,
-  },
-  { label: t("Profile.profile"), href: "/profile/edit", icon: User },
-  { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
-];
+    { 
+      label: t("General.general"), 
+      href: "/organizer/general", 
+      icon: Home,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
+    {
+      label: t("CreateEvent.createEvent"),
+      href: "/organizer/event/create",
+      icon: NotebookPen,
+      // Only organizer role or owners can create events
+      visible: isOrganizerRole || isOwner,
+    },
+    {
+      label: t("SeatMap.seatMap"),
+      href: "/organizer/seat-map",
+      icon: Map,
+      hideOnMobile: true,
+      // Members can view/edit seat maps
+      visible: true,
+    },
+    { 
+      label: t("ListEvent.listEvent"), 
+      href: "/organizer", 
+      icon: Calendar,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
+    { 
+      label: t("Rating.rating"), 
+      href: "/organizer/rating", 
+      icon: Star,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
+    {
+      label: t("RequestPayout.requestPayout"),
+      href: "/organizer/payouts",
+      icon: Wallet,
+      // Only organizer role or owners can request payouts
+      visible: isOrganizerRole || isOwner,
+    },
+    {
+      label: t("InspectTicket.inspectTicket"),
+      href: "/inspector",
+      icon: TicketCheck,
+      // Members can inspect tickets
+      visible: true,
+    },
+    {
+      label: t("ChatWithAdmin.chatWithAdmin"),
+      href: "/organizer/chat?recipientId=admin",
+      icon: MessageCircle,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
+    { 
+      label: "Organization", 
+      href: "/organizer/organization", 
+      icon: Building2,
+      // Available to all organization members
+      visible: isInOrgContext,
+    },
+    { 
+      label: t("Profile.profile"), 
+      href: "/profile/edit", 
+      icon: User,
+      visible: true,
+    },
+    { 
+      label: t("SignOut.signOut"), 
+      href: "/auth/sign-out", 
+      icon: LogOut,
+      visible: true,
+    },
+  ].filter(item => item.visible !== false);
 
   useEffect(() => {
     setHasMounted(true);
-    // Set isOpen to true for desktop by default
-    const handleResize = () => {
-      if (window.innerWidth >= 768) {
-        setIsOpen(true);
-      } else {
-        setIsOpen(false);
-      }
+
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
     };
-    
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    
-    return () => window.removeEventListener('resize', handleResize);
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   if (!hasMounted) return null;
@@ -91,33 +160,33 @@ export default function Sidebar() {
           />
           <div className="fixed top-16 left-0 right-0 z-40 bg-[#1f1c33] border-b border-[#3a3755] shadow-2xl">
             <nav className="flex flex-col">
-              {navItems.map(({ href, label, icon: Icon }) => {
-                const isActive = pathname === href;
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={cn(
-                      "group flex items-center gap-4 px-4 py-4 transition-all duration-200 font-medium border-b border-[#3a3755]/50",
-                      isActive
-                        ? "bg-yellow-400 text-[#2a273f]"
-                        : "hover:bg-[#2f2b47] text-white/80"
-                    )}
-                    onClick={() => setIsOpen(false)}
-                  >
-                    <Icon
-                      size={22}
+              {navItems
+                .filter((item) => item.href !== "/organizer/seat-map")
+                .map(({ href, label, icon: Icon }) => {
+                  const isActive = pathname === href;
+                  return (
+                    <Link
+                      key={href}
+                      href={href}
                       className={cn(
-                        "transition-all duration-200",
+                        "group flex items-center gap-4 px-4 py-4 transition-all duration-200 font-medium border-b border-[#3a3755]/50",
                         isActive
-                          ? "text-[#2a273f]"
-                          : "text-yellow-300"
+                          ? "bg-yellow-400 text-[#2a273f]"
+                          : "hover:bg-[#2f2b47] text-white/80"
                       )}
-                    />
-                    <span>{label}</span>
-                  </Link>
-                );
-              })}
+                      onClick={() => setIsOpen(false)}
+                    >
+                      <Icon
+                        size={22}
+                        className={cn(
+                          "transition-all duration-200",
+                          isActive ? "text-[#2a273f]" : "text-yellow-300"
+                        )}
+                      />
+                      <span>{label}</span>
+                    </Link>
+                  );
+                })}
             </nav>
           </div>
         </div>
@@ -139,6 +208,13 @@ export default function Sidebar() {
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
+
+        {isOpen && (
+          <div className="mb-4 px-1">
+            <OrgSwitcher className="w-full" />
+          </div>
+        )}
+
         {/* Logo */}
         <div
           className={cn(
@@ -149,33 +225,38 @@ export default function Sidebar() {
           {isOpen ? "" : ""}
         </div>
         <nav className="flex flex-col gap-2">
-          {navItems.map(({ href, label, icon: Icon }) => {
-            const isActive = pathname === href;
-            return (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "group flex items-center transition-all duration-200 rounded-2xl font-medium",
-                  isOpen ? "gap-4 px-4 py-3" : "px-[5px] py-3 justify-center",
-                  isActive
-                    ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
-                    : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
-                )}
-              >
-                <Icon
-                  size={22}
+          {navItems
+            .filter((item) => !(isMobile && item.hideOnMobile))
+            .map(({ href, label, icon: Icon }) => {
+              const isActive = pathname === href;
+              return (
+                <Link
+                  key={href}
+                  href={href}
                   className={cn(
-                    "transition-all duration-200",
+                    "group flex items-center transition-all duration-200 rounded-2xl font-medium",
+                    isOpen ? "gap-4 px-4 py-3" : "px-[5px] py-3 justify-center",
                     isActive
-                      ? "text-[#2a273f]"
-                      : "text-yellow-300 group-hover:text-yellow-200"
+                      ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
+                      : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
                   )}
-                />
-                {isOpen && <span className="truncate">{label}</span>}
-              </Link>
-            );
-          })}
+                  onClick={() => {
+                    if (window.innerWidth < 768) setIsOpen(false);
+                  }}
+                >
+                  <Icon
+                    size={22}
+                    className={cn(
+                      "transition-all duration-200",
+                      isActive
+                        ? "text-[#2a273f]"
+                        : "text-yellow-300 group-hover:text-yellow-200"
+                    )}
+                  />
+                  {isOpen && <span className="truncate">{label}</span>}
+                </Link>
+              );
+            })}
         </nav>
       </aside>
     </>

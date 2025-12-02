@@ -3,8 +3,15 @@ import {
   SeatMap,
   CreateSeatMapInput,
   UpdateSeatMapInput,
+  CanvasItem,
+  GridShape,
+  AreaModeContainer,
+  RowShape,
+  SeatShape,
 } from "@vieticket/db/mongo/models/seat-map";
 import { ensureMongoConnection } from "@vieticket/db/mongo";
+import { v4 as uuidv4 } from "uuid";
+import { Event } from "@vieticket/db/pg/models/events";
 
 /**
  * Retrieves a seat map by its ID.
@@ -126,6 +133,138 @@ export async function deleteSeatMapById(id: string): Promise<SeatMap | null> {
   return doc ? (doc.toObject() as SeatMap) : null;
 }
 
+export async function duplicateSeatMapForEvent(
+  originalSeatMapId: string,
+  eventName: string,
+  eventId: string,
+  userId: string
+): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
+  try {
+    await ensureMongoConnection();
+    const originalSeatMap = await SeatMapModel.findById(originalSeatMapId);
+    if (!originalSeatMap) {
+      return {
+        success: false,
+        error: "Original seat map not found",
+      };
+    }
+
+    const duplicatedShapes: CanvasItem[] = JSON.parse(
+      JSON.stringify(originalSeatMap.shapes)
+    );
+
+    const areaModeContainerIndex = duplicatedShapes.findIndex(
+      (shape: any) =>
+        shape.id === "area-mode-container-id" &&
+        shape.type === "container" &&
+        shape.defaultSeatSettings
+    );
+
+    if (areaModeContainerIndex === -1) {
+      return {
+        success: false,
+        error: "No area mode container found in seat map",
+      };
+    }
+
+    const areaModeContainer = duplicatedShapes[
+      areaModeContainerIndex
+    ] as AreaModeContainer;
+
+    const idMappings: Record<string, string> = {};
+
+    const processedGrids: GridShape[] = areaModeContainer.children.map(
+      (grid: GridShape) => {
+        const newGridId = uuidv4();
+        idMappings[grid.id] = newGridId;
+
+        const processedRows: RowShape[] = grid.children.map((row: RowShape) => {
+          const newRowId = uuidv4();
+          idMappings[row.id] = newRowId;
+
+          const processedSeats: SeatShape[] = row.children.map(
+            (seat: SeatShape) => {
+              const newSeatId = uuidv4();
+              idMappings[seat.id] = newSeatId;
+
+              return {
+                ...seat,
+                id: newSeatId,
+                rowId: newRowId,
+                gridId: newGridId,
+              };
+            }
+          );
+
+          return {
+            ...row,
+            id: newRowId,
+            gridId: newGridId,
+            children: processedSeats,
+          };
+        });
+
+        return {
+          ...grid,
+          id: newGridId,
+          children: processedRows,
+        };
+      }
+    );
+
+    const updatedAreaModeContainer: AreaModeContainer = {
+      ...areaModeContainer,
+      children: processedGrids,
+    };
+
+    duplicatedShapes[areaModeContainerIndex] = updatedAreaModeContainer;
+
+    const finalShapes = duplicatedShapes.map((shape) => {
+      if (shape.id === "area-mode-container-id" && shape.type === "container") {
+        return shape;
+      }
+
+      const newId = uuidv4();
+      idMappings[shape.id] = newId;
+
+      return {
+        ...shape,
+        id: newId,
+      };
+    });
+
+    const timestamp = new Date().getDate();
+    const duplicatedName = `${originalSeatMap.name}_${eventName}_${timestamp}`;
+
+    const duplicatedSeatMap = new SeatMapModel({
+      name: duplicatedName,
+      shapes: finalShapes,
+      image: originalSeatMap.image,
+      createdBy: userId,
+      publicity: "private",
+      usedByEvent: eventId,
+      draftedFrom: originalSeatMap._id,
+      originalCreator: originalSeatMap.createdBy,
+    });
+
+    const savedSeatMap = await duplicatedSeatMap.save();
+
+    return {
+      success: true,
+      seatMapId: savedSeatMap.id,
+    };
+  } catch (error) {
+    console.error("❌ Error duplicating seat map:", error);
+    return {
+      success: false,
+      error:
+        error instanceof Error
+          ? error.message
+          : "An unexpected error occurred during duplication",
+    };
+  }
+}
+
 /**
  * Checks if a seat map exists by ID.
  * @param id - The ID of the seat map to check.
@@ -233,6 +372,22 @@ export async function findSeatMapWithShapesById(
 
   const doc = await SeatMapModel.findOne(filter).exec();
   return doc ? (doc.toObject() as SeatMap) : null;
+}
+
+export async function findSeatMapsUsedByEvents(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: { $ne: null } })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+export async function findSeatMapTemplates(): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ usedByEvent: null })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
 /**
@@ -393,4 +548,80 @@ export async function updateSeatMapPublicity(
   ).exec();
 
   return doc ? (doc.toObject() as SeatMap) : null;
+}
+
+/**
+ * Retrieves all seat maps for a specific organization.
+ * @param organizationId - The ID of the organization.
+ * @returns Array of seat map objects.
+ */
+export async function findSeatMapsByOrganization(
+  organizationId: string
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ organizationId })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+/**
+ * Retrieves all seat maps accessible to a user (created by them or in their organization).
+ * @param userId - The ID of the user.
+ * @param organizationId - Optional organization ID to include organization seat maps.
+ * @returns Array of seat map objects.
+ */
+export async function findAccessibleSeatMaps(
+  userId: string,
+  organizationId?: string | null
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  
+  const filter: any = {
+    $or: [
+      { createdBy: userId },
+    ],
+  };
+
+  // If organization context exists, also include organization seat maps
+  if (organizationId) {
+    filter.$or.push({ organizationId });
+  }
+
+  const docs = await SeatMapModel.find(filter)
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+/**
+ * Searches seat maps by name for accessible seat maps (created by user or in their organization).
+ * @param searchQuery - The search query string.
+ * @param userId - The ID of the user.
+ * @param organizationId - Optional organization ID to include organization seat maps.
+ * @returns Array of matching seat map objects.
+ */
+export async function searchAccessibleSeatMaps(
+  searchQuery: string,
+  userId: string,
+  organizationId?: string | null
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  
+  const filter: any = {
+    name: { $regex: searchQuery, $options: "i" },
+    $or: [
+      { createdBy: userId },
+    ],
+  };
+
+  // If organization context exists, also include organization seat maps
+  if (organizationId) {
+    filter.$or.push({ organizationId });
+  }
+
+  const docs = await SeatMapModel.find(filter)
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
 }

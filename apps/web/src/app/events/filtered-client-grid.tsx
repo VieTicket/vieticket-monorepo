@@ -19,8 +19,9 @@ interface EventResponse {
 export default function FilteredClientGrid() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const { userBehavior, trackFilterSelection, trackCurrentFilters } = useUserTracking(); // Extract functions we need
-  
+  const { userBehavior, trackFilterSelection, trackCurrentFilters } =
+    useUserTracking(); // Extract functions we need
+
   // Client-side pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 12;
@@ -33,55 +34,52 @@ export default function FilteredClientGrid() {
   const t = useTranslations("event-sidebar");
 
   // Memoize filter values to ensure stable props for EventFiltersSidebar
-  const memoizedFilterProps = useMemo(() => ({
-    selectedPriceRange: price,
-    selectedDate: date,
-    selectedLocation: location,
-    selectedCategory: category
-  }), [price, date, location, category]);
+  const memoizedFilterProps = useMemo(
+    () => ({
+      selectedPriceRange: price,
+      selectedDate: date,
+      selectedLocation: location,
+      selectedCategory: category,
+    }),
+    [price, date, location, category]
+  );
 
   // Check if user has significant behavior for AI prioritization
   const hasSignificantBehavior = useMemo(() => {
-    return userBehavior ? (
-      userBehavior.searchQueries?.length > 0 || 
-      userBehavior.viewedEvents?.length > 2 || 
-      userBehavior.clickedEvents?.length > 1 ||
-      userBehavior.eventEngagement?.length > 0
-    ) : false;
+    return userBehavior
+      ? userBehavior.searchQueries?.length > 0 ||
+          userBehavior.viewedEvents?.length > 2 ||
+          userBehavior.clickedEvents?.length > 1 ||
+          userBehavior.eventEngagement?.length > 0
+      : false;
   }, [userBehavior]);
 
   // Track current filters on component mount to learn from URL state
   // Use useRef to track which filters we've already processed to avoid infinite loops
-  const trackedFiltersRef = useRef<string>('');
-  
+  const trackedFiltersRef = useRef<string>("");
+
   useEffect(() => {
     const currentFilters = `${location}_${category}_${price}_${date}`;
-    
+
     // Only track if filters changed and we have userBehavior loaded
     if (userBehavior && currentFilters !== trackedFiltersRef.current) {
-      console.log('🔄 Tracking filters from URL:', { location, category, price, date });
-
       // Track all current active filters simultaneously
       // Pass actual filter values, including 'all', so trackCurrentFilters can decide what to clear
       trackCurrentFilters({
         location: location,
         category: category,
         price: price,
-        date: date
+        date: date,
       });
-      
+
       // Update ref to prevent re-tracking same filters
       trackedFiltersRef.current = currentFilters;
     }
   }, [location, category, price, date, userBehavior, trackCurrentFilters]); // Use trackCurrentFilters
 
   // Fetch ALL events at once (no server-side pagination)
-  const {
-    data,
-    isLoading,
-    error,
-  } = useQuery<EventResponse>({
-    queryKey: ['all-events', { price, date, location, category, q }],
+  const { data, isLoading, error } = useQuery<EventResponse>({
+    queryKey: ["all-events", { price, date, location, category, q }],
     queryFn: async () => {
       const params = new URLSearchParams({
         page: "1",
@@ -93,8 +91,6 @@ export default function FilteredClientGrid() {
         q,
       });
 
-      console.log("🔄 Fetching ALL events for AI prioritization:", params.toString());
-      
       const res = await fetch(`/api/events?${params}`);
       if (!res.ok) {
         const errorText = await res.text();
@@ -102,29 +98,31 @@ export default function FilteredClientGrid() {
         throw new Error(`Network response was not ok: ${res.status}`);
       }
       const data = await res.json();
-      console.log("✅ Fetched ALL events:", data.events?.length || 0, "events");
+
       return {
         events: data.events || [],
-        total: data.events?.length || 0
+        total: data.events?.length || 0,
       };
     },
   });
 
-  const handleFilterChange = useCallback((key: string, value: string) => {
-    // Access searchParams fresh each time to avoid stale closure
-    const currentSearchParams = new URLSearchParams(window.location.search);
-    if (value === "all") {
-      currentSearchParams.delete(key);
-    } else {
-      currentSearchParams.set(key, value);
-    }
-    router.replace(`/events?${currentSearchParams.toString()}`);
-    // Reset to first page when filters change
-    setCurrentPage(1);
-    
-    // Note: trackCurrentFilters in useEffect will handle tracking to avoid double-tracking
-    console.log('🔄 Filter changed:', key, '=', value);
-  }, [router]); // Removed trackFilterSelection to prevent double tracking
+  const handleFilterChange = useCallback(
+    (key: string, value: string) => {
+      // Access searchParams fresh each time to avoid stale closure
+      const currentSearchParams = new URLSearchParams(window.location.search);
+      if (value === "all") {
+        currentSearchParams.delete(key);
+      } else {
+        currentSearchParams.set(key, value);
+      }
+      router.replace(`/events?${currentSearchParams.toString()}`);
+      // Reset to first page when filters change
+      setCurrentPage(1);
+
+      // Note: trackCurrentFilters in useEffect will handle tracking to avoid double-tracking
+    },
+    [router]
+  ); // Removed trackFilterSelection to prevent double tracking
 
   // All events loaded from server
   const allEvents = useMemo(() => {
@@ -138,7 +136,7 @@ export default function FilteredClientGrid() {
 
   const handleLoadMore = useCallback(() => {
     if (hasMore) {
-      setCurrentPage(prev => prev + 1);
+      setCurrentPage((prev) => prev + 1);
     }
   }, [hasMore]);
 
@@ -173,14 +171,14 @@ export default function FilteredClientGrid() {
           ) : (
             <div className="space-y-6">
               {/* SmartEventGrid with professional styling */}
-              <SmartEventGrid 
+              <SmartEventGrid
                 events={allEvents}
                 aiPool={allEvents}
                 renderLimit={eventsToShow}
                 showAIRecommendations={false}
                 waitForAI={hasSignificantBehavior}
               />
-              
+
               {hasMore && (
                 <div className="text-center pt-4">
                   <Button
@@ -190,7 +188,8 @@ export default function FilteredClientGrid() {
                     size="lg"
                   >
                     <span className="glow-text">
-                      {t("seeMore")} ({currentPage * itemsPerPage} / {allEvents.length})
+                      {t("seeMore")} ({currentPage * itemsPerPage} /{" "}
+                      {allEvents.length})
                     </span>
                   </Button>
                 </div>

@@ -43,6 +43,7 @@ function FormField({
   value,
   onChange,
   disabled = false,
+  required = false,
 }: {
   id: string;
   label: string;
@@ -51,11 +52,13 @@ function FormField({
   value?: string;
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   disabled?: boolean;
+  required?: boolean;
 }) {
   return (
     <div className="grid w-full max-w-sm items-center gap-1.5">
       <Label htmlFor={id} className="font-semibold text-slate-700">
         {label}
+        {required && <span className="text-red-500 ml-1">*</span>}
       </Label>
       <Input
         type={type}
@@ -64,6 +67,7 @@ function FormField({
         value={value || ""}
         onChange={onChange}
         disabled={disabled}
+        required={required}
       />
     </div>
   );
@@ -133,6 +137,7 @@ export function AccountForm() {
   const [address, setAddress] = useState<string | undefined>();
   const [foundedDate, setFoundedDate] = useState<string | undefined>();
   const [organizerType, setOrganizerType] = useState<string | undefined>();
+  const [taxCode, setTaxCode] = useState<string | undefined>();
 
   // Fetch complete profile data
   useEffect(() => {
@@ -179,6 +184,7 @@ export function AccountForm() {
                     : ""
                 );
                 setOrganizerType(profile.organizer.organizerType || "");
+                setTaxCode(profile.organizer.taxCode || "");
                 setIsOrganizerActive(profile.organizer.isActive || false);
               } else {
                 setIsOrganizerActive(false);
@@ -253,6 +259,7 @@ export function AccountForm() {
                   address,
                   foundedDate,
                   organizerType,
+                  taxCode,
                 }
               : undefined,
         };
@@ -475,6 +482,15 @@ export function AccountForm() {
               placeholder={t("placeholders.organizerName")}
               value={organizerName}
               onChange={(e) => setOrganizerName(e.target.value)}
+              required
+            />
+            <FormField
+              id="taxCode"
+              label={t("organizerDetails.taxCode")}
+              placeholder={t("placeholders.taxCode")}
+              value={taxCode}
+              onChange={(e) => setTaxCode(e.target.value)}
+              required
             />
             <FormField
               id="website"

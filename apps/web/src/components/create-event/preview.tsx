@@ -63,9 +63,8 @@ const RatingList = ({ eventId, isPreview }: { eventId?: string; isPreview?: bool
     return Array.from({ length: 5 }, (_, i) => (
       <span
         key={i}
-        className={`text-lg transition-colors ${
-          i < stars ? "text-yellow-400" : "text-slate-600"
-        }`}
+        className={`text-lg transition-colors ${i < stars ? "text-yellow-400" : "text-slate-600"
+          }`}
       >
         ★
       </span>
@@ -220,7 +219,7 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
       setComment("");
       return;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
@@ -261,11 +260,10 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
               {Array.from({ length: 5 }, (_, i) => (
                 <span
                   key={i}
-                  className={`text-lg transition-colors ${
-                    i < Math.round(summary.average) 
-                      ? "text-yellow-400" 
+                  className={`text-lg transition-colors ${i < Math.round(summary.average)
+                      ? "text-yellow-400"
                       : "text-slate-600"
-                  }`}
+                    }`}
                 >
                   ★
                 </span>
@@ -288,11 +286,10 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
               {Array.from({ length: 5 }, (_, i) => (
                 <span
                   key={i}
-                  className={`text-lg ${
-                    i < userRating.stars 
-                      ? "text-yellow-400" 
+                  className={`text-lg ${i < userRating.stars
+                      ? "text-yellow-400"
                       : "text-slate-600"
-                  }`}
+                    }`}
                 >
                   ★
                 </span>
@@ -314,9 +311,8 @@ const RatingWidget = ({ eventId, isPreview }: { eventId?: string; isPreview?: bo
             <button
               key={n}
               type="button"
-              className={`text-2xl transition-all duration-200 transform hover:scale-110 ${
-                (hover || stars) >= n ? "text-yellow-400" : "text-slate-600"
-              }`}
+              className={`text-2xl transition-all duration-200 transform hover:scale-110 ${(hover || stars) >= n ? "text-yellow-400" : "text-slate-600"
+                }`}
               onMouseEnter={() => setHover(n)}
               onMouseLeave={() => setHover(0)}
               onClick={() => setStars(n)}
@@ -406,13 +402,13 @@ const InlineRatingStars = ({ rating, size = "sm", showNumber = false }: { rating
   const fullStars = Math.floor(rating);
   const hasHalfStar = rating % 1 >= 0.5;
   const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
+
   const sizeClasses = {
     sm: "w-4 h-4",
-    md: "w-5 h-5", 
+    md: "w-5 h-5",
     lg: "w-6 h-6"
   };
-  
+
   return (
     <div className="flex items-center gap-1">
       <div className="flex items-center">
@@ -480,14 +476,14 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
   const eventStartDate =
     data.showings.length > 0
       ? new Date(
-          Math.min(...data.showings.map((s) => new Date(s.startTime).getTime()))
-        )
+        Math.min(...data.showings.map((s) => new Date(s.startTime).getTime()))
+      )
       : null;
   const eventEndDate =
     data.showings.length > 0
       ? new Date(
-          Math.max(...data.showings.map((s) => new Date(s.endTime).getTime()))
-        )
+        Math.max(...data.showings.map((s) => new Date(s.endTime).getTime()))
+      )
       : null;
 
   return (
@@ -578,7 +574,7 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
             {/* Clean ticket tear lines */}
             <div className="absolute -right-5 -top-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900/80" />
             <div className="absolute -right-5 -bottom-5 w-8 h-8 sm:w-10 sm:h-10 rounded-full border border-slate-600/50 z-50 hidden lg:block bg-slate-900/80" />
-            
+
             <div className="space-y-2 sm:space-y-3 lg:space-y-4">
               <div>
                 <h1 className="text-sm sm:text-sm lg:text-sm font-bold text-white line-clamp-2 leading-tight transform transition-all duration-300 ease-out group-hover:text-violet-400 group-hover:scale-105 glow-text">{data.name}</h1>
@@ -603,11 +599,11 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
                 <span className="text-violet-400 glow-text inline-block transform transition-all duration-300 ease-out hover:scale-125">
                   {data.areas?.length > 0
                     ? formatCurrencyVND(
-                        data.areas.reduce(
-                          (min, area) => (area.price < min ? area.price : min),
-                          data.areas[0].price
-                        )
+                      data.areas.reduce(
+                        (min, area) => (area.price < min ? area.price : min),
+                        data.areas[0].price
                       )
+                    )
                     : "XX.XXX.XXX ₫"}
                 </span>
               </p>
@@ -711,9 +707,8 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
                     })}
                   </span>
                   <ChevronDown
-                    className={`w-4 h-4 transition-transform shrink-0 ${
-                      showingDropdownOpen ? "rotate-180" : ""
-                    }`}
+                    className={`w-4 h-4 transition-transform shrink-0 ${showingDropdownOpen ? "rotate-180" : ""
+                      }`}
                   />
                 </button>
 
@@ -727,11 +722,10 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
                           setSelectedShowing(index);
                           setShowingDropdownOpen(false);
                         }}
-                        className={`w-full px-3 py-3 text-left text-xs sm:text-sm border-b border-slate-600 last:border-b-0 transform transition-all duration-200 ease-out hover:translate-x-2 hover:shadow-sm ${
-                          index === selectedShowing
+                        className={`w-full px-3 py-3 text-left text-xs sm:text-sm border-b border-slate-600 last:border-b-0 transform transition-all duration-200 ease-out hover:translate-x-2 hover:shadow-sm ${index === selectedShowing
                             ? "bg-violet-400/20 text-violet-400"
                             : "text-slate-300 hover:bg-white/10"
-                        }`}
+                          }`}
                       >
                         <div className="font-medium">{showing.name}</div>
                         <div className="text-xs text-slate-400 mt-1">
@@ -824,7 +818,7 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
               </div>
 
               {/* Professional map */}
-              <div className="h-[200px] sm:h-[240px] w-full rounded-lg border border-slate-700/30 shadow-xl overflow-hidden transform transition-all duration-500 ease-out hover:shadow-2xl hover:scale-[1.02] professional-card">
+              <div className="h-[200px] sm:h-60 w-full rounded-lg border border-slate-700/30 shadow-xl overflow-hidden transform transition-all duration-500 ease-out hover:shadow-2xl hover:scale-[1.02] professional-card">
                 <iframe
                   className="w-full h-full rounded-lg"
                   src={`https://www.google.com/maps?q=${encodeURIComponent(data.location)}&output=embed`}
@@ -855,7 +849,7 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
               <div className="space-y-1 sm:space-y-2 text-slate-300 text-center sm:text-left w-full">
                 <p className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-sm">
                   <span className="flex items-center gap-2 justify-center sm:justify-start">
-                      <Landmark className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
+                    <Landmark className="w-4 h-4 text-violet-400 transition-transform duration-300 hover:scale-110" />
                     <strong className="text-white">{t("name")}</strong>
                   </span>
                   <span className="break-words text-slate-300">{data.organizer.name}</span>
@@ -868,8 +862,8 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
                       <strong className="text-white">Rating:</strong>
                     </span>
                     <div className="flex items-center justify-center sm:justify-start gap-2">
-                      <InlineRatingStars 
-                        rating={data.organizer.rating?.average || 4.5} 
+                      <InlineRatingStars
+                        rating={data.organizer.rating?.average || 4.5}
                         size="sm"
                         showNumber={true}
                       />
@@ -939,8 +933,8 @@ export function PreviewEvent({ data, rawEvent, isAuthenticated }: Props) {
                     <strong className="text-white">Rating:</strong>
                   </span>
                   <div className="flex items-center justify-center sm:justify-start gap-2">
-                    <InlineRatingStars 
-                      rating={4.5} 
+                    <InlineRatingStars
+                      rating={4.5}
                       size="sm"
                       showNumber={true}
                     />
