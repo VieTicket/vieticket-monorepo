@@ -102,39 +102,43 @@ export default function ContactPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-yellow-50/30 via-gray-50 to-white">
+    <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-slate-950 to-slate-950 pointer-events-none" />
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none" />
+
       {/* Hero Section */}
-      <section className="bg-gradient-to-r from-[#2A273F] via-[#3A3555] to-[#2A273F] text-white py-20 px-6">
+      <section className="relative py-20 px-6">
         <div className="max-w-6xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-yellow-300 to-yellow-100 bg-clip-text text-transparent">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
             {t("hero.title")}
           </h1>
-          <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
             {t("hero.subtitle")}
           </p>
         </div>
       </section>
 
       {/* Contact Info */}
-      <section className="py-20 px-6">
+      <section className="relative py-20 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
             {contactInfo.map((info, index) => {
               const Icon = info.icon;
               return (
-                <Card key={index} className="text-center group hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                  <CardContent className="p-6">
-                    <div className={`inline-flex p-4 rounded-full ${info.bgColor} mb-4 group-hover:scale-110 transition-transform`}>
-                      <Icon className={`w-6 h-6 ${info.color}`} />
+                <div key={index} className="professional-card text-center group hover:border-violet-400/30 transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-6">
+                    <div className="inline-flex p-4 rounded-full bg-violet-500/10 mb-4 group-hover:scale-110 transition-transform">
+                      <Icon className="w-6 h-6 text-violet-400" />
                     </div>
-                    <h3 className="font-semibold text-gray-900 mb-3">{info.title}</h3>
+                    <h3 className="font-semibold text-white mb-3">{info.title}</h3>
                     <div className="space-y-1">
                       {info.details.map((detail, i) => (
-                        <p key={i} className="text-sm text-gray-600">{detail}</p>
+                        <p key={i} className="text-sm text-slate-300">{detail}</p>
                       ))}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -142,13 +146,13 @@ export default function ContactPage() {
       </section>
 
       {/* Support Categories */}
-      <section className="py-10 px-6 bg-gray-50">
+      <section className="relative py-10 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
               {t("support.title")}
             </h2>
-            <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto">
               {t("support.subtitle")}
             </p>
           </div>
@@ -157,23 +161,23 @@ export default function ContactPage() {
             {supportCategories.map((category, index) => {
               const Icon = category.icon;
               return (
-                <Card key={index} className="group hover:shadow-lg transition-all duration-300">
-                  <CardContent className="p-6">
+                <div key={index} className="professional-card group hover:border-violet-400/30 transition-all duration-300">
+                  <div className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className="p-3 rounded-lg bg-gradient-to-br from-yellow-100 to-orange-100 group-hover:from-yellow-200 group-hover:to-orange-200 transition-colors">
-                        <Icon className="w-6 h-6 text-orange-600" />
+                      <div className="p-3 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/20 group-hover:from-violet-500/30 group-hover:to-indigo-500/30 transition-colors">
+                        <Icon className="w-6 h-6 text-violet-400" />
                       </div>
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 mb-2">{category.title}</h3>
-                        <p className="text-gray-600 text-sm mb-3">{category.description}</p>
+                        <h3 className="font-semibold text-white mb-2">{category.title}</h3>
+                        <p className="text-slate-300 text-sm mb-3">{category.description}</p>
                         <div className="flex items-center gap-2">
-                          <Clock className="w-4 h-4 text-green-500" />
-                          <span className="text-sm text-gray-500">{category.response}</span>
+                          <Clock className="w-4 h-4 text-green-400" />
+                          <span className="text-sm text-slate-400">{category.response}</span>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               );
             })}
           </div>
@@ -181,53 +185,44 @@ export default function ContactPage() {
       </section>
 
       {/* FAQ */}
-      <section className="py-10 px-6 bg-gradient-to-br from-yellow-50/50 to-gray-50">
+      <section className="relative py-10 px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-[#2A273F] mb-4">
+            <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
               {t("faq.title")}
             </h2>
-            <p className="text-lg text-gray-600">
+            <p className="text-lg text-slate-300">
               {t("faq.subtitle")}
             </p>
           </div>
 
           <div className="space-y-4">
             {faqItems.map((item, index) => (
-              <Card key={index} className="group hover:shadow-md transition-all duration-300 border-yellow-100 hover:border-yellow-200">
-                <CardHeader>
-                  <CardTitle className="flex items-start gap-3 text-lg">
-                    <MessageSquare className="w-5 h-5 text-[#2A273F] mt-1 flex-shrink-0" />
+              <div key={index} className="professional-card group hover:border-violet-400/30 transition-all duration-300">
+                <div className="p-6">
+                  <div className="flex items-start gap-3 text-lg font-semibold text-white mb-4">
+                    <MessageSquare className="w-5 h-5 text-violet-400 mt-1 flex-shrink-0" />
                     {item.question}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="pt-0">
-                  <div className="ml-8 text-gray-600 leading-relaxed">
+                  </div>
+                  <div className="ml-8 text-slate-300 leading-relaxed">
                     {item.answer}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             ))}
           </div>
 
           <div className="text-center mt-12">
-            <p className="text-gray-600 mb-4">
-              Không tìm thấy câu trả lời? Hãy liên hệ trực tiếp với chúng tôi
+            <p className="text-slate-300 mb-4">
+              {t("faq.notFound")}
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <a 
-                href="tel:19001234"
-                className="bg-[#2A273F] text-white px-6 py-3 rounded-lg font-semibold hover:bg-[#3A3555] transition-colors flex items-center gap-2 justify-center"
+                href="tel:0766567846"
+                className="professional-button bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center gap-2 justify-center"
               >
                 <Phone className="w-4 h-4" />
-                Gọi ngay: 0766 567 846
-              </a>
-              <a 
-                href="mailto:support@vieticket.com"
-                className="border-2 border-[#2A273F] text-[#2A273F] px-6 py-3 rounded-lg font-semibold hover:bg-[#2A273F] hover:text-white transition-colors flex items-center gap-2 justify-center"
-              >
-                <Mail className="w-4 h-4" />
-                Email hỗ trợ
+                {t("faq.callNow")}
               </a>
             </div>
           </div>
@@ -235,53 +230,56 @@ export default function ContactPage() {
       </section>
 
       {/* Map Section */}
-      <section className="py-10 px-6">
+      <section className="relative py-10 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
               {t("office.title")}
             </h2>
           </div>
 
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
+              <h3 className="text-2xl font-semibold text-white mb-6">
                 {t("office.headquarters")}
               </h3>
               <div className="space-y-4">
                 <div className="flex items-start gap-3">
-                  <MapPin className="w-5 h-5 text-red-500 mt-1" />
+                  <MapPin className="w-5 h-5 text-red-400 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">{t("office.details.address.title")}</p>
-                    <p className="text-gray-600">{t("office.details.address.line1")}</p>
+                    <p className="font-medium text-white">{t("office.details.address.title")}</p>
+                    <p className="text-slate-300">{t("office.details.address.line1")}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-blue-500 mt-1" />
+                  <Clock className="w-5 h-5 text-blue-400 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">{t("office.details.hours.title")}</p>
-                    <p className="text-gray-600">{t("office.details.hours.weekdays")}</p>
-                    <p className="text-gray-600">{t("office.details.hours.saturday")}</p>
-                    <p className="text-gray-600">{t("office.details.hours.sunday")}</p>
+                    <p className="font-medium text-white">{t("office.details.hours.title")}</p>
+                    <p className="text-slate-300">{t("office.details.hours.weekdays")}</p>
+                    <p className="text-slate-300">{t("office.details.hours.saturday")}</p>
+                    <p className="text-slate-300">{t("office.details.hours.sunday")}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
-                  <Phone className="w-5 h-5 text-green-500 mt-1" />
+                  <Phone className="w-5 h-5 text-green-400 mt-1" />
                   <div>
-                    <p className="font-medium text-gray-900">{t("office.details.phone.title")}</p>
-                    <p className="text-gray-600">{t("office.details.phone.hotline")}</p>
+                    <p className="font-medium text-white">{t("office.details.phone.title")}</p>
+                    <p className="text-slate-300">{t("office.details.phone.hotline")}</p>
                   </div>
                 </div>
               </div>
             </div>
-            <div className="bg-gray-200 rounded-xl h-80 flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <p className="text-gray-500">{t("office.mapPlaceholder")}</p>
-                <p className="text-sm text-gray-400 mt-2">
-                  {t("office.mapDescription")}
-                </p>
-              </div>
+            <div className="professional-card rounded-xl h-80 overflow-hidden">
+              <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.9896394567!2d108.21563287590832!3d16.070644484620842!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314219d37cf8e3c3%3A0x6c20ec86c5c48d58!2zMTAgQ-G6qW0gQuG6r2MgMywgSGFpIENow6J1LCDEkMOgIE7hurVuZyA1NTAwMDAsIFZp4buHdCBOYW0!5e0!3m2!1svi!2s!4v1732875500000!5m2!1svi!2s"
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                title="Office Location"
+              />
             </div>
           </div>
         </div>
