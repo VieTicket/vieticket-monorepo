@@ -78,13 +78,12 @@ export function SeatMapSelectionModal({
             grids,
             areaModeContainer?.defaultSeatSettings
           );
-          console.log(
-            seatMap,
-            draftedFrom,
-            seatMap.id === draftedFrom[0].draftedFrom
-          );
-          const isDraftedFromCurrent =
-            seatMap.id === draftedFrom[0].draftedFrom;
+          let isDraftedFromCurrent;
+          if (draftedFrom.length === 0) {
+            isDraftedFromCurrent = false;
+          } else {
+            isDraftedFromCurrent = seatMap.id === draftedFrom[0].draftedFrom;
+          }
           return {
             ...seatMap,
             grids: grids.map((grid) => ({
