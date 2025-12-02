@@ -548,3 +548,79 @@ export async function updateSeatMapPublicity(
 
   return doc ? (doc.toObject() as SeatMap) : null;
 }
+
+/**
+ * Retrieves all seat maps for a specific organization.
+ * @param organizationId - The ID of the organization.
+ * @returns Array of seat map objects.
+ */
+export async function findSeatMapsByOrganization(
+  organizationId: string
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  const docs = await SeatMapModel.find({ organizationId })
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+/**
+ * Retrieves all seat maps accessible to a user (created by them or in their organization).
+ * @param userId - The ID of the user.
+ * @param organizationId - Optional organization ID to include organization seat maps.
+ * @returns Array of seat map objects.
+ */
+export async function findAccessibleSeatMaps(
+  userId: string,
+  organizationId?: string | null
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  
+  const filter: any = {
+    $or: [
+      { createdBy: userId },
+    ],
+  };
+
+  // If organization context exists, also include organization seat maps
+  if (organizationId) {
+    filter.$or.push({ organizationId });
+  }
+
+  const docs = await SeatMapModel.find(filter)
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}
+
+/**
+ * Searches seat maps by name for accessible seat maps (created by user or in their organization).
+ * @param searchQuery - The search query string.
+ * @param userId - The ID of the user.
+ * @param organizationId - Optional organization ID to include organization seat maps.
+ * @returns Array of matching seat map objects.
+ */
+export async function searchAccessibleSeatMaps(
+  searchQuery: string,
+  userId: string,
+  organizationId?: string | null
+): Promise<SeatMap[]> {
+  await ensureMongoConnection();
+  
+  const filter: any = {
+    name: { $regex: searchQuery, $options: "i" },
+    $or: [
+      { createdBy: userId },
+    ],
+  };
+
+  // If organization context exists, also include organization seat maps
+  if (organizationId) {
+    filter.$or.push({ organizationId });
+  }
+
+  const docs = await SeatMapModel.find(filter)
+    .sort({ createdAt: -1 })
+    .exec();
+  return docs.map((doc) => doc.toObject() as SeatMap);
+}

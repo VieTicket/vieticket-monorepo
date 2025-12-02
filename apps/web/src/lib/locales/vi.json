@@ -576,6 +576,37 @@
     },
     "SignOut": {
       "signOut": "Đăng Xuất"
+    },
+    "organization": {
+      "title": "Quản lý Tổ chức",
+      "selectOrg": "Vui lòng chọn một tổ chức để quản lý.",
+      "settings": "Cài đặt Tổ chức",
+      "settingsDesc": "Quản lý thành viên và cài đặt của tổ chức.",
+      "details": "Chi tiết Tổ chức",
+      "detailsDesc": "Thông tin về tổ chức hiện tại của bạn.",
+      "name": "Tên",
+      "slug": "Đường dẫn (Slug)",
+      "members": "Thành viên",
+      "membersDesc": "Quản lý thành viên của tổ chức này.",
+      "dangerZone": "Vùng Nguy hiểm",
+      "leaveOrg": "Rời Tổ chức",
+      "leaveOrgDesc": "Hủy quyền truy cập của bạn vào tổ chức này.",
+      "createOrg": "Tạo Tổ chức",
+      "createOrgDesc": "Tạo một tổ chức mới để quản lý sự kiện.",
+      "inviteMember": "Mời Thành viên",
+      "email": "Email",
+      "role": "Vai trò",
+      "sendInvitation": "Gửi Lời mời",
+      "sending": "Đang gửi...",
+      "removeMember": "Xóa Thành viên",
+      "confirmRemove": "Bạn có chắc chắn muốn xóa thành viên này không?",
+      "invitations": "Lời mời Đang chờ",
+      "cancelInvitation": "Hủy Lời mời",
+      "confirmCancel": "Bạn có chắc chắn muốn hủy lời mời này không?",
+      "noInvitations": "Không có lời mời nào đang chờ.",
+      "invitationSent": "Đã gửi lời mời thành công",
+      "memberAdded": "Đã thêm thành viên thành công",
+      "confirmInvite": "Bạn có chắc chắn muốn mời người dùng này không?"
     }
   },
   "about": {

@@ -1,6 +1,7 @@
 "use server";
 
 import { getAuthSession } from "@/lib/auth/auth";
+import { auth } from "@/lib/auth/auth";
 import {
   saveSeatMap,
   getUserSeatMaps,
@@ -25,6 +26,20 @@ import {
   SeatGridSettings,
 } from "@/components/seat-map/types";
 
+/**
+ * Helper function to get active organization ID from session
+ */
+async function getActiveOrganizationId(): Promise<string | null> {
+  try {
+    const fullOrg = await auth.api.getFullOrganization({
+      headers: await headersFn(),
+    });
+    return fullOrg?.id ?? null;
+  } catch (error) {
+    return null;
+  }
+}
+
 export async function createEmptySeatMapAction(name?: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -34,6 +49,9 @@ export async function createEmptySeatMapAction(name?: string) {
       throw new Error("Unauthenticated: Please sign in to create seat maps.");
     }
 
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
     const defaultName = name || `New Seat Map`;
     const emptyShapes: CanvasItem[] = [];
     const placeholderImageUrl = "https://placehold.co/600x400";
@@ -42,7 +60,8 @@ export async function createEmptySeatMapAction(name?: string) {
       emptyShapes,
       defaultName,
       placeholderImageUrl,
-      user as User
+      user as User,
+      organizationId
     );
 
     const plainData = JSON.parse(JSON.stringify(savedSeatMap));
@@ -140,11 +159,15 @@ export async function saveSeatMapAction(
       );
     }
 
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
     const savedSeatMap = await saveSeatMap(
       shapes,
       name,
       imageUrl,
-      user as User
+      user as User,
+      organizationId
     );
 
     const plainData = JSON.parse(JSON.stringify(savedSeatMap));
@@ -268,7 +291,10 @@ export async function getUserSeatMapsAction() {
       throw new Error("Unauthenticated: Please sign in to access seat maps.");
     }
 
-    const seatMaps = await getUserSeatMapsWithEventInfo(user as User);
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
+    const seatMaps = await getUserSeatMapsWithEventInfo(user as User, organizationId);
     if (!seatMaps) {
       return { success: true, data: [] };
     }
@@ -563,7 +589,10 @@ export async function searchSeatMapsAction(searchQuery: string) {
       throw new Error("Unauthenticated: Please sign in to search seat maps.");
     }
 
-    const seatMaps = await searchUserSeatMaps(searchQuery, user as User);
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
+    const seatMaps = await searchUserSeatMaps(searchQuery, user as User, organizationId);
     const plainData = JSON.parse(JSON.stringify(seatMaps));
 
     return { success: true, data: plainData };
@@ -633,10 +662,14 @@ export async function createDraftFromPublicSeatMapAction(
       throw new Error("Unauthenticated: Please sign in to create drafts.");
     }
 
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
     const draft = await createSeatMapDraft(
       originalSeatMapId,
       draftName,
-      user as User
+      user as User,
+      organizationId
     );
 
     const plainData = JSON.parse(JSON.stringify(draft));
@@ -659,10 +692,14 @@ export async function publishSeatMapAction(seatMapId: string) {
       throw new Error("Unauthenticated: Please sign in to publish seat maps.");
     }
 
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
     const updatedSeatMap = await updateSeatMapPublicityService(
       seatMapId,
       "public",
-      user as User
+      user as User,
+      organizationId
     );
 
     const plainData = JSON.parse(JSON.stringify(updatedSeatMap));
@@ -685,7 +722,10 @@ export async function deleteSeatMapAction(seatMapId: string) {
       throw new Error("Unauthenticated: Please sign in to delete seat maps.");
     }
 
-    const deletedSeatMap = await deleteSeatMapService(seatMapId, user as User);
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
+    const deletedSeatMap = await deleteSeatMapService(seatMapId, user as User, organizationId);
     const plainData = JSON.parse(JSON.stringify(deletedSeatMap));
 
     return { success: true, data: plainData };

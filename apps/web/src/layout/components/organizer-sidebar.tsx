@@ -16,9 +16,13 @@ import {
   TicketCheck,
   LogOut,
   User,
+  Building2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
+import { OrgSwitcher } from "@/components/organization/org-switcher";
+import { authClient } from "@/lib/auth/auth-client";
+import { useActiveOrganization } from "@/providers/active-organization-provider";
 
 export default function Sidebar() {
   const pathname = usePathname();
@@ -26,40 +30,99 @@ export default function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
   const t = useTranslations("organizer-dashboard");
+  const { data: session } = authClient.useSession();
+  const { data: activeOrg } = useActiveOrganization();
+  
+  // Determine if user is working in organization context or personal context
+  const isOrganizerRole = session?.user?.role === "organizer";
+  const isInOrgContext = !!activeOrg;
+  
+  // Get user's role in the active organization
+  const userOrgRole = activeOrg?.members?.find(
+    (m) => m.userId === session?.user?.id
+  )?.role as string | undefined;
+  
+  const isOwner = userOrgRole === "owner";
+  const isMember = userOrgRole === "member";
 
   const navItems = [
-    { label: t("General.general"), href: "/organizer/general", icon: Home },
+    { 
+      label: t("General.general"), 
+      href: "/organizer/general", 
+      icon: Home,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
     {
       label: t("CreateEvent.createEvent"),
       href: "/organizer/event/create",
       icon: NotebookPen,
+      // Only organizer role or owners can create events
+      visible: isOrganizerRole || isOwner,
     },
     {
       label: t("SeatMap.seatMap"),
       href: "/organizer/seat-map",
       icon: Map,
       hideOnMobile: true,
+      // Members can view/edit seat maps
+      visible: true,
     },
-    { label: t("ListEvent.listEvent"), href: "/organizer", icon: Calendar },
-    { label: t("Rating.rating"), href: "/organizer/rating", icon: Star },
+    { 
+      label: t("ListEvent.listEvent"), 
+      href: "/organizer", 
+      icon: Calendar,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
+    { 
+      label: t("Rating.rating"), 
+      href: "/organizer/rating", 
+      icon: Star,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
+    },
     {
       label: t("RequestPayout.requestPayout"),
       href: "/organizer/payouts",
       icon: Wallet,
+      // Only organizer role or owners can request payouts
+      visible: isOrganizerRole || isOwner,
     },
     {
       label: t("InspectTicket.inspectTicket"),
       href: "/inspector",
       icon: TicketCheck,
+      // Members can inspect tickets
+      visible: true,
     },
     {
       label: t("ChatWithAdmin.chatWithAdmin"),
       href: "/organizer/chat?recipientId=admin",
       icon: MessageCircle,
+      // Available to organizer role or owners
+      visible: isOrganizerRole || isOwner,
     },
-    { label: t("Profile.profile"), href: "/profile/edit", icon: User },
-    { label: t("SignOut.signOut"), href: "/auth/sign-out", icon: LogOut },
-  ];
+    { 
+      label: "Organization", 
+      href: "/organizer/organization", 
+      icon: Building2,
+      // Available to all organization members
+      visible: isInOrgContext,
+    },
+    { 
+      label: t("Profile.profile"), 
+      href: "/profile/edit", 
+      icon: User,
+      visible: true,
+    },
+    { 
+      label: t("SignOut.signOut"), 
+      href: "/auth/sign-out", 
+      icon: LogOut,
+      visible: true,
+    },
+  ].filter(item => item.visible !== false);
 
   useEffect(() => {
     setHasMounted(true);
@@ -145,6 +208,13 @@ export default function Sidebar() {
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
+
+        {isOpen && (
+          <div className="mb-4 px-1">
+            <OrgSwitcher className="w-full" />
+          </div>
+        )}
+
         {/* Logo */}
         <div
           className={cn(

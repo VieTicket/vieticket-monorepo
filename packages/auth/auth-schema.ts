@@ -1,44 +1,22 @@
-import {
-  boolean,
-  date,
-  index,
-  pgTable,
-  text,
-  timestamp,
-  varchar,
-} from "drizzle-orm/pg-core";
-import { genderEnum, roleEnum } from "../enums";
-import { type InferSelectModel } from "drizzle-orm";
 import { relations } from "drizzle-orm";
+import { pgTable, text, timestamp, boolean, index } from "drizzle-orm/pg-core";
 
-export const user = pgTable(
-  "user",
-  {
-    id: text("id").primaryKey(),
-    name: text("name").notNull(),
-    email: text("email").notNull().unique(),
-    emailVerified: boolean("email_verified")
-      .$defaultFn(() => false)
-      .notNull(),
-    dateOfBirth: date("date_of_birth"),
-    gender: genderEnum("gender"),
-    phone: varchar("phone", { length: 20 }),
-    image: text("image"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    role: roleEnum("role").notNull().default("customer"),
-    banned: boolean("banned").default(false),
-    banReason: text("ban_reason").default(""),
-    banExpires: timestamp("ban_expires"),
-  },
-  (table) => [
-    index("email_idx").on(table.email),
-    // TODO: add role_idx and ban_idx if admin needs to query by role (`SELECT * FROM users WHERE role = '...'`)
-  ]
-);
+export const user = pgTable("user", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull().unique(),
+  emailVerified: boolean("email_verified").default(false).notNull(),
+  image: text("image"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+  role: text("role").default("customer").notNull(),
+  banned: boolean("banned").default(false),
+  banReason: text("ban_reason").default(""),
+  banExpires: timestamp("ban_expires"),
+});
 
 export const session = pgTable(
   "session",
@@ -57,10 +35,7 @@ export const session = pgTable(
       .references(() => user.id, { onDelete: "cascade" }),
     activeOrganizationId: text("active_organization_id"),
   },
-  (table) => [
-    index("session_user_id_idx").on(table.userId),
-    index("token_idx").on(table.token),
-  ]
+  (table) => [index("session_userId_idx").on(table.userId)],
 );
 
 export const account = pgTable(
@@ -84,7 +59,7 @@ export const account = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("user_id_idx").on(table.userId)]
+  (table) => [index("account_userId_idx").on(table.userId)],
 );
 
 export const verification = pgTable(
@@ -100,23 +75,8 @@ export const verification = pgTable(
       .$onUpdate(() => /* @__PURE__ */ new Date())
       .notNull(),
   },
-  (table) => [index("verification_identifier_idx").on(table.identifier)]
+  (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
-
-export const organizers = pgTable("organizers", {
-  id: text("id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-  name: varchar("name", { length: 100 }).notNull(),
-  foundedDate: timestamp("founded_date"),
-  website: varchar("website", { length: 255 }),
-  isActive: boolean("is_active").default(false),
-  address: varchar("address", { length: 255 }),
-  organizerType: varchar("organizer_type", { length: 64 }),
-  rejectionReason: text("rejection_reason"),
-  rejectionSeen: boolean("rejection_seen").default(false),
-  rejectedAt: timestamp("rejected_at"),
-});
 
 export const organization = pgTable("organization", {
   id: text("id").primaryKey(),
@@ -143,7 +103,7 @@ export const member = pgTable(
   (table) => [
     index("member_organizationId_idx").on(table.organizationId),
     index("member_userId_idx").on(table.userId),
-  ]
+  ],
 );
 
 export const invitation = pgTable(
@@ -165,26 +125,14 @@ export const invitation = pgTable(
   (table) => [
     index("invitation_organizationId_idx").on(table.organizationId),
     index("invitation_email_idx").on(table.email),
-  ]
+  ],
 );
 
-// Simplified relations - remove if causing issues
-export const userRelations = relations(user, ({ one, many }) => ({
-  organizer: one(organizers, {
-    fields: [user.id],
-    references: [organizers.id],
-  }),
+export const userRelations = relations(user, ({ many }) => ({
   sessions: many(session),
   accounts: many(account),
   members: many(member),
   invitations: many(invitation),
-}));
-
-export const organizerRelations = relations(organizers, ({ one }) => ({
-  user: one(user, {
-    fields: [organizers.id],
-    references: [user.id],
-  }),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -227,9 +175,3 @@ export const invitationRelations = relations(invitation, ({ one }) => ({
     references: [user.id],
   }),
 }));
-
-// TODO: Update the code that uses these exported type to use from users-model instead.
-export type User = InferSelectModel<typeof user>;
-export type Organizer = InferSelectModel<typeof organizers>;
-export type UserProfileData = Partial<Omit<User, "id">>;
-export type OrganizerProfileData = Partial<Omit<Organizer, "id" | "userId">>;

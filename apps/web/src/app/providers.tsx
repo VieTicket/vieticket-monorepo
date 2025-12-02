@@ -10,6 +10,7 @@ import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { useState } from "react";
 import { LocaleProvider } from "@/providers/LocaleProvider";
+import { ActiveOrganizationProvider } from "@/providers/active-organization-provider";
 import { GlobalAIProvider } from "@/components/ai/global-ai-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
@@ -45,7 +46,9 @@ export function Providers({ children }: { children: ReactNode }) {
               }}
               emailVerification={true}
             >
-              {children}
+              <ActiveOrganizationProvider>
+                {children}
+              </ActiveOrganizationProvider>
             </AuthUIProvider>
           </LayoutProvider>
         </GlobalAIProvider>

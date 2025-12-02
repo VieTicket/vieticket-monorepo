@@ -576,6 +576,36 @@
     },
     "SignOut": {
       "signOut": "Sign Out"
+    },
+    "organization": {
+      "title": "Organization Management",
+      "selectOrg": "Please select an organization to manage.",
+      "settings": "Organization Settings",
+      "settingsDesc": "Manage your organization members and settings.",
+      "details": "Organization Details",
+      "detailsDesc": "Information about your current organization.",
+      "name": "Name",
+      "slug": "Slug",
+      "members": "Members",
+      "membersDesc": "Manage members of this organization.",
+      "dangerZone": "Danger Zone",
+      "leaveOrg": "Leave Organization",
+      "leaveOrgDesc": "Revoke your access to this organization.",
+      "createOrg": "Create Organization",
+      "createOrgDesc": "Create a new organization to manage events.",
+      "inviteMember": "Invite Member",
+      "email": "Email",
+      "role": "Role",
+      "sendInvitation": "Send Invitation",
+      "sending": "Sending...",
+      "removeMember": "Remove Member",
+      "confirmRemove": "Are you sure you want to remove this member?",
+      "invitations": "Pending Invitations",
+      "cancelInvitation": "Cancel Invitation",
+      "confirmCancel": "Are you sure you want to cancel this invitation?",
+      "noInvitations": "No pending invitations.",
+      "memberAdded": "Member added successfully",
+      "confirmInvite": "Are you sure you want to invite this user?"
     }
   },
   "about": {

@@ -15,6 +15,12 @@ import { useState } from "react";
 export function ProfileDropdown() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
+  const { data: organizations } = authClient.useListOrganizations();
+  const { data: session } = authClient.useSession();
+  
+  // Check if user is a member of any organization
+  const isMemberOfAnyOrg = organizations && organizations.length > 0;
+  
   return (
     <div
       onClick={() => {
@@ -40,6 +46,11 @@ export function ProfileDropdown() {
           <DropdownMenuItem>
             <Link href={"/profile/edit"}>Account Settings</Link>
           </DropdownMenuItem>
+          {isMemberOfAnyOrg && (
+            <DropdownMenuItem>
+              <Link href={"/organizer"}>Organizer Dashboard</Link>
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             onClick={() => {
               authClient.signOut({
