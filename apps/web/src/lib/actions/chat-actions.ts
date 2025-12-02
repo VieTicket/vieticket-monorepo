@@ -5,7 +5,7 @@ import { StreamChat } from "stream-chat";
 import { getAuthSession } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { User } from "@vieticket/db/pg/models/users";
-import { doesUserExist } from "@vieticket/repos/users";
+import { doesUserExist, getUserById } from "@vieticket/repos/users";
 
 export async function getStreamToken(): Promise<string> {
     const session = await getAuthSession(await headers());
@@ -40,9 +40,10 @@ export async function createChatRoom(recipientUserId: string) {
         }
 
         // Validate that the recipient user exists in your database if they aren't the admin
+        let recipientUser = null;
         if (recipientUserId !== 'admin') {
-            const userExists = await doesUserExist(recipientUserId);
-            if (!userExists) {
+            recipientUser = await getUserById(recipientUserId);
+            if (!recipientUser) {
                 throw new Error('Recipient user does not exist');
             }
         }
@@ -56,6 +57,24 @@ export async function createChatRoom(recipientUserId: string) {
 
         // Initialize server-side Stream client
         const serverClient = StreamChat.getInstance(apiKey, apiSecret);
+
+        // Upsert users in Stream Chat before creating channel
+        await serverClient.upsertUsers([
+            {
+                id: currentStreamId,
+                name: currentUser.name || 'Admin',
+                image: currentUser.image || undefined,
+            },
+            ...(recipientUser ? [{
+                id: recipientUserId,
+                name: recipientUser.name || 'User',
+                image: recipientUser.image || undefined,
+            }] : [{
+                id: 'admin',
+                name: 'Admin',
+                role: 'admin',
+            }])
+        ]);
 
         // To ensure a consistent channel ID, sort the member IDs alphabetically and join them.
         // This prevents duplicate channels like 'userA-userB' and 'userB-userA'.
