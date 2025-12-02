@@ -657,6 +657,10 @@
       "vision": {
         "title": "Vision 2030",
         "content": "To become the #1 entertainment and event super app in Southeast Asia, where every memorable experience begins."
+      },
+      "passion": {
+        "title": "Event Passion",
+        "subtitle": "Connecting communities through experiences"
       }
     },
     "features": {
@@ -714,6 +718,7 @@
       "badge": "Development team",
       "title": "The people behind VieTicket",
       "subtitle": "A team passionate about technology and events, committed to creating amazing experiences for users.",
+      "comingSoon": "We will update the team list soon.",
       "members": {
         "vinh": {
           "name": "Dang Thanh Vinh",

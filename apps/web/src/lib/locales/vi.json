@@ -658,6 +658,10 @@
       "vision": {
         "title": "Tầm nhìn 2030",
         "content": "Trở thành siêu ứng dụng giải trí và sự kiện số 1 Đông Nam Á, nơi mọi trải nghiệm đáng nhớ bắt đầu."
+      },
+      "passion": {
+        "title": "Đam mê sự kiện",
+        "subtitle": "Kết nối cộng đồng qua trải nghiệm"
       }
     },
     "features": {
@@ -715,6 +719,7 @@
       "badge": "Đội ngũ phát triển",
       "title": "Những người đứng sau VieTicket",
       "subtitle": "Đội ngũ đam mê công nghệ và sự kiện, cam kết tạo ra trải nghiệm tuyệt vời cho người dùng.",
+      "comingSoon": "Chúng tôi sẽ cập nhật danh sách team sớm.",
       "members": {
         "vinh": {
           "name": "Đặng Thành Vinh",
