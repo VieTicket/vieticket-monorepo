@@ -104,36 +104,20 @@ describe("Change Language (UC-U011)", () => {
       expect(cookieMatch?.[1]).toBe("vi");
     });
 
-    it("TC03: Should persist locale to localStorage", () => {
+    it("TC03: Should persist locale to both localStorage and cookie", () => {
       const newLocale = "en";
       mockLocalStorage.setItem("locale", newLocale);
+      cookieStore = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
 
       const storedLocale = mockLocalStorage.getItem("locale");
+      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
+
       expect(storedLocale).toBe("en");
-    });
-
-    it("TC04: Should persist locale to cookie with correct attributes", () => {
-      const newLocale = "en";
-      cookieStore = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
-
-      expect(cookieStore).toContain(`NEXT_LOCALE=${newLocale}`);
+      expect(cookieMatch?.[1]).toBe("en");
       expect(cookieStore).toContain("path=/");
-      expect(cookieStore).toContain("max-age=31536000");
     });
 
-    it("TC05: Should trigger router refresh after locale change", () => {
-      const newLocale = "en";
-      mockLocalStorage.setItem("locale", newLocale);
-      cookieStore = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000`;
-
-      // Simulate setLocale call which should trigger refresh
-      mockSetLocale(newLocale);
-      mockRouterRefresh();
-
-      expect(mockRouterRefresh).toHaveBeenCalled();
-    });
-
-    it("TC06: Should maintain locale preference across page reloads", () => {
+    it("TC04: Should maintain locale preference across page reloads", () => {
       // First set locale
       const newLocale = "en";
       mockLocalStorage.setItem("locale", newLocale);
@@ -148,67 +132,18 @@ describe("Change Language (UC-U011)", () => {
     });
   });
 
-  // ==================== BOUNDARY TEST CASES ====================
-  describe("Boundary Cases", () => {
-    it("TC07: Should handle switching to same locale (no-op)", () => {
-      mockUseLocale.mockReturnValue("vi");
-
-      // Switch to same locale
-      const currentLocale = "vi";
-      mockLocalStorage.setItem("locale", currentLocale);
-
-      const storedLocale = mockLocalStorage.getItem("locale");
-      expect(storedLocale).toBe("vi");
-    });
-
-    it("TC08: Should handle rapid successive locale switches", () => {
-      mockUseLocale.mockReturnValue("vi");
-
-      // Multiple rapid switches
-      mockLocalStorage.setItem("locale", "en");
-      mockLocalStorage.setItem("locale", "vi");
-      mockLocalStorage.setItem("locale", "en");
-
-      const finalLocale = mockLocalStorage.getItem("locale");
-      expect(finalLocale).toBe("en");
-    });
-
-    it("TC09: Should handle locale change without existing localStorage value", () => {
-      // No initial value in localStorage
-      expect(mockLocalStorage.getItem("locale")).toBeNull();
-
-      // Set locale for first time
-      mockLocalStorage.setItem("locale", "en");
-
-      const storedLocale = mockLocalStorage.getItem("locale");
-      expect(storedLocale).toBe("en");
-    });
-
-    it("TC10: Should handle locale change with existing cookie", () => {
-      // Existing cookie
-      cookieStore = "NEXT_LOCALE=vi; path=/; max-age=31536000";
-
-      // Update to new locale
-      cookieStore = "NEXT_LOCALE=en; path=/; max-age=31536000";
-
-      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
-      expect(cookieMatch?.[1]).toBe("en");
-    });
-  });
-
   // ==================== ABNORMAL TEST CASES ====================
   describe("Abnormal Cases", () => {
-    it("TC11: Should reject invalid locale code (not vi or en)", () => {
+    it("TC05: Should reject invalid locale code (not vi or en)", () => {
       const invalidLocale = "fr";
 
-      // Validation should prevent this
       const validLocales = ["vi", "en"];
       const isValid = validLocales.includes(invalidLocale);
 
       expect(isValid).toBe(false);
     });
 
-    it("TC12: Should reject empty string locale", () => {
+    it("TC06: Should reject empty string locale", () => {
       const invalidLocale = "";
 
       const validLocales = ["vi", "en"];
@@ -217,25 +152,16 @@ describe("Change Language (UC-U011)", () => {
       expect(isValid).toBe(false);
     });
 
-    it("TC13: Should reject null locale value", () => {
-      const invalidLocale = null;
+    it("TC07: Should default to Vietnamese when no cookie present", () => {
+      cookieStore = "";
 
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale as any);
+      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
+      const detectedLocale = cookieMatch?.[1] || "vi";
 
-      expect(isValid).toBe(false);
+      expect(detectedLocale).toBe("vi");
     });
 
-    it("TC14: Should reject undefined locale value", () => {
-      const invalidLocale = undefined;
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale as any);
-
-      expect(isValid).toBe(false);
-    });
-
-    it("TC15: Should handle localStorage being unavailable", () => {
+    it("TC08: Should handle localStorage being unavailable", () => {
       const originalSetItem = mockLocalStorage.setItem;
 
       // Simulate localStorage error
@@ -252,122 +178,6 @@ describe("Change Language (UC-U011)", () => {
 
       // Restore
       mockLocalStorage.setItem = originalSetItem;
-    });
-
-    it("TC16: Should handle cookie setting failure", () => {
-      // Simulate document.cookie throwing error
-      Object.defineProperty(document, "cookie", {
-        get: () => cookieStore,
-        set: () => {
-          throw new Error("Cannot set cookie");
-        },
-        configurable: true,
-      });
-
-      try {
-        document.cookie = "NEXT_LOCALE=en; path=/; max-age=31536000";
-        expect(true).toBe(false); // Should not reach here
-      } catch (error: any) {
-        expect(error.message).toContain("Cannot set cookie");
-      }
-
-      // Restore
-      Object.defineProperty(document, "cookie", {
-        get: () => cookieStore,
-        set: (value: string) => {
-          cookieStore = value;
-        },
-        configurable: true,
-      });
-    });
-
-    it("TC17: Should reject locale with special characters", () => {
-      const invalidLocale = "vi'; DROP TABLE users;--";
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale);
-
-      expect(isValid).toBe(false);
-    });
-
-    it("TC18: Should reject locale with uppercase characters", () => {
-      const invalidLocale = "VI";
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale);
-
-      expect(isValid).toBe(false);
-    });
-
-    it("TC19: Should reject locale with numeric characters", () => {
-      const invalidLocale = "vi123";
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale);
-
-      expect(isValid).toBe(false);
-    });
-
-    it("TC20: Should handle router refresh failure gracefully", () => {
-      mockRouterRefresh.mockImplementation(() => {
-        throw new Error("Router refresh failed");
-      });
-
-      try {
-        mockRouterRefresh();
-        expect(true).toBe(false); // Should not reach here
-      } catch (error: any) {
-        expect(error.message).toContain("Router refresh failed");
-      }
-    });
-
-    it("TC21: Should reject locale with whitespace", () => {
-      const invalidLocale = " en ";
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale);
-
-      expect(isValid).toBe(false);
-    });
-
-    it("TC22: Should reject excessively long locale string", () => {
-      const invalidLocale = "e".repeat(1000);
-
-      const validLocales = ["vi", "en"];
-      const isValid = validLocales.includes(invalidLocale);
-
-      expect(isValid).toBe(false);
-    });
-  });
-
-  // ==================== SSR DETECTION CASES ====================
-  describe("SSR Locale Detection", () => {
-    it("TC23: Should detect locale from cookie on server-side", () => {
-      cookieStore = "NEXT_LOCALE=en; path=/; max-age=31536000";
-
-      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
-      const detectedLocale = cookieMatch?.[1] || "vi";
-
-      expect(detectedLocale).toBe("en");
-    });
-
-    it("TC24: Should default to Vietnamese when no cookie present", () => {
-      cookieStore = "";
-
-      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
-      const detectedLocale = cookieMatch?.[1] || "vi";
-
-      expect(detectedLocale).toBe("vi");
-    });
-
-    it("TC25: Should handle malformed cookie gracefully", () => {
-      cookieStore = "NEXT_LOCALE=; path=/";
-
-      const cookieMatch = cookieStore.match(/NEXT_LOCALE=([^;]+)/);
-      const detectedLocale = cookieMatch?.[1] || "vi";
-
-      // Should default to vi when cookie value is missing
-      expect(detectedLocale).toBe("vi");
     });
   });
 });

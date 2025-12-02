@@ -1,0 +1,47 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06,TC07,TC08,TC09,TC10
+Can connect with server,Precondition,,,,,,,,,,,
+,Precondition,,,,,,,,,,,
+Precondition,Precondition,,,,,,,,,,,
+,Server Connection,,O,O,O,O,O,O,O,O,O,O
+,Stream API Connection,,O,O,O,O,O,O,O,O,,
+,,,,,,,,,,,,
+Authentication,,,,,,,,,,,,
+,User authenticated,,O,O,O,O,O,O,O,O,,
+,User not authenticated,,,,,,,,,,O,O
+,Organizer role,,O,,O,,O,O,O,O,,
+,Admin role,,,O,,O,,,,,,
+,Role validation,,O,O,O,O,O,O,O,O,O,O
+,,,,,,,,,,,,
+Chat Room Creation,,,,,,,,,,,,
+,Create channel organizer->admin,,O,,,,O,O,O,,,
+,Create channel admin->organizer,,,O,,,,,,,,
+,Consistent channel ID (sorted),,O,O,,,O,,O,O,,
+,Channel ID format validation,,O,O,,,O,O,O,O,,
+,Recipient validation,,O,O,,,O,O,O,,O,O
+,,,,,,,,,,,,
+User Data Management,,,,,,,,,,,,
+,Upsert current user to Stream,,O,O,,,O,O,O,O,,
+,Upsert recipient to Stream,,O,O,,,O,O,O,O,,
+,Admin as special user ID,,O,O,,O,O,,O,,,
+,User profile with image,,O,O,O,O,O,O,O,,,
+,User profile without image,,,,,,,,O,,,
+,Vietnamese character support,,,,,,,O,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+,,,,,,,,,,,,
+Service Layer Testing,,,,,,,,,,,,
+,createChatRoom() executed,,O,O,,,O,O,O,O,O,O
+,getStreamToken() executed,,,,O,O,,,,,,
+,Auth session validated,,O,O,O,O,O,O,O,O,O,O
+,Stream client initialized,,O,O,,,O,O,O,O,,
+,,,,,,,,,,,,
+Return,Confirm,,,,,,,,,,,
+,Success: Channel ID returned,,O,O,,,O,O,O,O,,
+,Success: Token returned,,,,O,O,,,,,,
+,Error: Unauthenticated,,,,,,,,,,O,
+,Error: Recipient not found,,,,,,,,,,,O
+,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,N,N,N,N,N,N,N,B,A,A
+,Passed/Failed,,P,P,P,P,P,P,P,P,P,P
+,Executed Date,,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025,12/2/2025
+,Defect ID,,,,,,,,,,,
