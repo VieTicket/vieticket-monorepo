@@ -1,7 +1,6 @@
-import * as ticketsRepo from "@vieticket/repos/tickets";
-import * as inspectionRepo from "@vieticket/repos/inspection";
 import { TicketInspectionStatus, User } from "@vieticket/db/pg/schema";
-import { findActiveEventsByOrganizerId } from "@vieticket/repos/events";
+import * as inspectionRepo from "@vieticket/repos/inspection";
+import * as ticketsRepo from "@vieticket/repos/tickets";
 
 export class AppError extends Error {
   public readonly code: string;
@@ -19,19 +18,21 @@ const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}
  * Logs the inspection event.
  * @param ticketId - The ID of the ticket to inspect.
  * @param inspector - The user performing the inspection.
+ * @param activeOrganizationId - The active organization ID from the inspector's session (if any).
  * @returns The full ticket details.
  */
-export async function inspectTicket(ticketId: string, inspector: User) {
-  if (inspector.role !== "organizer") {
-    throw new AppError("Forbidden: Only organizers can perform this action.", "FORBIDDEN");
-  }
+export async function inspectTicket(
+  ticketId: string, 
+  inspector: User,
+  activeOrganizationId?: string | null
+) {
   if (!ticketId || !uuidRegex.test(ticketId)) {
     throw new AppError("Invalid input: A valid ticketId is required.", "INVALID_INPUT");
   }
 
-  // Check if ticket belongs to this organizer
-  const isOwned = await inspectionRepo.isTicketOwnedByOrganizer(ticketId, inspector.id);
-  if (!isOwned) {
+  // Check if user can access this ticket (either as direct owner or through organization)
+  const hasAccess = await inspectionRepo.canUserAccessTicket(ticketId, inspector.id, activeOrganizationId);
+  if (!hasAccess) {
     throw new AppError("Forbidden: Ticket does not belong to your events.", "FORBIDDEN");
   }
 
@@ -55,19 +56,21 @@ export async function inspectTicket(ticketId: string, inspector: User) {
  * Prevents duplicate check-ins.
  * @param ticketId - The ID of the ticket to check in.
  * @param inspector - The user performing the check-in.
+ * @param activeOrganizationId - The active organization ID from the inspector's session (if any).
  * @returns The updated ticket details.
  */
-export async function checkInTicket(ticketId: string, inspector: User) {
-  if (inspector.role !== "organizer") {
-    throw new AppError("Forbidden: Only organizers can perform this action.", "FORBIDDEN");
-  }
+export async function checkInTicket(
+  ticketId: string, 
+  inspector: User,
+  activeOrganizationId?: string | null
+) {
   if (!ticketId || !uuidRegex.test(ticketId)) {
     throw new AppError("Invalid input: A valid ticketId is required.", "INVALID_INPUT");
   }
 
-  // Check if ticket belongs to this organizer
-  const isOwned = await inspectionRepo.isTicketOwnedByOrganizer(ticketId, inspector.id);
-  if (!isOwned) {
+  // Check if user can access this ticket (either as direct owner or through organization)
+  const hasAccess = await inspectionRepo.canUserAccessTicket(ticketId, inspector.id, activeOrganizationId);
+  if (!hasAccess) {
     throw new AppError("Forbidden: Ticket does not belong to your events.", "FORBIDDEN");
   }
 
@@ -92,13 +95,25 @@ export async function checkInTicket(ticketId: string, inspector: User) {
  * Processes a batch of offline ticket inspections.
  * @param inspections - An array of offline inspection data.
  * @param inspector - The user who performed the inspections.
+ * @param activeOrganizationId - The active organization ID from the inspector's session (if any).
  */
 export async function processOfflineInspections(
   inspections: Array<{ ticketId: string; timestamp: number }>,
-  inspector: User
+  inspector: User,
+  activeOrganizationId?: string | null
 ) {
+  // Check if user has access (organizer role OR organization member)
   if (inspector.role !== "organizer") {
-    throw new AppError("Forbidden: Only organizers can perform this action.", "FORBIDDEN");
+    // If not organizer, must be an organization member
+    if (!activeOrganizationId) {
+      throw new AppError("Forbidden: You don't have permission to perform this action.", "FORBIDDEN");
+    }
+    
+    const { isUserMemberOfOrganization } = await import("@vieticket/repos/organization");
+    const isMember = await isUserMemberOfOrganization(inspector.id, activeOrganizationId);
+    if (!isMember) {
+      throw new AppError("Forbidden: You don't have permission to perform this action.", "FORBIDDEN");
+    }
   }
 
   if (!Array.isArray(inspections)) {
@@ -126,15 +141,31 @@ export async function processOfflineInspections(
 }
 
 /**
- * Returns all active events for the given organizer.
+ * Returns all active events for the given user.
  * "Active" means events that are approved and have not ended yet.
- * @param organizer - The organizer user object.
+ * Access is granted if user has organizer role OR is a member of an organization.
+ * @param user - The user object.
+ * @param activeOrganizationId - The active organization ID from the user's session (if any).
  * @returns An array of active events.
- * @throws AppError if the user is not an organizer.
+ * @throws AppError if the user doesn't have access.
  */
-export async function getActiveEvents(organizer: User) {
-  if (organizer.role !== "organizer") {
-    throw new AppError("Forbidden: Only organizers can access their events.", "FORBIDDEN");
+export async function getActiveEvents(user: User, activeOrganizationId?: string | null) {
+  // Import the new function
+  const { findAccessibleActiveEvents } = await import("@vieticket/repos/events");
+  
+  // Organizers always have access
+  if (user.role === "organizer") {
+    return await findAccessibleActiveEvents(user.id, activeOrganizationId);
   }
-  return await findActiveEventsByOrganizerId(organizer.id);
+  
+  // If there's an active organization, check if user is a member
+  if (activeOrganizationId) {
+    const { isUserMemberOfOrganization } = await import("@vieticket/repos/organization");
+    const isMember = await isUserMemberOfOrganization(user.id, activeOrganizationId);
+    if (isMember) {
+      return await findAccessibleActiveEvents(user.id, activeOrganizationId);
+    }
+  }
+  
+  throw new AppError("Forbidden: You don't have permission to access events.", "FORBIDDEN");
 }

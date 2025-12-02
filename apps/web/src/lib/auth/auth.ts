@@ -10,3 +10,5 @@ export async function getAuthSession(headers: Headers): Promise<{
   const session = await auth.api.getSession({ headers });
   return session as { session: Session; user: UserWithRole } | null;
 }
+
+

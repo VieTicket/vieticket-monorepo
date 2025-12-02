@@ -38,6 +38,11 @@ const seatMapSchema = new mongoose.Schema(
       default: "private",
       required: [true, "Publicity is required"],
     },
+    organizationId: {
+      type: String,
+      required: false,
+      default: null,
+    },
     draftedFrom: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "SeatMap",
@@ -77,6 +82,7 @@ seatMapSchema.index({ name: 1 });
 seatMapSchema.index({ createdBy: 1 });
 seatMapSchema.index({ publicity: 1 });
 seatMapSchema.index({ createdAt: -1 });
+seatMapSchema.index({ organizationId: 1 });
 
 // Add pre-save hook
 seatMapSchema.pre("save", function () {
@@ -100,6 +106,7 @@ export type SeatMapDocument = mongoose.Document & {
   publicity: "public" | "private";
   draftedFrom?: mongoose.Types.ObjectId;
   originalCreator?: string;
+  organizationId?: string | null;
   createdAt: Date;
   updatedAt: Date;
 };

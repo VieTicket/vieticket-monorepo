@@ -2,23 +2,19 @@
 
 import { Button } from "@/components/ui/button";
 import { authClient } from "@/lib/auth/auth-client";
-import { Star, Ticket, UserIcon, Menu, X } from "lucide-react";
+import { Star, Ticket, Menu, X } from "lucide-react";
 import Link from "next/link";
 import { ProfileDropdown } from "./profile-dropdown";
 import { IoTicket } from "react-icons/io5";
 import { usePathname } from "next/navigation";
 import clsx from "clsx";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
-import { useLocale } from "@/providers/LocaleProvider";
 import { useTranslations } from "next-intl";
 import { useState, useEffect } from "react";
-import { OrgSwitcher } from "@/components/organization/org-switcher";
 
 export default function Header() {
   const { data: session } = authClient.useSession();
-  const { data: organizations } = authClient.useListOrganizations();
   const pathname = usePathname();
-  const locale = useLocale();
   const t = useTranslations("home");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -130,11 +126,6 @@ export default function Header() {
                 <span>Tickets</span>
                 <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
               </Link>
-              {organizations && organizations.length > 0 && (
-                <div className="flex items-center">
-                  <OrgSwitcher />
-                </div>
-              )}
               <div className="relative flex gap-2 group items-center cursor-pointer px-3 py-2 hover:text-violet-300 transition-all duration-300">
                 <ProfileDropdown />
                 <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />

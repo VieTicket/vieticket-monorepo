@@ -1,7 +1,8 @@
 import { db } from "@vieticket/db/pg";
 import { tickets } from "@vieticket/db/pg/schemas/orders";
 import { seats, rows, areas, events } from "@vieticket/db/pg/schemas/events";
-import { and, eq } from "drizzle-orm";
+import { member } from "@vieticket/db/pg/schemas/users";
+import { and, eq, or, isNull } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
 import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
 
@@ -22,6 +23,52 @@ export async function isTicketOwnedByOrganizer(ticketId: string, organizerId: st
         .where(and(
             eq(tickets.id, ticketId),
             eq(events.organizerId, organizerId)
+        ))
+        .limit(1);
+
+    return !!result;
+}
+
+/**
+ * Checks if a user can access a ticket through either direct ownership or organization membership.
+ * Access is granted if:
+ * 1. The ticket belongs to an event organized by the user, OR
+ * 2. The ticket belongs to an event linked to an organization where the user is a member
+ * 
+ * @param ticketId - The ticket ID to check.
+ * @param userId - The user's ID.
+ * @param activeOrganizationId - The active organization ID from user's session (if any).
+ * @returns true if the user can access the ticket, false otherwise.
+ */
+export async function canUserAccessTicket(
+    ticketId: string,
+    userId: string,
+    activeOrganizationId?: string | null
+): Promise<boolean> {
+    // First check if user directly owns the event
+    const isDirectOwner = await isTicketOwnedByOrganizer(ticketId, userId);
+    if (isDirectOwner) {
+        return true;
+    }
+
+    // If no active organization, user cannot access
+    if (!activeOrganizationId) {
+        return false;
+    }
+
+    // Check if ticket belongs to an event in the user's active organization
+    const [result] = await db
+        .select({ ticketId: tickets.id })
+        .from(tickets)
+        .innerJoin(seats, eq(tickets.seatId, seats.id))
+        .innerJoin(rows, eq(seats.rowId, rows.id))
+        .innerJoin(areas, eq(rows.areaId, areas.id))
+        .innerJoin(events, eq(areas.eventId, events.id))
+        .innerJoin(member, eq(member.organizationId, events.organizationId))
+        .where(and(
+            eq(tickets.id, ticketId),
+            eq(member.userId, userId),
+            eq(events.organizationId, activeOrganizationId)
         ))
         .limit(1);
 

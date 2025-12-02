@@ -2,12 +2,13 @@ import { eq } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "./lib/auth/auth";
 import { db } from "@vieticket/db/pg/direct";
-import { user, Role } from "@vieticket/db/pg/schema";
+import { user, Role, member } from "@vieticket/db/pg/schema";
 
 // Type for role-based endpoint configuration
 type PermissionMap = {
   roles: Role[];
   endpoints: string[];
+  allowOrgMembers?: boolean; // New flag to allow org members with customer role
 }[];
 
 const permissionMap: PermissionMap = [
@@ -18,6 +19,7 @@ const permissionMap: PermissionMap = [
   {
     roles: ["organizer", "customer"],
     endpoints: ["/organizer/*", "/inspector/*", "/seat-map/*"],
+    allowOrgMembers: true, // Allow customer role if they're in an organization
   },
   {
     roles: ["customer"],
@@ -69,15 +71,15 @@ function isProtectedRoute(pathname: string): boolean {
   });
 }
 
-function getAllowedRoles(pathname: string): Role[] | null {
-  for (const { roles, endpoints } of permissionMap) {
+function getAllowedRoles(pathname: string): { roles: Role[]; allowOrgMembers: boolean } | null {
+  for (const { roles, endpoints, allowOrgMembers = false } of permissionMap) {
     for (const endpoint of endpoints) {
       if (endpoint.endsWith("/*")) {
         if (pathname.startsWith(endpoint.slice(0, -2))) {
-          return roles;
+          return { roles, allowOrgMembers };
         }
       } else if (pathname === endpoint) {
-        return roles;
+        return { roles, allowOrgMembers };
       }
     }
   }
@@ -192,9 +194,23 @@ export async function middleware(request: NextRequest) {
         response = NextResponse.next();
       } else {
         // Check if route requires specific role
-        const allowedRoles = getAllowedRoles(pathname);
-        if (allowedRoles) {
-          if (!allowedRoles.includes(userData.role)) {
+        const routePermissions = getAllowedRoles(pathname);
+        if (routePermissions) {
+          const { roles: allowedRoles, allowOrgMembers } = routePermissions;
+
+          // Check if user has the required role
+          let hasAccess = allowedRoles.includes(userData.role);
+
+          // If user doesn't have the required role but route allows org members,
+          // check if user is a member of any organization
+          if (!hasAccess && allowOrgMembers && userData.role === "customer") {
+            const orgMembership = await db.query.member.findFirst({
+              where: eq(member.userId, session.user.id),
+            });
+            hasAccess = !!orgMembership;
+          }
+
+          if (!hasAccess) {
             // User doesn't have required role - redirect based on their role
             if (userData.role === "admin") {
               response = NextResponse.redirect(new URL("/admin", request.url));
