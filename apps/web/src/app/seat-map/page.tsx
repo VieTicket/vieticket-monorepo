@@ -53,7 +53,7 @@ const SeatMapV2PageInner = () => {
     seatMapId: string,
     userId: string
   ) => {
-    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const url = `${base}/api/seatmap`;
 
     const res = await fetch(url, {
