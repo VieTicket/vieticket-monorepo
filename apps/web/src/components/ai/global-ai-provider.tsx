@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect } from 'react';
+import { createContext, useContext, useEffect, Suspense } from 'react';
 import { useUserTracking } from '@/hooks/use-user-tracking';
 import { usePathname, useSearchParams } from 'next/navigation';
 
@@ -15,15 +15,13 @@ interface GlobalAIProviderProps {
 }
 
 /**
- * Global AI provider that persists across page navigation
- * Should be placed at the root layout level
+ * Internal component that handles search params tracking
+ * Isolated to prevent CSR bailout of the entire provider
  */
-export function GlobalAIProvider({ children }: GlobalAIProviderProps) {
+function SearchParamsTracker() {
   const { trackSearch } = useUserTracking();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // Global tracking for any search parameters across the app
   useEffect(() => {
     const query = searchParams.get('q');
     const location = searchParams.get('location');
@@ -56,6 +54,16 @@ export function GlobalAIProvider({ children }: GlobalAIProviderProps) {
     }
   }, [searchParams, trackSearch]);
 
+  return null;
+}
+
+/**
+ * Global AI provider that persists across page navigation
+ * Should be placed at the root layout level
+ */
+export function GlobalAIProvider({ children }: GlobalAIProviderProps) {
+  const pathname = usePathname();
+
   // Track page navigation patterns
   useEffect(() => {
     // Track specific page patterns that indicate user interest
@@ -69,6 +77,9 @@ export function GlobalAIProvider({ children }: GlobalAIProviderProps) {
 
   return (
     <AIContext.Provider value={{}}>
+      <Suspense fallback={null}>
+        <SearchParamsTracker />
+      </Suspense>
       {children}
     </AIContext.Provider>
   );

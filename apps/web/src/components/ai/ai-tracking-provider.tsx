@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useUserTracking, useAIRecommendations, type EventForRecommendation } from '@/hooks/use-user-tracking';
 import { useSearchParams, usePathname } from 'next/navigation';
 import { EventSummary } from "@/lib/queries/events";
@@ -12,21 +12,29 @@ interface AITrackingProviderProps {
 }
 
 /**
- * Component wrapper to track user behavior for AI personalization
+ * Internal component that handles search params tracking
  */
-export function AITrackingProvider({ children, events = [] }: AITrackingProviderProps) {
-  const { trackSearch, trackEventView } = useUserTracking();
-  const { getRecommendations } = useAIRecommendations();
+function SearchParamsTracker() {
+  const { trackSearch } = useUserTracking();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
 
-  // Track search queries from URL params
   useEffect(() => {
     const query = searchParams.get('q');
     if (query && query.trim()) {
       trackSearch(query.trim());
     }
   }, [searchParams, trackSearch]);
+
+  return null;
+}
+
+/**
+ * Component wrapper to track user behavior for AI personalization
+ */
+export function AITrackingProvider({ children, events = [] }: AITrackingProviderProps) {
+  const { trackEventView } = useUserTracking();
+  const { getRecommendations } = useAIRecommendations();
+  const pathname = usePathname();
 
   // Track filter selections as implicit search behavior
   // DISABLED: to avoid conflict with direct trackFilterSelection calls in FilteredClientGrid
@@ -95,7 +103,14 @@ export function AITrackingProvider({ children, events = [] }: AITrackingProvider
     }
   }, [events]); // Removed getRecommendations from dependencies
 
-  return <>{children}</>;
+  return (
+    <>
+      <Suspense fallback={null}>
+        <SearchParamsTracker />
+      </Suspense>
+      {children}
+    </>
+  );
 }
 
 /**

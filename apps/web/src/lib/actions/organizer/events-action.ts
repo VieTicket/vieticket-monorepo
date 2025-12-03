@@ -16,6 +16,7 @@ import {
   findSeatMapWithShapesById,
 } from "@vieticket/repos/seat-map";
 import { v4 as uuidv4 } from "uuid";
+import { Event } from "@vieticket/db/pg/schemas/events";
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
@@ -263,22 +264,22 @@ export async function handleCreateEvent(
 
   const eventTicketSaleStart = formData.get("ticketSaleStart")
     ? (() => {
-        const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
-        if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
-          return null;
-        const date = new Date(ticketSaleStartValue);
-        return isNaN(date.getTime()) ? null : date;
-      })()
+      const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
+      if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+        return null;
+      const date = new Date(ticketSaleStartValue);
+      return isNaN(date.getTime()) ? null : date;
+    })()
     : null;
 
   const eventTicketSaleEnd = formData.get("ticketSaleEnd")
     ? (() => {
-        const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-        if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
-          return null;
-        const date = new Date(ticketSaleEndValue);
-        return isNaN(date.getTime()) ? null : date;
-      })()
+      const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
+      if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+        return null;
+      const date = new Date(ticketSaleEndValue);
+      return isNaN(date.getTime()) ? null : date;
+    })()
     : null;
 
   while (true) {
@@ -304,26 +305,26 @@ export async function handleCreateEvent(
     const ticketSaleStartDate =
       ticketSaleStart && ticketSaleStart.toString().trim() !== ""
         ? (() => {
-            const date = new Date(ticketSaleStart.toString());
-            return isNaN(date.getTime()) ? null : date;
-          })()
+          const date = new Date(ticketSaleStart.toString());
+          return isNaN(date.getTime()) ? null : date;
+        })()
         : (() => {
-            const date = new Date(startDate);
-            date.setDate(date.getDate() - 7);
-            return date;
-          })();
+          const date = new Date(startDate);
+          date.setDate(date.getDate() - 7);
+          return date;
+        })();
 
     const ticketSaleEndDate =
       ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
         ? (() => {
-            const date = new Date(ticketSaleEnd.toString());
-            return isNaN(date.getTime()) ? null : date;
-          })()
+          const date = new Date(ticketSaleEnd.toString());
+          return isNaN(date.getTime()) ? null : date;
+        })()
         : (() => {
-            const date = new Date(startDate);
-            date.setHours(date.getHours() - 1);
-            return date;
-          })();
+          const date = new Date(startDate);
+          date.setHours(date.getHours() - 1);
+          return date;
+        })();
 
     showings.push({
       name: name.toString(),
@@ -398,6 +399,7 @@ export async function handleCreateEvent(
     bannerUrl: bannerUrl || null,
     seatMapId: duplicatedSeatMapId || null,
     organizerId,
+    organizationId: null,
     approvalStatus: "pending" as const,
     views: 0,
     createdAt: new Date(),
@@ -627,17 +629,17 @@ export async function handleUpdateEvent(formData: FormData) {
       const ticketSaleStartDate =
         ticketSaleStart && ticketSaleStart.toString().trim() !== ""
           ? (() => {
-              const date = new Date(ticketSaleStart.toString());
-              return isNaN(date.getTime()) ? null : date;
-            })()
+            const date = new Date(ticketSaleStart.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
           : null;
 
       const ticketSaleEndDate =
         ticketSaleEnd && ticketSaleEnd.toString().trim() !== ""
           ? (() => {
-              const date = new Date(ticketSaleEnd.toString());
-              return isNaN(date.getTime()) ? null : date;
-            })()
+            const date = new Date(ticketSaleEnd.toString());
+            return isNaN(date.getTime()) ? null : date;
+          })()
           : null;
 
       showings.push({
@@ -716,13 +718,13 @@ export async function handleUpdateEvent(formData: FormData) {
     const eventStartTime =
       showings.length > 0
         ? new Date(
-            Math.min(
-              ...showings.map((s) => {
-                const time = s.startTime.getTime();
-                return isNaN(time) ? Date.now() : time;
-              })
-            )
+          Math.min(
+            ...showings.map((s) => {
+              const time = s.startTime.getTime();
+              return isNaN(time) ? Date.now() : time;
+            })
           )
+        )
         : existingEvent.startTime
           ? new Date(existingEvent.startTime)
           : new Date();
@@ -730,18 +732,18 @@ export async function handleUpdateEvent(formData: FormData) {
     const eventEndTime =
       showings.length > 0
         ? new Date(
-            Math.max(
-              ...showings.map((s) => {
-                const time = s.endTime.getTime();
-                return isNaN(time) ? Date.now() : time;
-              })
-            )
+          Math.max(
+            ...showings.map((s) => {
+              const time = s.endTime.getTime();
+              return isNaN(time) ? Date.now() : time;
+            })
           )
+        )
         : existingEvent.endTime
           ? new Date(existingEvent.endTime)
           : new Date();
 
-    const eventPayload = {
+    const eventPayload: Event = {
       id: eventId,
       name: formData.get("name") as string,
       slug: existingEvent.slug,
@@ -755,29 +757,30 @@ export async function handleUpdateEvent(formData: FormData) {
         : null,
       ticketSaleStart: formData.get("ticketSaleStart")
         ? (() => {
-            const ticketSaleStartValue = formData.get(
-              "ticketSaleStart"
-            ) as string;
-            if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
-              return null;
-            const date = new Date(ticketSaleStartValue);
-            return isNaN(date.getTime()) ? null : date;
-          })()
+          const ticketSaleStartValue = formData.get(
+            "ticketSaleStart"
+          ) as string;
+          if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+            return null;
+          const date = new Date(ticketSaleStartValue);
+          return isNaN(date.getTime()) ? null : date;
+        })()
         : null,
       ticketSaleEnd: formData.get("ticketSaleEnd")
         ? (() => {
-            const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-            if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
-              return null;
-            const date = new Date(ticketSaleEndValue);
-            return isNaN(date.getTime()) ? null : date;
-          })()
+          const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
+          if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+            return null;
+          const date = new Date(ticketSaleEndValue);
+          return isNaN(date.getTime()) ? null : date;
+        })()
         : null,
       posterUrl: (formData.get("posterUrl") as string) || null,
       bannerUrl: (formData.get("bannerUrl") as string) || null,
       seatMapId: finalSeatMapId,
       updatedAt: new Date(),
       organizerId,
+      organizationId: null,
       createdAt: existingEvent.createdAt
         ? new Date(existingEvent.createdAt)
         : new Date(),
