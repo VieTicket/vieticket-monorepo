@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { LucideSearch, MapPin } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -24,7 +24,7 @@ function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T 
   } as T;
 }
 
-export default function SearchBar() {
+function SearchBarInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { trackSearch } = useUserTracking();
@@ -136,5 +136,19 @@ export default function SearchBar() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function SearchBar() {
+  return (
+    <Suspense fallback={
+      <div className="professional-card rounded-lg shadow-xl border border-slate-700/30 p-4 sm:p-6 w-full max-w-4xl mx-auto backdrop-blur-sm">
+        <div className="animate-pulse">
+          <div className="h-12 bg-slate-700 rounded"></div>
+        </div>
+      </div>
+    }>
+      <SearchBarInner />
+    </Suspense>
   );
 }
