@@ -1,11 +1,11 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, Suspense } from "react";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 import { useSeatMapStore } from "../store/seat-map-store";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import { useDeviceDetection } from "@/hooks/use-device-detection";
 
-function ClientConnection() {
+function ClientConnectionInner() {
   const [isClient, setIsClient] = useState(false);
   const [showInitializingModal, setShowInitializingModal] = useState(false);
   const [connectionError, setConnectionError] = useState<string | null>(null);
@@ -181,4 +181,4 @@ function ClientConnection() {
   );
 }
 
-export default React.memo(ClientConnection);
+export default React.memo(ClientConnectionInner);
