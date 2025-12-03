@@ -25,6 +25,7 @@
     "packages/*"
   ],
   "dependencies": {
+    "@daveyplate/better-auth-ui": "3.0.0",
     "mongoose": "^8.20.1",
     "resend": "^6.5.2"
   },

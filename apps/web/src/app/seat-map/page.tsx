@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import * as PIXI from "pixi.js";
 
@@ -39,7 +39,7 @@ import { authClient } from "@/lib/auth/auth-client";
 import { recreateShape } from "@/components/seat-map/utils/undo-redo"; // ✅ Import recreateShape
 import { CanvasItem } from "@/components/seat-map/types";
 
-const SeatMapV2Page = () => {
+const SeatMapV2PageInner = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
   const [isLoadingSeatMap, setIsLoadingSeatMap] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
@@ -53,7 +53,7 @@ const SeatMapV2Page = () => {
     seatMapId: string,
     userId: string
   ) => {
-    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const url = `${base}/api/seatmap`;
 
     const res = await fetch(url, {
@@ -421,5 +421,20 @@ const SeatMapV2Page = () => {
     </div>
   );
 };
+
+function SeatMapV2Page() {
+  return (
+    <Suspense fallback={
+      <div className="h-screen w-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading seat map...</p>
+        </div>
+      </div>
+    }>
+      <SeatMapV2PageInner />
+    </Suspense>
+  );
+}
 
 export default SeatMapV2Page;

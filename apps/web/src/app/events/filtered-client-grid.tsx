@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams, useRouter } from "next/navigation";
+import { Suspense } from "react";
 import EventFiltersSidebar from "@/components/events/eventfilters-sidebar";
 import { EventSummary } from "@/lib/queries/events";
 import { useTranslations } from "next-intl";
@@ -16,7 +17,7 @@ interface EventResponse {
   total: number;
 }
 
-export default function FilteredClientGrid() {
+function FilteredClientGridInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { userBehavior, trackFilterSelection, trackCurrentFilters } =
@@ -199,5 +200,24 @@ export default function FilteredClientGrid() {
         </div>
       </div>
     </AITrackingProvider>
+  );
+}
+
+export default function FilteredClientGrid() {
+  return (
+    <Suspense fallback={
+      <div className="professional-card rounded-lg p-6 sm:p-8 shadow-xl border border-slate-700/30">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-slate-700 rounded w-1/3"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div key={i} className="h-64 bg-slate-700 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    }>
+      <FilteredClientGridInner />
+    </Suspense>
   );
 }

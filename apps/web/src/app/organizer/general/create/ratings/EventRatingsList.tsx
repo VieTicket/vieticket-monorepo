@@ -14,7 +14,7 @@ type Rating = {
   userId: string;
   stars: number;
   comment: string | null;
-  createdAt: Date;
+  createdAt: Date | null;
   userName: string | null;
   userImage: string | null;
 };
@@ -150,7 +150,7 @@ export function EventRatingsList({ eventId, initialRatings }: Props) {
                         </span>
                       </div>
                       <div className="text-xs text-muted-foreground mb-3">
-                        {formatDate(rating.createdAt)}
+                        {rating.createdAt ? formatDate(rating.createdAt) : "N/A"}
                       </div>
                       {rating.comment && (
                         <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed bg-gray-50 dark:bg-gray-800 p-4 rounded-lg">

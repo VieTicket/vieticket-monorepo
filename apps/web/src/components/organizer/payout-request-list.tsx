@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { DataTable } from "@/components/ui/data-table";
 import { ColumnDef } from "@tanstack/react-table";
-import { PayoutRequest } from "@vieticket/db/pg/models/payout-requests";
+import { PayoutRequestWithEvent } from "@vieticket/db/pg/models/payout-requests";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,16 +13,16 @@ import { CalendarIcon, CreditCardIcon, EyeIcon } from "lucide-react";
 import { getPayoutRequests } from "@/lib/actions/organizer/payout-request-actions";
 import Link from "next/link";
 
-const columns: ColumnDef<PayoutRequest>[] = [];
+const columns: ColumnDef<PayoutRequestWithEvent>[] = [];
 
 export function PayoutRequestList() {
   const t = useTranslations("organizer-dashboard.RequestPayout");
-  const [data, setData] = useState<PayoutRequest[]>([]);
+  const [data, setData] = useState<PayoutRequestWithEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
-  const columns: ColumnDef<PayoutRequest>[] = [
+  const columns: ColumnDef<PayoutRequestWithEvent>[] = [
     {
       accessorKey: "event.name",
       header: t("table.event"),
@@ -43,13 +43,14 @@ export function PayoutRequestList() {
       header: t("table.status"),
       cell: ({ row }) => {
         const status = row.getValue("status") as string;
-        const variantMap = {
+        const variantMap: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
           pending: "secondary",
           approved: "default",
           rejected: "destructive",
           in_discussion: "outline",
+          cancelled: "destructive",
           completed: "default",
-        } as Record<string, "default" | "secondary" | "destructive" | "outline">;
+        };
 
         return (
           <Badge variant={variantMap[status] || "default"}>
@@ -144,13 +145,14 @@ export function PayoutRequestList() {
                   </div>
                   <Badge 
                     variant={
-                      {
+                      ({
                         pending: "secondary",
                         approved: "default", 
                         rejected: "destructive",
                         in_discussion: "outline",
+                        cancelled: "destructive",
                         completed: "default",
-                      }[payoutRequest.status] || "default"
+                      } as Record<string, "default" | "secondary" | "destructive" | "outline">)[payoutRequest.status] || "default"
                     }
                     className="text-xs"
                   >
