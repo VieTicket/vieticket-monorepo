@@ -87,6 +87,24 @@ export default function AccountPage() {
   };
 
   const handleLockToggle = async (userId: string, currentBanned: boolean) => {
+    // Validate ban expiration date if banning user
+    if (!currentBanned && banExpires) {
+      const banExpiresDate = new Date(banExpires);
+      const now = new Date();
+      
+      // Check if date is invalid
+      if (isNaN(banExpiresDate.getTime())) {
+        toast.error("Thời gian ban không hợp lệ. Vui lòng chọn lại.");
+        return;
+      }
+      
+      // Check if date is in the past (with 1 second buffer to account for timing)
+      if (banExpiresDate.getTime() <= now.getTime()) {
+        toast.error("Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai.");
+        return;
+      }
+    }
+    
     setUpdatingUsers(prev => new Set(prev).add(userId));
     
     try {
@@ -103,7 +121,8 @@ export default function AccountPage() {
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update user status");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || "Failed to update user status");
       }
 
       const data = await response.json();
@@ -129,7 +148,8 @@ export default function AccountPage() {
       setBanExpires("");
     } catch (error) {
       console.error("Error updating user status:", error);
-      toast.error("Failed to update user status");
+      const errorMessage = error instanceof Error ? error.message : "Failed to update user status";
+      toast.error(errorMessage);
     } finally {
       setUpdatingUsers(prev => {
         const newSet = new Set(prev);
@@ -442,7 +462,29 @@ export default function AccountPage() {
                                     id="banExpires"
                                     type="datetime-local"
                                     value={banExpires}
-                                    onChange={(e) => setBanExpires(e.target.value)}
+                                    min={new Date().toISOString().slice(0, 16)}
+                                    onChange={(e) => {
+                                      const value = e.target.value;
+                                      if (value) {
+                                        const selectedDate = new Date(value);
+                                        const now = new Date();
+                                        
+                                        // Check if date is invalid
+                                        if (isNaN(selectedDate.getTime())) {
+                                          toast.error("Thời gian ban không hợp lệ. Vui lòng chọn lại.");
+                                          return;
+                                        }
+                                        
+                                        // Check if date is in the past
+                                        if (selectedDate.getTime() <= now.getTime()) {
+                                          toast.error("Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai.");
+                                          // Clear the invalid value
+                                          setBanExpires("");
+                                          return;
+                                        }
+                                      }
+                                      setBanExpires(value);
+                                    }}
                                   />
                                 </div>
                               </div>
