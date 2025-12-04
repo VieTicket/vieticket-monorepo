@@ -55,7 +55,7 @@ const EventCard = ({
   onEdit?: (eventId: string) => void;
 }) => {
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("vi-VN", {
+    return new Date(dateString).toLocaleDateString("en-US", {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -167,7 +167,7 @@ const EventCard = ({
             <div className="flex items-center gap-2 text-gray-600">
               <Eye className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">
-                Capacity: {event.capacity > 0 ? `${event.capacity.toLocaleString("vi-VN")} chỗ` : "Chưa xác định"}
+                Capacity: {event.capacity > 0 ? `${event.capacity.toLocaleString("en-US")} seats` : "To be determined"}
               </span>
             </div>
           </div>

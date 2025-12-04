@@ -8,7 +8,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: "Quản trị - Tin nhắn",
+  title: "Admin - Messages",
 };
 
 export default async function AdminChatPage({
@@ -35,7 +35,7 @@ export default async function AdminChatPage({
     try {
       newChannelId = await createChatRoom(awaitedSearch.recipientId);
     } catch (error) {
-      console.error("Không thể tạo hoặc truy cập phòng chat của admin", error);
+      console.error("Unable to create or access admin chat room", error);
       redirect('/admin/chat');
     }
     redirect(`/admin/chat/${newChannelId}`);
@@ -46,7 +46,7 @@ export default async function AdminChatPage({
   const apiKey = process.env.NEXT_PUBLIC_STREAM_API_KEY;
 
   if (!apiKey) {
-    return <div>Lỗi: Chưa cấu hình khóa API Stream.</div>;
+    return <div>Error: Stream API key is not configured.</div>;
   }
 
   return (

@@ -80,7 +80,7 @@ const StatCard = ({
 
 // Memoized currency formatter
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("vi-VN", {
+  return new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "VND",
     minimumFractionDigits: 0,
@@ -294,7 +294,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
                 <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Lọc theo thời gian</CardTitle>
+                <CardTitle className="text-lg">Filter by Date</CardTitle>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Preset buttons */}
@@ -305,7 +305,7 @@ export default function AdminDashboard() {
                     onClick={() => setDateRange(7)}
                     className="text-xs"
                   >
-                    7 ngày
+                    7 Days
                   </Button>
                   <Button
                     variant="outline"
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                     onClick={() => setDateRange(30)}
                     className="text-xs"
                   >
-                    30 ngày
+                    30 Days
                   </Button>
                   <Button
                     variant="outline"
@@ -321,7 +321,7 @@ export default function AdminDashboard() {
                     onClick={() => setMonthRange(3)}
                     className="text-xs"
                   >
-                    3 tháng
+                    3 Months
                   </Button>
                   <Button
                     variant="outline"
@@ -329,7 +329,7 @@ export default function AdminDashboard() {
                     onClick={() => setMonthRange(6)}
                     className="text-xs"
                   >
-                    6 tháng
+                    6 Months
                   </Button>
                   <Button
                     variant="outline"
@@ -337,7 +337,7 @@ export default function AdminDashboard() {
                     onClick={() => setMonthRange(12)}
                     className="text-xs"
                   >
-                    12 tháng
+                    12 Months
                   </Button>
                 </div>
                 
@@ -356,9 +356,9 @@ export default function AdminDashboard() {
                     }}
                     max={endDate || undefined}
                     className="w-40"
-                    placeholder="Từ ngày"
+                    placeholder="From Date"
                   />
-                  <span className="text-sm text-muted-foreground">đến</span>
+                  <span className="text-sm text-muted-foreground">to</span>
                   <Input
                     type="date"
                     value={endDate}
@@ -373,7 +373,7 @@ export default function AdminDashboard() {
                     min={startDate || undefined}
                     max={new Date().toISOString().split("T")[0]}
                     className="w-40"
-                    placeholder="Đến ngày"
+                    placeholder="To Date"
                   />
                   {(startDate || endDate) && (
                     <Button
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
                       onClick={resetDateFilter}
                       className="text-xs"
                     >
-                      Xóa
+                      Clear
                     </Button>
                   )}
                 </div>
@@ -399,7 +399,7 @@ export default function AdminDashboard() {
                 <CardTitle>Revenue Trend</CardTitle>
                 {chartFetching && (
                   <div className="text-xs text-muted-foreground animate-pulse">
-                    Đang tải...
+                    Loading...
                   </div>
                 )}
               </div>
@@ -425,7 +425,7 @@ export default function AdminDashboard() {
                 <CardTitle>Events Created</CardTitle>
                 {chartFetching && (
                   <div className="text-xs text-muted-foreground animate-pulse">
-                    Đang tải...
+                    Loading...
                   </div>
                 )}
               </div>

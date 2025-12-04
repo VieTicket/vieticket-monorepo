@@ -23,7 +23,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lock, Unlock, Loader2, Clock, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Building, Calendar, Globe, MapPin, Phone, Mail } from "lucide-react";
+import { Lock, Unlock, Loader2, Clock, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Building, Calendar, Globe, MapPin, Phone, Mail, ChevronLeft, ChevronRight } from "lucide-react";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 
@@ -57,6 +57,8 @@ export default function AccountPage() {
   const [organizerDetail, setOrganizerDetail] = useState<any | null>(null);
   const [organizerDialogOpen, setOrganizerDialogOpen] = useState(false);
   const [loadingOrganizer, setLoadingOrganizer] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchUsers();
@@ -98,13 +100,13 @@ export default function AccountPage() {
       
       // Check if date is invalid
       if (isNaN(banExpiresDate.getTime())) {
-        toast.error("Thời gian ban không hợp lệ. Vui lòng chọn lại.");
+        toast.error("Invalid ban expiration time. Please select again.");
         return;
       }
       
       // Check if date is in the past (with 1 second buffer to account for timing)
       if (banExpiresDate.getTime() <= now.getTime()) {
-        toast.error("Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai.");
+        toast.error("Ban expiration time cannot be in the past. Please select a future time.");
         return;
       }
     }
@@ -287,6 +289,17 @@ export default function AccountPage() {
     return filtered;
   }, [users, searchQuery, sortField, sortDirection]);
 
+  // Reset to page 1 when search or filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortField, sortDirection]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredAndSortedUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredAndSortedUsers.slice(startIndex, endIndex);
+
   const handleSort = (field: SortField) => {
     if (sortField === field) {
       // Toggle direction if same field
@@ -349,6 +362,11 @@ export default function AccountPage() {
           <CardTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
             User Accounts ({filteredAndSortedUsers.length} of {users.length})
+            {totalPages > 1 && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (Page {currentPage} of {totalPages})
+              </span>
+            )}
           </CardTitle>
           <div className="flex items-center space-x-2">
             <div className="relative flex-1 max-w-sm">
@@ -363,14 +381,14 @@ export default function AccountPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
-            <Table>
+            <div className="rounded-md border">
+              <Table className="table-fixed w-full">
               <TableHeader>
                 <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
+                  <TableHead className="w-[200px]">Name</TableHead>
+                  <TableHead className="w-[200px]">Email</TableHead>
                   <TableHead 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort('role')}
                   >
                     <div className="flex items-center gap-1">
@@ -378,11 +396,11 @@ export default function AccountPage() {
                       {getSortIcon('role')}
                     </div>
                   </TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ban Details</TableHead>
-                  <TableHead>Email Verified</TableHead>
+                  <TableHead className="w-[150px]">Status</TableHead>
+                  <TableHead className="w-[200px]">Ban Details</TableHead>
+                  <TableHead className="w-[130px]">Email Verified</TableHead>
                   <TableHead 
-                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort('createdAt')}
                   >
                     <div className="flex items-center gap-1">
@@ -390,11 +408,11 @@ export default function AccountPage() {
                       {getSortIcon('createdAt')}
                     </div>
                   </TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead className="w-[120px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredAndSortedUsers.map((user) => {
+                {paginatedUsers.map((user) => {
                   const statusInfo = getStatusInfo(user);
                   return (
                     <TableRow 
@@ -402,38 +420,38 @@ export default function AccountPage() {
                       className={user.role === "organizer" ? "cursor-pointer hover:bg-muted/50" : ""}
                       onClick={() => user.role === "organizer" && handleViewOrganizer(user)}
                     >
-                      <TableCell className="font-medium min-w-0 max-w-xs">
+                      <TableCell className="font-medium w-[200px] min-w-0">
                         <div className="truncate" title={user.name}>
                           {user.name}
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-0 max-w-xs">
+                      <TableCell className="w-[200px] min-w-0">
                         <div className="truncate" title={user.email}>
                           {user.email}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[120px]">
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell className="min-w-0 max-w-xs">
+                      <TableCell className="w-[150px] min-w-0">
                         <Badge variant={statusInfo.variant} className="truncate max-w-full">
                           <span className="truncate block" title={statusInfo.status}>
                             {statusInfo.status}
                           </span>
                         </Badge>
                       </TableCell>
-                      <TableCell className="min-w-0 max-w-xs">
+                      <TableCell className="w-[200px] min-w-0">
                         {user.banned && user.banReason && (
-                          <div className="max-w-xs">
+                          <div className="min-w-0">
                             <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
                               {user.banReason}
                             </div>
                             {user.banExpires && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
                                 <Clock className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">
+                                <span className="truncate min-w-0" title={`Expires: ${formatDateTime(user.banExpires.toString())}`}>
                                   Expires: {formatDateTime(user.banExpires.toString())}
                                 </span>
                               </div>
@@ -441,13 +459,13 @@ export default function AccountPage() {
                           </div>
                         )}
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[130px]">
                         <Badge variant={user.emailVerified ? "default" : "secondary"}>
                           {user.emailVerified ? "Verified" : "Unverified"}
                         </Badge>
                       </TableCell>
-                      <TableCell>{formatDate(user.createdAt)}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="w-[120px]">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell className="w-[120px] text-right">
                         {user.banned ? (
                           <Button
                             variant="default"
@@ -514,13 +532,13 @@ export default function AccountPage() {
                                         
                                         // Check if date is invalid
                                         if (isNaN(selectedDate.getTime())) {
-                                          toast.error("Thời gian ban không hợp lệ. Vui lòng chọn lại.");
+                                          toast.error("Invalid ban expiration time. Please select again.");
                                           return;
                                         }
                                         
                                         // Check if date is in the past
                                         if (selectedDate.getTime() <= now.getTime()) {
-                                          toast.error("Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai.");
+                                          toast.error("Ban expiration time cannot be in the past. Please select a future time.");
                                           // Clear the invalid value
                                           setBanExpires("");
                                           return;
@@ -568,6 +586,38 @@ export default function AccountPage() {
               </TableBody>
             </Table>
           </div>
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedUsers.length)} of {filteredAndSortedUsers.length} users
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="text-sm font-medium px-3">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
