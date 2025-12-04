@@ -128,18 +128,24 @@ export default function AccountPage() {
       const data = await response.json();
       
       // Update local state
-      setUsers(prevUsers =>
-        prevUsers.map(user =>
-          user.id === userId
-            ? {
-                ...user,
-                banned: !currentBanned,
-                banReason: !currentBanned ? banReason || "Account locked by administrator" : null,
-                banExpires: !currentBanned ? banExpires ? new Date(banExpires) : null : null,
-              }
-            : user
-        )
-      );
+      if (!currentBanned) {
+        // User is being banned - remove from list (will appear in Locked Account page)
+        setUsers(prevUsers => prevUsers.filter(user => user.id !== userId));
+      } else {
+        // User is being unlocked - update the user data
+        setUsers(prevUsers =>
+          prevUsers.map(user =>
+            user.id === userId
+              ? {
+                  ...user,
+                  banned: false,
+                  banReason: null,
+                  banExpires: null,
+                }
+              : user
+          )
+        );
+      }
 
       toast.success(data.message);
       setDialogOpen(false);
@@ -214,12 +220,13 @@ export default function AccountPage() {
 
   // Filter and sort users based on search query and sort settings
   const filteredAndSortedUsers = useMemo(() => {
-    let filtered = users;
+    // Filter out banned users - they should only appear in Locked Account page
+    let filtered = users.filter(user => !user.banned);
     
     // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim();
-      filtered = users.filter(user => 
+      filtered = filtered.filter(user => 
         user.name.toLowerCase().includes(query) ||
         user.email.toLowerCase().includes(query)
       );
