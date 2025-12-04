@@ -93,6 +93,13 @@ export default function AccountPage() {
   };
 
   const handleLockToggle = async (userId: string, currentBanned: boolean) => {
+    // Prevent locking admin accounts
+    const targetUser = users.find(u => u.id === userId);
+    if (targetUser && targetUser.role === "admin" && !currentBanned) {
+      toast.error("Cannot lock admin accounts. Admin accounts are protected.");
+      return;
+    }
+
     // Validate ban expiration date if banning user
     if (!currentBanned && banExpires) {
       const banExpiresDate = new Date(banExpires);
@@ -485,6 +492,8 @@ export default function AccountPage() {
                               </>
                             )}
                           </Button>
+                        ) : user.role === "admin" ? (
+                          <span className="text-xs text-muted-foreground">Protected</span>
                         ) : (
                           <Dialog open={dialogOpen && selectedUser?.id === user.id} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>

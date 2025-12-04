@@ -14,6 +14,20 @@ export async function POST(
     const { banned, banReason, banExpires } = await request.json();
     const userId = (await params).id;
 
+    // Prevent locking admin accounts
+    if (banned) {
+      const targetUser = await db.query.user.findFirst({
+        where: eq(user.id, userId),
+      });
+
+      if (targetUser && targetUser.role === "admin") {
+        return Response.json(
+          { error: "Cannot lock admin accounts. Admin accounts are protected." },
+          { status: 403 }
+        );
+      }
+    }
+
     // Validate ban expiration date if banning user
     if (banned && banExpires) {
       const banExpiresDate = new Date(banExpires);
@@ -22,7 +36,7 @@ export async function POST(
       // Check if date is invalid
       if (isNaN(banExpiresDate.getTime())) {
         return Response.json(
-          { error: "Thời gian ban không hợp lệ. Vui lòng chọn lại." },
+          { error: "Invalid ban expiration time. Please select again." },
           { status: 400 }
         );
       }
@@ -30,7 +44,7 @@ export async function POST(
       // Check if date is in the past (with 1 second buffer to account for timing)
       if (banExpiresDate.getTime() <= now.getTime()) {
         return Response.json(
-          { error: "Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai." },
+          { error: "Ban expiration time cannot be in the past. Please select a future time." },
           { status: 400 }
         );
       }
