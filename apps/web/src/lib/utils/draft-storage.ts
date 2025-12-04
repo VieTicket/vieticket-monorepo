@@ -38,13 +38,52 @@ export function saveDraft(
   data: Partial<EventDraftData>,
   eventId?: string | null
 ): void {
+  // Check if running in browser environment
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+
   try {
     const key = eventId
       ? `${DRAFT_STORAGE_KEY}_edit_${eventId}`
       : DRAFT_STORAGE_KEY;
     const existingDraft = getDraft(eventId);
 
+    // Tạo default values để đảm bảo type safety
+    const defaultDraft: EventDraftData = {
+      formData: {
+        name: "",
+        type: "",
+        ticketSaleStart: "",
+        ticketSaleEnd: "",
+        location: "",
+        description: "",
+        posterUrl: "",
+        bannerUrl: "",
+        seatCount: "",
+        ticketPrice: "",
+        maxTicketsByOrder: undefined,
+        startTime: "",
+        endTime: "",
+      },
+      areas: [{ name: "Area A", seatCount: "", ticketPrice: "" }],
+      showings: [
+        {
+          name: "Main Showing",
+          startTime: "",
+          endTime: "",
+          areas: [],
+        },
+      ],
+      ticketingMode: "simple" as TicketingMode,
+      step: 1,
+      lastSaved: Date.now(),
+      isEditing: !!eventId,
+      eventId: eventId || undefined,
+    };
+
     const draftData: EventDraftData = {
+      ...defaultDraft,
       ...existingDraft,
       ...data,
       lastSaved: Date.now(),
@@ -62,6 +101,11 @@ export function saveDraft(
  * Lấy draft từ localStorage
  */
 export function getDraft(eventId?: string | null): EventDraftData | null {
+  // Check if running in browser environment
+  if (typeof window === "undefined" || !window.localStorage) {
+    return null;
+  }
+
   try {
     const key = eventId
       ? `${DRAFT_STORAGE_KEY}_edit_${eventId}`
@@ -96,6 +140,11 @@ export function hasDraft(eventId?: string | null): boolean {
  * Xóa draft khỏi localStorage
  */
 export function clearDraft(eventId?: string | null): void {
+  // Check if running in browser environment
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+
   try {
     const key = eventId
       ? `${DRAFT_STORAGE_KEY}_edit_${eventId}`
@@ -110,6 +159,11 @@ export function clearDraft(eventId?: string | null): void {
  * Xóa tất cả draft cũ (cleanup)
  */
 export function clearExpiredDrafts(): void {
+  // Check if running in browser environment
+  if (typeof window === "undefined" || !window.localStorage) {
+    return;
+  }
+
   try {
     const keys = Object.keys(localStorage);
     const now = Date.now();
