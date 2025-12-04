@@ -1,18 +1,20 @@
 "use client";
 
-import React, { useRef, useState, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, MapPin, Calendar, Eye } from 'lucide-react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { useTranslations } from 'next-intl';
-import { EventSummary } from '@/lib/queries/events';
-import { formatTimeRange, formatCurrencyVND } from '@/lib/utils';
+import React, { useRef, useState, useEffect } from "react";
+import { ChevronLeft, ChevronRight, MapPin, Calendar, Eye } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { useTranslations } from "next-intl";
+import { EventSummary } from "@/lib/queries/events";
+import { formatTimeRange, formatCurrencyVND } from "@/lib/utils";
 
 interface TrendingEventsSliderProps {
   events: EventSummary[];
 }
 
-export default function TrendingEventsSlider({ events }: TrendingEventsSliderProps) {
+export default function TrendingEventsSlider({
+  events,
+}: TrendingEventsSliderProps) {
   const t = useTranslations("home");
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -33,15 +35,15 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
   };
 
   // Hàm cuộn sang trái/phải
-  const scroll = (direction: 'left' | 'right') => {
+  const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
       const { current } = scrollRef;
       const scrollAmount = 400;
-      
-      if (direction === 'left') {
-        current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+
+      if (direction === "left") {
+        current.scrollBy({ left: -scrollAmount, behavior: "smooth" });
       } else {
-        current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+        current.scrollBy({ left: scrollAmount, behavior: "smooth" });
       }
     }
   };
@@ -49,11 +51,11 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
   useEffect(() => {
     const ref = scrollRef.current;
     if (ref) {
-      ref.addEventListener('scroll', handleScroll);
+      ref.addEventListener("scroll", handleScroll);
       handleScroll();
     }
     return () => {
-      if (ref) ref.removeEventListener('scroll', handleScroll);
+      if (ref) ref.removeEventListener("scroll", handleScroll);
     };
   }, []);
 
@@ -62,7 +64,7 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
   }
 
   return (
-    <section className="mt-5">
+    <section className="mt-5 mx-5">
       <div className="w-full max-w-7xl mx-auto">
         {/* Header Title */}
         <div className="flex items-center gap-3 mb-6">
@@ -78,8 +80,8 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
         <div className="relative group">
           {/* Nút Previous */}
           {showLeftArrow && (
-            <button 
-              onClick={() => scroll('left')}
+            <button
+              onClick={() => scroll("left")}
               className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 z-20 bg-slate-800/80 hover:bg-slate-700/90 text-white p-3 rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-violet-400/30 hover:border-violet-400/50"
             >
               <ChevronLeft size={24} />
@@ -88,8 +90,8 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
 
           {/* Nút Next */}
           {showRightArrow && (
-            <button 
-              onClick={() => scroll('right')}
+            <button
+              onClick={() => scroll("right")}
               className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 z-20 bg-slate-800/80 hover:bg-slate-700/90 text-white p-3 rounded-full shadow-lg transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm border border-violet-400/30 hover:border-violet-400/50"
             >
               <ChevronRight size={24} />
@@ -97,28 +99,28 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
           )}
 
           {/* Scroll Container */}
-          <div 
+          <div
             ref={scrollRef}
             className="flex gap-6 overflow-x-auto pb-8 pt-4 px-2 snap-x snap-mandatory scrollbar-hide"
-            style={{ 
-              scrollbarWidth: 'none',
-              msOverflowStyle: 'none'
+            style={{
+              scrollbarWidth: "none",
+              msOverflowStyle: "none",
             }}
           >
             {topEvents.map((event, index) => (
-              <Link 
-                key={event.id} 
+              <Link
+                key={event.id}
                 href={`/events/${event.slug}`}
                 className="flex-none w-[300px] md:w-[380px] relative snap-start group/card cursor-pointer"
               >
                 {/* Số thứ hạng */}
                 <div className="absolute -left-4 bottom-0 z-10 select-none pointer-events-none">
-                  <span 
+                  <span
                     className="text-[120px] font-black leading-none italic opacity-100 transition-transform group-hover/card:scale-110 duration-300"
                     style={{
-                      WebkitTextStroke: '2px #8b5cf6',
-                      color: 'transparent',
-                      textShadow: '4px 4px 0px rgba(0,0,0,0.5)'
+                      WebkitTextStroke: "2px #8b5cf6",
+                      color: "transparent",
+                      textShadow: "4px 4px 0px rgba(0,0,0,0.5)",
                     }}
                   >
                     {index + 1}
@@ -130,9 +132,9 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
                   {/* Image */}
                   <div className="aspect-[16/9] w-full overflow-hidden relative">
                     {event.bannerUrl ? (
-                      <Image 
-                        src={event.bannerUrl} 
-                        alt={event.name} 
+                      <Image
+                        src={event.bannerUrl}
+                        alt={event.name}
                         fill
                         className="object-cover transition-transform duration-500 group-hover/card:scale-110"
                       />
@@ -142,7 +144,7 @@ export default function TrendingEventsSlider({ events }: TrendingEventsSliderPro
                       </div>
                     )}
                   </div>
-                  
+
                   {/* Overlay Gradient */}
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900/90 via-slate-900/20 to-transparent opacity-80" />
 

@@ -376,23 +376,39 @@
           "downloadBtn": "Tải xuống"
         },
         "media": {
-          "posterTitle": "Event Poster",
-          "posterRecommended": "(Recommended: 600x800px or 3:4 ratio)",
+          "posterTitle": "Ảnh Poster Sự Kiện",
+          "posterRecommended": "(Khuyến nghị: 600x800px hoặc tỷ lệ 3:4)",
           "posterAlt": "Xem trước poster sự kiện",
-          "uploadYourOwn": "Upload Your Own",
-          "uploadButtonPoster": "Upload Poster",
-          "removePoster": "Remove Poster",
-          "generateWithAI": "Generate with AI",
-          "bannerTitle": "Event Banner",
-          "bannerRecommended": "(Recommended: 1280x720px or 16:9 ratio)",
+          "uploadYourOwn": "Tải Lên Ảnh Của Bạn",
+          "uploadButtonPoster": "Tải Lên Poster",
+          "removePoster": "Xóa Poster",
+          "generateWithAI": "Tạo Bằng AI",
+          "bannerTitle": "Ảnh Banner Sự Kiện",
+          "bannerRecommended": "(Khuyến nghị: 1280x720px hoặc tỷ lệ 16:9)",
           "bannerAlt": "Xem trước banner sự kiện",
-          "uploadButtonBanner": "Upload Banner",
-          "removeBanner": "Remove Banner",
-          "generateBannerWithAI": "Generate Banner with AI"
+          "uploadButtonBanner": "Tải Lên Banner",
+          "removeBanner": "Xóa Banner",
+          "generateBannerWithAI": "Tạo Banner Bằng AI"
         }
       },
       "help": {
         "maxTicketsPerOrder": "Đặt số vé tối đa mà khách có thể mua trong một đơn"
+      },
+      "ticketing": {
+        "title": "Bán Vé & Chỗ Ngồi",
+        "seatMapChangesWarning": "Phát hiện thay đổi sẽ ảnh hưởng đến việc gán chỗ ngồi",
+        "chooseModeLabel": "Chọn Chế Độ Bán Vé",
+        "simpleMode": {
+          "title": "Bán Vé Đơn Giản",
+          "description": "Tạo vé với giá theo khu vực cơ bản (không chọn chỗ ngồi cụ thể)"
+        },
+        "seatMapMode": {
+          "title": "Bán Vé Theo Sơ Đồ Chỗ Ngồi",
+          "description": "Sử dụng sơ đồ chỗ ngồi đã thiết kế với chọn chỗ ngồi cụ thể"
+        }
+      },
+      "preview": {
+        "title": "Xem Trước Sự Kiện"
       }
     },
     "SeatMap": {
@@ -578,6 +594,37 @@
     },
     "SignOut": {
       "signOut": "Đăng Xuất"
+    },
+    "organization": {
+      "title": "Quản lý Tổ chức",
+      "selectOrg": "Vui lòng chọn một tổ chức để quản lý.",
+      "settings": "Cài đặt Tổ chức",
+      "settingsDesc": "Quản lý thành viên và cài đặt của tổ chức.",
+      "details": "Chi tiết Tổ chức",
+      "detailsDesc": "Thông tin về tổ chức hiện tại của bạn.",
+      "name": "Tên",
+      "slug": "Đường dẫn (Slug)",
+      "members": "Thành viên",
+      "membersDesc": "Quản lý thành viên của tổ chức này.",
+      "dangerZone": "Vùng Nguy hiểm",
+      "leaveOrg": "Rời Tổ chức",
+      "leaveOrgDesc": "Hủy quyền truy cập của bạn vào tổ chức này.",
+      "createOrg": "Tạo Tổ chức",
+      "createOrgDesc": "Tạo một tổ chức mới để quản lý sự kiện.",
+      "inviteMember": "Mời Thành viên",
+      "email": "Email",
+      "role": "Vai trò",
+      "sendInvitation": "Gửi Lời mời",
+      "sending": "Đang gửi...",
+      "removeMember": "Xóa Thành viên",
+      "confirmRemove": "Bạn có chắc chắn muốn xóa thành viên này không?",
+      "invitations": "Lời mời Đang chờ",
+      "cancelInvitation": "Hủy Lời mời",
+      "confirmCancel": "Bạn có chắc chắn muốn hủy lời mời này không?",
+      "noInvitations": "Không có lời mời nào đang chờ.",
+      "invitationSent": "Đã gửi lời mời thành công",
+      "memberAdded": "Đã thêm thành viên thành công",
+      "confirmInvite": "Bạn có chắc chắn muốn mời người dùng này không?"
     }
   },
   "about": {
@@ -611,6 +658,10 @@
       "vision": {
         "title": "Tầm nhìn 2030",
         "content": "Trở thành siêu ứng dụng giải trí và sự kiện số 1 Đông Nam Á, nơi mọi trải nghiệm đáng nhớ bắt đầu."
+      },
+      "passion": {
+        "title": "Đam mê sự kiện",
+        "subtitle": "Kết nối cộng đồng qua trải nghiệm"
       }
     },
     "features": {
@@ -668,6 +719,7 @@
       "badge": "Đội ngũ phát triển",
       "title": "Những người đứng sau VieTicket",
       "subtitle": "Đội ngũ đam mê công nghệ và sự kiện, cam kết tạo ra trải nghiệm tuyệt vời cho người dùng.",
+      "comingSoon": "Chúng tôi sẽ cập nhật danh sách team sớm.",
       "members": {
         "vinh": {
           "name": "Đặng Thành Vinh",
@@ -729,7 +781,7 @@
       "address": {
         "title": "Địa chỉ",
         "details": [
-          "123 Đường Nguyễn Văn Linh, Q.Hải Châu, TP.Đà Nẵng"
+          "10 Cẩm Bắc 3, Hòa Thọ Đông, Cẩm Lệ, Đà Nẵng"
         ]
       },
       "hours": {
@@ -801,7 +853,7 @@
       "details": {
         "address": {
           "title": "Địa chỉ",
-          "line1": "123 Đường Nguyễn Văn Linh, Q.7, TP.HCM"
+          "line1": "10 Cẩm Bắc 3, Hòa Thọ Đông, Cẩm Lệ, Đà Nẵng"
         },
         "hours": {
           "title": "Giờ làm việc",
@@ -1084,6 +1136,18 @@
       "description": "Nếu bạn có thắc mắc về các điều khoản và điều kiện, hãy liên hệ với chúng tôi.",
       "supportButton": "Liên hệ hỗ trợ",
       "emailButton": "Gửi email"
+    }
+  },
+  "admin-dashboard": {
+    "Chat": {
+      "title": "Tin nhắn (Admin)",
+      "description": "Trao đổi với người dùng",
+      "new_chat": "Cuộc trò chuyện mới",
+      "select_organizer": "Chọn nhà tổ chức",
+      "select_organizer_description": "Chọn một nhà tổ chức để bắt đầu trò chuyện",
+      "search_organizer": "Tìm kiếm nhà tổ chức...",
+      "no_organizers_found": "Không tìm thấy nhà tổ chức",
+      "no_active_organizers": "Không có nhà tổ chức đang hoạt động"
     }
   }
 }

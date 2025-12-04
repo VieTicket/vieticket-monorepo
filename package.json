@@ -1,8 +1,8 @@
 {
   "name": "vieticket",
   "devDependencies": {
-    "prettier": "^3.5.3",
-    "turbo": "^2.5.5",
+    "prettier": "^3.7.2",
+    "turbo": "^2.6.1",
     "typescript": "5.9.3"
   },
   "engines": {
@@ -25,10 +25,12 @@
     "packages/*"
   ],
   "dependencies": {
-    "mongoose": "^8.19.2",
-    "resend": "^6.4.2"
+    "@daveyplate/better-auth-ui": "3.0.0",
+    "mongoose": "^8.20.1",
+    "resend": "^6.5.2"
   },
   "catalog": {
+    "better-auth": "^1.4.3",
     "drizzle-orm": "^0.44.7",
     "typescript": "5.9.3"
   }

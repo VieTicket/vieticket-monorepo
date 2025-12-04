@@ -19,6 +19,17 @@ export interface UserBehavior {
     category?: string;
     timestamp: number;
   }>;
+  eventEngagement?: Array<{
+    eventId: string;
+    eventTitle: string;
+    category?: string;
+    location?: string;
+    price?: number;
+    timeSpent: number; // seconds
+    engagementDepth: number; // 0-1 score
+    timestamp: number;
+    source: "list" | "search" | "recommendation";
+  }>;
   preferences: {
     categories: string[];
     priceRange: { min: number; max: number };
@@ -277,6 +288,11 @@ export class AIPersonalizationService {
         `💰 Price score: ${(priceScoreResult.score * 100).toFixed(1)}% (explicit: ${priceScoreResult.isExplicit})`
       );
 
+      // Apply engagement bonus for events user spent significant time on
+      const engagementBonus = this.calculateEngagementBonus(event, userBehavior);
+      score += engagementBonus * 0.1; // 10% weight for engagement
+      console.log(`👁️ Engagement bonus: +${(engagementBonus * 100).toFixed(1)}%`);
+
       // Apply recency-based bonus for explicit filter matches
       // More recent filters get higher priority
       const recencyBonus = this.calculateRecencyBonus(
@@ -366,11 +382,19 @@ export class AIPersonalizationService {
       .map((e) => `${e.title} (${e.category})`)
       .join(", ");
 
+    // Include high-engagement events (user spent significant time)
+    const highEngagementEvents = (userBehavior.eventEngagement || [])
+      .filter((e) => e.timeSpent >= 30 || e.engagementDepth >= 0.5) // 30+ seconds or 50%+ scroll
+      .slice(-5)
+      .map((e) => `${e.eventTitle} (${e.category}, ${Math.round(e.timeSpent)}s, ${Math.round(e.engagementDepth * 100)}% engaged)`)
+      .join(", ");
+
     return `
 Search queries: ${searchQueries}
 Top Interests (Frequency): ${topInterests}
 Viewed events: ${viewedEvents}
 Clicked events: ${clickedEvents}
+High engagement events: ${highEngagementEvents || "None yet"}
 Preferred categories: ${userBehavior.preferences.categories.join(", ")}
 Price range: ${userBehavior.preferences.priceRange.min} - ${userBehavior.preferences.priceRange.max}
 Preferred locations: ${userBehavior.preferences.locations.join(", ")}
@@ -605,6 +629,63 @@ Preferred locations: ${userBehavior.preferences.locations.join(", ")}
     }
 
     return totalBonus;
+  }
+
+  /**
+   * Calculate engagement bonus based on similar events user spent time on
+   * Higher bonus for events similar to those with high time spent + engagement depth
+   */
+  private calculateEngagementBonus(
+    event: EventForRecommendation,
+    userBehavior: UserBehavior
+  ): number {
+    const engagements = userBehavior.eventEngagement || [];
+    if (engagements.length === 0) return 0;
+
+    let maxBonus = 0;
+
+    // Check if this exact event was previously engaged with
+    const previousEngagement = engagements.find(e => e.eventId === event.id);
+    if (previousEngagement) {
+      // Strong bonus if user previously spent time on THIS event
+      const timeScore = Math.min(previousEngagement.timeSpent / 300, 1); // Max at 5 minutes
+      const depthScore = previousEngagement.engagementDepth;
+      maxBonus = Math.max(maxBonus, (timeScore + depthScore) / 2 * 0.8); // Up to 80% bonus
+      console.log(`  🔁 Previous engagement: ${previousEngagement.timeSpent}s, depth: ${(depthScore * 100).toFixed(0)}%`);
+      return maxBonus;
+    }
+
+    // Check for similar events (same category/location/price range)
+    const similarEngagements = engagements.filter(e => {
+      const categoryMatch = event.category && e.category === event.category;
+      const locationMatch = event.location && e.location === event.location;
+      const priceMatch = event.price && e.price && 
+        Math.abs(event.price - e.price) < event.price * 0.5; // Within 50% price range
+      
+      return categoryMatch || locationMatch || priceMatch;
+    });
+
+    if (similarEngagements.length === 0) return 0;
+
+    // Calculate average engagement quality for similar events
+    similarEngagements.forEach(engagement => {
+      const timeScore = Math.min(engagement.timeSpent / 300, 1); // Max at 5 minutes
+      const depthScore = engagement.engagementDepth;
+      const qualityScore = (timeScore + depthScore) / 2;
+      
+      // Apply decay based on how long ago this engagement was
+      const ageMinutes = (Date.now() - engagement.timestamp) / (1000 * 60);
+      const recencyFactor = Math.max(0.3, Math.min(1, 1 - ageMinutes / (60 * 24 * 7))); // Decay over 1 week
+      
+      const bonus = qualityScore * recencyFactor * 0.5; // Up to 50% bonus for similar events
+      maxBonus = Math.max(maxBonus, bonus);
+    });
+
+    if (maxBonus > 0.1) {
+      console.log(`  🎯 Similar engagement found: ${similarEngagements.length} events, max bonus: ${(maxBonus * 100).toFixed(1)}%`);
+    }
+
+    return maxBonus;
   }
 
   /**

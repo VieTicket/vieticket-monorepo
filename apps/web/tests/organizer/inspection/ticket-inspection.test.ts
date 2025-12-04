@@ -128,9 +128,22 @@ const mockHeaders = mock().mockResolvedValue({
   authorization: "Bearer test-token",
 });
 
+const mockGetFullOrganization = mock().mockResolvedValue({
+  id: "test-org-id",
+  members: [{
+    userId: "test-organizer-id",
+    role: "owner"
+  }]
+});
+
 // Mock modules
 mock.module("@/lib/auth/auth", () => ({
   getAuthSession: mockGetAuthSession,
+  auth: {
+    api: {
+      getFullOrganization: mockGetFullOrganization,
+    },
+  },
 }));
 
 mock.module("@vieticket/services/inspection", () => ({
@@ -175,6 +188,28 @@ describe("Function: inspectTicketAction", () => {
     // Reset mocks
     mockGetAuthSession.mockClear();
     mockInspectTicket.mockClear();
+    mockGetFullOrganization.mockClear();
+    
+    // Reset to default successful state
+    mockGetAuthSession.mockResolvedValue({
+      user: { id: "test-organizer-id", role: "organizer" },
+    });
+    mockGetFullOrganization.mockResolvedValue({
+      id: "test-org-id",
+      members: [{ userId: "test-organizer-id", role: "owner" }]
+    });
+    mockInspectTicket.mockResolvedValue({
+      id: "ticket-123",
+      status: "active",
+      seatNumber: "A15",
+      rowName: "Row A",
+      areaName: "VIP Section",
+      eventName: "Concert Tonight",
+      visitorName: "John Doe",
+      purchasedAt: new Date(),
+      eventStartTime: new Date("2024-12-15T19:00:00Z"),
+      qrData: "VT_encoded_qr_data_here",
+    });
   });
 
   describe("Normal Cases", () => {
@@ -190,7 +225,7 @@ describe("Function: inspectTicketAction", () => {
       expect((result.data as any).id).toBe(ticketId);
       expect(result.data?.status).toBe("active");
       expect((result.data as any).visitorName).toBe("John Doe");
-      expect(mockInspectTicket).toHaveBeenCalledWith(ticketId, expect.any(Object));
+      expect(mockInspectTicket).toHaveBeenCalledWith(ticketId, expect.any(Object), expect.any(String));
       console.log("✅ PASSED: Valid ticket inspected successfully");
     });
 
@@ -286,7 +321,7 @@ describe("Function: inspectTicketAction", () => {
       const result = await inspectTicketAction(edgeUUID);
 
       expect(result.success).toBe(true);
-      expect(mockInspectTicket).toHaveBeenCalledWith(edgeUUID, expect.any(Object));
+      expect(mockInspectTicket).toHaveBeenCalledWith(edgeUUID, expect.any(Object), expect.any(String));
       console.log("✅ PASSED: Edge case UUID handled correctly");
     });
   });
@@ -394,6 +429,29 @@ describe("Function: checkInTicketAction", () => {
   beforeEach(() => {
     console.log("Testing ticket check-in...");
     mockCheckInTicket.mockClear();
+    mockGetAuthSession.mockClear();
+    mockGetFullOrganization.mockClear();
+    
+    // Reset to default successful state
+    mockGetAuthSession.mockResolvedValue({
+      user: { id: "test-organizer-id", role: "organizer" },
+    });
+    mockGetFullOrganization.mockResolvedValue({
+      id: "test-org-id",
+      members: [{ userId: "test-organizer-id", role: "owner" }]
+    });
+    mockCheckInTicket.mockResolvedValue({
+      id: "ticket-123",
+      status: "used",
+      seatNumber: "A15",
+      rowName: "Row A", 
+      areaName: "VIP Section",
+      eventName: "Concert Tonight",
+      visitorName: "John Doe",
+      purchasedAt: new Date(),
+      eventStartTime: new Date("2024-12-15T19:00:00Z"),
+      qrData: "VT_encoded_qr_data_here",
+    });
   });
 
   describe("Normal Cases", () => {
@@ -407,7 +465,7 @@ describe("Function: checkInTicketAction", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect((result.data as any)?.status).toBe("used");
-      expect(mockCheckInTicket).toHaveBeenCalledWith(ticketId, expect.any(Object));
+      expect(mockCheckInTicket).toHaveBeenCalledWith(ticketId, expect.any(Object), expect.any(String));
       console.log("✅ PASSED: Ticket checked in successfully");
     });
 
@@ -497,6 +555,33 @@ describe("Function: getActiveEventsAction", () => {
   beforeEach(() => {
     console.log("Testing active events retrieval...");
     mockGetActiveEvents.mockClear();
+    mockGetAuthSession.mockClear();
+    mockGetFullOrganization.mockClear();
+    
+    // Reset to default successful state
+    mockGetAuthSession.mockResolvedValue({
+      user: { id: "test-organizer-id", role: "organizer" },
+    });
+    mockGetFullOrganization.mockResolvedValue({
+      id: "test-org-id",
+      members: [{ userId: "test-organizer-id", role: "owner" }]
+    });
+    mockGetActiveEvents.mockResolvedValue([
+      {
+        id: "event-1",
+        name: "Concert A", 
+        startTime: new Date("2024-12-15T19:00:00Z"),
+        endTime: new Date("2024-12-15T22:00:00Z"),
+        location: "Stadium A",
+      },
+      {
+        id: "event-2",
+        name: "Festival B",
+        startTime: new Date("2024-12-20T10:00:00Z"),
+        endTime: new Date("2024-12-22T23:00:00Z"),
+        location: "Park B",
+      },
+    ]);
   });
 
   describe("Normal Cases", () => {
@@ -524,7 +609,7 @@ describe("Function: getActiveEventsAction", () => {
       expect(Array.isArray(result.data)).toBe(true);
       expect((result.data as any).length).toBe(1);
       expect((result.data as any)[0].name).toBe("Concert A");
-      expect(mockGetActiveEvents).toHaveBeenCalledWith(expect.any(Object));
+      expect(mockGetActiveEvents).toHaveBeenCalledWith(expect.any(Object), expect.any(String));
       console.log("✅ PASSED: Active events retrieved successfully");
     });
 
@@ -617,6 +702,27 @@ describe("Function: processOfflineInspectionsAction", () => {
   beforeEach(() => {
     console.log("Testing offline inspections processing...");
     mockProcessOfflineInspections.mockClear();
+    mockGetAuthSession.mockClear();
+    mockGetFullOrganization.mockClear();
+    
+    // Reset to default successful state
+    mockGetAuthSession.mockResolvedValue({
+      user: { id: "test-organizer-id", role: "organizer" },
+    });
+    mockGetFullOrganization.mockResolvedValue({
+      id: "test-org-id",
+      members: [{ userId: "test-organizer-id", role: "owner" }]
+    });
+    mockProcessOfflineInspections.mockResolvedValue({
+      processed: 3,
+      failed: 1,
+      results: [
+        { ticketId: "ticket-1", success: true },
+        { ticketId: "ticket-2", success: true },
+        { ticketId: "ticket-3", success: true },
+        { ticketId: "ticket-4", success: false, error: "Ticket not found" },
+      ],
+    });
   });
 
   describe("Normal Cases", () => {
@@ -648,7 +754,7 @@ describe("Function: processOfflineInspectionsAction", () => {
       expect(result.success).toBe(true);
       expect(result.data).toBeDefined();
       expect((result.data as any).processed).toBe(3);
-      expect(mockProcessOfflineInspections).toHaveBeenCalledWith(inspections, expect.any(Object));
+      expect(mockProcessOfflineInspections).toHaveBeenCalledWith(inspections, expect.any(Object), expect.any(String));
       console.log("✅ PASSED: Offline inspections processed successfully");
     });
   });

@@ -129,69 +129,54 @@ export default function ContactPage() {
 
   return (
     <>
-      {/* Background */}
-      <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
-      
-      {/* Gradient overlays */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
-      
-      {/* Mouse glow effect */}
-      <div 
-        ref={glowRef}
-        className="fixed w-[400px] h-[400px] rounded-full pointer-events-none mix-blend-mode-screen transition-opacity duration-300"
-        style={{
-          background: 'radial-gradient(circle, rgba(139,92,246,0.3) 0%, rgba(139,92,246,0) 70%)',
-          filter: 'blur(20px)',
-          transform: 'translate(-50%, -50%)',
-          zIndex: 2
-        }}
-      />
+      <div className="min-h-screen bg-slate-950 relative overflow-hidden">
+        {/* Background Effects */}
+        <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-slate-950 to-slate-950 pointer-events-none" />
+        <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center [mask-image:linear-gradient(180deg,white,rgba(255,255,255,0))] pointer-events-none" />
 
-      <div className="relative z-10 min-h-screen">
-        {/* Hero Section */}
-        <section className="py-20 px-6">
-          <div className="max-w-6xl mx-auto text-center">
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 bg-gradient-to-r from-violet-300 to-purple-200 bg-clip-text text-transparent">
-              {t("hero.title")}
-            </h1>
-            <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
-              {t("hero.subtitle")}
-            </p>
-          </div>
-        </section>
+      {/* Hero Section */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto text-center">
+          <h1 className="text-5xl md:text-6xl font-bold mb-6 glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent">
+            {t("hero.title")}
+          </h1>
+          <p className="text-xl text-slate-300 max-w-3xl mx-auto mb-8">
+            {t("hero.subtitle")}
+          </p>
+        </div>
+      </section>
 
-        {/* Contact Info */}
-        <section className="py-20 px-6">
-          <div className="max-w-6xl mx-auto">
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {contactInfo.map((info, index) => {
-                const Icon = info.icon;
-                return (
-                  <Card key={index} className="text-center group bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 hover:border-violet-400/30 hover:shadow-xl transition-all duration-300 hover:-translate-y-1">
-                    <CardContent className="p-6">
-                      <div className={`inline-flex p-4 rounded-full ${info.bgColor.replace('bg-', 'bg-').replace('-50', '-900/30')} mb-4 group-hover:scale-110 transition-transform border border-opacity-30`}>
-                        <Icon className={`w-6 h-6 ${info.color}`} />
-                      </div>
-                      <h3 className="font-semibold text-white mb-3">{info.title}</h3>
-                      <div className="space-y-1">
-                        {info.details.map((detail, i) => (
-                          <p key={i} className="text-sm text-slate-300">{detail}</p>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-            </div>
+      {/* Contact Info */}
+      <section className="relative py-20 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {contactInfo.map((info, index) => {
+              const Icon = info.icon;
+              return (
+                <div key={index} className="professional-card text-center group hover:border-violet-400/30 transition-all duration-300 hover:-translate-y-1">
+                  <div className="p-6">
+                    <div className="inline-flex p-4 rounded-full bg-violet-500/10 mb-4 group-hover:scale-110 transition-transform">
+                      <Icon className="w-6 h-6 text-violet-400" />
+                    </div>
+                    <h3 className="font-semibold text-white mb-3">{info.title}</h3>
+                    <div className="space-y-1">
+                      {info.details.map((detail, i) => (
+                        <p key={i} className="text-sm text-slate-300">{detail}</p>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        </section>
+        </div>
+      </section>
 
         {/* Support Categories */}
-        <section className="py-10 px-6">
+        <section className="relative py-10 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-white mb-4">
+              <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
                 {t("support.title")}
               </h2>
               <p className="text-lg text-slate-300 max-w-2xl mx-auto">
@@ -203,10 +188,10 @@ export default function ContactPage() {
               {supportCategories.map((category, index) => {
                 const Icon = category.icon;
                 return (
-                  <Card key={index} className="group bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 hover:border-violet-400/30 hover:shadow-lg transition-all duration-300">
-                    <CardContent className="p-6">
+                  <div key={index} className="professional-card group hover:border-violet-400/30 transition-all duration-300">
+                    <div className="p-6">
                       <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-lg bg-gradient-to-br from-violet-900/30 to-purple-900/30 group-hover:from-violet-800/40 group-hover:to-purple-800/40 transition-colors border border-violet-400/30">
+                        <div className="p-3 rounded-lg bg-gradient-to-br from-violet-500/20 to-indigo-500/20 group-hover:from-violet-500/30 group-hover:to-indigo-500/30 transition-colors">
                           <Icon className="w-6 h-6 text-violet-400" />
                         </div>
                         <div className="flex-1">
@@ -218,8 +203,8 @@ export default function ContactPage() {
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    </div>
+                  </div>
                 );
               })}
             </div>
@@ -227,10 +212,10 @@ export default function ContactPage() {
         </section>
 
         {/* FAQ */}
-        <section className="py-10 px-6">
+        <section className="relative py-10 px-6">
           <div className="max-w-4xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-white mb-4">
+              <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
                 {t("faq.title")}
               </h2>
               <p className="text-lg text-slate-300">
@@ -240,40 +225,31 @@ export default function ContactPage() {
 
             <div className="space-y-4">
               {faqItems.map((item, index) => (
-                <Card key={index} className="group bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 hover:border-violet-400/30 hover:shadow-md transition-all duration-300">
-                  <CardHeader>
-                    <CardTitle className="flex items-start gap-3 text-lg">
+                <div key={index} className="professional-card group hover:border-violet-400/30 transition-all duration-300">
+                  <div className="p-6">
+                    <div className="flex items-start gap-3 text-lg font-semibold text-white mb-4">
                       <MessageSquare className="w-5 h-5 text-violet-400 mt-1 flex-shrink-0" />
-                      <span className="text-white">{item.question}</span>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="pt-0">
+                      {item.question}
+                    </div>
                     <div className="ml-8 text-slate-300 leading-relaxed">
                       {item.answer}
                     </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                </div>
               ))}
             </div>
 
             <div className="text-center mt-12">
               <p className="text-slate-300 mb-4">
-                Không tìm thấy câu trả lời? Hãy liên hệ trực tiếp với chúng tôi
+                {t("faq.notFound")}
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <a 
-                  href="tel:19001234"
-                  className="bg-violet-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-violet-700 transition-colors flex items-center gap-2 justify-center"
+                  href="tel:0766567846"
+                  className="professional-button bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-6 py-3 rounded-lg font-semibold hover:from-violet-700 hover:to-indigo-700 transition-all transform hover:scale-105 flex items-center gap-2 justify-center"
                 >
                   <Phone className="w-4 h-4" />
-                  Gọi ngay: 0766 567 846
-                </a>
-                <a 
-                  href="mailto:support@vieticket.com"
-                  className="border-2 border-violet-400 text-violet-300 px-6 py-3 rounded-lg font-semibold hover:bg-violet-600 hover:text-white transition-colors flex items-center gap-2 justify-center"
-                >
-                  <Mail className="w-4 h-4" />
-                  Email hỗ trợ
+                  {t("faq.callNow")}
                 </a>
               </div>
             </div>
@@ -281,10 +257,10 @@ export default function ContactPage() {
         </section>
 
         {/* Map Section */}
-        <section className="py-10 px-6">
+        <section className="relative py-10 px-6">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-12">
-              <h2 className="text-4xl font-bold text-white mb-4">
+              <h2 className="text-4xl font-bold glow-text bg-gradient-to-r from-violet-400 to-indigo-400 bg-clip-text text-transparent mb-4">
                 {t("office.title")}
               </h2>
             </div>
@@ -320,14 +296,17 @@ export default function ContactPage() {
                   </div>
                 </div>
               </div>
-              <div className="bg-slate-800/50 backdrop-blur-sm border border-slate-700/30 rounded-xl h-80 flex items-center justify-center">
-                <div className="text-center">
-                  <MapPin className="w-16 h-16 text-slate-400 mx-auto mb-4" />
-                  <p className="text-slate-300">{t("office.mapPlaceholder")}</p>
-                  <p className="text-sm text-slate-400 mt-2">
-                    {t("office.mapDescription")}
-                  </p>
-                </div>
+              <div className="professional-card rounded-xl h-80 overflow-hidden">
+                <iframe
+                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3833.9896394567!2d108.21563287590832!3d16.070644484620842!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x314219d37cf8e3c3%3A0x6c20ec86c5c48d58!2zMTAgQ-G6qW0gQuG6r2MgMywgSGFpIENow6J1LCDEkMOgIE7hurVuZyA1NTAwMDAsIFZp4buHdCBOYW0!5e0!3m2!1svi!2s!4v1732875500000!5m2!1svi!2s"
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  title="Office Location"
+                />
               </div>
             </div>
           </div>

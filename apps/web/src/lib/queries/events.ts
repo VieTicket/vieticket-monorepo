@@ -336,9 +336,31 @@ export async function getFilteredEvents({
     );
   }
 
-  // Category filter
+  // Category filter - match both English and Vietnamese
   if (category && category !== "all") {
-    whereConditions.push(sql`LOWER(${events.type}) = LOWER(${category})`);
+    console.log(`Category filter: ${category}`);
+    
+    // Map category values to both English and Vietnamese equivalents
+    const categoryMap: Record<string, string[]> = {
+      "Entertainment": ["Entertainment", "Giải Trí", "giải trí"],
+      "Technology & Innovation": ["Technology & Innovation", "Công Nghệ & Đổi Mới", "công nghệ & đổi mới"],
+      "Business": ["Business", "Kinh Doanh", "kinh doanh"],
+      "Cultural & Arts": ["Cultural & Arts", "Văn Hóa & Nghệ Thuật", "văn hóa & nghệ thuật"],
+      "Sports & Fitness": ["Sports & Fitness", "Thể Thao & Sức Khỏe", "thể thao & sức khỏe"],
+      "Competition & Game shows": ["Competition & Game shows", "Cuộc Thi & Chương Trình Trò Chơi", "cuộc thi & chương trình trò chơi"],
+    };
+    
+    // Get all possible variations for the selected category
+    const categoryVariations = categoryMap[category] || [category];
+    
+    // Create OR conditions for all variations
+    const categoryConditions = categoryVariations.map(variation => 
+      sql`LOWER(${events.type}) = LOWER(${variation})`
+    );
+    
+    whereConditions.push(sql`(${categoryConditions.reduce((acc, condition, index) => 
+      index === 0 ? condition : sql`${acc} OR ${condition}`
+    )})`);
   }
 
   // Search query

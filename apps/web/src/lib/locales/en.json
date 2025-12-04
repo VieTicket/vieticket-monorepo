@@ -393,6 +393,22 @@
         "duplicateShowingTime": "Cannot have two showings with the same start time",
         "ticketSaleStartRequired": "Ticket sale start time is required",
         "ticketSaleEndRequired": "Ticket sale end time is required"
+      },
+      "ticketing": {
+        "title": "Ticketing & Seating",
+        "seatMapChangesWarning": "Changes detected that will affect seat assignments",
+        "chooseModeLabel": "Choose Ticketing Mode",
+        "simpleMode": {
+          "title": "Simple Ticketing",
+          "description": "Create tickets with basic area pricing (no specific seat selection)"
+        },
+        "seatMapMode": {
+          "title": "Seat Map Ticketing",
+          "description": "Use a pre-designed seat map with specific seat selection"
+        }
+      },
+      "preview": {
+        "title": "Event Preview"
       }
     },
     "SeatMap": {
@@ -578,6 +594,36 @@
     },
     "SignOut": {
       "signOut": "Sign Out"
+    },
+    "organization": {
+      "title": "Organization Management",
+      "selectOrg": "Please select an organization to manage.",
+      "settings": "Organization Settings",
+      "settingsDesc": "Manage your organization members and settings.",
+      "details": "Organization Details",
+      "detailsDesc": "Information about your current organization.",
+      "name": "Name",
+      "slug": "Slug",
+      "members": "Members",
+      "membersDesc": "Manage members of this organization.",
+      "dangerZone": "Danger Zone",
+      "leaveOrg": "Leave Organization",
+      "leaveOrgDesc": "Revoke your access to this organization.",
+      "createOrg": "Create Organization",
+      "createOrgDesc": "Create a new organization to manage events.",
+      "inviteMember": "Invite Member",
+      "email": "Email",
+      "role": "Role",
+      "sendInvitation": "Send Invitation",
+      "sending": "Sending...",
+      "removeMember": "Remove Member",
+      "confirmRemove": "Are you sure you want to remove this member?",
+      "invitations": "Pending Invitations",
+      "cancelInvitation": "Cancel Invitation",
+      "confirmCancel": "Are you sure you want to cancel this invitation?",
+      "noInvitations": "No pending invitations.",
+      "memberAdded": "Member added successfully",
+      "confirmInvite": "Are you sure you want to invite this user?"
     }
   },
   "about": {
@@ -611,6 +657,10 @@
       "vision": {
         "title": "Vision 2030",
         "content": "To become the #1 entertainment and event super app in Southeast Asia, where every memorable experience begins."
+      },
+      "passion": {
+        "title": "Event Passion",
+        "subtitle": "Connecting communities through experiences"
       }
     },
     "features": {
@@ -668,6 +718,7 @@
       "badge": "Development team",
       "title": "The people behind VieTicket",
       "subtitle": "A team passionate about technology and events, committed to creating amazing experiences for users.",
+      "comingSoon": "We will update the team list soon.",
       "members": {
         "vinh": {
           "name": "Dang Thanh Vinh",
@@ -729,7 +780,7 @@
       "address": {
         "title": "Address",
         "details": [
-          "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+          "10 Cam Bac 3, Hoa Tho Dong, Cam Le, Da Nang"
         ]
       },
       "hours": {
@@ -801,7 +852,7 @@
       "details": {
         "address": {
           "title": "Address",
-          "line1": "123 Nguyen Van Linh Street, District Hai Chau, Da Nang City"
+          "line1": "10 Cam Bac 3, Hoa Tho Dong, Cam Le, Da Nang"
         },
         "hours": {
           "title": "Working hours",
@@ -1084,6 +1135,18 @@
       "description": "If you have questions about the terms and conditions, please contact us.",
       "supportButton": "Contact support",
       "emailButton": "Send email"
+    }
+  },
+  "admin-dashboard": {
+    "Chat": {
+      "title": "Messages (Admin)",
+      "description": "Chat with users",
+      "new_chat": "New Chat",
+      "select_organizer": "Select Organizer",
+      "select_organizer_description": "Choose an organizer to start chatting",
+      "search_organizer": "Search organizer...",
+      "no_organizers_found": "No organizers found",
+      "no_active_organizers": "No active organizers"
     }
   }
 }

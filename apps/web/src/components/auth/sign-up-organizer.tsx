@@ -16,229 +16,322 @@ import { createOrganizerAction } from "@/lib/actions/organizer-actions";
 import { Loader2, X } from "lucide-react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import { ChangeEvent, useState } from "react";
 import { toast } from "sonner";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-
-// Define validation schema
-const signUpSchema = z
-  .object({
-    firstName: z
-      .string()
-      .min(1, "First name is required")
-      .max(50, "First name is too long"),
-    lastName: z
-      .string()
-      .min(1, "Last name is required")
-      .max(50, "Last name is too long"),
-    email: z.string().email("Please enter a valid email address"),
-    password: z.string().min(8, "Password must be at least 8 characters"),
-    passwordConfirmation: z
-      .string()
-      .min(1, "Password confirmation is required"),
-    image: z.any().optional(),
-  })
-  .refine((data) => data.password === data.passwordConfirmation, {
-    message: "Passwords do not match",
-    path: ["passwordConfirmation"],
-  });
-
-type SignUpFormData = z.infer<typeof signUpSchema>;
+import "./organizer-styles.css";
 
 export default function SignUpOrganizer() {
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const [image, setImage] = useState<File | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
 
-  const form = useForm<SignUpFormData>({
-    resolver: zodResolver(signUpSchema),
-    defaultValues: {
-      firstName: "",
-      lastName: "",
-      email: "",
-      password: "",
-      passwordConfirmation: "",
-    },
-  });
-
-  const onSubmit = async (data: SignUpFormData) => {
-    try {
-      await authClient.signUp.email({
-        ...({
-          email: data.email,
-          password: data.password,
-          name: `${data.firstName} ${data.lastName}`,
-          image: image ? await convertImageToBase64(image) : "",
-          role: "organizer",
-        } as unknown as Parameters<typeof authClient.signUp.email>[0]),
-        callbackURL: "/organizer",
-        fetchOptions: {
-          onRequest: () => {
-            setLoading(true);
-          },
-          onResponse: () => {
-            setLoading(false);
-          },
-          onError: (ctx) => {
-            toast.error(ctx.error.message);
-            setLoading(false);
-          },
-          onSuccess: async (ctx) => {
-            try {
-              // Create organizer record with isActive = false
-              const organizerResult = await createOrganizerAction(
-                ctx.data.user
-              );
-
-              if (organizerResult.success) {
-                toast.success(
-                  "Please check your email to verify your account."
-                );
-                router.push("/auth/sign-in");
-              } else {
-                toast.error(
-                  "Account created but failed to initialize organizer profile. Please contact support."
-                );
-                router.push("/auth/sign-in");
-              }
-            } catch (error) {
-              console.error("Error creating organizer profile:", error);
-              toast.error(
-                "Account created but failed to initialize organizer profile. Please contact support."
-              );
-              router.push("/auth/sign-in");
-            }
-          },
-        },
-      });
-    } catch (error) {
-      console.error("Sign up error:", error);
-      toast.error("An unexpected error occurred. Please try again.");
-      setLoading(false);
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
     }
   };
 
   return (
-    <Card className="ml-4 z-50 rounded-md max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-lg md:text-xl">Sign Up</CardTitle>
-        <CardDescription className="text-xs md:text-sm">
-          Enter your information to create an account
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid gap-4">
+    <>
+      {/* Professional Styles */}
+      <style jsx>{`
+        .professional-card {
+          background: rgba(15, 23, 42, 0.8);
+          backdrop-filter: blur(20px);
+          border: 1px solid rgba(148, 163, 184, 0.1);
+          transition: all 0.3s ease;
+        }
+
+        .professional-card:hover {
+          background: rgba(15, 23, 42, 0.9);
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          box-shadow:
+            0 10px 25px -3px rgba(0, 0, 0, 0.3),
+            0 0 20px rgba(139, 92, 246, 0.1);
+          transform: translateY(-2px);
+        }
+
+        .glow-text {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Force white color for all h3 elements in this component */
+        h3 {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Force override CardTitle specifically */
+        .card-title {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Nuclear override for this specific component */
+        :global(.card-title),
+        :global(h3[class*="card-title"]),
+        :global([data-slot="card-title"]) {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Target the exact element structure */
+        div[data-slot="card-title"] {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Global override for any card title */
+        :global(div[data-slot="card-title"]) {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Super specific override */
+        :global(div[data-slot="card-title"].font-semibold) {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        /* Even more specific with class combination */
+        :global(div[data-slot="card-title"][class*="text-lg"]) {
+          color: white !important;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.5) !important;
+        }
+
+        .professional-button {
+          background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.1),
+            rgba(79, 70, 229, 0.1)
+          );
+          border: 1px solid rgba(139, 92, 246, 0.3);
+          transition: all 0.3s ease;
+        }
+
+        .professional-button:hover {
+          background: linear-gradient(
+            135deg,
+            rgba(139, 92, 246, 0.2),
+            rgba(79, 70, 229, 0.2)
+          );
+          border: 1px solid rgba(139, 92, 246, 0.5);
+          box-shadow: 0 0 20px rgba(139, 92, 246, 0.3);
+          transform: scale(1.02);
+        }
+      `}</style>
+
+      <Card className="ml-4 z-50 rounded-md max-w-sm border-0 bg-transparent shadow-none">
+        <CardHeader>
+          <CardTitle
+            className="text-lg md:text-xl text-white glow-text !text-white card-title"
+            style={{ color: "white !important" }}
+          >
+            Sign Up
+          </CardTitle>
+          <CardDescription className="text-xs md:text-sm text-slate-400">
+            Enter your information to create an account
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4">
             <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>First name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Max" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Last name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Robinson" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <div className="grid gap-2">
+                <Label htmlFor="first-name" className="text-slate-300">
+                  First name
+                </Label>
+                <Input
+                  id="first-name"
+                  placeholder="Max"
+                  required
+                  className="professional-button text-white placeholder-slate-400"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setFirstName(e.target.value);
+                  }}
+                  value={firstName}
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label htmlFor="last-name" className="text-slate-300">
+                  Last name
+                </Label>
+                <Input
+                  id="last-name"
+                  placeholder="Robinson"
+                  required
+                  className="professional-button text-white placeholder-slate-400"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                    setLastName(e.target.value);
+                  }}
+                  value={lastName}
+                />
+              </div>
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email" className="text-slate-300">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="m@example.com"
+                required
+                className="professional-button text-white placeholder-slate-400"
+                onChange={(e: ChangeEvent<HTMLInputElement>) => {
+                  setEmail(e.target.value);
+                }}
+                value={email}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="email"
-                      placeholder="m@example.com"
-                      {...field}
+            <div className="grid gap-2">
+              <Label htmlFor="password" className="text-slate-300">
+                Password
+              </Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                className="professional-button text-white placeholder-slate-400"
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setPassword(e.target.value)
+                }
+                autoComplete="new-password"
+                placeholder="Password"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password" className="text-slate-300">
+                Confirm Password
+              </Label>
+              <Input
+                id="password_confirmation"
+                type="password"
+                value={passwordConfirmation}
+                className="professional-button text-white placeholder-slate-400"
+                onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                  setPasswordConfirmation(e.target.value)
+                }
+                autoComplete="new-password"
+                placeholder="Confirm Password"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="image" className="text-slate-300">
+                Profile Image (optional)
+              </Label>
+              <div className="flex items-end gap-4">
+                {imagePreview && (
+                  <div className="relative w-16 h-16 rounded-sm overflow-hidden border border-violet-400/30">
+                    <Image
+                      src={imagePreview}
+                      alt="Profile preview"
+                      layout="fill"
+                      objectFit="cover"
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Password"
-                      autoComplete="new-password"
-                      {...field}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 w-full">
+                  <Input
+                    id="image"
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="w-full professional-button text-white file:text-violet-400 file:bg-transparent file:border-0"
+                  />
+                  {imagePreview && (
+                    <X
+                      className="cursor-pointer text-slate-400 hover:text-violet-400 transition-colors"
+                      onClick={() => {
+                        setImage(null);
+                        setImagePreview(null);
+                      }}
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="passwordConfirmation"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Confirm Password</FormLabel>
-                  <FormControl>
-                    <Input
-                      type="password"
-                      placeholder="Confirm Password"
-                      autoComplete="new-password"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+                  )}
+                </div>
+              </div>
+            </div>
             <Button
               type="submit"
-              className="w-full"
-              disabled={loading || form.formState.isSubmitting}
+              className="w-full professional-button hover:professional-button border-violet-400/50 hover:border-violet-400 bg-violet-600/20 hover:bg-violet-600/30 text-white"
+              disabled={loading}
+              onClick={async () => {
+                await authClient.signUp.email({
+                  ...({
+                    email,
+                    password,
+                    name: `${firstName} ${lastName}`,
+                    image: image ? await convertImageToBase64(image) : "",
+                    role: "organizer",
+                  } as unknown as Parameters<
+                    typeof authClient.signUp.email
+                  >[0]),
+                  callbackURL: "/organizer",
+                  fetchOptions: {
+                    onResponse: () => {
+                      setLoading(false);
+                    },
+                    onRequest: () => {
+                      setLoading(true);
+                    },
+                    onError: (ctx) => {
+                      toast.error(ctx.error.message);
+                    },
+                    onSuccess: async (ctx) => {
+                      try {
+                        // Create organizer record with isActive = false
+                        const organizerResult = await createOrganizerAction(
+                          ctx.data.user
+                        );
+
+                        if (organizerResult.success) {
+                          toast.success(
+                            "Please check your email to verify your account."
+                          );
+                          router.push("/auth/sign-in");
+                        } else {
+                          toast.error(
+                            "Account created but failed to initialize organizer profile. Please contact support."
+                          );
+                          router.push("/auth/sign-in");
+                        }
+                      } catch (error) {
+                        console.error(
+                          "Error creating organizer profile:",
+                          error
+                        );
+                        toast.error(
+                          "Account created but failed to initialize organizer profile. Please contact support."
+                        );
+                        router.push("/auth/sign-in");
+                      }
+                    },
+                  },
+                });
+              }}
             >
-              {loading || form.formState.isSubmitting ? (
+              {loading ? (
                 <Loader2 size={16} className="animate-spin" />
               ) : (
                 "Create an account"
               )}
             </Button>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+          </div>
+        </CardContent>
+      </Card>
+    </>
   );
 }
 

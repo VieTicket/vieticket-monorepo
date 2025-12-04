@@ -148,6 +148,7 @@ export async function findPendingOrganizers(): Promise<
       rejectionReason: organizers.rejectionReason,
       rejectionSeen: organizers.rejectionSeen,
       rejectedAt: organizers.rejectedAt,
+      taxCode: organizers.taxCode,
       userId: user.id,
       userName: user.name,
       userEmail: user.email,
@@ -173,6 +174,7 @@ export async function findPendingOrganizers(): Promise<
     rejectionReason: row.rejectionReason,
     rejectionSeen: row.rejectionSeen,
     rejectedAt: row.rejectedAt,
+    taxCode: row.taxCode,
     user: {
       id: row.userId,
       name: row.userName,
@@ -204,6 +206,28 @@ export async function approveOrganizer(
 export async function findActiveOrganizers(): Promise<Organizer[]> {
   const activeOrganizers = await db.query.organizers.findMany({
     where: eq(organizers.isActive, true),
+  });
+
+  return activeOrganizers;
+}
+
+/**
+ * Finds all active organizers with their user information.
+ * @returns Array of active organizer profiles with user data.
+ */
+export async function findActiveOrganizersWithUser() {
+  const activeOrganizers = await db.query.organizers.findMany({
+    where: eq(organizers.isActive, true),
+    with: {
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          email: true,
+          image: true,
+        },
+      },
+    },
   });
 
   return activeOrganizers;
@@ -265,6 +289,7 @@ export async function findOrganizersWithPagination(
         rejectionReason: organizers.rejectionReason,
         rejectionSeen: organizers.rejectionSeen,
         rejectedAt: organizers.rejectedAt,
+        taxCode: organizers.taxCode,
         userId: user.id,
         userName: user.name,
         userEmail: user.email,
@@ -294,6 +319,7 @@ export async function findOrganizersWithPagination(
     rejectionReason: row.rejectionReason,
     rejectionSeen: row.rejectionSeen,
     rejectedAt: row.rejectedAt,
+    taxCode: row.taxCode,
     user: {
       id: row.userId,
       name: row.userName,

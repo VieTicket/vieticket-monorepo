@@ -1,6 +1,6 @@
 import { boolean, index, jsonb, pgTable, text, timestamp, uuid, } from "drizzle-orm/pg-core";
 import { events, seats } from "./events-schemas";
-import { currency, PaymentMetadata } from "../custom-types";
+import { currency, type PaymentMetadata } from "../custom-types";
 import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
 import { user } from "./users-schemas";
 import { sql } from "drizzle-orm";

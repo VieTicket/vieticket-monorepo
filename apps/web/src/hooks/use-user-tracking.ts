@@ -232,13 +232,20 @@ export function useUserTracking() {
   const trackSearch = useCallback((query: string) => {
     if (!query.trim()) return;
 
-    setUserBehavior((prev: UserBehavior) => ({
-      ...prev,
-      searchQueries: [
-        ...prev.searchQueries.slice(-19), // Keep last 19
-        query.trim(),
-      ],
-    }));
+    const trimmedQuery = query.trim();
+    
+    setUserBehavior((prev: UserBehavior) => {
+      // Remove duplicate if exists (to track recency)
+      const filteredQueries = prev.searchQueries.filter(q => q !== trimmedQuery);
+      
+      return {
+        ...prev,
+        searchQueries: [
+          ...filteredQueries.slice(-99), // Keep last 100 queries for better AI analysis
+          trimmedQuery,
+        ],
+      };
+    });
   }, []);
 
   const trackEventView = useCallback(
@@ -264,7 +271,7 @@ export function useUserTracking() {
         return {
           ...prev,
           viewedEvents: [
-            ...filteredEvents.slice(-19), // Keep last 19
+            ...filteredEvents.slice(-49), // Keep last 50 viewed events
             newViewedEvent,
           ],
           preferences: {
@@ -312,7 +319,7 @@ export function useUserTracking() {
         return {
           ...prev,
           clickedEvents: [
-            ...filteredEvents.slice(-19), // Keep last 19
+            ...filteredEvents.slice(-49), // Keep last 50 clicked events
             newClickedEvent,
           ],
           preferences: {
@@ -357,7 +364,7 @@ export function useUserTracking() {
         return {
           ...prev,
           eventEngagement: [
-            ...filteredEngagements.slice(-29), // Keep last 29
+            ...filteredEngagements.slice(-49), // Keep last 50 engagements for better analysis
             newEngagement,
           ],
           preferences: {
@@ -469,13 +476,18 @@ export function useUserTracking() {
             updatedPreferences.locations,
             filters.location
           );
-          if (newLocations.length !== updatedPreferences.locations.length)
-            hasChanges = true;
+          // Check if actually changed (new item added or moved to end)
+          const actuallyChanged = JSON.stringify(newLocations) !== JSON.stringify(updatedPreferences.locations);
+          if (actuallyChanged) hasChanges = true;
+          
           updatedPreferences.locations = newLocations;
+          // ALWAYS update timestamp, even if location already exists (tracks recency)
           updatedPreferences.filterTimestamps.location = now;
           console.log(
             "Location filter timestamp updated:",
-            new Date(now).toISOString()
+            new Date(now).toISOString(),
+            "- Current preferences:",
+            newLocations
           );
         } else if (
           filters.location === "all" &&
@@ -492,13 +504,18 @@ export function useUserTracking() {
             updatedPreferences.categories,
             filters.category
           );
-          if (newCategories.length !== updatedPreferences.categories.length)
-            hasChanges = true;
+          // Check if actually changed (new item added or moved to end)
+          const actuallyChanged = JSON.stringify(newCategories) !== JSON.stringify(updatedPreferences.categories);
+          if (actuallyChanged) hasChanges = true;
+          
           updatedPreferences.categories = newCategories;
+          // ALWAYS update timestamp, even if category already exists (tracks recency)
           updatedPreferences.filterTimestamps.category = now;
           console.log(
             "🏷️ Category filter timestamp updated:",
-            new Date(now).toISOString()
+            new Date(now).toISOString(),
+            "- Current preferences:",
+            newCategories
           );
         } else if (
           filters.category === "all" &&
@@ -513,30 +530,25 @@ export function useUserTracking() {
         if (filters.price && filters.price !== "all") {
           const [min, max] = filters.price.split("-").map(Number);
           if (min !== undefined && max !== undefined) {
-            // If current range is default (0-10M), overwrite it with specific range
-            // Otherwise expand range to include new filter
-            const isDefault =
-              updatedPreferences.priceRange.min === 0 &&
-              updatedPreferences.priceRange.max === 10000000;
-
-            if (isDefault) {
-              updatedPreferences.priceRange = { min, max };
+            // Track the SPECIFIC price range user just selected (not expanded range)
+            // This ensures recency tracking reflects actual user intent
+            const priceRangeChanged = 
+              updatedPreferences.priceRange.min !== min ||
+              updatedPreferences.priceRange.max !== max;
+            
+            if (priceRangeChanged) {
               hasChanges = true;
-            } else {
-              const newMin = Math.min(updatedPreferences.priceRange.min, min);
-              const newMax = Math.max(updatedPreferences.priceRange.max, max);
-              if (
-                newMin !== updatedPreferences.priceRange.min ||
-                newMax !== updatedPreferences.priceRange.max
-              ) {
-                hasChanges = true;
-              }
-              updatedPreferences.priceRange = { min: newMin, max: newMax };
+              // Set to the EXACT range user selected (don't expand/accumulate)
+              updatedPreferences.priceRange = { min, max };
             }
+            
+            // ALWAYS update timestamp when price filter is selected, even if same range
             updatedPreferences.filterTimestamps.price = now;
             console.log(
               "💰 Price filter timestamp updated:",
-              new Date(now).toISOString()
+              new Date(now).toISOString(),
+              "- Price range:",
+              updatedPreferences.priceRange
             );
           }
         } else if (
@@ -727,28 +739,34 @@ export function useAIRecommendations() {
         );
 
         // Get current behavior hash để detect significant changes (not time-based)
-        // IMPORTANT: Use sorted arrays to ensure consistent hashing
-        // CRITICAL: Include count of each preference type to detect when new items are added
+        // CRITICAL: DO NOT SORT arrays - order matters for recency!
+        // Most recent items are at END of arrays, sorting would destroy this info
         const currentBehaviorHash = JSON.stringify({
-          searches: userBehavior.searchQueries,
-          categories: [...(userBehavior.preferences?.categories || [])].sort(), // Sort for consistency
-          categoriesCount: (userBehavior.preferences?.categories || []).length, // Track count to detect additions
-          locations: [...(userBehavior.preferences?.locations || [])].sort(), // Sort for consistency
-          locationsCount: (userBehavior.preferences?.locations || []).length, // Track count to detect additions
+          searches: userBehavior.searchQueries.slice(-10), // Last 10 for hash
+          categories: userBehavior.preferences?.categories || [], // NO SORT - preserve recency!
+          categoriesCount: (userBehavior.preferences?.categories || []).length,
+          locations: userBehavior.preferences?.locations || [], // NO SORT - preserve recency!
+          locationsCount: (userBehavior.preferences?.locations || []).length,
           priceRange: userBehavior.preferences?.priceRange || {
             min: 0,
             max: 10000000,
           },
-          dateRanges: [...(userBehavior.preferences?.dateRanges || [])].sort(), // Sort for consistency
+          dateRanges: userBehavior.preferences?.dateRanges || [], // NO SORT
           viewedEvents: userBehavior.viewedEvents
-            .slice(-10)
-            .map((e: any) => e.id), // Track IDs only for hash
+            .slice(-20)
+            .map((e: any) => e.id), // Track last 20 IDs for hash (increased sensitivity)
           viewedCount: userBehavior.viewedEvents.length, // Track total count
           clickedEvents: userBehavior.clickedEvents
-            .slice(-10)
-            .map((e: any) => e.id), // Track IDs only for hash
+            .slice(-20)
+            .map((e: any) => e.id), // Track last 20 IDs for hash (increased sensitivity)
           clickedCount: userBehavior.clickedEvents.length, // Track total count
-          filterTimestamps: userBehavior.preferences?.filterTimestamps || {}, // Include timestamps to detect recency changes
+          // Include engagement data - high engagement events should influence recommendations more
+          engagementEvents: (userBehavior.eventEngagement || [])
+            .slice(-20)
+            .map((e: any) => ({ id: e.eventId, time: e.timeSpent, depth: e.engagementDepth })),
+          engagementCount: (userBehavior.eventEngagement || []).length,
+          // CRITICAL: Include timestamps to detect when user re-selects same filters
+          filterTimestamps: userBehavior.preferences?.filterTimestamps || {},
         });
         const lastBehaviorHash =
           localStorage.getItem(currentUserStorageKeys.BEHAVIOR_HASH) || "";
@@ -977,8 +995,13 @@ function getDefaultBehavior(): UserBehavior {
 }
 
 function updatePreferenceArray(current: string[], newItem: string): string[] {
-  if (!newItem || current.includes(newItem)) return current;
-  return [...current.slice(-9), newItem]; // Keep last 10 items
+  if (!newItem) return current;
+  
+  // Remove item if it already exists (to move it to the end for recency)
+  const filtered = current.filter(item => item !== newItem);
+  
+  // Add to end to track recency. Keep last 50 items to balance memory and history
+  return [...filtered.slice(-49), newItem];
 }
 
 function updatePriceRange(

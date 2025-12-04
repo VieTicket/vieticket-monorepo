@@ -27,8 +27,6 @@ const nextConfig: NextConfig = {
       bodySizeLimit: 4 * 1024 * 1024,
     },
   },
-  // Ensure `canvas` stays server-only in Server Components
-  serverExternalPackages: ["canvas", "jsdom"],
   allowedDevOrigins: ["**.lo.vtk.io.vn", "lo.vtk.io.vn"],
 };
 

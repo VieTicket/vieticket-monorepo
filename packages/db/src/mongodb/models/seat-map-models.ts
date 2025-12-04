@@ -167,6 +167,7 @@ export type CreateSeatMapInput = {
   publicity?: "public" | "private";
   draftedFrom?: string;
   originalCreator?: string;
+  organizationId?: string | null;
 };
 
 export type UpdateSeatMapInput = Partial<Omit<CreateSeatMapInput, "createdBy">>;
@@ -181,6 +182,7 @@ export type SeatMap = {
   usedByEvent?: string;
   draftedFrom?: string;
   originalCreator?: string;
+  organizationId?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 };

@@ -1,9 +1,19 @@
 "use server";
 
-import { getAuthSession } from "@/lib/auth/auth";
+import { auth, getAuthSession } from "@/lib/auth/auth";
 import { User } from "@vieticket/db/pg/models/users";
-import { inspectTicket, checkInTicket, processOfflineInspections, AppError, getActiveEvents } from "@vieticket/services/inspection";
+import { AppError, checkInTicket, getActiveEvents, inspectTicket, processOfflineInspections } from "@vieticket/services/inspection";
 import { headers } from "next/headers";
+
+/**
+ * Extracts the active organization ID from the user's session.
+ */
+async function getActiveOrganizationId(): Promise<string | null> {
+    const organization = await auth.api.getFullOrganization({ 
+        headers: await headers() 
+    });
+    return organization?.id ?? null;
+}
 
 /**
  * Server action to inspect a ticket.
@@ -17,7 +27,8 @@ export async function inspectTicketAction(ticketId: string) {
             throw new Error("Unauthenticated.");
         }
 
-        const ticketDetails = await inspectTicket(ticketId, user);
+        const activeOrganizationId = await getActiveOrganizationId();
+        const ticketDetails = await inspectTicket(ticketId, user, activeOrganizationId);
         return { success: true, data: ticketDetails };
     } catch (error) {
         if (error instanceof AppError) {
@@ -40,7 +51,8 @@ export async function checkInTicketAction(ticketId: string) {
             throw new Error("Unauthenticated.");
         }
 
-        const updatedTicket = await checkInTicket(ticketId, user);
+        const activeOrganizationId = await getActiveOrganizationId();
+        const updatedTicket = await checkInTicket(ticketId, user, activeOrganizationId);
         return { success: true, data: updatedTicket };
     } catch (error) {
         if (error instanceof AppError) {
@@ -63,7 +75,10 @@ export async function processOfflineInspectionsAction(inspections: Array<{ ticke
             throw new Error("Unauthenticated.");
         }
 
-        const result = await processOfflineInspections(inspections, user);
+        // Get active organization context (if any)
+        const activeOrganizationId = await getActiveOrganizationId();
+
+        const result = await processOfflineInspections(inspections, user, activeOrganizationId);
         return { success: true, data: result };
     } catch (error) {
         if (error instanceof AppError) {
@@ -75,7 +90,8 @@ export async function processOfflineInspectionsAction(inspections: Array<{ ticke
 }
 
 /**
- * Server action to get all active events for the current organizer.
+ * Server action to get all active events for the current user.
+ * Supports both organizers and organization members.
  * @returns {Promise<{ success: boolean; data?: any; error?: any }>}
  */
 export async function getActiveEventsAction() {
@@ -86,12 +102,10 @@ export async function getActiveEventsAction() {
             throw new Error("Unauthenticated.");
         }
 
-        // Only organizers can access their events
-        if (user.role !== "organizer") {
-            return { success: false, error: { code: "FORBIDDEN", message: "Only organizers can access their events." } };
-        }
+        // Get active organization context (if any)
+        const activeOrganizationId = await getActiveOrganizationId();
 
-        const events = await getActiveEvents(user);
+        const events = await getActiveEvents(user, activeOrganizationId);
         return { success: true, data: events };
     } catch (error) {
         if (error instanceof AppError) {

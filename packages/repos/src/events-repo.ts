@@ -118,6 +118,78 @@ export async function findActiveEventsByOrganizerId(organizerId: string) {
 }
 
 /**
+ * Finds all active events for a given organization.
+ * "Active" means events that are approved and have not ended yet.
+ * @param organizationId - The ID of the organization.
+ * @returns An array of active events.
+ */
+export async function findActiveEventsByOrganizationId(organizationId: string) {
+  const now = new Date();
+  const activeEvents = await db.query.events.findMany({
+    where: (event, { and, eq, gt }) =>
+      and(
+        eq(event.organizationId, organizationId),
+        eq(event.approvalStatus, "approved"),
+        gt(event.endTime, now)
+      ),
+  });
+  return activeEvents;
+}
+
+/**
+ * Finds all active events accessible to a user (created by them or in their organization).
+ * "Active" means events that are approved and have not ended yet.
+ * @param userId - The ID of the user.
+ * @param organizationId - Optional organization ID to include organization events.
+ * @returns An array of active events.
+ */
+export async function findAccessibleActiveEvents(
+  userId: string,
+  organizationId?: string | null
+) {
+  const now = new Date();
+  
+  // If organization context exists, get events from both user and organization
+  if (organizationId) {
+    const [userEvents, orgEvents] = await Promise.all([
+      db.query.events.findMany({
+        where: (event, { and, eq, gt }) =>
+          and(
+            eq(event.organizerId, userId),
+            eq(event.approvalStatus, "approved"),
+            gt(event.endTime, now)
+          ),
+      }),
+      db.query.events.findMany({
+        where: (event, { and, eq, gt }) =>
+          and(
+            eq(event.organizationId, organizationId),
+            eq(event.approvalStatus, "approved"),
+            gt(event.endTime, now)
+          ),
+      }),
+    ]);
+    
+    // Merge and deduplicate events
+    const allEvents = [...userEvents, ...orgEvents];
+    const uniqueEvents = Array.from(
+      new Map(allEvents.map(event => [event.id, event])).values()
+    );
+    return uniqueEvents;
+  }
+  
+  // No organization context, just return user's events
+  return db.query.events.findMany({
+    where: (event, { and, eq, gt }) =>
+      and(
+        eq(event.organizerId, userId),
+        eq(event.approvalStatus, "approved"),
+        gt(event.endTime, now)
+      ),
+  });
+}
+
+/**
  * Finds all ended events for a given organizer.
  * "Ended" means events that are approved and have ended.
  * @param organizerId - The ID of the organizer.
@@ -140,4 +212,23 @@ export async function findEndedEventsByOrganizerId(organizerId: string) {
       ),
   });
   return endedEvents;
+}
+
+/**
+ * Links an event to an organization by updating its organizationId.
+ * @param eventId - The ID of the event to link.
+ * @param organizationId - The organization ID to link to (or null to unlink).
+ * @returns The updated event or undefined if not found.
+ */
+export async function linkEventToOrganization(
+  eventId: string,
+  organizationId: string | null
+) {
+  const [updatedEvent] = await db
+    .update(events)
+    .set({ organizationId })
+    .where(eq(events.id, eventId))
+    .returning();
+  
+  return updatedEvent;
 }

@@ -1,12 +1,14 @@
 import { db } from "@vieticket/db/pg/direct";
-import { account, session, user, verification } from "@vieticket/db/pg/schemas/users";
-import { betterAuth, type User } from "better-auth";
+import { account, session, user, verification, member, organization, invitation } from "@vieticket/db/pg/schemas/users";
+import { betterAuth } from "better-auth/minimal";
+import { type User } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getResetPasswordEmail } from "./emails/reset-password";
 import { getVerificationEmail } from "./emails/verify-email";
 import { sendMail } from "@vieticket/utils/mailer";
+import orgPlugin from "./org-team"
 
-export const authConfig = betterAuth({
+export const auth = betterAuth({
     database: drizzleAdapter(db, {
         provider: "pg",
         schema: {
@@ -14,6 +16,9 @@ export const authConfig = betterAuth({
             session,
             account,
             verification,
+            member,
+            organization,
+            invitation
         },
     }),
     user: {
@@ -23,7 +28,6 @@ export const authConfig = betterAuth({
                 defaultValue: "customer",
                 required: true,
                 input: true,
-                output: true,
             },
             banned: {
                 type: "boolean",
@@ -83,4 +87,7 @@ export const authConfig = betterAuth({
             enabled: true,
         },
     },
+    plugins: [
+        orgPlugin
+    ]
 });

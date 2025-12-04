@@ -1,0 +1,50 @@
+,,,TC01,TC02,TC03,TC04,TC05,TC06,TC07,TC08
+,,,,,,,,,,
+,,,,,,,,,,
+Precondition,,,,,,,,,,
+,Server Connection,,O,O,O,O,O,O,O,O
+,,,,,,,,,,
+Authentication,,,,,,,,,,
+,User authenticated,,O,O,O,O,O,,O,O
+,User not authenticated,,,,,,,O,,
+,,,,,,,,,,
+Ticket ID Input,,,,,,,,,,
+,Valid ticket-123,,O,O,O,,O,O,O,O
+,Valid ticket-456,,,,,O,,,,
+,,,,,,,,,,
+,,,,,,,,,,
+Recipient Email,,,,,,,,,,
+,Owner's email (customer@example.com),,O,,,,,,,
+,Friend's email (friend@example.com),,,O,,,,,,
+,Other email (recipient@example.com),,,,O,,O,,,
+,Other email (test@example.com),,,,,O,,O,O,O
+,,,,,,,,,,
+Error Messages,,,,,,,,,,
+,"Error contains ""authenticated""",,,,,,O,,,
+,"Error contains ""not found""",,,,,,,O,,
+,"Error contains ""not active""",,,,,,,,O,
+,,,,,,,,,,
+Mock Verification,,,,,,,,,,
+,mockSendTicketEmail called,,O,O,O,O,O,O,O,O
+,,,,,,,,,,
+Return,Confirm,,,,,,,,,
+,200: Success,,O,O,O,O,O,,,
+,400: Bad Request,,,,,,,,,O
+,401: Unauthenticated,,,,,,,O,,
+,404: Not Found,,,,,,,,O,
+,,,,,,,,,,
+Log message,,,,,,,,,,
+,,,,,,,,,,
+,"""Send ticket to owner's email (Normal)""",,O,,,,,,,
+,"""Send ticket to friend's email (Normal)""",,,O,,,,,,
+,"""Generate QR code and attach (Normal)""",,,,O,,,,,
+,"""Include complete ticket details (Normal)""",,,,,O,,,,
+,"""Log email activity (Normal)""",,,,,,O,,,
+,"""Reject when not authenticated (Abnormal)""",,,,,,,O,,
+,"""Reject when ticket not found (Abnormal)""",,,,,,,,O,
+,"""Reject when ticket not active (Abnormal)""",,,,,,,,,O
+,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal)",,N,N,N,N,N,A,A,A
+,Passed/Failed,,P,P,P,P,P,P,P,P
+,Executed Date,,11/30/2025,11/30/2025,11/30/2025,11/30/2025,11/30/2025,11/30/2025,11/30/2025,11/30/2025
+,Defect ID,,,,,,,,,

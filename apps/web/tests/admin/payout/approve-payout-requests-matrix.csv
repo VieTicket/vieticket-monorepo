@@ -1,0 +1,56 @@
+Condition,Precondition,,TC01,TC02,TC03,TC04,TC05,TC06,TC07,TC08,TC09,TC10,TC11,TC12,TC13
+Can connect with server,Precondition,,,,,,,,,,,,,,
+,Precondition,,,,,,,,,,,,,,
+Precondition,Precondition,,,,,,,,,,,,,,
+,Server Connection,,O,O,O,O,O,O,O,O,O,O,O,O,O
+,,,,,,,,,,,,,,,
+Admin Authentication,,,,,,,,,,,,,,,
+,Valid admin session,,O,O,O,O,O,,O,O,,O,O,O,O
+,Unauthorized user (no session),,,,,,,,,,O,,,,
+,,,,,,,,,,,,,,,
+Payout Request ID,,,,,,,,,,,,,,,
+,Valid UUID format,,O,O,O,O,O,O,,O,,O,O,O,O
+,Maximum length UUID (boundary),,,,,,,O,,,,,,,
+,Empty string (abnormal),,,,,,,,,,,,O,,
+,,,,,,,,,,,,,,,
+Payout Status,,,,,,,,,,,,,,,
+,Approved status,,O,,,O,O,,,,,,,O,
+,Rejected status,,,O,,,,,,,,,,,
+,Pending status,,,,O,,,,,,,,,,
+,Invalid status (abnormal),,,,,,,,,,,,,,O
+,,,,,,,,,,,,,,,
+Agreed Amount,,,,,,,,,,,,,,,
+,Positive amount,,O,,,O,O,O,,,,,,O,
+,Zero amount (boundary),,,,,,,,,O,,,,,
+,Negative amount (abnormal),,,,,,,,,,,,O,,
+,Large amount (boundary),,,,,,,,,,O,,,,
+,Minimum amount (boundary),,,,,,,,O,,,,,,
+,,,,,,,,,,,,,,,
+Service Response,,,,,,,,,,,,,,,
+,Successful update,,O,O,O,O,O,O,O,O,,O,,O,O
+,Service throws error (not found),,,,,,,,,,,,O,,
+,,,,,,,,,,,,,,,
+Business Rules,,,,,,,,,,,,,,,
+,Approval with agreed amount,,O,,,O,O,,,,,,,O,
+,Rejection without agreed amount,,,O,,,,,,,,,,,
+,Pending review status,,,,O,,,,,,,,,,
+,Amount validation,,O,,,O,O,O,,O,,,,O,
+,,,,,,,,,,,,,,,
+Return,Confirm,,,,,,,,,,,,,,
+,Success response,,O,O,O,O,O,O,O,O,,O,,O,O
+,Error response (unauthorized),,,,,,,,,,O,,,,
+,Error response (service error),,,,,,,,,,,,O,,
+,Error response (invalid data),,,,,,,,,,,,,O,O
+,,,,,,,,,,,,,,,
+Log message,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+,"""Unauthorized access test (Abnormal)""",,,,,,,,,,O,,,,
+,"""Empty request ID test (Abnormal)""",,,,,,,,,,,O,,,
+,"""Service error handling test (Abnormal)""",,,,,,,,,,,,O,,
+,"""Negative agreed amount test (Abnormal)""",,,,,,,,,,,,,O,
+,"""Invalid status validation test (Abnormal)""",,,,,,,,,,,,,,O
+,,,,,,,,,,,,,,,
+Result,"Type(N : Normal, A : Abnormal, B : Boundary)",,N,N,N,N,N,B,B,B,A,A,A,A,A
+,Passed/Failed,,P,P,P,P,P,P,P,P,P,P,P,P,P
+,Executed Date,,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024,01/12/2024
+,Defect ID,,,,,,,,,,,,,,

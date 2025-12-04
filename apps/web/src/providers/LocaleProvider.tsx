@@ -18,20 +18,50 @@ const LocaleContext = createContext<LocaleContextType>({
 export const useLocale = () => useContext(LocaleContext);
 
 export const LocaleProvider = ({ children }: { children: React.ReactNode }) => {
-  const [locale, setLocale] = useState<Locale>("vi");
-  const [messages, setMessages] = useState(getMessages(locale));
+  // Initialize with localStorage value immediately to prevent flicker
+  const [locale, setLocaleState] = useState<Locale>(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("locale") as Locale | null;
+      return saved || "vi";
+    }
+    return "vi";
+  });
+  
+  const [messages, setMessages] = useState(() => getMessages(locale));
+  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => {
-    localStorage.setItem("locale", locale);
-    // Set cookie for server-side components
-    document.cookie = `locale=${locale}; path=/; max-age=31536000`; // 1 year
-    setMessages(getMessages(locale));
-  }, [locale]);
+  // Custom setter that updates both state and storage
+  const setLocale = (newLocale: Locale) => {
+    setLocaleState(newLocale);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("locale", newLocale);
+      document.cookie = `locale=${newLocale}; path=/; max-age=31536000`;
+    }
+    setMessages(getMessages(newLocale));
+  };
 
+  // Only update cookie on mount (for SSR consistency)
   useEffect(() => {
-    const saved = localStorage.getItem("locale") as Locale | null;
-    if (saved) setLocale(saved);
+    setMounted(true);
+    if (typeof window !== "undefined") {
+      document.cookie = `locale=${locale}; path=/; max-age=31536000`;
+    }
   }, []);
+
+  // Show minimal content during SSR to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <LocaleContext.Provider value={{ locale: "vi", setLocale }}>
+        <NextIntlClientProvider
+          messages={getMessages("vi")}
+          locale="vi"
+          timeZone={timezone}
+        >
+          {children}
+        </NextIntlClientProvider>
+      </LocaleContext.Provider>
+    );
+  }
 
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>

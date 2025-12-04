@@ -209,12 +209,6 @@ export function SmartEventGrid({
 
       {/* Personalized Event Grid */}
       <div className="relative">
-        {isLoading && recommendations.length === 0 && (
-          <div className="absolute top-0 right-0 bg-blue-500 text-white px-3 py-1 rounded-full text-xs z-10">
-            Loading...
-          </div>
-        )}
-
         {isWaitingForAI ? (
           <div className="flex items-center justify-center py-16">
             <div className="text-center space-y-4">

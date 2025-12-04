@@ -122,12 +122,29 @@ export async function getProfileAction() {
       throw new Error("User not found");
     }
 
+    // SECURITY CHECK: Block banned users
+    if (userData.banned) {
+      throw new Error("Access denied: Your account has been banned.");
+    }
+
+    if (userData.banReason) {
+      throw new Error(`Access denied: ${userData.banReason}`);
+    }
+
     // Get organizer data separately if user is an organizer
     let organizerData = null;
     if (user.role === "organizer") {
       organizerData = await db.query.organizers.findFirst({
         where: eq(organizers.id, user.id),
       });
+      if (organizerData) {
+        if (!organizerData.isActive && organizerData.rejectionReason) {
+          throw new Error(`Access denied: ${organizerData.rejectionReason}`);
+        }
+        if (!organizerData.isActive) {
+          throw new Error("Access denied: Your organizer account is inactive.");
+        }
+      }
     }
     console.log("User data:", organizerData);
 

@@ -15,7 +15,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
 import { eventApprovalStatusEnum } from "../enums";
-import { organizers } from "./users-schemas";
+import { organizers, organization } from "./users-schemas";
 
 // Schemas
 export const events = pgTable(
@@ -45,8 +45,14 @@ export const events = pgTable(
     organizerId: text("organizer_id")
       .references(() => organizers.id)
       .notNull(),
+    // Optional organization link
+    organizationId: text("organization_id")
+      .references(() => organization.id, { onDelete: "set null" }),
   },
-  (table) => [index("events_organizer_id_idx").on(table.organizerId)]
+  (table) => [
+    index("events_organizer_id_idx").on(table.organizerId),
+    index("events_organization_id_idx").on(table.organizationId),
+  ]
 );
 
 export const showings = pgTable(

@@ -2,9 +2,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { Trash2, Loader2 } from "lucide-react";
+import { Trash2, Loader2, Building2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,25 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { deleteEventAction } from "@/lib/actions/organizer/delete-event-action";
+import { linkEventToOrganizationAction } from "@/lib/actions/organizer/link-event-organization-action";
+import { authClient } from "@/lib/auth/auth-client";
 
 import { EventApprovalStatus } from "@vieticket/db/pg/schema";
 
@@ -28,6 +46,7 @@ interface EventCardProps {
     endTime: string;
     approvalStatus: EventApprovalStatus;
     bannerUrl?: string;
+    organizationId?: string | null;
   };
   onEventDeleted?: () => void;
 }
@@ -50,6 +69,18 @@ const statusConfig = {
 export default function EventCard({ event, onEventDeleted }: EventCardProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isLinking, setIsLinking] = useState(false);
+  const [isOrgDialogOpen, setIsOrgDialogOpen] = useState(false);
+  const [selectedOrganization, setSelectedOrganization] = useState<string>(
+    event.organizationId || "personal"
+  );
+  
+  // Get user's organizations
+  const { data: organizations, isPending: loadingOrgs } = authClient.useListOrganizations();
+
+  useEffect(() => {
+    setSelectedOrganization(event.organizationId || "personal");
+  }, [event.organizationId]);
 
   const statusKey = (() => {
     switch (event.approvalStatus) {
@@ -99,6 +130,34 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
       console.error("Delete error:", error);
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleLinkOrganization = async () => {
+    setIsLinking(true);
+    try {
+      const orgId = selectedOrganization === "personal" ? null : selectedOrganization;
+      const result = await linkEventToOrganizationAction(event.id, orgId);
+
+      if (result.success) {
+        toast.success(
+          orgId 
+            ? "Event linked to organization successfully!" 
+            : "Event unlinked from organization successfully!"
+        );
+        setIsOrgDialogOpen(false);
+        if (onEventDeleted) {
+          onEventDeleted(); // Reuse this callback to refresh the list
+        }
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to link event");
+      }
+    } catch (error) {
+      toast.error("Failed to link event");
+      console.error("Link error:", error);
+    } finally {
+      setIsLinking(false);
     }
   };
 
@@ -164,6 +223,72 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
                 Edit
               </Button>
             )}
+            
+            {/* Organization Linking Dialog */}
+            {organizations && organizations.length > 0 && (
+              <Dialog open={isOrgDialogOpen} onOpenChange={setIsOrgDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="text-xs py-1.5 sm:py-2 h-7 sm:h-8 px-1.5 sm:px-2 min-h-[28px] sm:min-h-[32px] min-w-[28px] sm:min-w-[32px]"
+                    title="Link to Organization"
+                  >
+                    <Building2 className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Link Event to Organization</DialogTitle>
+                    <DialogDescription>
+                      Choose an organization to link this event to, or select "Personal" to keep it private.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="py-4">
+                    <Select
+                      value={selectedOrganization}
+                      onValueChange={setSelectedOrganization}
+                      disabled={loadingOrgs}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="personal">Personal Event</SelectItem>
+                        {organizations.map((org) => (
+                          <SelectItem key={org.id} value={org.id}>
+                            {org.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <DialogFooter>
+                    <Button
+                      variant="outline"
+                      onClick={() => setIsOrgDialogOpen(false)}
+                      disabled={isLinking}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleLinkOrganization}
+                      disabled={isLinking || selectedOrganization === (event.organizationId || "personal")}
+                    >
+                      {isLinking ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Saving...
+                        </>
+                      ) : (
+                        "Save"
+                      )}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            )}
+            
             {canDelete && (
               <AlertDialog>
                 <AlertDialogTrigger asChild>

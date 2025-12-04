@@ -1,15 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import EventList from "./components/EventList";
 import { fetchCurrentOrganizerEvents } from "@/lib/actions/organizer/fetch-organizer-events";
 import { Event } from "@vieticket/db/pg/schema";
 import { useTranslations } from "next-intl";
+import { authClient } from "@/lib/auth/auth-client";
 
 export default function OrganizerDashboardPage() {
-  const [events, setEvents] = useState<Event[]>([]);
+  const [events, setEvents] = useState<Omit<Event, "organizationId">[]>([]);
   const [loading, setLoading] = useState(true);
   const t = useTranslations("organizer-dashboard.ListEvent");
+  const router = useRouter();
+
+  const { data: session } = authClient.useSession();
 
   const loadEvents = async () => {
     try {
@@ -23,9 +28,24 @@ export default function OrganizerDashboardPage() {
     }
   };
 
+  // Redirect non-owner members to a page they can access, then load events
   useEffect(() => {
-    loadEvents();
-  }, []);
+    if (session) {
+      const isOrganizerRole = session.user?.role === "organizer";
+
+      // If user is a regular member (not organizer role, not owner, not admin), redirect to seat map
+      if (!isOrganizerRole) {
+        router.replace("/organizer/seat-map");
+        return;
+      }
+
+      // Only load events if user has access (organizer role or owner/admin)
+      loadEvents();
+    } else if (session) {
+      // User is not in an organization but has organizer role
+      loadEvents();
+    }
+  }, [session, router]);
 
   const handleEventDeleted = () => {
     loadEvents(); // Refresh the event list after deletion
