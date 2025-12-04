@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg";
 import { organizers, user } from "@vieticket/db/pg/schemas/users";
-import { Organizer } from "@vieticket/db/pg/models/users";
+import type { Organizer } from "@vieticket/db/pg/models/users";
 import { eq, and } from "drizzle-orm";
 
 /**
@@ -29,6 +29,10 @@ export async function createOrganizer(data: {
       organizerType: data.organizerType,
     })
     .returning();
+
+  if (!organizer) {
+    throw new Error("Failed to create organizer");
+  }
 
   return organizer;
 }
