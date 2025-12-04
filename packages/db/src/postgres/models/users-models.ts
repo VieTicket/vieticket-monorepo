@@ -1,4 +1,4 @@
-import { InferSelectModel } from "drizzle-orm";
+import type { InferSelectModel } from "drizzle-orm";
 import { organizers, user } from "../schemas/users-schemas";
 
 export type User = InferSelectModel<typeof user>;
