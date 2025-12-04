@@ -5,13 +5,6 @@ import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Calendar,
   MapPin,
   User,
@@ -174,35 +167,92 @@ export function EventDetailModal({
           />
         </DetailCard>
 
+        {/* Seat Map Image */}
+        {event.seatMapImage ? (
+          <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+            <div className="space-y-2">
+              <img
+                src={event.seatMapImage}
+                alt="Seat Map"
+                className="w-full rounded-lg border border-gray-200 shadow-sm max-h-96 object-contain"
+                onError={(e) => {
+                  console.error("Error loading seatmap image:", event.seatMapImage);
+                  e.currentTarget.style.display = "none";
+                }}
+                onLoad={() => {
+                  console.log("Seatmap image loaded successfully:", event.seatMapImage);
+                }}
+              />
+            </div>
+          </DetailCard>
+        ) : (
+          event.seatMapId && (
+            <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+              <div className="text-sm text-gray-500">
+                Seat map ID: {event.seatMapId} (Image not available)
+              </div>
+            </DetailCard>
+          )
+        )}
+
         {/* Showings Dropdown */}
         {event.showings && event.showings.length > 0 && (
-          <DetailCard icon={Film} title="Lịch chiếu (Showings)">
+          <DetailCard icon={Film} title={`Lịch chiếu (Showings) - ${event.showings.length} suất`}>
             <div className="space-y-4">
-              <Select
-                value={selectedShowingId}
-                onValueChange={setSelectedShowingId}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Chọn lịch chiếu để xem chi tiết" />
-                </SelectTrigger>
-                <SelectContent>
-                  {event.showings.map((showing) => (
-                    <SelectItem key={showing.id} value={showing.id}>
-                      {showing.name || "Lịch chiếu không tên"} -{" "}
-                      {formatShowingDateTime(showing.startTime)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div className="space-y-2">
+                {event.showings.map((showing) => (
+                  <div
+                    key={showing.id}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                      selectedShowingId === showing.id
+                        ? "bg-blue-50 border-blue-300 shadow-sm"
+                        : "bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300"
+                    }`}
+                    onClick={() => {
+                      setSelectedShowingId(
+                        selectedShowingId === showing.id ? "" : showing.id
+                      );
+                    }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <div className="font-medium text-gray-900 truncate">
+                          {showing.name || "Lịch chiếu không tên"}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          {formatShowingDateTime(showing.startTime)}
+                        </div>
+                      </div>
+                      <div className="ml-3 flex items-center gap-2">
+                        {showing.isActive ? (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+                            Hoạt động
+                          </span>
+                        ) : (
+                          <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
+                            Không hoạt động
+                          </span>
+                        )}
+                        <Clock className={`h-4 w-4 text-gray-400 transition-transform ${
+                          selectedShowingId === showing.id ? "rotate-90" : ""
+                        }`} />
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
 
               {selectedShowing && (
-                <div className="mt-4 p-4 bg-gray-50 rounded-lg space-y-2">
+                <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
+                  <h4 className="font-semibold text-gray-900 text-base mb-3">
+                    Chi tiết lịch chiếu
+                  </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="font-semibold text-gray-700">
                         Tên lịch chiếu:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mt-1">
                         {selectedShowing.name || "Không có tên"}
                       </p>
                     </div>
@@ -210,11 +260,11 @@ export function EventDetailModal({
                       <span className="font-semibold text-gray-700">
                         Trạng thái:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mt-1">
                         {selectedShowing.isActive ? (
-                          <span className="text-green-600">Đang hoạt động</span>
+                          <span className="text-green-600 font-medium">Đang hoạt động</span>
                         ) : (
-                          <span className="text-red-600">Không hoạt động</span>
+                          <span className="text-red-600 font-medium">Không hoạt động</span>
                         )}
                       </p>
                     </div>
@@ -222,7 +272,7 @@ export function EventDetailModal({
                       <span className="font-semibold text-gray-700">
                         Thời gian bắt đầu:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mt-1">
                         {formatShowingDateTime(selectedShowing.startTime)}
                       </p>
                     </div>
@@ -230,7 +280,7 @@ export function EventDetailModal({
                       <span className="font-semibold text-gray-700">
                         Thời gian kết thúc:
                       </span>
-                      <p className="text-gray-600">
+                      <p className="text-gray-600 mt-1">
                         {formatShowingDateTime(selectedShowing.endTime)}
                       </p>
                     </div>
@@ -239,7 +289,7 @@ export function EventDetailModal({
                         <span className="font-semibold text-gray-700">
                           Bắt đầu bán vé:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 mt-1">
                           {formatShowingDateTime(selectedShowing.ticketSaleStart)}
                         </p>
                       </div>
@@ -249,7 +299,7 @@ export function EventDetailModal({
                         <span className="font-semibold text-gray-700">
                           Kết thúc bán vé:
                         </span>
-                        <p className="text-gray-600">
+                        <p className="text-gray-600 mt-1">
                           {formatShowingDateTime(selectedShowing.ticketSaleEnd)}
                         </p>
                       </div>
@@ -257,10 +307,6 @@ export function EventDetailModal({
                   </div>
                 </div>
               )}
-
-              <div className="text-sm text-gray-500">
-                Tổng số lịch chiếu: {event.showings.length}
-              </div>
             </div>
           </DetailCard>
         )}
@@ -284,11 +330,22 @@ export function EventDetailModal({
           </DetailCard>
 
           <DetailCard icon={Eye} title="Capacity">
-            {event.capacity || "To be determined"}
+            {event.capacity > 0 ? `${event.capacity.toLocaleString("vi-VN")} chỗ` : "Chưa xác định"}
           </DetailCard>
 
           <DetailCard icon={Tag} title="Price">
-            {event.price ? formatCurrency(event.price) : "To be determined"}
+            {event.priceRange ? (
+              <div>
+                {formatCurrency(event.priceRange.min)}
+                {event.priceRange.min !== event.priceRange.max && (
+                  <span className="text-gray-500"> - {formatCurrency(event.priceRange.max)}</span>
+                )}
+              </div>
+            ) : event.price > 0 ? (
+              formatCurrency(event.price)
+            ) : (
+              "Chưa xác định"
+            )}
           </DetailCard>
         </div>
 

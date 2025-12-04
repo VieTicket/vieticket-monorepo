@@ -341,14 +341,14 @@ export default function LockedAccountPage() {
                         </TableCell>
                         <TableCell className="min-w-0 max-w-xs">
                           {user.banReason && (
-                            <div className="max-w-xs">
+                            <div className="min-w-0 max-w-xs">
                               <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
                                 {user.banReason}
                               </div>
                               {user.banExpires && (
                                 <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
                                   <Clock className="h-3 w-3 flex-shrink-0" />
-                                  <span className="truncate">
+                                  <span className="truncate min-w-0" title={`Expires: ${formatDateTime(user.banExpires.toString())}`}>
                                     Expires: {formatDateTime(user.banExpires.toString())}
                                   </span>
                                 </div>
