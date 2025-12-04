@@ -445,6 +445,28 @@ function CreateEventPageInner() {
               const isValidEndTime =
                 endTime instanceof Date && !isNaN(endTime.getTime());
 
+              // Generate default ticket sale times if they don't exist
+              let ticketSaleStartValue = "";
+              let ticketSaleEndValue = "";
+              
+              if (showing.ticketSaleStart) {
+                ticketSaleStartValue = new Date(showing.ticketSaleStart).toISOString().slice(0, 16);
+              } else if (isValidStartTime) {
+                // Default: ticket sale starts 7 days before showing
+                const defaultStart = new Date(startTime);
+                defaultStart.setDate(defaultStart.getDate() - 7);
+                ticketSaleStartValue = defaultStart.toISOString().slice(0, 16);
+              }
+              
+              if (showing.ticketSaleEnd) {
+                ticketSaleEndValue = new Date(showing.ticketSaleEnd).toISOString().slice(0, 16);
+              } else if (isValidStartTime) {
+                // Default: ticket sale ends 1 hour before showing
+                const defaultEnd = new Date(startTime);
+                defaultEnd.setHours(defaultEnd.getHours() - 1);
+                ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
+              }
+
               return {
                 name: showing.name,
                 startTime: isValidStartTime
@@ -453,12 +475,8 @@ function CreateEventPageInner() {
                 endTime: isValidEndTime
                   ? endTime.toISOString().slice(0, 16)
                   : "",
-                ticketSaleStart: showing.ticketSaleStart
-                  ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
-                  : "",
-                ticketSaleEnd: showing.ticketSaleEnd
-                  ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
-                  : "",
+                ticketSaleStart: ticketSaleStartValue,
+                ticketSaleEnd: ticketSaleEndValue,
                 areas:
                   showing.areas?.map((area: any) => ({
                     name: area.name,
@@ -576,6 +594,14 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       newErrors.description = t("errors.descriptionRequired");
+    } else {
+      // Validate description length (text content only, not HTML)
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = formData.description;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      if (textContent.length > 5000) {
+        newErrors.description = t("errors.descriptionTooLong");
+      }
     }
 
     // Max tickets validation
@@ -684,6 +710,14 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       basicErrors.description = t("errors.descriptionRequired");
+    } else {
+      // Validate description length (text content only, not HTML)
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = formData.description;
+      const textContent = tempDiv.textContent || tempDiv.innerText || '';
+      if (textContent.length > 5000) {
+        basicErrors.description = t("errors.descriptionTooLong");
+      }
     }
 
     // Max tickets validation
@@ -823,6 +857,22 @@ function CreateEventPageInner() {
             onInputChange={handleChange}
             onDescriptionChange={(value) => {
               setFormData({ ...formData, description: value });
+              
+              // Clear description error if it exists and content is valid
+              if (errors.description) {
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = value;
+                const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                
+                // Clear error if description is not empty and within limit
+                if (value.trim() && textContent.length <= 5000) {
+                  setErrors(prev => {
+                    const newErrors = { ...prev };
+                    delete newErrors.description;
+                    return newErrors;
+                  });
+                }
+              }
             }}
             onShowingsChange={handleShowingsChange}
           />

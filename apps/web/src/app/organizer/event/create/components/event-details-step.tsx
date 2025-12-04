@@ -214,6 +214,7 @@ export function EventDetailsStep({
         value={formData.description}
         onChange={onDescriptionChange}
         error={!!errors.description}
+        validationError={errors.description}
         eventData={{
           name: formData.name,
           type: formData.type,

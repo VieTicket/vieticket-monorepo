@@ -35,8 +35,8 @@ function validateEventName(name: string): void {
 }
 
 function validateEventDescription(description: string | null): void {
-  if (description && description.length > 2000) {
-    throw new Error("Description must be 2000 characters or less");
+  if (description && description.length > 10000) {
+    throw new Error("Description must be 10000 characters or less");
   }
 }
 
