@@ -39,14 +39,14 @@ export default function TiptapEditorInput({
   eventData,
 }: Props) {
   const t = useTranslations("organizer-dashboard.CreateEvent");
-  
+
   // Function to extract text content from HTML
   const getTextContent = (html: string): string => {
-    if (!html) return '';
+    if (!html) return "";
     // Create a temporary div to extract text content
-    const tempDiv = document.createElement('div');
+    const tempDiv = document.createElement("div");
     tempDiv.innerHTML = html;
-    return tempDiv.textContent || tempDiv.innerText || '';
+    return tempDiv.textContent || tempDiv.innerText || "";
   };
 
   // Calculate character count from text content
@@ -56,7 +56,7 @@ export default function TiptapEditorInput({
 
   // Check if character limit is exceeded
   const isOverLimit = characterCount > MAX_DESCRIPTION_LENGTH;
-  
+
   const editor = useEditor({
     extensions: [
       StarterKit,
@@ -76,7 +76,7 @@ export default function TiptapEditorInput({
     onUpdate: ({ editor }) => {
       const htmlContent = editor.getHTML();
       const textContent = getTextContent(htmlContent);
-      
+
       // Only call onChange if within character limit
       if (textContent.length <= MAX_DESCRIPTION_LENGTH) {
         onChange(htmlContent);
@@ -119,12 +119,19 @@ export default function TiptapEditorInput({
   return (
     <div className="space-y-1.5 sm:space-y-2">
       <div className="flex items-center justify-between">
-        <label htmlFor="description" className="text-sm sm:text-base font-medium">
+        <label
+          htmlFor="description"
+          className="text-sm sm:text-base font-medium"
+        >
           {t("labels.description")} *
         </label>
         <div className="flex items-center space-x-2 text-xs sm:text-sm">
-          <span className={`${isOverLimit ? 'text-red-500' : 'text-gray-500'}`}>
-            {characterCount.toLocaleString()}/{MAX_DESCRIPTION_LENGTH.toLocaleString()}
+          <span className={`${isOverLimit ? "text-red-500" : "text-gray-500"}`}>
+            {characterCount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",")}/
+            {MAX_DESCRIPTION_LENGTH.toString().replace(
+              /\B(?=(\d{3})+(?!\d))/g,
+              ","
+            )}
           </span>
           {isOverLimit && (
             <span className="text-red-500 font-medium">

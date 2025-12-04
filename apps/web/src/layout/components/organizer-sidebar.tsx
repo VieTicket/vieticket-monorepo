@@ -32,23 +32,23 @@ export default function Sidebar() {
   const t = useTranslations("organizer-dashboard");
   const { data: session } = authClient.useSession();
   const { data: activeOrg } = useActiveOrganization();
-  
+
   // Determine if user is working in organization context or personal context
   const isOrganizerRole = session?.user?.role === "organizer";
   const isInOrgContext = !!activeOrg;
-  
+
   // Get user's role in the active organization
   const userOrgRole = activeOrg?.members?.find(
     (m) => m.userId === session?.user?.id
   )?.role as string | undefined;
-  
+
   const isOwner = userOrgRole === "owner";
   const isMember = userOrgRole === "member";
 
   const navItems = [
-    { 
-      label: t("General.general"), 
-      href: "/organizer/general", 
+    {
+      label: t("General.general"),
+      href: "/organizer/general",
       icon: Home,
       // Available to organizer role or owners
       visible: isOrganizerRole || isOwner,
@@ -68,17 +68,10 @@ export default function Sidebar() {
       // Members can view/edit seat maps
       visible: true,
     },
-    { 
-      label: t("ListEvent.listEvent"), 
-      href: "/organizer", 
+    {
+      label: t("ListEvent.listEvent"),
+      href: "/organizer",
       icon: Calendar,
-      // Available to organizer role or owners
-      visible: isOrganizerRole || isOwner,
-    },
-    { 
-      label: t("Rating.rating"), 
-      href: "/organizer/rating", 
-      icon: Star,
       // Available to organizer role or owners
       visible: isOrganizerRole || isOwner,
     },
@@ -103,26 +96,26 @@ export default function Sidebar() {
       // Available to organizer role or owners
       visible: isOrganizerRole || isOwner,
     },
-    { 
-      label: "Organization", 
-      href: "/organizer/organization", 
+    {
+      label: "Organization",
+      href: "/organizer/organization",
       icon: Building2,
       // Available to all organization members
       visible: isInOrgContext,
     },
-    { 
-      label: t("Profile.profile"), 
-      href: "/profile/edit", 
+    {
+      label: t("Profile.profile"),
+      href: "/profile/edit",
       icon: User,
       visible: true,
     },
-    { 
-      label: t("SignOut.signOut"), 
-      href: "/auth/sign-out", 
+    {
+      label: t("SignOut.signOut"),
+      href: "/auth/sign-out",
       icon: LogOut,
       visible: true,
     },
-  ].filter(item => item.visible);
+  ].filter((item) => item.visible);
 
   useEffect(() => {
     setHasMounted(true);

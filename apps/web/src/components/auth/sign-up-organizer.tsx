@@ -15,7 +15,7 @@ import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useState } from "react";
 import { toast } from "sonner";
-import "./organizer-styles.css";
+
 
 export default function SignUpOrganizer() {
   const [firstName, setFirstName] = useState("");
