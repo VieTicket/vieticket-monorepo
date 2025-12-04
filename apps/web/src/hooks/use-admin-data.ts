@@ -49,6 +49,7 @@ export interface PendingEvent {
   image_url?: string;
   category: string;
   showings?: EventShowing[];
+  priceRange?: { min: number; max: number } | null;
 }
 
 export interface UpdateEventApprovalRequest {

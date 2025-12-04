@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { events, organizers, showings } from "@vieticket/db/pg/schema";
-import { isNull, eq, inArray } from "drizzle-orm";
+import { events, organizers, showings, areas, rows, seats } from "@vieticket/db/pg/schema";
+import { eq, inArray, sql } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -47,11 +47,61 @@ export async function GET() {
       showingsByEventId.get(eventId)!.push(showing);
     }
 
-    // Transform to include showings
+    // Calculate capacity and price for each event
+    
+    // Get capacity (total seats) for each event
+    const capacityResults = eventIds.length > 0
+      ? await db
+          .select({
+            eventId: areas.eventId,
+            totalSeats: sql<number>`COUNT(${seats.id})::int`,
+          })
+          .from(areas)
+          .leftJoin(rows, eq(areas.id, rows.areaId))
+          .leftJoin(seats, eq(rows.id, seats.rowId))
+          .where(inArray(areas.eventId, eventIds))
+          .groupBy(areas.eventId)
+      : [];
+
+    // Get price range (min and max) for each event
+    const priceResults = eventIds.length > 0
+      ? await db
+          .select({
+            eventId: areas.eventId,
+            minPrice: sql<number>`MIN(${areas.price})::numeric`,
+            maxPrice: sql<number>`MAX(${areas.price})::numeric`,
+          })
+          .from(areas)
+          .where(inArray(areas.eventId, eventIds))
+          .groupBy(areas.eventId)
+      : [];
+
+    // Create maps for quick lookup
+    const capacityMap = new Map<string, number>();
+    const priceMap = new Map<string, { min: number; max: number }>();
+    
+    capacityResults.forEach((result) => {
+      capacityMap.set(result.eventId, Number(result.totalSeats) || 0);
+    });
+    
+    priceResults.forEach((result) => {
+      priceMap.set(result.eventId, {
+        min: Number(result.minPrice) || 0,
+        max: Number(result.maxPrice) || 0,
+      });
+    });
+
+    // Transform to include showings, capacity, and price
     const transformedEvents = pendingEvents.map((event) => {
       const eventShowings = showingsByEventId.get(event.id) || [];
+      const eventCapacity = capacityMap.get(event.id) || 0;
+      const eventPrice = priceMap.get(event.id);
+      
       return {
         ...event,
+        capacity: eventCapacity,
+        price: eventPrice ? (eventPrice.min === eventPrice.max ? eventPrice.min : eventPrice.min) : 0,
+        priceRange: eventPrice ? (eventPrice.min === eventPrice.max ? null : { min: eventPrice.min, max: eventPrice.max }) : null,
         showings: eventShowings.map((showing) => ({
           id: showing.id,
           name: showing.name || "",

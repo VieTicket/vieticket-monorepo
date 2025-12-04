@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { authorise } from "@/lib/auth/authorise";
 import { db } from "@/lib/db";
-import { events, user, showings } from "@vieticket/db/pg/schema";
-import { desc, eq, inArray } from "drizzle-orm";
+import { events, user, showings, areas, rows, seats } from "@vieticket/db/pg/schema";
+import { desc, eq, inArray, sql } from "drizzle-orm";
 
 export async function GET() {
   try {
@@ -51,9 +51,55 @@ export async function GET() {
       showingsByEventId.get(eventId)!.push(showing);
     }
 
+    // Calculate capacity and price for each event
+    // Get capacity (total seats) for each event
+    const capacityResults = eventIds.length > 0
+      ? await db
+          .select({
+            eventId: areas.eventId,
+            totalSeats: sql<number>`COUNT(${seats.id})::int`,
+          })
+          .from(areas)
+          .leftJoin(rows, eq(areas.id, rows.areaId))
+          .leftJoin(seats, eq(rows.id, seats.rowId))
+          .where(inArray(areas.eventId, eventIds))
+          .groupBy(areas.eventId)
+      : [];
+
+    // Get price range (min and max) for each event
+    const priceResults = eventIds.length > 0
+      ? await db
+          .select({
+            eventId: areas.eventId,
+            minPrice: sql<number>`MIN(${areas.price})::numeric`,
+            maxPrice: sql<number>`MAX(${areas.price})::numeric`,
+          })
+          .from(areas)
+          .where(inArray(areas.eventId, eventIds))
+          .groupBy(areas.eventId)
+      : [];
+
+    // Create maps for quick lookup
+    const capacityMap = new Map<string, number>();
+    const priceMap = new Map<string, { min: number; max: number }>();
+    
+    capacityResults.forEach((result) => {
+      capacityMap.set(result.eventId, Number(result.totalSeats) || 0);
+    });
+    
+    priceResults.forEach((result) => {
+      priceMap.set(result.eventId, {
+        min: Number(result.minPrice) || 0,
+        max: Number(result.maxPrice) || 0,
+      });
+    });
+
     // Transform to match the expected interface
     const transformedEvents = allEvents.map((event) => {
       const eventShowings = showingsByEventId.get(event.id) || [];
+      const eventCapacity = capacityMap.get(event.id) || 0;
+      const eventPrice = priceMap.get(event.id);
+      
       return {
         id: event.id,
         title: event.name,
@@ -61,8 +107,9 @@ export async function GET() {
         location: event.location || "",
         start_date: event.startTime.toISOString(),
         end_date: event.endTime.toISOString(),
-        price: 0, // You might want to calculate this from areas
-        capacity: 0, // You might want to calculate this from seats
+        price: eventPrice ? (eventPrice.min === eventPrice.max ? eventPrice.min : eventPrice.min) : 0,
+        capacity: eventCapacity,
+        priceRange: eventPrice ? (eventPrice.min === eventPrice.max ? null : { min: eventPrice.min, max: eventPrice.max }) : null,
         organizer_name: event.organizer?.name || "Unknown",
         organizer_email: event.organizer?.email || "",
         created_at: event.createdAt?.toISOString() || "",

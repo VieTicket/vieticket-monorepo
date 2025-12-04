@@ -167,7 +167,7 @@ const EventCard = ({
             <div className="flex items-center gap-2 text-gray-600">
               <Eye className="h-4 w-4 flex-shrink-0" />
               <span className="truncate">
-                Capacity: {event.capacity || "TBD"}
+                Capacity: {event.capacity > 0 ? `${event.capacity.toLocaleString("vi-VN")} chỗ` : "Chưa xác định"}
               </span>
             </div>
           </div>

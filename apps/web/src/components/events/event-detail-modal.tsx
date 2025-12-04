@@ -302,11 +302,22 @@ export function EventDetailModal({
           </DetailCard>
 
           <DetailCard icon={Eye} title="Capacity">
-            {event.capacity || "To be determined"}
+            {event.capacity > 0 ? `${event.capacity.toLocaleString("vi-VN")} chỗ` : "Chưa xác định"}
           </DetailCard>
 
           <DetailCard icon={Tag} title="Price">
-            {event.price ? formatCurrency(event.price) : "To be determined"}
+            {event.priceRange ? (
+              <div>
+                {formatCurrency(event.priceRange.min)}
+                {event.priceRange.min !== event.priceRange.max && (
+                  <span className="text-gray-500"> - {formatCurrency(event.priceRange.max)}</span>
+                )}
+              </div>
+            ) : event.price > 0 ? (
+              formatCurrency(event.price)
+            ) : (
+              "Chưa xác định"
+            )}
           </DetailCard>
         </div>
 
