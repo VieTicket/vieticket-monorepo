@@ -23,8 +23,9 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Lock, Unlock, Loader2, Clock, Users, Search, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Lock, Unlock, Loader2, Clock, Users, Search, ArrowUpDown, ArrowUp, ArrowDown, Eye, Building, Calendar, Globe, MapPin, Phone, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { Textarea } from "@/components/ui/textarea";
 
 interface User {
   id: string;
@@ -53,6 +54,9 @@ export default function AccountPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
+  const [organizerDetail, setOrganizerDetail] = useState<any | null>(null);
+  const [organizerDialogOpen, setOrganizerDialogOpen] = useState(false);
+  const [loadingOrganizer, setLoadingOrganizer] = useState(false);
 
   useEffect(() => {
     fetchUsers();
@@ -181,6 +185,28 @@ export default function AccountPage() {
       hour: "2-digit",
       minute: "2-digit",
     });
+  };
+
+  const handleViewOrganizer = async (user: User) => {
+    if (user.role !== "organizer") return;
+    
+    setLoadingOrganizer(true);
+    setOrganizerDialogOpen(true);
+    
+    try {
+      const response = await fetch(`/api/admin/users/${user.id}/organizer`);
+      if (!response.ok) {
+        throw new Error("Failed to fetch organizer details");
+      }
+      const data = await response.json();
+      setOrganizerDetail(data.organizer);
+    } catch (error) {
+      console.error("Error fetching organizer:", error);
+      toast.error("Failed to fetch organizer details");
+      setOrganizerDialogOpen(false);
+    } finally {
+      setLoadingOrganizer(false);
+    }
   };
 
   const getRoleBadgeVariant = (role: string) => {
@@ -371,7 +397,11 @@ export default function AccountPage() {
                 {filteredAndSortedUsers.map((user) => {
                   const statusInfo = getStatusInfo(user);
                   return (
-                    <TableRow key={user.id}>
+                    <TableRow 
+                      key={user.id}
+                      className={user.role === "organizer" ? "cursor-pointer hover:bg-muted/50" : ""}
+                      onClick={() => user.role === "organizer" && handleViewOrganizer(user)}
+                    >
                       <TableCell className="font-medium min-w-0 max-w-xs">
                         <div className="truncate" title={user.name}>
                           {user.name}
@@ -422,7 +452,10 @@ export default function AccountPage() {
                           <Button
                             variant="default"
                             size="sm"
-                            onClick={() => handleLockToggle(user.id, !!user.banned)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleLockToggle(user.id, !!user.banned);
+                            }}
                             disabled={updatingUsers.has(user.id)}
                           >
                             {updatingUsers.has(user.id) ? (
@@ -440,7 +473,10 @@ export default function AccountPage() {
                               <Button
                                 variant="destructive"
                                 size="sm"
-                                onClick={() => handleLockClick(user)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleLockClick(user);
+                                }}
                               >
                                 <Lock className="h-4 w-4 mr-1" />
                                 Lock
@@ -534,6 +570,113 @@ export default function AccountPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Organizer Detail Dialog */}
+      <Dialog open={organizerDialogOpen} onOpenChange={setOrganizerDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Organizer Details</DialogTitle>
+            <DialogDescription>
+              View organizer information for {organizerDetail?.user?.name || "organizer"}
+            </DialogDescription>
+          </DialogHeader>
+          {loadingOrganizer ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" />
+              <span className="ml-2">Loading organizer details...</span>
+            </div>
+          ) : organizerDetail ? (
+            <div className="grid gap-6 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium">
+                    Personal Information
+                  </Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="break-words">
+                      <strong>Name:</strong> {organizerDetail.user.name}
+                    </div>
+                    <div className="break-words">
+                      <strong>Email:</strong> {organizerDetail.user.email}
+                    </div>
+                    {organizerDetail.user.phone && (
+                      <div className="break-words">
+                        <strong>Phone:</strong> {organizerDetail.user.phone}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium">
+                    Organization Details
+                  </Label>
+                  <div className="mt-2 space-y-2">
+                    <div className="break-words">
+                      <strong>Organization Name:</strong>{" "}
+                      {organizerDetail.name}
+                    </div>
+                    <div className="break-words">
+                      <strong>Type:</strong>{" "}
+                      {organizerDetail.organizerType || "Not specified"}
+                    </div>
+                    {organizerDetail.foundedDate && (
+                      <div className="break-words">
+                        <strong>Founded:</strong>{" "}
+                        {formatDate(organizerDetail.foundedDate)}
+                      </div>
+                    )}
+                    {organizerDetail.taxCode && (
+                      <div className="break-words">
+                        <strong>Tax Code:</strong> {organizerDetail.taxCode}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {organizerDetail.website && (
+                <div>
+                  <Label className="text-sm font-medium">Website</Label>
+                  <div className="mt-1 break-all">
+                    <a
+                      href={organizerDetail.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      {organizerDetail.website}
+                    </a>
+                  </div>
+                </div>
+              )}
+              {organizerDetail.address && (
+                <div>
+                  <Label className="text-sm font-medium">Address</Label>
+                  <div className="mt-1 break-words">{organizerDetail.address}</div>
+                </div>
+              )}
+              <div>
+                <Label className="text-sm font-medium">Status</Label>
+                <div className="mt-1">
+                  <Badge variant={organizerDetail.isActive ? "default" : "secondary"}>
+                    {organizerDetail.isActive ? "Active" : "Inactive"}
+                  </Badge>
+                </div>
+              </div>
+              <div>
+                <Label className="text-sm font-medium">Account Created</Label>
+                <div className="mt-1">
+                  {formatDate(organizerDetail.user.createdAt)}
+                </div>
+              </div>
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setOrganizerDialogOpen(false)}>
+              Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

@@ -51,6 +51,7 @@ interface PendingOrganizer {
   isActive: boolean;
   address: string | null;
   organizerType: string | null;
+  taxCode: string | null;
   user: {
     id: string;
     name: string;
@@ -408,6 +409,11 @@ export default function OrganizerPendingPage() {
                       <div className="break-words">
                         <strong>Founded:</strong>{" "}
                         {formatDate(selectedOrganizer.foundedDate)}
+                      </div>
+                    )}
+                    {selectedOrganizer.taxCode && (
+                      <div className="break-words">
+                        <strong>Tax Code:</strong> {selectedOrganizer.taxCode}
                       </div>
                     )}
                   </div>
