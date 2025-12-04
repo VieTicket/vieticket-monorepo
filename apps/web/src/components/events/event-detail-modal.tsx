@@ -167,6 +167,34 @@ export function EventDetailModal({
           />
         </DetailCard>
 
+        {/* Seat Map Image */}
+        {event.seatMapImage ? (
+          <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+            <div className="space-y-2">
+              <img
+                src={event.seatMapImage}
+                alt="Seat Map"
+                className="w-full rounded-lg border border-gray-200 shadow-sm max-h-96 object-contain"
+                onError={(e) => {
+                  console.error("Error loading seatmap image:", event.seatMapImage);
+                  e.currentTarget.style.display = "none";
+                }}
+                onLoad={() => {
+                  console.log("Seatmap image loaded successfully:", event.seatMapImage);
+                }}
+              />
+            </div>
+          </DetailCard>
+        ) : (
+          event.seatMapId && (
+            <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+              <div className="text-sm text-gray-500">
+                Seat map ID: {event.seatMapId} (Image not available)
+              </div>
+            </DetailCard>
+          )
+        )}
+
         {/* Showings Dropdown */}
         {event.showings && event.showings.length > 0 && (
           <DetailCard icon={Film} title={`Lịch chiếu (Showings) - ${event.showings.length} suất`}>

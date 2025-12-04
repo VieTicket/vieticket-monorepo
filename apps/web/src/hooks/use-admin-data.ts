@@ -50,6 +50,8 @@ export interface PendingEvent {
   category: string;
   showings?: EventShowing[];
   priceRange?: { min: number; max: number } | null;
+  seatMapId?: string | null;
+  seatMapImage?: string | null;
 }
 
 export interface UpdateEventApprovalRequest {

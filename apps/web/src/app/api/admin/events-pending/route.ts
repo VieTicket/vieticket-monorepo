@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { events, organizers, showings, areas, rows, seats } from "@vieticket/db/pg/schema";
 import { eq, inArray, sql } from "drizzle-orm";
+import { findSeatMapById } from "@vieticket/repos/seat-map";
 
 export async function GET() {
   try {
@@ -22,6 +23,7 @@ export async function GET() {
         approvalStatus: events.approvalStatus,
         image_url: events.posterUrl,
         category: events.type,
+        seatMapId: events.seatMapId,
       })
       .from(events)
       .leftJoin(organizers, eq(events.organizerId, organizers.id))
@@ -91,17 +93,42 @@ export async function GET() {
       });
     });
 
-    // Transform to include showings, capacity, and price
+    // Fetch seatmap images for events that have seatMapId
+    const seatMapImageMap = new Map<string, string>();
+    const uniqueSeatMapIds = [...new Set(pendingEvents.map(e => e.seatMapId).filter((id): id is string => Boolean(id)))];
+    
+    if (uniqueSeatMapIds.length > 0) {
+      console.log(`[Admin Events Pending] Fetching ${uniqueSeatMapIds.length} seatmap(s) for events`);
+    }
+    
+    for (const seatMapId of uniqueSeatMapIds) {
+      try {
+        const seatMap = await findSeatMapById(seatMapId);
+        if (seatMap?.image) {
+          seatMapImageMap.set(seatMapId, seatMap.image);
+          console.log(`[Admin Events Pending] Successfully fetched seatmap image for ${seatMapId}`);
+        } else {
+          console.warn(`[Admin Events Pending] Seatmap ${seatMapId} found but no image`);
+        }
+      } catch (error) {
+        console.error(`[Admin Events Pending] Error fetching seatmap ${seatMapId}:`, error);
+        // Continue with other seatmaps even if one fails
+      }
+    }
+
+    // Transform to include showings, capacity, price, and seatmap image
     const transformedEvents = pendingEvents.map((event) => {
       const eventShowings = showingsByEventId.get(event.id) || [];
       const eventCapacity = capacityMap.get(event.id) || 0;
       const eventPrice = priceMap.get(event.id);
+      const seatMapImage = event.seatMapId ? seatMapImageMap.get(event.seatMapId) : null;
       
       return {
         ...event,
         capacity: eventCapacity,
         price: eventPrice ? (eventPrice.min === eventPrice.max ? eventPrice.min : eventPrice.min) : 0,
         priceRange: eventPrice ? (eventPrice.min === eventPrice.max ? null : { min: eventPrice.min, max: eventPrice.max }) : null,
+        seatMapImage: seatMapImage || null,
         showings: eventShowings.map((showing) => ({
           id: showing.id,
           name: showing.name || "",

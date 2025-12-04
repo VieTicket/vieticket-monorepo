@@ -3,6 +3,7 @@ import { authorise } from "@/lib/auth/authorise";
 import { db } from "@/lib/db";
 import { events, user, showings, areas, rows, seats } from "@vieticket/db/pg/schema";
 import { desc, eq, inArray, sql } from "drizzle-orm";
+import { findSeatMapById } from "@vieticket/repos/seat-map";
 
 export async function GET() {
   try {
@@ -21,6 +22,7 @@ export async function GET() {
         posterUrl: events.posterUrl,
         type: events.type,
         approvalStatus: events.approvalStatus,
+        seatMapId: events.seatMapId,
         organizer: {
           name: user.name,
           email: user.email,
@@ -94,11 +96,28 @@ export async function GET() {
       });
     });
 
+    // Fetch seatmap images for events that have seatMapId
+    const seatMapImageMap = new Map<string, string>();
+    const uniqueSeatMapIds = [...new Set(allEvents.map(e => e.seatMapId).filter((id): id is string => Boolean(id)))];
+    
+    for (const seatMapId of uniqueSeatMapIds) {
+      try {
+        const seatMap = await findSeatMapById(seatMapId);
+        if (seatMap?.image) {
+          seatMapImageMap.set(seatMapId, seatMap.image);
+        }
+      } catch (error) {
+        console.error(`Error fetching seatmap ${seatMapId}:`, error);
+        // Continue with other seatmaps even if one fails
+      }
+    }
+
     // Transform to match the expected interface
     const transformedEvents = allEvents.map((event) => {
       const eventShowings = showingsByEventId.get(event.id) || [];
       const eventCapacity = capacityMap.get(event.id) || 0;
       const eventPrice = priceMap.get(event.id);
+      const seatMapImage = event.seatMapId ? seatMapImageMap.get(event.seatMapId) : null;
       
       return {
         id: event.id,
@@ -110,6 +129,7 @@ export async function GET() {
         price: eventPrice ? (eventPrice.min === eventPrice.max ? eventPrice.min : eventPrice.min) : 0,
         capacity: eventCapacity,
         priceRange: eventPrice ? (eventPrice.min === eventPrice.max ? null : { min: eventPrice.min, max: eventPrice.max }) : null,
+        seatMapImage: seatMapImage || null,
         organizer_name: event.organizer?.name || "Unknown",
         organizer_email: event.organizer?.email || "",
         created_at: event.createdAt?.toISOString() || "",
