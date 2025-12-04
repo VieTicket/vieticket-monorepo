@@ -18,6 +18,7 @@ import {
   UndoRedoAction,
   ShapeContext,
   setApplyDeltaRestoreReference,
+  loadHistoryFromStorage,
 } from "../store/seat-map-store";
 import {
   shapes,
@@ -1149,6 +1150,45 @@ export const handleRemoteUndoRedo = async (
   });
 
   return true;
+};
+
+export const restoreHistoryAfterSeatMapLoad = async (
+  seatMapId: string
+): Promise<boolean> => {
+  const store = useSeatMapStore.getState();
+
+  try {
+    // Restore history from localStorage
+    const storedData = loadHistoryFromStorage(seatMapId);
+
+    if (storedData) {
+      const { historyStack, currentIndex: currentHistoryIndex } = storedData;
+      if (historyStack.length > 0 && currentHistoryIndex >= 0) {
+        // Get the current state by applying all actions up to currentHistoryIndex
+        for (let i = 0; i <= currentHistoryIndex; i++) {
+          const action = historyStack[i];
+          try {
+            // Apply each action to build up the current state
+            await applyDeltaRestore(action, false, false, false);
+          } catch (error) {
+            console.error(`Failed to apply stored action ${action.id}:`, error);
+            store.clearHistory();
+            return false;
+          }
+        }
+      }
+      store.setHistory(historyStack, currentHistoryIndex);
+
+      return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Failed to restore history after seat map load:", error);
+    // Clear corrupted history
+    store.clearStoredHistory();
+    return false;
+  }
 };
 
 export const syncHistoryWithServer = (): void => {

@@ -109,6 +109,13 @@ export const onAreaModePointerMove = (event: PIXI.FederatedPointerEvent) => {
   updatePreviewShape(dragStart.x, dragStart.y, localPoint.x, localPoint.y);
 };
 
+// Add this import at the top
+declare global {
+  interface Window {
+    __validateNewGrid?: (gridId: string) => void;
+  }
+}
+
 export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
   if (!isDrawing || !dragStart || !areaModeContainer) return;
 
@@ -184,6 +191,13 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
 
     SeatMapCollaboration.broadcastShapeChange(action);
     gridCreated = true;
+
+    // ✅ Trigger validation for the new grid
+    setTimeout(() => {
+      if (window.__validateNewGrid) {
+        window.__validateNewGrid(newGrid.id);
+      }
+    }, 100); // Small delay to ensure DOM updates
   }
 
   clearPreview();
