@@ -18,6 +18,7 @@ import {
   Building,
   Globe,
 } from "lucide-react";
+import { MouseGlowEffect } from "@/components/effects/mouse-glow";
 
 export default function ContactPage() {
   const t = useTranslations("contact");
@@ -129,6 +130,8 @@ export default function ContactPage() {
 
   return (
     <>
+          {/* Mouse Glow Effect */}
+          <MouseGlowEffect />
       <div className="min-h-screen bg-slate-950 relative overflow-hidden">
         {/* Background Effects */}
         <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-900/20 via-slate-950 to-slate-950 pointer-events-none" />

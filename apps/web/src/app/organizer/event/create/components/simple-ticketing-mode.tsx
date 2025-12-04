@@ -31,20 +31,26 @@ export function SimpleTicketingMode({
     return formattedValue.replace(/\./g, "");
   };
 
+  // Check if area is free (price is explicitly set to 0)
+  const isAreaFree = (area: Area): boolean => {
+    return area.ticketPrice === "0";
+  };
+
+  // Handle free event toggle
+  const handleFreeToggle = (index: number, isFree: boolean) => {
+    setAreas((prev) =>
+      prev.map((a, i) =>
+        i === index ? { ...a, ticketPrice: isFree ? "0" : "" } : a
+      )
+    );
+  };
+
   // Validate and handle seat count input
   const handleSeatCountChange = (index: number, value: string) => {
     // Only allow positive numbers
     const numericValue = value.replace(/\D/g, "");
-    const parsedValue = parseInt(numericValue);
 
-    // Don't allow 0 or negative numbers
-    if (numericValue === "" || parsedValue <= 0) {
-      setAreas((prev) =>
-        prev.map((a, i) => (i === index ? { ...a, seatCount: "" } : a))
-      );
-      return;
-    }
-
+    // Always update the value to allow user to type
     setAreas((prev) =>
       prev.map((a, i) => (i === index ? { ...a, seatCount: numericValue } : a))
     );
@@ -53,17 +59,8 @@ export function SimpleTicketingMode({
   // Validate and handle ticket price input
   const handleTicketPriceChange = (index: number, value: string) => {
     const numericValue = parseVNDPrice(value);
-    const parsedValue = parseInt(numericValue);
 
-    // Don't allow negative numbers
-    if (numericValue === "" || parsedValue < 0) {
-      setAreas((prev) =>
-        prev.map((a, i) => (i === index ? { ...a, ticketPrice: "" } : a))
-      );
-      return;
-    }
-
-    // Store the raw numeric value but display formatted
+    // Always update the value to allow user to type
     setAreas((prev) =>
       prev.map((a, i) =>
         i === index ? { ...a, ticketPrice: numericValue } : a
@@ -104,20 +101,18 @@ export function SimpleTicketingMode({
               id={`area-seatCount-${index}`}
               type="text"
               name={`areas[${index}][seatCount]`}
-              placeholder="e.g. 100"
+              placeholder="30-500 seats"
               value={area.seatCount}
               onChange={(e) => handleSeatCountChange(index, e.target.value)}
               required
-              className={`h-9 text-sm ${!area.seatCount ? "border-red-300" : ""}`}
-              title={
-                !area.seatCount
-                  ? "Seat count is required and must be greater than 0"
-                  : ""
-              }
+              className={`h-9 text-sm ${area.seatCount && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500) ? "border-red-300" : ""}`}
+              title="Seat count must be between 30 and 500"
+              min="30"
+              max="500"
             />
-            {!area.seatCount && (
+            {area.seatCount && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500) && (
               <p className="text-xs text-red-500 mt-1">
-                Required, must be &gt; 0
+                Must be between 30 and 500 seats
               </p>
             )}
           </div>
@@ -126,24 +121,46 @@ export function SimpleTicketingMode({
             <Label htmlFor={`area-ticketPrice-${index}`} className="text-sm font-medium">
               Ticket Price (VND)
             </Label>
+            
+            {/* Free Event Checkbox */}
+            <div className="flex items-center space-x-2 mb-2">
+              <input
+                type="checkbox"
+                id={`area-free-${index}`}
+                checked={isAreaFree(area)}
+                onChange={(e) => handleFreeToggle(index, e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor={`area-free-${index}`} className="text-sm text-gray-700">
+                Free Event (0 VND)
+              </label>
+            </div>
+            
             <Input
               id={`area-ticketPrice-${index}`}
               type="text"
               name={`areas[${index}][ticketPrice]`}
-              placeholder="e.g. 50.000"
-              value={formatVNDPrice(area.ticketPrice)}
+              placeholder={isAreaFree(area) ? "0" : "Min: 10.000"}
+              value={isAreaFree(area) ? "0" : formatVNDPrice(area.ticketPrice)}
               onChange={(e) => handleTicketPriceChange(index, e.target.value)}
+              disabled={isAreaFree(area)}
               required
-              className={`h-9 text-sm ${!area.ticketPrice ? "border-red-300" : ""}`}
-              title={
-                !area.ticketPrice
-                  ? "Ticket price is required and must be greater than or equal to 0"
-                  : ""
-              }
+              className={`h-9 text-sm ${isAreaFree(area) ? "bg-gray-100 cursor-not-allowed" : ""} ${
+                area.ticketPrice && !isAreaFree(area) && parseInt(area.ticketPrice) < 10000 ? "border-red-300" : ""
+              }`}
+              title={isAreaFree(area) ? "Free event - price is 0 VND" : "Minimum ticket price is 10,000 VND"}
             />
-            {!area.ticketPrice && (
+            
+            {/* Validation Messages */}
+            {area.ticketPrice && !isAreaFree(area) && parseInt(area.ticketPrice) < 10000 && (
               <p className="text-xs text-red-500 mt-1">
-                Required, must be ≥ 0
+                Minimum price is 10,000 VND
+              </p>
+            )}
+            
+            {isAreaFree(area) && (
+              <p className="text-xs text-green-600 mt-1">
+                ✓ Free event - no charge
               </p>
             )}
           </div>

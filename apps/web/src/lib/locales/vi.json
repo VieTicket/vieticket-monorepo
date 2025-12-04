@@ -212,6 +212,7 @@
         "nameRequired": "Tên sự kiện là bắt buộc",
         "locationRequired": "Địa điểm là bắt buộc",
         "descriptionRequired": "Mô tả là bắt buộc",
+        "descriptionTooLong": "Mô tả không được vượt quá 5,000 ký tự",
         "showingRequired": "Ít nhất một buổi chiếu có thời gian bắt đầu là bắt buộc",
         "maxTicketsMin": "Số vé tối đa mỗi đơn phải lớn hơn hoặc bằng 1",
         "maxTicketsMax": "Số vé tối đa mỗi đơn không được vượt quá 20",
