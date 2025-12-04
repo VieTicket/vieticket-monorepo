@@ -121,6 +121,82 @@ export const setApplyDeltaRestoreReference = (
   applyDeltaRestoreRef = fn;
 };
 
+const HISTORY_STORAGE_KEY = (seatMapId: string) =>
+  `seatmap_history_${seatMapId}`;
+const HISTORY_INDEX_STORAGE_KEY = (seatMapId: string) =>
+  `seatmap_history_index_${seatMapId}`;
+
+// Helper functions for localStorage operations
+const saveHistoryToStorage = (
+  seatMapId: string,
+  historyStack: UndoRedoAction[],
+  currentIndex: number
+) => {
+  try {
+    // Only save if we're in a browser environment
+    if (typeof window !== "undefined" && window.localStorage) {
+      const serializedHistory = historyStack.map((action) => ({
+        ...action,
+      }));
+      console.log("Serialized history for storage:", serializedHistory);
+      localStorage.setItem(
+        HISTORY_STORAGE_KEY(seatMapId),
+        JSON.stringify(serializedHistory)
+      );
+      localStorage.setItem(
+        HISTORY_INDEX_STORAGE_KEY(seatMapId),
+        currentIndex.toString()
+      );
+
+      console.log(
+        `💾 Saved ${historyStack.length} actions to localStorage for seat map ${seatMapId}`
+      );
+    }
+  } catch (error) {
+    console.warn("Failed to save history to localStorage:", error);
+  }
+};
+
+export const loadHistoryFromStorage = (
+  seatMapId: string
+): { historyStack: UndoRedoAction[]; currentIndex: number } | null => {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      const historyData = localStorage.getItem(HISTORY_STORAGE_KEY(seatMapId));
+      const indexData = localStorage.getItem(
+        HISTORY_INDEX_STORAGE_KEY(seatMapId)
+      );
+
+      if (historyData && indexData) {
+        const historyStack = JSON.parse(historyData) as UndoRedoAction[];
+        const currentIndex = parseInt(indexData, 10);
+
+        console.log(
+          `📥 Loaded ${historyStack.length} actions from localStorage for seat map ${seatMapId}`
+        );
+        return { historyStack, currentIndex };
+      }
+    }
+  } catch (error) {
+    console.warn("Failed to load history from localStorage:", error);
+  }
+  return null;
+};
+
+const clearHistoryFromStorage = (seatMapId: string) => {
+  try {
+    if (typeof window !== "undefined" && window.localStorage) {
+      localStorage.removeItem(HISTORY_STORAGE_KEY(seatMapId));
+      localStorage.removeItem(HISTORY_INDEX_STORAGE_KEY(seatMapId));
+      console.log(
+        `🗑️ Cleared history from localStorage for seat map ${seatMapId}`
+      );
+    }
+  } catch (error) {
+    console.warn("Failed to clear history from localStorage:", error);
+  }
+};
+
 export const cloneCanvasItem = (item: CanvasItem): CanvasItem => {
   const cloned = {} as CanvasItem;
 
@@ -137,12 +213,15 @@ export const cloneCanvasItem = (item: CanvasItem): CanvasItem => {
       key === "filters" ||
       key === "hitArea" ||
       key === "cursor" ||
+      key === "seatGraphics" ||
+      key === "labelGraphics" ||
       (typeof value === "object" &&
         value !== null &&
         (value.constructor?.name?.includes("PIXI") ||
           value.constructor?.name?.includes("Graphics") ||
           value.constructor?.name?.includes("Container") ||
-          value.constructor?.name?.includes("Sprite")))
+          value.constructor?.name?.includes("Sprite") ||
+          value.constructor?.name?.includes("Text"))) // ✅ Added Text
     ) {
       continue;
     }
@@ -182,7 +261,6 @@ interface SeatMapStore {
 
   historyStack: UndoRedoAction[];
   currentHistoryIndex: number;
-  maxHistorySize: number;
 
   collaboration: CollaborationState;
 
@@ -190,6 +268,12 @@ interface SeatMapStore {
 
   setSeatMap: (seatMap: SeatMapInfo | null) => void;
   setLoading: (loading: boolean) => void;
+  restoreHistoryFromStorage: (seatMapId: string) => boolean;
+  clearStoredHistory: () => void;
+  setHistory: (
+    historyStack: UndoRedoAction[],
+    currentHistoryIndex: number
+  ) => void;
 
   updateShapes: (
     newShapes: CanvasItem[],
@@ -288,7 +372,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   selectedShapes: [],
   historyStack: [],
   currentHistoryIndex: -1,
-  maxHistorySize: 50,
   collaboration: {
     userId: "",
     isConnected: false,
@@ -318,6 +401,14 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     const currentSeatMap = get().seatMap;
 
     if (!currentSeatMap && !seatMap) return;
+
+    // If switching to a different seat map, clear current history
+    if (currentSeatMap && seatMap && currentSeatMap.id !== seatMap.id) {
+      set({
+        historyStack: [],
+        currentHistoryIndex: -1,
+      });
+    }
 
     set({ seatMap });
   },
@@ -753,7 +844,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       selectedShapes: currentSelected,
       historyStack,
       currentHistoryIndex,
-      maxHistorySize,
+      seatMap,
     } = get();
 
     const finalAfterState = afterState || {
@@ -792,19 +883,50 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     newStack.push(newAction);
     console.log("History stack:", newStack);
 
-    if (newStack.length > maxHistorySize) {
-      newStack.shift();
-      set({
-        historyStack: newStack,
-        currentHistoryIndex: newStack.length - 1,
-      });
-    } else {
-      set({
-        historyStack: newStack,
-        currentHistoryIndex: newStack.length - 1,
-      });
+    set({
+      historyStack: newStack,
+      currentHistoryIndex: newStack.length - 1,
+    });
+
+    if (seatMap?.id) {
+      saveHistoryToStorage(seatMap.id, newStack, newStack.length - 1);
     }
+
     return newAction;
+  },
+
+  setHistory: (historyStack: UndoRedoAction[], currentHistoryIndex: number) => {
+    set({ historyStack, currentHistoryIndex });
+  },
+
+  restoreHistoryFromStorage: (seatMapId: string): boolean => {
+    try {
+      const storedData = loadHistoryFromStorage(seatMapId);
+
+      if (storedData) {
+        set({
+          historyStack: storedData.historyStack,
+          currentHistoryIndex: storedData.currentIndex,
+        });
+
+        console.log(
+          `✅ Restored ${storedData.historyStack.length} actions from localStorage`
+        );
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error("Failed to restore history from storage:", error);
+      return false;
+    }
+  },
+
+  // Add method to clear stored history
+  clearStoredHistory: () => {
+    set({ historyStack: [], currentHistoryIndex: -1 });
+
+    clearHistoryFromStorage(get().seatMap?.id || "");
   },
 
   _findAffectedShapes: (oldShapes: CanvasItem[], newShapes: CanvasItem[]) => {

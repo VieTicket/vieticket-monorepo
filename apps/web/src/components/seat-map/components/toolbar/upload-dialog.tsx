@@ -470,6 +470,7 @@ export const UploadDialog: React.FC = () => {
 
           screenshotUrl = uploadResponse.secure_url;
           setScreenshotProgress(70);
+          useSeatMapStore.getState().clearStoredHistory();
 
           toast.success("Screenshot captured and uploaded!", {
             description: "Now saving seat map data...",
