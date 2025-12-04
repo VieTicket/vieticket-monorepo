@@ -1,0 +1,8 @@
+This files contains the process and checklist of building LOCALLY and deploy the output to Vercel (from local computer).
+
+1. Install Vercel CLI, authenticate and link project.
+2. Create separate .env files: `.env.local` for dev, `.env.production` for prod.
+3. Run `vercel build --prod` then `vercel deploy --prod --prebuilt` (can use `&&`).
+   - To specify env file: `vercel build --prod --yes --env-file=.env.production`
+   - Or export before commands: `export VERCEL_ENV_FILE=.env.production && vercel build --prod && vercel deploy --prod --prebuilt`
+   - Alternative: Use `--env` flag per variable: `vercel build --prod --env KEY=value`

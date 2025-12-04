@@ -5,16 +5,13 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
-import { createOrganizerAction } from "@/lib/actions/organizer-actions";
-import { Loader2, X } from "lucide-react";
-import Image from "next/image";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, useState } from "react";
 import { toast } from "sonner";
@@ -26,22 +23,8 @@ export default function SignUpOrganizer() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
-  const [image, setImage] = useState<File | null>(null);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setImage(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
   return (
     <>
@@ -228,41 +211,6 @@ export default function SignUpOrganizer() {
                 placeholder="Confirm Password"
               />
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="image" className="text-slate-300">
-                Profile Image (optional)
-              </Label>
-              <div className="flex items-end gap-4">
-                {imagePreview && (
-                  <div className="relative w-16 h-16 rounded-sm overflow-hidden border border-violet-400/30">
-                    <Image
-                      src={imagePreview}
-                      alt="Profile preview"
-                      layout="fill"
-                      objectFit="cover"
-                    />
-                  </div>
-                )}
-                <div className="flex items-center gap-2 w-full">
-                  <Input
-                    id="image"
-                    type="file"
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="w-full professional-button text-white file:text-violet-400 file:bg-transparent file:border-0"
-                  />
-                  {imagePreview && (
-                    <X
-                      className="cursor-pointer text-slate-400 hover:text-violet-400 transition-colors"
-                      onClick={() => {
-                        setImage(null);
-                        setImagePreview(null);
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
             <Button
               type="submit"
               className="w-full professional-button hover:professional-button border-violet-400/50 hover:border-violet-400 bg-violet-600/20 hover:bg-violet-600/30 text-white"
@@ -273,7 +221,6 @@ export default function SignUpOrganizer() {
                     email,
                     password,
                     name: `${firstName} ${lastName}`,
-                    image: image ? await convertImageToBase64(image) : "",
                     role: "organizer",
                   } as unknown as Parameters<
                     typeof authClient.signUp.email
@@ -289,34 +236,12 @@ export default function SignUpOrganizer() {
                     onError: (ctx) => {
                       toast.error(ctx.error.message);
                     },
-                    onSuccess: async (ctx) => {
-                      try {
-                        // Create organizer record with isActive = false
-                        const organizerResult = await createOrganizerAction(
-                          ctx.data.user
-                        );
-
-                        if (organizerResult.success) {
-                          toast.success(
-                            "Please check your email to verify your account."
-                          );
-                          router.push("/auth/sign-in");
-                        } else {
-                          toast.error(
-                            "Account created but failed to initialize organizer profile. Please contact support."
-                          );
-                          router.push("/auth/sign-in");
-                        }
-                      } catch (error) {
-                        console.error(
-                          "Error creating organizer profile:",
-                          error
-                        );
-                        toast.error(
-                          "Account created but failed to initialize organizer profile. Please contact support."
-                        );
-                        router.push("/auth/sign-in");
-                      }
+                    onSuccess: async () => {
+                      // Organizer profile is automatically created via database hook
+                      toast.success(
+                        "Please check your email to verify your account."
+                      );
+                      router.push("/auth/sign-in");
                     },
                   },
                 });
@@ -333,13 +258,4 @@ export default function SignUpOrganizer() {
       </Card>
     </>
   );
-}
-
-async function convertImageToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
 }

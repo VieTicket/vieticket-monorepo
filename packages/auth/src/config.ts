@@ -6,7 +6,8 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { getResetPasswordEmail } from "./emails/reset-password";
 import { getVerificationEmail } from "./emails/verify-email";
 import { sendMail } from "@vieticket/utils/mailer";
-import orgPlugin from "./org-team"
+import orgPlugin from "./org-team";
+import { createOrganizer } from "@vieticket/repos/organizer";
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -71,7 +72,7 @@ export const auth = betterAuth({
     },
     emailVerification: {
         sendOnSignUp: true,
-        autoSignInAfterVerification: false,
+        autoSignInAfterVerification: true,
         sendVerificationEmail: async ({ user, url }) => {
             const { html, text } = getVerificationEmail({ user, url });
             await sendMail({
@@ -85,6 +86,31 @@ export const auth = betterAuth({
     session: {
         cookieCache: {
             enabled: true,
+        },
+    },
+    databaseHooks: {
+        user: {
+            create: {
+                after: async (user) => {
+                    // Automatically create organizer profile for users with role "organizer"
+                    if (user.role === "organizer") {
+                        try {
+                            // Create organizer profile with isActive = false (pending approval)
+                            await createOrganizer({
+                                id: user.id,
+                                name: user.name || "New Organizer",
+                                isActive: false,
+                            });
+                            
+                            console.log(`✅ Organizer profile created for user: ${user.email}`);
+                        } catch (error) {
+                            console.error(`❌ Failed to create organizer profile for ${user.email}:`, error);
+                            // Note: We don't throw here to avoid blocking user creation
+                            // The organizer profile can be created manually later if needed
+                        }
+                    }
+                },
+            },
         },
     },
     plugins: [
