@@ -131,6 +131,7 @@
       "name": "@vieticket/auth",
       "dependencies": {
         "@vieticket/db": "workspace:",
+        "@vieticket/repos": "workspace:",
         "@vieticket/utils": "workspace:",
         "better-auth": "catalog:",
       },
