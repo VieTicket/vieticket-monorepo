@@ -1,28 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { cn } from "@/lib/utils";
-import {
-  Home,
-  Calendar,
-  Star,
-  Wallet,
-  NotebookPen,
-  Map,
-  Menu,
-  X,
-  MessageCircle,
-  TicketCheck,
-  LogOut,
-  User,
-  Building2,
-} from "lucide-react";
-import { useEffect, useState } from "react";
-import { useTranslations } from "next-intl";
 import { OrgSwitcher } from "@/components/organization/org-switcher";
 import { authClient } from "@/lib/auth/auth-client";
+import { cn } from "@/lib/utils";
 import { useActiveOrganization } from "@/providers/active-organization-provider";
+import {
+  Building2,
+  Calendar,
+  Home,
+  LogOut,
+  Map,
+  Menu,
+  MessageCircle,
+  NotebookPen,
+  TicketCheck,
+  User,
+  Wallet,
+  X
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function Sidebar() {
   const pathname = usePathname();

@@ -11,7 +11,6 @@ import { toast } from "sonner";
 
 export function CreateOrgForm({ onSuccess }: { onSuccess?: () => void }) {
   const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setActiveOrganizationId } = useActiveOrganizationId();
@@ -23,7 +22,8 @@ export function CreateOrgForm({ onSuccess }: { onSuccess?: () => void }) {
     try {
       const { data, error } = await authClient.organization.create({
         name,
-        slug,
+        // Slug is ignored on server; pass any placeholder string
+        slug: "",
       });
 
       if (error) {
@@ -35,7 +35,6 @@ export function CreateOrgForm({ onSuccess }: { onSuccess?: () => void }) {
         toast.success("Organization created successfully");
         setActiveOrganizationId(data.id);
         setName("");
-        setSlug("");
         router.refresh();
         onSuccess?.();
       }
@@ -57,21 +56,7 @@ export function CreateOrgForm({ onSuccess }: { onSuccess?: () => void }) {
           value={name}
           onChange={(e) => {
             setName(e.target.value);
-            // Auto-generate slug from name if slug is empty or matches previous auto-gen
-            if (!slug || slug === name.toLowerCase().replace(/\s+/g, "-").slice(0, -1)) {
-                setSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
-            }
           }}
-          required
-        />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="org-slug">Slug</Label>
-        <Input
-          id="org-slug"
-          placeholder="my-awesome-org"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
           required
         />
       </div>

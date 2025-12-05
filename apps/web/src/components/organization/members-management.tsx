@@ -66,7 +66,7 @@ export function MembersManagement() {
       if (!activeOrganizationId) return [];
       const { data, error } = await authClient.organization.listInvitations({
         query: {
-          organizationId: activeOrganizationId
+          organizationId: activeOrganizationId,
         }
       });
       if (error) throw error;

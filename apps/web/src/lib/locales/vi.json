@@ -439,9 +439,6 @@
       "rejected": "Bị từ chối",
       "noEventsYet": "Chưa có sự kiện nào",
       "createFirstEvent": "Bắt đầu bằng cách tạo sự kiện đầu tiên của bạn",
-      "createEvent": "Tạo Sự Kiện",
-      "noEventsYet": "Chưa có sự kiện nào",
-      "createFirstEvent": "Bắt đầu bằng cách tạo sự kiện đầu tiên của bạn",
       "createEvent": "Tạo Sự Kiện"
     },
     "Rating": {
@@ -648,7 +645,6 @@
       "details": "Chi tiết Tổ chức",
       "detailsDesc": "Thông tin về tổ chức hiện tại của bạn.",
       "name": "Tên",
-      "slug": "Đường dẫn (Slug)",
       "members": "Thành viên",
       "membersDesc": "Quản lý thành viên của tổ chức này.",
       "dangerZone": "Vùng Nguy hiểm",

@@ -439,9 +439,6 @@
       "rejected": "Rejected",
       "noEventsYet": "No events yet",
       "createFirstEvent": "Get started by creating your first event",
-      "createEvent": "Create Event",
-      "noEventsYet": "No events yet",
-      "createFirstEvent": "Get started by creating your first event",
       "createEvent": "Create Event"
     },
     "Rating": {
@@ -648,7 +645,6 @@
       "details": "Organization Details",
       "detailsDesc": "Information about your current organization.",
       "name": "Name",
-      "slug": "Slug",
       "members": "Members",
       "membersDesc": "Manage members of this organization.",
       "dangerZone": "Danger Zone",

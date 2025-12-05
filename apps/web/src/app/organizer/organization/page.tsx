@@ -69,7 +69,6 @@ export default function OrganizationPage() {
             <Card key={org.id} className="hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setActiveOrganizationId(org.id)}>
               <CardHeader>
                 <CardTitle>{org.name}</CardTitle>
-                <CardDescription>{org.slug}</CardDescription>
               </CardHeader>
               <CardContent>
                 <Button variant="secondary" className="w-full">Manage</Button>
@@ -136,9 +135,6 @@ export default function OrganizationPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <span className="font-semibold">{t("name")}:</span> {activeOrg.name}
-              </div>
-              <div>
-                <span className="font-semibold">{t("slug")}:</span> {activeOrg.slug}
               </div>
             </div>
           </CardContent>

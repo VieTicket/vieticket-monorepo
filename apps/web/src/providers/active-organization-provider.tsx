@@ -26,6 +26,12 @@ export function useActiveOrganizationId() {
       await authClient.organization.setActive({
         organizationId: id,
       });
+    } else {
+      // Unset by calling setActive with null
+      await authClient.organization.setActive({
+        // Passing null to clear the active organization per Better Auth API
+        organizationId: null,
+      });
     }
   };
 
@@ -46,6 +52,11 @@ export function useActiveOrganization() {
     if (id) {
       await authClient.organization.setActive({
         organizationId: id,
+      });
+    } else {
+      // Unset by calling setActive with null
+      await authClient.organization.setActive({
+        organizationId: null,
       });
     }
   };

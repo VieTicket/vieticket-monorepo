@@ -19,7 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Check, ChevronsUpDown, PlusCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { CreateOrgForm } from "./create-org-form";
 
@@ -29,7 +29,21 @@ export function OrgSwitcher({ className }: { className?: string }) {
   const [open, setOpen] = useState(false);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
 
-  const handleSelect = async (organizationId: string) => {
+  // Set default active organization to the first one when none is active
+  useEffect(() => {
+    if (!isPending && !isLoading && organizations && organizations.length > 0 && !activeOrg) {
+      // Best-effort: set the first organization as active by default
+      (async () => {
+        try {
+          await setActiveOrganizationId(organizations[0].id);
+        } catch (error) {
+          console.error("Failed to set default active organization:", error);
+        }
+      })();
+    }
+  }, [isPending, isLoading, organizations, activeOrg, setActiveOrganizationId]);
+
+  const handleSelect = async (organizationId: string | null) => {
     try {
       await setActiveOrganizationId(organizationId);
       setOpen(false);
@@ -93,6 +107,15 @@ export function OrgSwitcher({ className }: { className?: string }) {
               </CommandGroup>
               <CommandSeparator />
               <CommandGroup>
+                <CommandItem onSelect={() => handleSelect(null)}>
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      !activeOrg ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  No Organization
+                </CommandItem>
                 <CommandItem onSelect={handleCreateClick}>
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Create Organization

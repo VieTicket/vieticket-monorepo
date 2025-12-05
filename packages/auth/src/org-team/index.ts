@@ -27,6 +27,17 @@ const allowUserToCreateOrganization = async (user: User): Promise<boolean> => {
 const org_team = organization({
     ...acAndRole,
     organizationHooks: {
+        // Ensure slug is generated server-side and unique. We ignore client input.
+        beforeCreateOrganization: async ({ organization }) => {
+            return {
+                data: {
+                    ...organization,
+                    // Always overwrite slug with a server-generated UUID using Web Crypto.
+                    // We intentionally do not use the slugify utility functions here, as organization slugs are meant to be opaque, unique identifiers rather than human-readable strings.
+                    slug: crypto.randomUUID(),
+                },
+            };
+        },
         // Enforce that only users with global "organizer" role can be "owner" of an organization.
         // All other users (customers) must be "member".
         // We also disallow "admin" role, normalizing it to "member".

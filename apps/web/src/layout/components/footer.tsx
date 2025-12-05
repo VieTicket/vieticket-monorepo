@@ -32,7 +32,7 @@ export default function Footer() {
   ];
 
   return (
-    <footer className="relative z-50 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 text-white py-12 px-6 md:px-20 shadow-2xl">
+    <footer className="relative z-2 bg-slate-900/95 backdrop-blur-md border-t border-slate-700/50 text-white py-12 px-6 md:px-20 shadow-2xl">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
         {sections.slice(0, 4).map((section, index) => (
           <div key={index}>
@@ -60,7 +60,7 @@ export default function Footer() {
           </div>
           
         ))}
-        <div className="relative z-[51] grid grid-cols-2 md:grid-cols-2 gap-8">
+        <div className="relative z-51 grid grid-cols-2 md:grid-cols-2 gap-8">
           <LanguageSwitcher />
         </div>
       </div>

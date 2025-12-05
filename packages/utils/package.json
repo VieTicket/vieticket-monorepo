@@ -34,6 +34,7 @@
     "mailgun.js": "^12.0.3",
     "msgpackr": "^1.11.4",
     "qrcode": "^1.5.4",
+    "slugify": "^1.6.6",
     "vnpay": "^2.4.0"
   },
   "private": true
