@@ -427,10 +427,10 @@ export default function EventsPendingPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Event Management</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Event Management</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Review and manage all event submissions. {allEvents?.length || 0}{" "}
           total events.
         </p>
@@ -447,7 +447,7 @@ export default function EventsPendingPage() {
 
       {/* Search and Filter Controls */}
       <Card>
-        <CardContent className="pt-6">
+        <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
           <div className="space-y-4">
             {/* Search and Category Row */}
             <div className="flex flex-col sm:flex-row gap-4">
@@ -468,13 +468,13 @@ export default function EventsPendingPage() {
                   value={selectedCategory}
                   onValueChange={setSelectedCategory}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="w-full min-w-0">
                     <SelectValue placeholder="All Categories" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
                     {categories.map((category) => (
-                      <SelectItem key={category} value={category}>
+                      <SelectItem key={category} value={category} className="truncate">
                         {category}
                       </SelectItem>
                     ))}
@@ -484,27 +484,29 @@ export default function EventsPendingPage() {
             </div>
 
             {/* Date Range Row */}
-            <div className="flex flex-col sm:flex-row gap-4 items-center">
-              <div className="flex items-center gap-2">
-                <CalendarDays className="h-4 w-4 text-muted-foreground" />
-                <span className="text-sm font-medium text-muted-foreground">
-                  Date Range:
-                </span>
-                <div className="flex items-center gap-2">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                    Date Range:
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 flex-1 min-w-0">
                   <Input
                     id="startDate"
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-40"
+                    className="w-full sm:w-auto sm:min-w-[140px]"
                   />
-                  <span className="text-sm text-muted-foreground">to</span>
+                  <span className="text-sm text-muted-foreground text-center sm:text-left sm:mx-1">to</span>
                   <Input
                     id="endDate"
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-40"
+                    className="w-full sm:w-auto sm:min-w-[140px]"
                   />
                   {(startDate || endDate) && (
                     <Button
@@ -514,7 +516,7 @@ export default function EventsPendingPage() {
                         setStartDate("");
                         setEndDate("");
                       }}
-                      className="ml-2"
+                      className="w-full sm:w-auto sm:ml-2"
                     >
                       Reset
                     </Button>
@@ -525,13 +527,15 @@ export default function EventsPendingPage() {
           </div>
 
           {/* Results Count */}
-          <div className="mt-4 text-sm text-muted-foreground">
-            Showing {filteredEvents.length} of {allEvents?.length || 0} events
+          <div className="mt-4 text-sm text-muted-foreground break-words">
+            <span className="whitespace-nowrap">
+              Showing {filteredEvents.length} of {allEvents?.length || 0} events
+            </span>
             {(searchQuery.trim() ||
               selectedCategory !== "all" ||
               startDate ||
               endDate) && (
-              <span className="ml-2">
+              <span className="block sm:inline sm:ml-2 mt-1 sm:mt-0">
                 (filtered by{" "}
                 {[
                   searchQuery.trim() && `"${searchQuery}"`,
@@ -560,7 +564,7 @@ export default function EventsPendingPage() {
               {activeTab === "approved" && "No Approved Events"}
               {activeTab === "rejected" && "No Rejected Events"}
             </h3>
-            <p className="text-gray-500">
+            <p className="text-sm sm:text-base text-gray-500 px-4 break-words">
               {(() => {
                 if (
                   searchQuery.trim() ||
@@ -585,7 +589,7 @@ export default function EventsPendingPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredEvents.map((event) => (
             <EventCard
               key={event.id}
