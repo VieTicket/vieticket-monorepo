@@ -1,13 +1,12 @@
 import { User } from "@vieticket/db/pg/schemas/users";
 import {
-  createOrganizer,
-  findOrganizerByUserId,
-  updateOrganizerProfile,
-  findPendingOrganizers,
   approveOrganizer,
-  rejectOrganizer,
-  markRejectionAsSeen,
+  createOrganizer,
   findActiveOrganizersWithUser,
+  findOrganizerByUserId,
+  findPendingOrganizers,
+  markRejectionAsSeen,
+  rejectOrganizer
 } from "@vieticket/repos/organizer";
 
 /**

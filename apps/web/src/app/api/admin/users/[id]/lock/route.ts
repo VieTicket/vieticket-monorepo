@@ -14,6 +14,28 @@ export async function POST(
     const { banned, banReason, banExpires } = await request.json();
     const userId = (await params).id;
 
+    // Validate ban expiration date if banning user
+    if (banned && banExpires) {
+      const banExpiresDate = new Date(banExpires);
+      const now = new Date();
+      
+      // Check if date is invalid
+      if (isNaN(banExpiresDate.getTime())) {
+        return Response.json(
+          { error: "Thời gian ban không hợp lệ. Vui lòng chọn lại." },
+          { status: 400 }
+        );
+      }
+      
+      // Check if date is in the past (with 1 second buffer to account for timing)
+      if (banExpiresDate.getTime() <= now.getTime()) {
+        return Response.json(
+          { error: "Thời gian ban không được ở quá khứ. Vui lòng chọn thời gian trong tương lai." },
+          { status: 400 }
+        );
+      }
+    }
+
     // Update user's banned status
     await db
       .update(user)

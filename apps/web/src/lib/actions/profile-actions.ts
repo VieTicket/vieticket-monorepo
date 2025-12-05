@@ -75,7 +75,6 @@ export async function updateProfileAction(
       errors: validationResult.error.flatten().fieldErrors,
     };
   }
-
   const { organizerDetails, ...userData } = validationResult.data;
 
   // Map form field names to database column names for the organizer

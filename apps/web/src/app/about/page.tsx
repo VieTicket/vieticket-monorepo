@@ -2,6 +2,7 @@
 
 import { useRef, useEffect } from "react";
 import { useTranslations } from "next-intl";
+import { MouseGlowEffect } from "@/components/effects/mouse-glow";
 import Image from "next/image";
 
 // UI Components
@@ -212,7 +213,8 @@ export default function AboutPage() {
         <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
         <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-yellow-400/10 to-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
         <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
-      
+            {/* Mouse Glow Effect */}
+      <MouseGlowEffect />
       {/* Hero Section */}
       <section className="relative py-20 px-6" style={{ zIndex: 2 }}>
         <div className="max-w-6xl mx-auto text-center">
@@ -226,7 +228,7 @@ export default function AboutPage() {
           </p>
           
           {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
+          {/* <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mt-12">
             {stats.map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -237,7 +239,7 @@ export default function AboutPage() {
                 </div>
               );
             })}
-          </div>
+          </div> */}
         </div>
       </section>
 
@@ -254,10 +256,10 @@ export default function AboutPage() {
               <p className="text-lg text-slate-300 mb-6">
                 {t("mission.content")}
               </p>
-              <div className="professional-card p-6 rounded-xl shadow-xl border border-slate-700/30 hover:border-violet-400/30 transition-all duration-300">
+              {/* <div className="professional-card p-6 rounded-xl shadow-xl border border-slate-700/30 hover:border-violet-400/30 transition-all duration-300">
                 <h3 className="text-xl font-bold text-white mb-3 glow-text">{t("mission.vision.title")}</h3>
                 <p className="text-slate-300">{t("mission.vision.content")}</p>
-              </div>
+              </div> */}
             </div>
             <div className="relative">
               <div className="professional-card rounded-2xl p-8 h-96 flex items-center justify-center shadow-xl border border-slate-700/30 hover:border-violet-400/30 transition-all duration-300">

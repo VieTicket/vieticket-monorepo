@@ -587,6 +587,8 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       newErrors.description = t("errors.descriptionRequired");
+    } else if (formData.description.length > 5000) {
+      newErrors.description = t("errors.descriptionTooLong");
     }
 
     // Max tickets validation
@@ -695,6 +697,8 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       basicErrors.description = t("errors.descriptionRequired");
+    } else if (formData.description.length > 5000) {
+      basicErrors.description = t("errors.descriptionTooLong");
     }
 
     // Max tickets validation

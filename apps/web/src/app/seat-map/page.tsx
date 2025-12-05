@@ -1,6 +1,12 @@
 "use client";
 
-import React, { useEffect, useRef, useState, useCallback, Suspense } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  Suspense,
+} from "react";
 import { useSearchParams } from "next/navigation";
 import * as PIXI from "pixi.js";
 
@@ -36,8 +42,12 @@ import {
   destroyGuideLines,
 } from "@/components/seat-map/guide-lines";
 import { authClient } from "@/lib/auth/auth-client";
-import { recreateShape } from "@/components/seat-map/utils/undo-redo"; // ✅ Import recreateShape
+import {
+  recreateShape,
+  restoreHistoryAfterSeatMapLoad,
+} from "@/components/seat-map/utils/undo-redo"; // ✅ Import recreateShape
 import { CanvasItem } from "@/components/seat-map/types";
+import { ValidationManager } from "@/components/seat-map/components/toolbar/validation-notification";
 
 const SeatMapV2PageInner = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +63,7 @@ const SeatMapV2PageInner = () => {
     seatMapId: string,
     userId: string
   ) => {
-    const base = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000";
+    const base = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const url = `${base}/api/seatmap`;
 
     const res = await fetch(url, {
@@ -161,7 +171,21 @@ const SeatMapV2PageInner = () => {
         }
       }
 
-      console.log("✅ Seat map loaded successfully");
+      try {
+        console.log("📤 Attempting to restore history from localStorage...");
+        const historyRestored = await restoreHistoryAfterSeatMapLoad(seatMapId);
+
+        if (historyRestored) {
+          console.log("✅ Successfully restored undo/redo history");
+        } else {
+          console.log("ℹ️ No stored history found for this seat map");
+        }
+      } catch (error) {
+        console.warn(
+          "⚠️ Failed to restore history, continuing without it:",
+          error
+        );
+      }
     } catch (error) {
       console.error("Error loading seat map:", error);
       const errorMessage =
@@ -418,20 +442,24 @@ const SeatMapV2PageInner = () => {
 
         <PropertiesSidebar />
       </div>
+
+      <ValidationManager />
     </div>
   );
 };
 
 function SeatMapV2Page() {
   return (
-    <Suspense fallback={
-      <div className="h-screen w-screen flex items-center justify-center bg-gray-100">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading seat map...</p>
+    <Suspense
+      fallback={
+        <div className="h-screen w-screen flex items-center justify-center bg-gray-100">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading seat map...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <SeatMapV2PageInner />
     </Suspense>
   );

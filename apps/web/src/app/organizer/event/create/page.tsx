@@ -1,6 +1,13 @@
 "use client";
 
-import { useState, useEffect, useTransition, Suspense, Fragment } from "react";
+import {
+  useState,
+  useEffect,
+  useTransition,
+  Suspense,
+  Fragment,
+  useCallback,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -27,20 +34,31 @@ import type {
 } from "../../../../types/event-types";
 import { useTranslations } from "next-intl";
 import { ShowingWithAreas } from "@/types/showings";
+import { useAutoSave, useDraftRecovery } from "@/hooks/useAutoSave";
+import { DraftRecoveryDialog } from "@/components/create-event/draft-recovery-dialog";
+import {
+  clearExpiredDrafts,
+  type EventDraftData,
+} from "@/lib/utils/draft-storage";
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator";
 
 export default function CreateEventPage() {
   return (
-    <Suspense fallback={<div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
-      <div className="animate-pulse">
-        <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
-        <div className="h-2 bg-gray-200 rounded w-full mb-6"></div>
-        <div className="space-y-4">
-          <div className="h-10 bg-gray-200 rounded"></div>
-          <div className="h-10 bg-gray-200 rounded"></div>
-          <div className="h-32 bg-gray-200 rounded"></div>
+    <Suspense
+      fallback={
+        <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-200 rounded w-1/4 mb-4"></div>
+            <div className="h-2 bg-gray-200 rounded w-full mb-6"></div>
+            <div className="space-y-4">
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-10 bg-gray-200 rounded"></div>
+              <div className="h-32 bg-gray-200 rounded"></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>}>
+      }
+    >
       <CreateEventPageInner />
     </Suspense>
   );
@@ -93,6 +111,67 @@ function CreateEventPageInner() {
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
   const [bannerPreview, setBannerPreview] = useState<string | null>(null);
 
+  // Auto-save và draft recovery
+  const {
+    hasSavedDraft,
+    loadDraft,
+    clearSavedDraft,
+    forceSave,
+    saveStatus,
+    lastSaved,
+  } = useAutoSave({
+    formData,
+    areas,
+    showings,
+    ticketingMode,
+    selectedSeatMap,
+    selectedSeatMapData,
+    seatMapPreviewData,
+    step,
+    posterPreview,
+    bannerPreview,
+    eventId,
+    autoSaveEnabled: !eventId, // Chỉ auto-save khi tạo mới
+  });
+
+  // Hàm restore draft data
+  const restoreDraftData = useCallback((draftData: EventDraftData) => {
+    setFormData(draftData.formData);
+    setAreas(draftData.areas);
+    setShowings(draftData.showings);
+    setTicketingMode(draftData.ticketingMode);
+    setStep(draftData.step);
+
+    if (draftData.selectedSeatMap) {
+      setSelectedSeatMap(draftData.selectedSeatMap);
+    }
+    if (draftData.selectedSeatMapData) {
+      setSelectedSeatMapData(draftData.selectedSeatMapData);
+    }
+    if (draftData.seatMapPreviewData) {
+      setSeatMapPreviewData(draftData.seatMapPreviewData);
+    }
+    if (draftData.posterPreview) {
+      setPosterPreview(draftData.posterPreview);
+    }
+    if (draftData.bannerPreview) {
+      setBannerPreview(draftData.bannerPreview);
+    }
+  }, []);
+
+  // Draft recovery hook
+  const { showDraftRecovery, draftData, acceptDraft, rejectDraft } =
+    useDraftRecovery({
+      onRestore: (draftData) => {
+        restoreDraftData(draftData);
+        toast.success("Đã khôi phục bản nháp thành công!", {
+          description: "Tất cả dữ liệu đã nhập trước đó đã được phục hồi.",
+        });
+      },
+      eventId,
+      t,
+    });
+
   // Validation constants (configurable)
   const VALIDATION_CONFIG = {
     MIN_SHOWING_DURATION_MINUTES: 30,
@@ -108,6 +187,11 @@ function CreateEventPageInner() {
   const getCurrentVietnamTime = (): Date => {
     return new Date();
   };
+
+  // Cleanup expired drafts on mount
+  useEffect(() => {
+    clearExpiredDrafts();
+  }, []);
 
   // Validation for individual showing
   const validateSingleShowing = (
@@ -445,6 +529,32 @@ function CreateEventPageInner() {
               const isValidEndTime =
                 endTime instanceof Date && !isNaN(endTime.getTime());
 
+              // Generate default ticket sale times if they don't exist
+              let ticketSaleStartValue = "";
+              let ticketSaleEndValue = "";
+
+              if (showing.ticketSaleStart) {
+                ticketSaleStartValue = new Date(showing.ticketSaleStart)
+                  .toISOString()
+                  .slice(0, 16);
+              } else if (isValidStartTime) {
+                // Default: ticket sale starts 7 days before showing
+                const defaultStart = new Date(startTime);
+                defaultStart.setDate(defaultStart.getDate() - 7);
+                ticketSaleStartValue = defaultStart.toISOString().slice(0, 16);
+              }
+
+              if (showing.ticketSaleEnd) {
+                ticketSaleEndValue = new Date(showing.ticketSaleEnd)
+                  .toISOString()
+                  .slice(0, 16);
+              } else if (isValidStartTime) {
+                // Default: ticket sale ends 1 hour before showing
+                const defaultEnd = new Date(startTime);
+                defaultEnd.setHours(defaultEnd.getHours() - 1);
+                ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
+              }
+
               return {
                 name: showing.name,
                 startTime: isValidStartTime
@@ -453,12 +563,8 @@ function CreateEventPageInner() {
                 endTime: isValidEndTime
                   ? endTime.toISOString().slice(0, 16)
                   : "",
-                ticketSaleStart: showing.ticketSaleStart
-                  ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
-                  : "",
-                ticketSaleEnd: showing.ticketSaleEnd
-                  ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
-                  : "",
+                ticketSaleStart: ticketSaleStartValue,
+                ticketSaleEnd: ticketSaleEndValue,
                 areas:
                   showing.areas?.map((area: any) => ({
                     name: area.name,
@@ -576,6 +682,14 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       newErrors.description = t("errors.descriptionRequired");
+    } else {
+      // Validate description length (text content only, not HTML)
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = formData.description;
+      const textContent = tempDiv.textContent || tempDiv.innerText || "";
+      if (textContent.length > 5000) {
+        newErrors.description = t("errors.descriptionTooLong");
+      }
     }
 
     // Max tickets validation
@@ -684,6 +798,14 @@ function CreateEventPageInner() {
     }
     if (!formData.description.trim()) {
       basicErrors.description = t("errors.descriptionRequired");
+    } else {
+      // Validate description length (text content only, not HTML)
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = formData.description;
+      const textContent = tempDiv.textContent || tempDiv.innerText || "";
+      if (textContent.length > 5000) {
+        basicErrors.description = t("errors.descriptionTooLong");
+      }
     }
 
     // Max tickets validation
@@ -803,6 +925,11 @@ function CreateEventPageInner() {
           }
         }
 
+        // Clear draft after successful creation/update
+        if (!eventId) {
+          clearSavedDraft();
+        }
+
         router.push("/organizer");
       } catch (err) {
         toast.error(t("toasts.createEventFailed"));
@@ -823,6 +950,23 @@ function CreateEventPageInner() {
             onInputChange={handleChange}
             onDescriptionChange={(value) => {
               setFormData({ ...formData, description: value });
+
+              // Clear description error if it exists and content is valid
+              if (errors.description) {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = value;
+                const textContent =
+                  tempDiv.textContent || tempDiv.innerText || "";
+
+                // Clear error if description is not empty and within limit
+                if (value.trim() && textContent.length <= 5000) {
+                  setErrors((prev) => {
+                    const newErrors = { ...prev };
+                    delete newErrors.description;
+                    return newErrors;
+                  });
+                }
+              }
             }}
             onShowingsChange={handleShowingsChange}
           />
@@ -877,9 +1021,19 @@ function CreateEventPageInner() {
 
   return (
     <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
-      <h1 className="text-2xl sm:text-3xl font-semibold mb-3 sm:mb-4">
-        {eventId ? t("editEvent") : t("createEvent")}
-      </h1>
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <h1 className="text-2xl sm:text-3xl font-semibold">
+          {eventId ? t("editEvent") : t("createEvent")}
+        </h1>
+
+        {!eventId && (
+          <AutoSaveIndicator
+            status={saveStatus}
+            lastSaved={lastSaved || undefined}
+            className="hidden sm:flex"
+          />
+        )}
+      </div>
 
       <StepProgressBar step={step} />
       <Separator className="mb-4 sm:mb-6" />
@@ -979,6 +1133,15 @@ function CreateEventPageInner() {
         onOpenChange={setShowSeatMapModal}
         onSelect={handleSeatMapSelection}
         selectedSeatMapId={selectedSeatMap}
+      />
+
+      <DraftRecoveryDialog
+        open={showDraftRecovery}
+        onOpenChange={() => {}}
+        draftData={draftData}
+        onRestore={acceptDraft}
+        onDiscard={rejectDraft}
+        t={t}
       />
     </div>
   );

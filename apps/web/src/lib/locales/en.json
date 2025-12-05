@@ -372,6 +372,7 @@
         "nameRequired": "Event name is required",
         "locationRequired": "Location is required",
         "descriptionRequired": "Description is required",
+        "descriptionTooLong": "Description cannot exceed 5,000 characters",
         "showingRequired": "At least one showing with start time is required",
         "maxTicketsMin": "Maximum tickets per order must be at least 1",
         "maxTicketsMax": "Maximum tickets per order cannot exceed 20",
