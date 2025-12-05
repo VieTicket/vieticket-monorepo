@@ -346,8 +346,9 @@ function CreateEventPageInner() {
         const showingValidation = validateSingleShowing(showings[i], i);
         Object.assign(allErrors, showingValidation.errors);
 
-        const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
-        Object.assign(allErrors, ticketSaleValidation.errors);
+        // Skip ticket sale time validation for admin edit
+        // const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
+        // Object.assign(allErrors, ticketSaleValidation.errors);
       }
     }
 
@@ -824,6 +825,7 @@ function CreateEventPageInner() {
               setFormData({ ...formData, description: value });
             }}
             onShowingsChange={handleShowingsChange}
+            disableTicketSaleValidation={true}
           />
         );
       case 2:
