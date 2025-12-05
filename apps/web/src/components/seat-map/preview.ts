@@ -4,7 +4,9 @@ import {
   previewGraphics,
   setPreviewGraphics,
   currentTool,
+  areaModeContainer,
 } from "./variables";
+import { calculateGridDimensions } from "./shapes/grid-shape";
 
 export const createPreviewGraphics = () => {
   if (previewGraphics) {
@@ -212,5 +214,92 @@ export const clearFreeShapePreview = () => {
   if (freeShapePreviewGraphics && previewContainer) {
     previewContainer.removeChild(freeShapePreviewGraphics);
     freeShapePreviewGraphics = null;
+  }
+};
+
+let seatGridPreviewGraphics: PIXI.Graphics | null = null;
+
+export const createSeatGridPreview = () => {
+  if (!previewContainer) return;
+
+  clearSeatGridPreview();
+
+  seatGridPreviewGraphics = new PIXI.Graphics();
+  previewContainer.addChild(seatGridPreviewGraphics);
+};
+
+// ✅ Update seat grid preview with actual seat visualization
+export const updateSeatGridPreview = (
+  startX: number,
+  startY: number,
+  currentX: number,
+  currentY: number
+) => {
+  if (!seatGridPreviewGraphics || !areaModeContainer) return;
+
+  seatGridPreviewGraphics.clear();
+
+  const width = Math.abs(currentX - startX);
+  const height = Math.abs(currentY - startY);
+
+  // Only show preview if the area is large enough
+  if (width < 40 || height < 40) {
+    // Show just a transparent rectangle outline for small areas
+    const x = Math.min(startX, currentX);
+    const y = Math.min(startY, currentY);
+
+    seatGridPreviewGraphics
+      .rect(x, y, width, height)
+      .stroke({ width: 2, color: 0x00bcd4, alpha: 0.8 });
+    return;
+  }
+
+  const x = Math.min(startX, currentX);
+  const y = Math.min(startY, currentY);
+
+  // Get seat settings from area mode container
+  const seatSettings = areaModeContainer.defaultSeatSettings;
+  const seatRadius = seatSettings.seatRadius;
+  const seatSpacing = seatSettings.seatSpacing;
+  const rowSpacing = seatSettings.rowSpacing;
+
+  // Calculate grid dimensions
+  const { rows, seatsPerRow } = calculateGridDimensions(
+    width,
+    height,
+    seatSpacing,
+    rowSpacing
+  );
+
+  // Draw transparent background rectangle
+  seatGridPreviewGraphics
+    .rect(x, y, width, height)
+    .fill({ color: 0x00bcd4, alpha: 0.1 })
+    .stroke({ width: 2, color: 0x00bcd4, alpha: 0.8 });
+
+  const seatStartX = x + seatRadius;
+  const seatStartY = y + seatRadius;
+
+  // Draw seat previews
+  for (let row = 0; row < rows; row++) {
+    for (let seat = 0; seat < seatsPerRow; seat++) {
+      const seatX = seatStartX + seat * seatSpacing;
+      const seatY = seatStartY + row * rowSpacing;
+
+      // Draw seat circle
+      seatGridPreviewGraphics
+        .circle(seatX, seatY, seatRadius)
+        .fill({ color: seatSettings.seatColor, alpha: 0.7 })
+        .stroke({ width: 1, color: seatSettings.seatStrokeColor, alpha: 0.8 });
+    }
+  }
+};
+
+// ✅ Clear seat grid preview
+export const clearSeatGridPreview = () => {
+  if (seatGridPreviewGraphics && previewContainer) {
+    previewContainer.removeChild(seatGridPreviewGraphics);
+    seatGridPreviewGraphics.destroy();
+    seatGridPreviewGraphics = null;
   }
 };

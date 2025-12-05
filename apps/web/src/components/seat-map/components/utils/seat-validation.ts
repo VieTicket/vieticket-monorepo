@@ -157,66 +157,6 @@ const checkSeatOverlaps = (): ValidationIssue[] => {
 };
 
 /**
- * Check for inconsistent spacing within rows
- */
-const checkRowSpacing = (): ValidationIssue[] => {
-  if (!areaModeContainer) return [];
-
-  const issues: ValidationIssue[] = [];
-
-  areaModeContainer.children.forEach((grid) => {
-    grid.children.forEach((row) => {
-      if (row.children.length < 2) return;
-
-      // Sort seats by X position
-      const sortedSeats = [...row.children].sort((a, b) => a.x - b.x);
-      const spacings: number[] = [];
-
-      // Calculate spacings between consecutive seats
-      for (let i = 1; i < sortedSeats.length; i++) {
-        const spacing = sortedSeats[i].x - sortedSeats[i - 1].x;
-        spacings.push(spacing);
-      }
-
-      // Check for inconsistent spacing
-      const avgSpacing =
-        spacings.reduce((sum, spacing) => sum + spacing, 0) / spacings.length;
-      const tolerance = avgSpacing * 0.15; // 15% tolerance
-
-      const inconsistentSeats: SeatInfo[] = [];
-      spacings.forEach((spacing, index) => {
-        if (Math.abs(spacing - avgSpacing) > tolerance) {
-          inconsistentSeats.push(createSeatInfo(sortedSeats[index], row, grid));
-          inconsistentSeats.push(
-            createSeatInfo(sortedSeats[index + 1], row, grid)
-          );
-        }
-      });
-
-      if (inconsistentSeats.length > 0) {
-        // Remove duplicates
-        const uniqueSeats = inconsistentSeats.filter(
-          (seat, index, arr) => arr.findIndex((s) => s.id === seat.id) === index
-        );
-
-        issues.push({
-          id: `spacing-${row.id}`,
-          type: "spacing",
-          severity: "warning",
-          title: `Inconsistent spacing in ${row.rowName || `Row ${row.id}`}`,
-          description: `Some seats in ${grid.gridName || `Grid ${grid.id}`} - ${row.rowName || `Row ${row.id}`} have irregular spacing that may look unprofessional.`,
-          affectedSeats: uniqueSeats,
-          suggestedAction:
-            "Use the alignment tools to ensure consistent spacing between seats.",
-        });
-      }
-    });
-  });
-
-  return issues;
-};
-
-/**
  * Check for missing seat numbering or duplicates
  */
 const checkSeatNumbering = (): ValidationIssue[] => {
@@ -313,7 +253,6 @@ export const validateSeatMap = (): ValidationIssue[] => {
 
   // Run all validation checks
   issues.push(...checkSeatOverlaps());
-  issues.push(...checkRowSpacing());
   issues.push(...checkSeatNumbering());
   issues.push(...checkPricingConsistency());
 

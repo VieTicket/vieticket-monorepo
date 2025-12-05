@@ -24,12 +24,6 @@ export const SeatMapProperties = () => {
 
   const [isUploadingImage, setIsUploadingImage] = React.useState(false);
   const [uploadProgress, setUploadProgress] = React.useState(0);
-  // ✅ Update local state when seatMap changes from server
-  useEffect(() => {
-    if (seatMap?.name && seatMap.name !== seatMapName) {
-      setSeatMapNameImmediate(seatMap.name);
-    }
-  }, [seatMap?.name]);
 
   // ✅ Handle debounced name updates
   useEffect(() => {

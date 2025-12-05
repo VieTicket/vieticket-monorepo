@@ -34,11 +34,7 @@ import { updateImageGraphics } from "../shapes/image-shape";
 import { updatePolygonGraphics } from "../shapes/polygon-shape";
 import { getSelectionTransform } from "../events/transform-events";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
-import {
-  addSeatToGrid,
-  getGridById,
-  updateGridGraphics,
-} from "../shapes/grid-shape";
+import { getGridById } from "../shapes/grid-shape";
 import {
   createRowLabel,
   getRowById,

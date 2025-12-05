@@ -19,6 +19,9 @@ import {
   createPreviewGraphics,
   updatePreviewShape,
   clearPreview,
+  createSeatGridPreview,
+  updateSeatGridPreview,
+  clearSeatGridPreview,
 } from "../preview";
 import { getSelectionTransform } from "./transform-events";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
@@ -97,7 +100,7 @@ export const onAreaModePointerDown = (event: PIXI.FederatedPointerEvent) => {
   setDragStart({ x: localPoint.x, y: localPoint.y });
   setIsDrawing(true);
 
-  createPreviewGraphics();
+  createSeatGridPreview();
 };
 
 export const onAreaModePointerMove = (event: PIXI.FederatedPointerEvent) => {
@@ -106,7 +109,7 @@ export const onAreaModePointerMove = (event: PIXI.FederatedPointerEvent) => {
   const globalPoint = event.global;
   const localPoint = areaModeContainer.graphics.toLocal(globalPoint);
 
-  updatePreviewShape(dragStart.x, dragStart.y, localPoint.x, localPoint.y);
+  updateSeatGridPreview(dragStart.x, dragStart.y, localPoint.x, localPoint.y);
 };
 
 // Add this import at the top
@@ -200,7 +203,7 @@ export const onAreaModePointerUp = (event: PIXI.FederatedPointerEvent) => {
     }, 100); // Small delay to ensure DOM updates
   }
 
-  clearPreview();
+  clearSeatGridPreview();
   setIsDrawing(false);
   setDragStart(null);
 

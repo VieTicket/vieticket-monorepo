@@ -550,7 +550,7 @@ export const AreaModeProperties = React.memo(
 
       SeatMapCollaboration.broadcastShapeChange(action);
     };
-
+    console.log(selectionAnalysis.type);
     if (selectionAnalysis.type === "none") {
       return (
         <div className="p-4 text-center text-gray-500">
@@ -1440,6 +1440,46 @@ export const AreaModeProperties = React.memo(
                 isFloat={true}
                 className="w-full px-2 py-1 border border-gray-600 rounded text-sm bg-gray-800 text-white"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Row Label Placement
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() =>
+                    handleGridUpdate(gridId!, { labelPlacement: "left" })
+                  }
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors"
+                >
+                  <MdAlignHorizontalLeft />
+                </button>
+                <button
+                  onClick={() =>
+                    handleGridUpdate(gridId!, { labelPlacement: "middle" })
+                  }
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors"
+                >
+                  <MdOutlineAlignHorizontalCenter />
+                </button>
+                <button
+                  onClick={() =>
+                    handleGridUpdate(gridId!, { labelPlacement: "right" })
+                  }
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors"
+                >
+                  <MdOutlineAlignHorizontalRight />
+                </button>
+                <button
+                  onClick={() =>
+                    handleGridUpdate(gridId!, { labelPlacement: "none" })
+                  }
+                  className="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors"
+                >
+                  <RxValueNone />
+                </button>
+              </div>
             </div>
 
             {/* Grid Spacing Overrides */}

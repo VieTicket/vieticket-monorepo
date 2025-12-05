@@ -351,8 +351,8 @@ export const updateGridGraphics = (grid: GridShape): void => {
     rowsMap.set(row.id, row);
     allSeats.push(...row.children);
 
-    row.y = rowIndex * grid.seatSettings.rowSpacing;
-    row.graphics.position.set(row.x, row.y);
+    // row.y = rowIndex * grid.seatSettings.rowSpacing;
+    // row.graphics.position.set(row.x, row.y);
 
     updateRowGraphics(row, grid);
   });
@@ -403,13 +403,6 @@ export const updateAllGraphics = (): void => {
 };
 
 /**
- * Update all seats
- */
-export const updateAllSeats = (): void => {
-  updateAllGraphics();
-};
-
-/**
  * Preserve seat individual settings
  */
 export const preserveSeatIndividualSettings = (seatIds: string[]): void => {
@@ -431,7 +424,6 @@ export const preserveSeatIndividualSettings = (seatIds: string[]): void => {
 /**
  * ✅ Recreate GridShape
  */
-
 export async function recreateGridShape(
   gridData: GridShape
 ): Promise<GridShape> {
@@ -459,15 +451,20 @@ export async function recreateGridShape(
     createdAt: gridData.createdAt,
   };
 
-  // ✅ Recreate RowShape children WITHOUT modifying their coordinates
+  // ✅ Recreate RowShape children with grid's seat settings
   if (gridData.children && gridData.children.length > 0) {
-    for (const rowData of gridData.children) {
+    for (let rowIndex = 0; rowIndex < gridData.children.length; rowIndex++) {
+      const rowData = gridData.children[rowIndex];
       try {
-        // ✅ Pass preserveOriginalCoordinates: true to prevent coordinate modification
+        // ✅ If row spacing changed, update row Y position
+        const updatedRowData = {
+          ...rowData,
+          y: rowIndex * recreatedGrid.seatSettings.rowSpacing, // Apply new row spacing
+        };
+
         const recreatedRow = await recreateRowShape(
-          rowData,
-          undefined, // Don't override seat settings during normal recreation
-          true // preserveOriginalCoordinates flag
+          updatedRowData,
+          recreatedGrid.seatSettings // ✅ Pass grid's seat settings to row recreation
         );
 
         recreatedGrid.children.push(recreatedRow);
