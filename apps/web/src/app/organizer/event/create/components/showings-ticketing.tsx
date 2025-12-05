@@ -54,7 +54,7 @@ export function ShowingsTicketing({
   setShowSeatMapModal,
 }: ShowingsTicketingProps) {
   const [selectedShowingIndex, setSelectedShowingIndex] = useState(0);
-  const [copyToAllShowings, setCopyToAllShowings] = useState(true);
+  const [copyToAllShowings, setCopyToAllShowings] = useState(false);
   const [showingConfigs, setShowingConfigs] = useState<ShowingConfig[]>([]);
 
   const currentShowing = showings[selectedShowingIndex] || showings[0];
@@ -70,12 +70,21 @@ export function ShowingsTicketing({
         seatMapData: selectedSeatMapData,
       }));
     } else {
-      // Each showing has its own configuration or falls back to global
-      return showings.map((_, index) => {
+      // Each showing has its own configuration or uses its own areas
+      return showings.map((showing, index) => {
         const config = showingConfigs.find((c) => c.showingIndex === index);
+        
+        // Priority: individual config > showing's own areas > default area
+        let showingAreas = config?.areas;
+        if (!showingAreas) {
+          showingAreas = showing.areas && showing.areas.length > 0 
+            ? showing.areas 
+            : [{ name: "Area A", seatCount: "", ticketPrice: "" }];
+        }
+        
         return {
           showingIndex: index,
-          areas: config?.areas || areas,
+          areas: showingAreas,
           seatMapId: config?.seatMapId || selectedSeatMap,
           seatMapData: config?.seatMapData || selectedSeatMapData,
         };
@@ -103,8 +112,8 @@ export function ShowingsTicketing({
       return currentShowing.areas;
     }
 
-    // Fallback to global areas
-    return areas;
+    // If no areas exist, create a default area for this showing
+    return [{ name: "Area A", seatCount: "", ticketPrice: "" }];
   };
 
   const getCurrentShowingSeatMap = () => {
