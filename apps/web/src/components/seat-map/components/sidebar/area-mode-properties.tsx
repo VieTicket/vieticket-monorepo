@@ -944,7 +944,7 @@ export const AreaModeProperties = React.memo(
               <div>
                 Price:{" "}
                 <span className="text-green-300">
-                  ${grid!.seatSettings.price}
+                  VND{grid!.seatSettings.price}
                 </span>
               </div>
             </div>

@@ -3,6 +3,7 @@ import { CanvasItem, ImageShape, SeatShape } from "../types";
 import { isEqual } from "lodash";
 import { getSelectionTransform } from "../events/transform-events";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
+import { getCustomerEventManager } from "../events/event-manager-customer";
 
 export interface ShapeContext {
   topLevel: Array<{ id: string; type?: string; parentId: string | null }>;
@@ -126,14 +127,12 @@ const HISTORY_STORAGE_KEY = (seatMapId: string) =>
 const HISTORY_INDEX_STORAGE_KEY = (seatMapId: string) =>
   `seatmap_history_index_${seatMapId}`;
 
-// Helper functions for localStorage operations
 const saveHistoryToStorage = (
   seatMapId: string,
   historyStack: UndoRedoAction[],
   currentIndex: number
 ) => {
   try {
-    // Only save if we're in a browser environment
     if (typeof window !== "undefined" && window.localStorage) {
       const serializedHistory = historyStack.map((action) => ({
         ...action,
@@ -221,7 +220,7 @@ export const cloneCanvasItem = (item: CanvasItem): CanvasItem => {
           value.constructor?.name?.includes("Graphics") ||
           value.constructor?.name?.includes("Container") ||
           value.constructor?.name?.includes("Sprite") ||
-          value.constructor?.name?.includes("Text"))) // ✅ Added Text
+          value.constructor?.name?.includes("Text")))
     ) {
       continue;
     }
@@ -403,7 +402,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
 
     if (!currentSeatMap && !seatMap) return;
 
-    // If switching to a different seat map, clear current history
     if (currentSeatMap && seatMap && currentSeatMap.id !== seatMap.id) {
       set({
         historyStack: [],
@@ -923,7 +921,6 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     }
   },
 
-  // Add method to clear stored history
   clearStoredHistory: () => {
     set({ historyStack: [], currentHistoryIndex: -1 });
 
@@ -986,15 +983,18 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   customerToggleSeatSelection: (seatId: string) => {
     const { customer } = get();
     const isSelected = customer.customerSelectedSeatIds.includes(seatId);
-
     if (isSelected) {
-      get().customerDeselectSeat(seatId);
-      return false;
+      return get().customerDeselectSeat(seatId);
     } else {
+      const status = get().customerGetSeatStatus(seatId);
+
+      if (status !== "available") {
+        return false;
+      }
+
       const canSelect = get().customerCanSelectMoreSeats();
       if (canSelect) {
-        get().customerSelectSeat(seatId);
-        return true;
+        return get().customerSelectSeat(seatId);
       }
       return false;
     }
@@ -1128,7 +1128,13 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       return "selected" as const;
     }
 
-    return customer.customerSeatStatusMap[seatId] || "available";
+    const externalStatus = customer.customerSeatStatusMap[seatId];
+
+    if (externalStatus && externalStatus !== "selected") {
+      return externalStatus;
+    }
+
+    return "available";
   },
 
   customerUpdateSeatStatusMap: (statusMap) => {

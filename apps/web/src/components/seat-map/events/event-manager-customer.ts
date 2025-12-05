@@ -89,19 +89,22 @@ export class CustomerEventManager {
       this.shapeEventHandlers.delete(shape.id);
     }
   }
-
   // ✅ Customer-specific seat click handler
   private customerHandleSeatClick(seat: SeatShape) {
     if (!this.onSeatClick || !this.getSeatStatus) return;
 
     const status = this.getSeatStatus(seat.id);
-    const isAvailable = status === "available";
 
-    // Add visual feedback animation
-    this.customerAnimateSeatClick(seat);
+    // ✅ Allow interaction with both available and selected seats
+    const isInteractable = status === "available" || status === "selected";
 
-    // Trigger callback
-    this.onSeatClick(seat.id, isAvailable);
+    // Add visual feedback animation for all interactable seats
+    if (isInteractable) {
+      this.customerAnimateSeatClick(seat);
+    }
+
+    // ✅ Pass the interactable state instead of just availability
+    this.onSeatClick(seat.id, isInteractable);
   }
 
   // ✅ Customer seat click animation
@@ -121,6 +124,9 @@ export class CustomerEventManager {
   }
 
   // ✅ Customer hover handler with store integration
+  // Update the hover handler in event-manager-customer.ts
+
+  // ✅ Customer hover handler with store integration
   private customerOnSeatHover(seat: SeatShape) {
     if (!seat.graphics) return;
 
@@ -135,10 +141,10 @@ export class CustomerEventManager {
       ? this.getSeatStatus(seat.id)
       : "available";
 
-    // Change cursor based on availability
-    if (status === "available") {
+    // ✅ Update cursor logic to allow interaction with selected seats
+    if (status === "available" || status === "selected") {
       seat.graphics.cursor = "pointer";
-      // Slight scale effect on hover
+      // Slight scale effect on hover for interactable seats
       if (seat.seatGraphics) {
         seat.seatGraphics.scale.set(1.1);
       }
@@ -186,7 +192,6 @@ export class CustomerEventManager {
 
   // ✅ Enhanced customer seat visuals
   public customerUpdateSeatVisuals(seat: SeatShape) {
-    console.log("Updating seat visuals for seat ID:", seat.id);
     if (!seat.seatGraphics) return;
 
     const status = this.getSeatStatus
@@ -248,31 +253,6 @@ export class CustomerEventManager {
     }
   }
 
-  // ✅ Enhanced selection ring with glow effect
-  private customerAddSelectionRing(seat: SeatShape) {
-    if (!seat.graphics || !seat.seatGraphics) return;
-
-    this.customerRemoveSelectionRing(seat);
-
-    // Create multiple rings for glow effect
-    const outerRing = new PIXI.Graphics();
-    const radius = seat.radiusX || 15;
-
-    // Outer glow ring
-    outerRing.circle(0, 0, radius + 8);
-    outerRing.stroke({ width: 2, color: 0x3b82f6, alpha: 0.3 });
-
-    // Middle ring
-    outerRing.circle(0, 0, radius + 5);
-    outerRing.stroke({ width: 2, color: 0x3b82f6, alpha: 0.6 });
-
-    outerRing.x = 0;
-    outerRing.y = 0;
-
-    seat.graphics.addChildAt(outerRing, 0);
-    (seat as any)._customerSelectionRing = outerRing;
-  }
-
   private customerRemoveSelectionRing(seat: SeatShape) {
     if (!seat.graphics) return;
 
@@ -282,33 +262,6 @@ export class CustomerEventManager {
       ring.destroy();
       delete (seat as any)._customerSelectionRing;
     }
-  }
-
-  // ✅ Pulse animation for held seats
-  private customerAddPulseEffect(seat: SeatShape) {
-    if (!seat.seatGraphics) return;
-
-    this.customerRemovePulseEffect(seat);
-
-    let pulseDirection = 1;
-    const originalAlpha = seat.seatGraphics.alpha;
-
-    const pulseInterval = setInterval(() => {
-      if (!seat.seatGraphics) {
-        clearInterval(pulseInterval);
-        return;
-      }
-
-      seat.seatGraphics.alpha += 0.02 * pulseDirection;
-
-      if (seat.seatGraphics.alpha >= 1) {
-        pulseDirection = -1;
-      } else if (seat.seatGraphics.alpha <= 0.6) {
-        pulseDirection = 1;
-      }
-    }, 50);
-
-    (seat as any)._customerPulseInterval = pulseInterval;
   }
 
   private customerRemovePulseEffect(seat: SeatShape) {
