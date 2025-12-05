@@ -432,10 +432,10 @@ export default function OrganizerDashboardModern({
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center h-full text-center">
-                  <div className="text-muted-foreground text-sm">
+                  <div className="text-muted-foreground text-sm" suppressHydrationWarning>
                     {t("noRevenueData")}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-1">
+                  <div className="text-xs text-muted-foreground mt-1" suppressHydrationWarning>
                     {t("dataWillAppearHere")}
                   </div>
                 </div>

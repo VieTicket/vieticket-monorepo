@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 import {
   Form,
   FormControl,
@@ -33,6 +34,7 @@ interface PayoutRequestFormProps {
 
 export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
   const router = useRouter();
+  const t = useTranslations("organizer-dashboard.NewPayoutRequest");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [revenue, setRevenue] = useState<number | null>(null);
   const [isLoadingRevenue, setIsLoadingRevenue] = useState(false);
@@ -55,15 +57,15 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
           if (result.success) {
             setRevenue(result.data!.revenue);
           } else {
-            toast.error("Failed to load revenue", {
-              description: result.message || "Please try again",
+            toast.error(t("failedLoadRevenue"), {
+              description: result.message || t("pleaseTryAgain"),
             });
             setRevenue(null);
           }
         })
         .catch(() => {
-          toast.error("Error", {
-            description: "An unexpected error occurred while loading revenue",
+          toast.error(t("error"), {
+            description: t("unexpectedErrorRevenue"),
           });
           setRevenue(null);
         })
@@ -76,8 +78,8 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
   async function onSubmit(values: z.infer<typeof PayoutRequestFormSchema>) {
     setIsSubmitting(true);
     if (revenue !== null && Number(values.amount) > revenue) {
-      toast.error("Requested amount exceeds current event revenue", {
-        description: "The requested payout amount cannot be greater than the event's generated revenue."
+      toast.error(t("amountExceedsRevenue"), {
+        description: t("amountExceedsRevenueDesc")
       });
       setIsSubmitting(false);
       return;
@@ -85,18 +87,18 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
     try {
       const result: APIResponse<{ id: string }> = await createPayoutRequestAction(values);
       if (result.success) {
-        toast.success("Request Submitted", {
-          description: "Your payout request has been submitted successfully",
+        toast.success(t("requestSubmitted"), {
+          description: t("requestSubmittedDesc"),
         });
         router.push("/organizer/payouts");
       } else {
-        toast.error("Submission Failed", {
-          description: result.message || "Please try again",
+        toast.error(t("submissionFailed"), {
+          description: result.message || t("pleaseTryAgain"),
         });
       }
     } catch (error) {
-      toast.error("Error", {
-        description: "An unexpected error occurred",
+      toast.error(t("error"), {
+        description: t("unexpectedError"),
       });
     } finally {
       setIsSubmitting(false);
@@ -111,11 +113,11 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
           name="eventId"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Event</FormLabel>
+              <FormLabel>{t("event")}</FormLabel>
               <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select an event" />
+                    <SelectValue placeholder={t("selectEvent")} />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
@@ -132,16 +134,16 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
         />
 
         <FormItem>
-          <FormLabel>Current Revenue (VND)</FormLabel>
+          <FormLabel>{t("currentRevenue")}</FormLabel>
           <FormControl>
             <Input
               readOnly
               value={
                 isLoadingRevenue
-                  ? "Loading revenue..."
+                  ? t("loadingRevenue")
                   : revenue !== null
                     ? revenue.toLocaleString('vi-VN')
-                    : "Select an event to see revenue"
+                    : t("selectEventToSeeRevenue")
               }
             />
           </FormControl>
@@ -152,11 +154,11 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Requested Amount (VND)</FormLabel>
+              <FormLabel>{t("requestedAmount")}</FormLabel>
               <FormControl>
                 <Input
                   type="number"
-                  placeholder="Enter amount"
+                  placeholder={t("enterAmount")}
                   {...field}
                 />
               </FormControl>
@@ -171,10 +173,10 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
             variant="outline"
             onClick={() => router.push("/organizer/payouts")}
           >
-            Cancel
+            {t("cancel")}
           </Button>
           <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Submitting..." : "Submit Request"}
+            {isSubmitting ? t("submitting") : t("submitRequest")}
           </Button>
         </div>
       </form>

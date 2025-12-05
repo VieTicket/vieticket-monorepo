@@ -20,7 +20,47 @@ const UserProfileSchema = z.object({
   name: z
     .string()
     .min(2, { message: "Full name must be at least 2 characters." }),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z
+    .string()
+    .optional()
+    .refine(
+      (date) => {
+        if (!date) return true; // Optional field
+        const birthDate = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+        return birthDate < today;
+      },
+      { message: "Date of birth must be in the past." }
+    )
+    .refine(
+      (date) => {
+        if (!date) return true;
+        const birthDate = new Date(date);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        const monthDiff = today.getMonth() - birthDate.getMonth();
+        const dayDiff = today.getDate() - birthDate.getDate();
+        
+        // Calculate exact age
+        const exactAge = monthDiff < 0 || (monthDiff === 0 && dayDiff < 0) 
+          ? age - 1 
+          : age;
+        
+        return exactAge >= 16; // Must be at least 16 years old
+      },
+      { message: "You must be at least 16 years old to use this service." }
+    )
+    .refine(
+      (date) => {
+        if (!date) return true;
+        const birthDate = new Date(date);
+        const today = new Date();
+        const age = today.getFullYear() - birthDate.getFullYear();
+        return age <= 120; // Reasonable maximum age
+      },
+      { message: "Please enter a valid date of birth." }
+    ),
   gender: z.enum(GENDER_VALUES).optional(),
   phone: z.string().optional(),
 });
@@ -36,7 +76,28 @@ const OrganizerProfileSchema = z.object({
     .optional()
     .or(z.literal("")),
   address: z.string().optional(),
-  foundedDate: z.string().optional(),
+  foundedDate: z
+    .string()
+    .optional()
+    .refine(
+      (date) => {
+        if (!date) return true; // Optional field
+        const founded = new Date(date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0); // Reset time to compare only dates
+        return founded <= today;
+      },
+      { message: "Founded date cannot be in the future." }
+    )
+    .refine(
+      (date) => {
+        if (!date) return true;
+        const founded = new Date(date);
+        const minDate = new Date("1900-01-01");
+        return founded >= minDate;
+      },
+      { message: "Founded date must be after 1900-01-01." }
+    ),
   organizerType: z.string().optional(),
   taxCode: z
     .string()
@@ -133,9 +194,12 @@ export async function getProfileAction() {
     // Get organizer data separately if user is an organizer
     let organizerData = null;
     if (user.role === "organizer") {
+      console.log("Fetching organizer data for user ID:", user.id);
       organizerData = await db.query.organizers.findFirst({
         where: eq(organizers.id, user.id),
       });
+      console.log("Organizer data from DB:", JSON.stringify(organizerData, null, 2));
+      
       if (organizerData) {
         if (!organizerData.isActive && organizerData.rejectionReason) {
           throw new Error(`Access denied: ${organizerData.rejectionReason}`);
@@ -143,9 +207,10 @@ export async function getProfileAction() {
         if (!organizerData.isActive) {
           throw new Error("Access denied: Your organizer account is inactive.");
         }
+      } else {
+        console.log("WARNING: No organizer data found for user with role=organizer");
       }
     }
-    console.log("User data:", organizerData);
 
     // Transform the data to include organizer fields properly
     const profileData = {
@@ -174,6 +239,7 @@ export async function getProfileAction() {
         : null,
     };
 
+    console.log("Profile data being returned:", JSON.stringify(profileData, null, 2));
     return { success: true, data: profileData };
   } catch (error) {
     console.error("Error in getProfileAction:", error);
