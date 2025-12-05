@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import { authClient } from "@/lib/auth/auth-client";
 import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, useState } from "react";
+import { ChangeEvent, MouseEvent, useState } from "react";
 import { toast } from "sonner";
 
 
@@ -25,6 +25,8 @@ export default function SignUpOrganizer() {
   const [passwordConfirmation, setPasswordConfirmation] = useState("");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const isPasswordMismatch =
+    passwordConfirmation.length > 0 && password !== passwordConfirmation;
 
   return (
     <>
@@ -210,12 +212,29 @@ export default function SignUpOrganizer() {
                 autoComplete="new-password"
                 placeholder="Confirm Password"
               />
+              {isPasswordMismatch && (
+                <p className="text-xs text-rose-400">Passwords do not match.</p>
+              )}
             </div>
             <Button
-              type="submit"
+              type="button"
               className="w-full professional-button hover:professional-button border-violet-400/50 hover:border-violet-400 bg-violet-600/20 hover:bg-violet-600/30 text-white"
-              disabled={loading}
-              onClick={async () => {
+              disabled={loading || isPasswordMismatch}
+              onClick={async (e: MouseEvent<HTMLButtonElement>) => {
+                e.preventDefault();
+                e.stopPropagation();
+
+                // Guard: Don't proceed if passwords don't match
+                if (password !== passwordConfirmation) {
+                  toast.error("Passwords do not match.");
+                  return;
+                }
+
+                // Guard: Don't proceed if already loading
+                if (loading) {
+                  return;
+                }
+
                 await authClient.signUp.email({
                   ...({
                     email,
