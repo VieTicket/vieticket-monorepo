@@ -185,7 +185,9 @@
       "revenueDistributionByEvent": "Phân Bổ Doanh Thu Theo Sự Kiện",
       "topEventsByRevenue": "Sự Kiện Hàng Đầu Theo Doanh Thu",
       "event": "Sự Kiện",
-      "status": "Trạng Thái"
+      "status": "Trạng Thái",
+      "noRevenueData": "Chưa có dữ liệu doanh thu",
+      "dataWillAppearHere": "Dữ liệu sẽ xuất hiện ở đây khi có giao dịch"
     },
     "CreateEvent": {
       "eventDetails": "Chi Tiết Sự Kiện",
@@ -413,7 +415,19 @@
       }
     },
     "SeatMap": {
-      "seatMap": "Sơ Đồ Chỗ Ngồi"
+      "seatMap": "Sơ Đồ Chỗ Ngồi",
+      "manager": "Quản Lý Sơ Đồ Chỗ Ngồi",
+      "viewTemplates": "Xem Mẫu",
+      "newSeatMap": "Tạo Sơ Đồ Mới",
+      "creating": "Đang Tạo...",
+      "draftsTemplates": "Bản Nháp & Mẫu",
+      "searchDrafts": "Tìm bản nháp...",
+      "eventSeatMaps": "Sơ Đồ Sự Kiện",
+      "searchEvents": "Tìm sự kiện...",
+      "noMatchingSearch": "Không tìm thấy sơ đồ chỗ ngồi phù hợp",
+      "noDraftsFound": "Chưa có bản nháp sơ đồ chỗ ngồi",
+      "createNewSeatMap": "Tạo Sơ Đồ Mới",
+      "canvasEditorHint": "Sử dụng công cụ canvas để thiết kế bố trí chỗ ngồi"
     },
     "ListEvent": {
       "listEvent": "Danh Sách Sự Kiện",
@@ -422,7 +436,13 @@
       "allEvents": "Tất cả sự kiện",
       "approved": "Đã duyệt",
       "pending": "Đang chờ",
-      "rejected": "Bị từ chối"
+      "rejected": "Bị từ chối",
+      "noEventsYet": "Chưa có sự kiện nào",
+      "createFirstEvent": "Bắt đầu bằng cách tạo sự kiện đầu tiên của bạn",
+      "createEvent": "Tạo Sự Kiện",
+      "noEventsYet": "Chưa có sự kiện nào",
+      "createFirstEvent": "Bắt đầu bằng cách tạo sự kiện đầu tiên của bạn",
+      "createEvent": "Tạo Sự Kiện"
     },
     "Rating": {
       "rating": "Đánh Giá"
@@ -489,6 +509,30 @@
         "proofUploaded": "Tải chứng từ thành công",
         "proofUploadFailed": "Tải chứng từ thất bại"
       }
+    },
+    "NewPayoutRequest": {
+      "back": "Quay lại",
+      "newPayoutRequest": "Yêu Cầu Thanh Toán Mới",
+      "event": "Sự kiện",
+      "selectEvent": "Chọn sự kiện",
+      "currentRevenue": "Doanh Thu Hiện Tại (VND)",
+      "loadingRevenue": "Đang tải doanh thu...",
+      "selectEventToSeeRevenue": "Chọn sự kiện để xem doanh thu",
+      "requestedAmount": "Số Tiền Yêu Cầu (VND)",
+      "enterAmount": "Nhập số tiền",
+      "cancel": "Hủy",
+      "submitting": "Đang gửi...",
+      "submitRequest": "Gửi Yêu Cầu",
+      "failedLoadRevenue": "Tải doanh thu thất bại",
+      "pleaseTryAgain": "Vui lòng thử lại",
+      "error": "Lỗi",
+      "unexpectedErrorRevenue": "Đã xảy ra lỗi không mong muốn khi tải doanh thu",
+      "amountExceedsRevenue": "Số tiền yêu cầu vượt quá doanh thu hiện tại",
+      "amountExceedsRevenueDesc": "Số tiền yêu cầu không thể lớn hơn doanh thu của sự kiện.",
+      "requestSubmitted": "Đã Gửi Yêu Cầu",
+      "requestSubmittedDesc": "Yêu cầu thanh toán của bạn đã được gửi thành công",
+      "submissionFailed": "Gửi Thất Bại",
+      "unexpectedError": "Đã xảy ra lỗi không mong muốn"
     },
     "InspectTicket": {
       "inspectTicket": "Kiểm Tra Vé"

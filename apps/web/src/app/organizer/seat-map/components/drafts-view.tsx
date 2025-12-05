@@ -23,6 +23,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createEmptySeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 
 interface DraftsViewProps {
   filteredSeatMaps: SeatMapItem[];
@@ -57,6 +58,7 @@ export function DraftsView({
   const [eventViewMode, setEventViewMode] = useState<"grid" | "list">("grid");
   const [isCreating, setIsCreating] = useState(false);
   const router = useRouter();
+  const t = useTranslations("organizer-dashboard.SeatMap");
 
   const handleCreateNewSeatMap = async () => {
     try {
@@ -107,7 +109,7 @@ export function DraftsView({
         <div className="w-full flex justify-between items-center gap-3 md:gap-4 mb-3 md:mb-0">
           <div>
             <h1 className="text-lg md:text-xl font-semibold">
-              Seat Map Manager
+              {t("manager")}
             </h1>
           </div>
           <div className="flex items-center gap-2">
@@ -118,7 +120,7 @@ export function DraftsView({
             >
               <div>
                 <span className="font-medium text-sm md:text-base">
-                  View Templates
+                  {t("viewTemplates")}
                 </span>
               </div>
             </button>
@@ -129,7 +131,7 @@ export function DraftsView({
             >
               <div>
                 <span className="font-medium text-sm md:text-base">
-                  {isCreating ? "Creating..." : "New Seat Map"}
+                  {isCreating ? t("creating") : t("newSeatMap")}
                 </span>
               </div>
             </button>
@@ -144,7 +146,7 @@ export function DraftsView({
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Drafts & Templates
+                {t("draftsTemplates")}
               </h2>
             </div>
 
@@ -157,7 +159,7 @@ export function DraftsView({
                   size={16}
                 />
                 <Input
-                  placeholder="Search drafts..."
+                  placeholder={t("searchDrafts")}
                   className="w-48 pl-8 text-sm"
                   value={draftsSearchQuery}
                   onChange={(e) => setDraftsSearchQuery(e.target.value)}
@@ -215,7 +217,7 @@ export function DraftsView({
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-2">
                 <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                  Event Seat Maps
+                  {t("eventSeatMaps")}
                 </h2>
               </div>
 
@@ -228,7 +230,7 @@ export function DraftsView({
                     size={16}
                   />
                   <Input
-                    placeholder="Search events..."
+                    placeholder={t("searchEvents")}
                     className="w-48 pl-8 text-sm"
                     value={eventSearchQuery}
                     onChange={(e) => setEventSearchQuery(e.target.value)}
@@ -300,6 +302,8 @@ const DraftsTemplates = ({
   publishingIds: Set<string>;
   deletingIds: Set<string>;
 }) => {
+  const t = useTranslations("organizer-dashboard.SeatMap");
+  
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -313,19 +317,19 @@ const DraftsTemplates = ({
       <div className="text-center py-10">
         <p className="text-gray-500 dark:text-gray-400 mb-2">
           {searchQuery
-            ? "No seat maps match your search"
-            : "No seat map drafts found"}
+            ? t("noMatchingSearch")
+            : t("noDraftsFound")}
         </p>
         {!searchQuery && (
           <div className="space-y-3">
             <Link href="/seat-map">
               <Button className="mb-2">
                 <Plus size={16} className="mr-2" />
-                Create New Seat Map
+                {t("createNewSeatMap")}
               </Button>
             </Link>
             <p className="text-sm text-gray-400 dark:text-gray-500">
-              Use our canvas editor to design seat layouts
+              {t("canvasEditorHint")}
             </p>
           </div>
         )}

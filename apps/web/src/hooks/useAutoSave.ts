@@ -67,6 +67,16 @@ export function useAutoSave({
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [lastSaved, setLastSaved] = useState<number | null>(null);
 
+  // Validate và xóa draft không hợp lệ khi component mount
+  useEffect(() => {
+    // getDraft() sẽ tự động xóa draft không có meaningful content
+    const existingDraft = getDraft(eventId);
+    if (!existingDraft) {
+      // Đã bị xóa hoặc không tồn tại
+      setSaveStatus("idle");
+    }
+  }, [eventId]);
+
   // Tạo data object để save
   const createDraftData = useCallback(
     (): Partial<EventDraftData> => ({

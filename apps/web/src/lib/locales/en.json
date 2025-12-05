@@ -185,7 +185,9 @@
       "revenueDistributionByEvent": "Revenue distribution by event.",
       "topEventsByRevenue": "Top Events by Revenue",
       "event": "Event",
-      "status": "Status"
+      "status": "Status",
+      "noRevenueData": "No revenue data available",
+      "dataWillAppearHere": "Data will appear here when transactions occur"
     },
     "CreateEvent": {
       "createEvent": "Create Event",
@@ -413,7 +415,19 @@
       }
     },
     "SeatMap": {
-      "seatMap": "SeatMap"
+      "seatMap": "Seat Map",
+      "manager": "Seat Map Manager",
+      "viewTemplates": "View Templates",
+      "newSeatMap": "New Seat Map",
+      "creating": "Creating...",
+      "draftsTemplates": "Drafts & Templates",
+      "searchDrafts": "Search drafts...",
+      "eventSeatMaps": "Event Seat Maps",
+      "searchEvents": "Search events...",
+      "noMatchingSearch": "No seat maps match your search",
+      "noDraftsFound": "No seat map drafts found",
+      "createNewSeatMap": "Create New Seat Map",
+      "canvasEditorHint": "Use our canvas editor to design seat layouts"
     },
     "ListEvent": {
       "listEvent": "List Event",
@@ -422,7 +436,13 @@
       "allEvents": "All Events",
       "approved": "Approved",
       "pending": "Pending",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "noEventsYet": "No events yet",
+      "createFirstEvent": "Get started by creating your first event",
+      "createEvent": "Create Event",
+      "noEventsYet": "No events yet",
+      "createFirstEvent": "Get started by creating your first event",
+      "createEvent": "Create Event"
     },
     "Rating": {
       "rating": "Rating"
@@ -489,6 +509,30 @@
         "proofUploaded": "Proof uploaded successfully",
         "proofUploadFailed": "Failed to upload proof"
       }
+    },
+    "NewPayoutRequest": {
+      "back": "Back",
+      "newPayoutRequest": "New Payout Request",
+      "event": "Event",
+      "selectEvent": "Select an event",
+      "currentRevenue": "Current Revenue (VND)",
+      "loadingRevenue": "Loading revenue...",
+      "selectEventToSeeRevenue": "Select an event to see revenue",
+      "requestedAmount": "Requested Amount (VND)",
+      "enterAmount": "Enter amount",
+      "cancel": "Cancel",
+      "submitting": "Submitting...",
+      "submitRequest": "Submit Request",
+      "failedLoadRevenue": "Failed to load revenue",
+      "pleaseTryAgain": "Please try again",
+      "error": "Error",
+      "unexpectedErrorRevenue": "An unexpected error occurred while loading revenue",
+      "amountExceedsRevenue": "Requested amount exceeds current event revenue",
+      "amountExceedsRevenueDesc": "The requested payout amount cannot be greater than the event's generated revenue.",
+      "requestSubmitted": "Request Submitted",
+      "requestSubmittedDesc": "Your payout request has been submitted successfully",
+      "submissionFailed": "Submission Failed",
+      "unexpectedError": "An unexpected error occurred"
     },
     "InspectTicket": {
       "inspectTicket": "Inspect Ticket"
