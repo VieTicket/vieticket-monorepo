@@ -39,16 +39,39 @@ export const orderStatusEnum = pgEnum("order_status", ORDER_STATUS_VALUES);
 
 export const REFUND_STATUS_VALUES = [
   "requested",
+  "pending_organizer",
+  "pending_admin",
   "approved",
   "declined",
+  "rejected",
+  "refunded",
   "completed",
+  "failed",
 ] as const;
 export type RefundStatus = (typeof REFUND_STATUS_VALUES)[number];
 export const refundStatusEnum = pgEnum("refund_status", REFUND_STATUS_VALUES);
 
+export const REFUND_REASON_VALUES = [
+  "personal",
+  "event_cancelled",
+  "event_postponed",
+  "fraud",
+] as const;
+export type RefundReason = (typeof REFUND_REASON_VALUES)[number];
+export const refundReasonEnum = pgEnum("refund_reason", REFUND_REASON_VALUES);
+
 export const EVENT_APPROVAL_STATUS_VALUES = ["pending", "approved", "rejected"] as const;
 export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
 export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
+
+export const EVENT_LIFECYCLE_STATUS_VALUES = [
+  "scheduled",
+  "postponed",
+  "cancelled",
+  "completed",
+] as const;
+export type EventLifecycleStatus = (typeof EVENT_LIFECYCLE_STATUS_VALUES)[number];
+export const eventLifecycleStatusEnum = pgEnum("event_lifecycle_status", EVENT_LIFECYCLE_STATUS_VALUES);
 
 export const TICKET_INSPECTION_STATUS_VALUES = [
   "valid",

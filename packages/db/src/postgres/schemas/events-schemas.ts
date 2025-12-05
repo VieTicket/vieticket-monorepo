@@ -14,7 +14,10 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { currency } from "../custom-types";
-import { eventApprovalStatusEnum } from "../enums";
+import {
+  eventApprovalStatusEnum,
+  eventLifecycleStatusEnum,
+} from "../enums";
 import { organizers, organization } from "./users-schemas";
 
 // Schemas
@@ -38,6 +41,10 @@ export const events = pgTable(
     views: integer().notNull().default(0),
     approvalStatus:
       eventApprovalStatusEnum("approval_status").default("pending"),
+    lifecycleStatus: eventLifecycleStatusEnum("lifecycle_status")
+      .default("scheduled")
+      .notNull(),
+    autoApproveRefund: boolean("auto_approve_refund").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
     // TODO: remove after code migration
@@ -52,6 +59,7 @@ export const events = pgTable(
   (table) => [
     index("events_organizer_id_idx").on(table.organizerId),
     index("events_organization_id_idx").on(table.organizationId),
+    index("events_lifecycle_status_idx").on(table.lifecycleStatus),
   ]
 );
 
