@@ -209,12 +209,17 @@ export async function handleCreateEvent(
   const posterUrl = formData.get("posterUrl") as string;
   const bannerUrl = formData.get("bannerUrl") as string;
   const maxTicketsByOrderStr = formData.get("maxTicketsByOrder") as string;
-
+  console.log("Creating event with data:", {
+    eventName,
+    description,
+    location,
+  });
   validateEventName(eventName);
   validateEventDescription(description);
   validateEventLocation(location);
   validateUrl(posterUrl, "Poster URL");
   validateUrl(bannerUrl, "Banner URL");
+  console.log("Poster URL:", posterUrl);
 
   const maxTicketsByOrder = maxTicketsByOrderStr
     ? Number(maxTicketsByOrderStr)
@@ -229,6 +234,8 @@ export async function handleCreateEvent(
   if (ticketingMode === "seatmap" && seatMapData) {
     validateSeatMapData(seatMapData);
   }
+
+  console.log("Banner URL:", bannerUrl);
 
   let showingIndex = 0;
   const showings: {
@@ -335,6 +342,8 @@ export async function handleCreateEvent(
     showingIndex++;
   }
 
+  console.log("Showings:", showings);
+
   if (showings.length === 0) {
     throw new Error("At least one showing is required");
   }
@@ -384,6 +393,7 @@ export async function handleCreateEvent(
     });
   }
 
+  console.log("Showings after seat map assignment:", showings);
   const eventPayload = {
     id: eventId,
     name: eventName,
@@ -418,16 +428,15 @@ export async function handleCreateEvent(
       throw new Error("Duplicated seat map has no seating areas configured");
     }
 
-    const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
+    console.log("Duplicated seat map grids:", duplicatedSeatMapGrids);
 
-    if (copyMode) {
-      result = await createEventWithShowingsAndSeatMap(
-        eventPayload,
-        showings,
-        duplicatedSeatMapGrids,
-        duplicatedDefaultSeatSettings
-      );
-    }
+    result = await createEventWithShowingsAndSeatMap(
+      eventPayload,
+      showings,
+      duplicatedSeatMapGrids,
+      duplicatedDefaultSeatSettings
+    );
+    console.log("Event created with seat map (copy mode):", result);
   } else {
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
@@ -525,6 +534,7 @@ export async function handleCreateEvent(
     }
   }
 
+  console.log("Event creation result:", result);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   return result ? { eventId: result.eventId } : undefined;
@@ -809,17 +819,14 @@ export async function handleUpdateEvent(formData: FormData) {
         );
       }
 
-      const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
       const seatMapChanged = originalSeatMapId !== existingEvent.seatMapId;
-      if (copyMode) {
-        await updateEventWithShowingsAndSeatMap(
-          eventPayload,
-          showings,
-          finalSeatMapGrids,
-          finalDefaultSeatSettings,
-          seatMapChanged // ✅ Pass the flag to indicate if seat map changed
-        );
-      }
+      await updateEventWithShowingsAndSeatMap(
+        eventPayload,
+        showings,
+        finalSeatMapGrids,
+        finalDefaultSeatSettings,
+        seatMapChanged // ✅ Pass the flag to indicate if seat map changed
+      );
     } else {
       // Handle simple ticketing mode
       const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
