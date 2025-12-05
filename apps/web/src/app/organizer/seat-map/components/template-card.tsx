@@ -58,7 +58,6 @@ export function TemplateCard({
         {/* Creator info */}
         <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
           <div className="flex items-center justify-between">
-            <span>By: {seatMap.originalCreator || seatMap.createdBy}</span>
             {seatMap.draftedFrom && (
               <Badge variant="outline" className="text-xs">
                 Derivative
@@ -79,17 +78,6 @@ export function TemplateCard({
 
         {/* Action buttons */}
         <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="flex-1"
-            onClick={() =>
-              window.open(`/seat-map?id=${seatMap.id}&preview=true`, "_blank")
-            }
-          >
-            <Eye className="w-3 h-3 mr-1" />
-            Preview
-          </Button>
           <Button
             size="sm"
             className="flex-1"

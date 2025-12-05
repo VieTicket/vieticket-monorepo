@@ -86,6 +86,9 @@ export default function SeatMapSeatSelectionPage({
         eventId,
         eventName: eventData.name,
         eventLocation: eventData.location || "",
+        customerMaxSeatsAllowed: eventData.maxTicketsByOrder
+          ? eventData.maxTicketsByOrder
+          : 1,
         seatingStructure,
         seatStatusData: {
           paidSeatIds: seatStatus?.paidSeatIds || [],
@@ -93,7 +96,7 @@ export default function SeatMapSeatSelectionPage({
         },
       });
 
-      customerSetSelectionLimits(1, 8);
+      customerSetSelectionLimits(1, eventData.maxTicketsByOrder || 1);
     }
   }, [
     ticketData,

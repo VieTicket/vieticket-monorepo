@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { createEmptySeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
+import { authClient } from "@vieticket/auth/client";
 
 interface DraftsViewProps {
   filteredSeatMaps: SeatMapItem[];
@@ -110,9 +111,7 @@ export function DraftsView({
       <div className="border-b dark:border-gray-800 p-3 md:p-4 flex flex-col md:flex-row justify-between items-start md:items-center h-auto md:h-20">
         <div className="w-full flex justify-between items-center gap-3 md:gap-4 mb-3 md:mb-0">
           <div>
-            <h1 className="text-lg md:text-xl font-semibold">
-              {t("manager")}
-            </h1>
+            <h1 className="text-lg md:text-xl font-semibold">{t("manager")}</h1>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -308,7 +307,8 @@ const DraftsTemplates = ({
   deletingIds: Set<string>;
 }) => {
   const t = useTranslations("organizer-dashboard.SeatMap");
-  
+  const { data: session } = authClient.useSession();
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
@@ -321,9 +321,7 @@ const DraftsTemplates = ({
     return (
       <div className="text-center py-10">
         <p className="text-gray-500 dark:text-gray-400 mb-2">
-          {searchQuery
-            ? t("noMatchingSearch")
-            : t("noDraftsFound")}
+          {searchQuery ? t("noMatchingSearch") : t("noDraftsFound")}
         </p>
         {!searchQuery && (
           <div className="space-y-3">
@@ -358,6 +356,7 @@ const DraftsTemplates = ({
           onPublish={onPublish}
           onUnpublish={onUnpublish}
           onDelete={onDelete}
+          session={session}
           publishingIds={publishingIds}
           deletingIds={deletingIds}
         />
@@ -423,6 +422,7 @@ const DraftTemplateCard = ({
   onPublish,
   onUnpublish,
   onDelete,
+  session,
   publishingIds,
   deletingIds,
 }: {
@@ -431,9 +431,11 @@ const DraftTemplateCard = ({
   onPublish: (id: string) => void;
   onUnpublish: (id: string) => void;
   onDelete: (id: string) => void;
+  session: any;
   publishingIds: Set<string>;
   deletingIds: Set<string>;
 }) => {
+  console.log("Session in DraftTemplateCard:", seatMap, !seatMap.draftedFrom);
   if (viewMode === "list") {
     return (
       <div className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-200">
@@ -478,7 +480,7 @@ const DraftTemplateCard = ({
               Edit
             </Button>
           </Link>
-          {seatMap.draftedFrom !== null && (
+          {!seatMap.draftedFrom && (
             <div>
               {seatMap.publicity === "private" ? (
                 <Button
@@ -569,23 +571,29 @@ const DraftTemplateCard = ({
           </div>
 
           <div className="flex gap-2">
-            {seatMap.publicity === "private" ? (
-              <Button
-                variant="default"
-                className="flex-1 text-xs"
-                onClick={() => onPublish(seatMap.id)}
-                disabled={publishingIds.has(seatMap.id)}
-              >
-                {publishingIds.has(seatMap.id) ? "Publishing..." : "Publish"}
-              </Button>
-            ) : (
-              <Button
-                variant="outline"
-                className="flex-1 text-xs"
-                onClick={() => onUnpublish(seatMap.id)}
-              >
-                Unpublish
-              </Button>
+            {!seatMap.draftedFrom && (
+              <div>
+                {seatMap.publicity === "private" ? (
+                  <Button
+                    variant="default"
+                    className="flex-1 text-xs"
+                    onClick={() => onPublish(seatMap.id)}
+                    disabled={publishingIds.has(seatMap.id)}
+                  >
+                    {publishingIds.has(seatMap.id)
+                      ? "Publishing..."
+                      : "Publish"}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="flex-1 text-xs"
+                    onClick={() => onUnpublish(seatMap.id)}
+                  >
+                    Unpublish
+                  </Button>
+                )}
+              </div>
             )}
 
             <Button

@@ -17,6 +17,7 @@ import { TemplatesView } from "./components/templates-view";
 import { CanvasItem } from "@vieticket/db/mongo/models/seat-map";
 import { useDeviceDetection } from "@/hooks/use-device-detection";
 import { useRouter } from "next/navigation";
+import { authClient } from "@vieticket/auth/client";
 
 export type SeatMapItem = {
   id: string;
@@ -69,6 +70,7 @@ export default function SeatMapDirectory() {
   const [templatesSearchQuery, setTemplatesSearchQuery] = useState("");
 
   const { isMobile, isLoading: deviceLoading } = useDeviceDetection();
+  const { data: session } = authClient.useSession();
   const router = useRouter();
 
   useEffect(() => {
@@ -336,7 +338,9 @@ export default function SeatMapDirectory() {
 
       {currentView === "templates" && (
         <TemplatesView
-          publicSeatMaps={publicSeatMaps}
+          publicSeatMaps={publicSeatMaps.filter(
+            (seatMap) => seatMap.createdBy !== session?.user?.id
+          )}
           isLoadingTemplates={isLoadingTemplates}
           templatesSearchQuery={templatesSearchQuery}
           setTemplatesSearchQuery={setTemplatesSearchQuery}

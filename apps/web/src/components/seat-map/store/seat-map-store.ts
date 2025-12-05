@@ -335,6 +335,7 @@ interface SeatMapStore {
     eventId: string;
     eventName: string;
     eventLocation: string;
+    customerMaxSeatsAllowed: number;
     seatingStructure: any[];
     seatStatusData: {
       paidSeatIds: string[];
