@@ -44,6 +44,9 @@ function FormField({
   onChange,
   disabled = false,
   required = false,
+  max,
+  min,
+  error,
 }: {
   id: string;
   label: string;
@@ -53,6 +56,9 @@ function FormField({
   onChange?: (e: ChangeEvent<HTMLInputElement>) => void;
   disabled?: boolean;
   required?: boolean;
+  max?: string;
+  min?: string;
+  error?: string;
 }) {
   return (
     <div className="grid w-full max-w-sm items-center gap-1.5">
@@ -68,7 +74,16 @@ function FormField({
         onChange={onChange}
         disabled={disabled}
         required={required}
+        max={max}
+        min={min}
+        className={error ? "border-red-500 focus-visible:ring-red-500" : ""}
       />
+      {error && (
+        <p className="text-sm text-red-600 flex items-center gap-1">
+          <AlertCircle className="h-4 w-4" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }
@@ -139,6 +154,9 @@ export function AccountForm() {
   const [organizerType, setOrganizerType] = useState<string | undefined>();
   const [taxCode, setTaxCode] = useState<string | undefined>();
 
+  // Error states for form validation
+  const [errors, setErrors] = useState<Record<string, string[]>>({});
+
   // Fetch complete profile data
   useEffect(() => {
     if (session?.user) {
@@ -149,6 +167,8 @@ export function AccountForm() {
 
           if (profileResult.success && profileResult.data) {
             const profile = profileResult.data;
+            console.log("CLIENT: Profile data received:", profile);
+            console.log("CLIENT: Session user role:", session.user.role);
 
             // Set user fields
             setName(profile.name || "");
@@ -163,7 +183,9 @@ export function AccountForm() {
 
             // Handle organizer status and rejection
             if (session.user.role === "organizer") {
+              console.log("CLIENT: User is organizer, checking organizer data...");
               if (profile.organizer) {
+                console.log("CLIENT: Organizer data found:", profile.organizer);
                 // Check if there's an unseen rejection
                 if (
                   profile.organizer.rejectionReason &&
@@ -173,6 +195,14 @@ export function AccountForm() {
                   setShowRejectionModal(true);
                 }
 
+                console.log("CLIENT: Setting organizer fields...");
+                console.log("- organizerName:", profile.organizer.name);
+                console.log("- website:", profile.organizer.website);
+                console.log("- address:", profile.organizer.address);
+                console.log("- foundedDate:", profile.organizer.foundedDate);
+                console.log("- organizerType:", profile.organizer.organizerType);
+                console.log("- taxCode:", profile.organizer.taxCode);
+                
                 setOrganizerName(profile.organizer.name || "");
                 setWebsite(profile.organizer.website || "");
                 setAddress(profile.organizer.address || "");
@@ -187,6 +217,7 @@ export function AccountForm() {
                 setTaxCode(profile.organizer.taxCode || "");
                 setIsOrganizerActive(profile.organizer.isActive || false);
               } else {
+                console.log("CLIENT: WARNING - No organizer data in profile!");
                 setIsOrganizerActive(false);
               }
             }
@@ -267,12 +298,19 @@ export function AccountForm() {
         const result = await updateProfileAction(formData);
 
         if (result.success) {
-          // Prefer server message if available, otherwise use generic localized message
+          // Clear errors and show success
+          setErrors({});
           toast.success(result.message || t("toasts.saveSuccess"));
           // Reset the image file after successful save
           setImageFile(null);
         } else {
-          toast.error(result.message || t("toasts.saveFailed"));
+          // Display field-specific errors
+          if (result.errors) {
+            setErrors(result.errors as Record<string, string[]>);
+            toast.error("Please fix the errors in the form.");
+          } else {
+            toast.error(result.message || t("toasts.saveFailed"));
+          }
         }
       } catch (error) {
         console.error("Error saving profile:", error);
@@ -419,6 +457,7 @@ export function AccountForm() {
             placeholder={t("placeholders.fullName")}
             value={name}
             onChange={(e) => setName(e.target.value)}
+            error={errors.name?.[0]}
           />
           <FormField
             id="email"
@@ -434,6 +473,19 @@ export function AccountForm() {
             type="date"
             value={dateOfBirth}
             onChange={(e) => setDateOfBirth(e.target.value)}
+            max={(() => {
+              // Max: Yesterday (must be in the past)
+              const yesterday = new Date();
+              yesterday.setDate(yesterday.getDate() - 1);
+              return yesterday.toISOString().split('T')[0];
+            })()}
+            min={(() => {
+              // Min: 13 years ago from today
+              const minDate = new Date();
+              minDate.setFullYear(minDate.getFullYear() - 120);
+              return minDate.toISOString().split('T')[0];
+            })()}
+            error={errors.dateOfBirth?.[0]}
           />
           <SelectField
             id="gender"
@@ -483,6 +535,7 @@ export function AccountForm() {
               value={organizerName}
               onChange={(e) => setOrganizerName(e.target.value)}
               required
+              error={errors["organizerDetails.organizerName"]?.[0]}
             />
             <FormField
               id="taxCode"
@@ -491,6 +544,7 @@ export function AccountForm() {
               value={taxCode}
               onChange={(e) => setTaxCode(e.target.value)}
               required
+              error={errors["organizerDetails.taxCode"]?.[0]}
             />
             <FormField
               id="website"
@@ -498,6 +552,7 @@ export function AccountForm() {
               placeholder={t("placeholders.website")}
               value={website}
               onChange={(e) => setWebsite(e.target.value)}
+              error={errors["organizerDetails.website"]?.[0]}
             />
             <FormField
               id="address"
@@ -505,6 +560,7 @@ export function AccountForm() {
               placeholder={t("placeholders.address")}
               value={address}
               onChange={(e) => setAddress(e.target.value)}
+              error={errors["organizerDetails.address"]?.[0]}
             />
             <FormField
               id="foundedDate"
@@ -513,6 +569,9 @@ export function AccountForm() {
               type="date"
               value={foundedDate}
               onChange={(e) => setFoundedDate(e.target.value)}
+              max={new Date().toISOString().split('T')[0]}
+              min="1800-01-01"
+              error={errors["organizerDetails.foundedDate"]?.[0]}
             />
             <FormField
               id="organizerType"
@@ -520,6 +579,7 @@ export function AccountForm() {
               placeholder={t("placeholders.organizerType")}
               value={organizerType}
               onChange={(e) => setOrganizerType(e.target.value)}
+              error={errors["organizerDetails.organizerType"]?.[0]}
             />
           </div>
         </section>

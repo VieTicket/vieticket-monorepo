@@ -122,6 +122,13 @@ export function getDraft(eventId?: string | null): EventDraftData | null {
       return null;
     }
 
+    // Kiểm tra xem draft có meaningful content không
+    // Nếu không có, xóa luôn để tránh hiện dialog không cần thiết
+    if (!hasMeaningfulContent(data)) {
+      clearDraft(eventId);
+      return null;
+    }
+
     return data;
   } catch (error) {
     console.warn("Failed to load draft:", error);
@@ -233,7 +240,8 @@ export function createDefaultDraftData(
 export function hasMeaningfulContent(data: EventDraftData): boolean {
   const { formData, areas, showings } = data;
 
-  // Check form data
+  // Check form data - yêu cầu ít nhất 1 field TEXT có giá trị meaningful
+  // KHÔNG tính type vì đó chỉ là dropdown selection
   const hasFormContent =
     formData.name.trim().length >= 3 ||
     formData.location.trim().length >= 3 ||
@@ -248,20 +256,27 @@ export function hasMeaningfulContent(data: EventDraftData): boolean {
       (area.ticketPrice.trim() !== "" && area.ticketPrice !== "0")
   );
 
-  // Check showings
+  // Check showings - phải có thời gian thực sự, không tính name mặc định
   const hasShowingContent = showings.some(
     (showing) =>
       showing.startTime !== "" ||
       showing.endTime !== "" ||
       showing.ticketSaleStart !== "" ||
-      showing.ticketSaleEnd !== "" ||
-      (showing.name !== "" &&
-        !showing.name.includes("mainShowing") &&
-        !showing.name.includes("Main"))
+      showing.ticketSaleEnd !== ""
   );
 
-  // Also consider if user has progressed beyond step 1
-  const hasProgress = data.step > 1;
+  // Check simple ticketing fields
+  const hasSimpleTicketing = 
+    (formData.seatCount !== "" && formData.seatCount !== "0") ||
+    (formData.ticketPrice !== "" && formData.ticketPrice !== "0") ||
+    formData.startTime !== "" ||
+    formData.endTime !== "" ||
+    formData.ticketSaleStart !== "" ||
+    formData.ticketSaleEnd !== "";
 
-  return hasFormContent || hasAreaContent || hasShowingContent || hasProgress;
+  // Chỉ xem xét progress khi đã có content thực sự
+  // Không lưu draft chỉ vì step > 1 mà không có data
+  const hasProgress = data.step > 1 && (hasFormContent || hasAreaContent || hasShowingContent || hasSimpleTicketing);
+
+  return hasFormContent || hasAreaContent || hasShowingContent || hasSimpleTicketing || hasProgress;
 }

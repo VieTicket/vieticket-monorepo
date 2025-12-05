@@ -53,7 +53,65 @@ export default function EventList({
     return matchesSearch && matchesStatus;
   });
 
-  if (filteredEvents.length === 0 && events.length === 0) return null;
+  // Show empty state when no events exist
+  if (events.length === 0) {
+    return (
+      <>
+        <style dangerouslySetInnerHTML={{ __html: scrollbarHideStyle }} />
+        <div className="event-container w-full max-w-full overflow-hidden space-y-3 sm:space-y-4 md:space-y-6">
+          <h2 className="text-base sm:text-lg md:text-xl lg:text-2xl font-bold text-gray-800 leading-tight">
+            {title}
+          </h2>
+          <div className="flex flex-col items-center justify-center py-12 sm:py-16 md:py-20 lg:py-24 px-4">
+            <div className="text-center space-y-3 sm:space-y-4 md:space-y-6 max-w-md">
+              <div className="mx-auto w-16 h-16 sm:w-20 sm:h-20 md:w-24 md:h-24 rounded-full bg-gray-100 flex items-center justify-center">
+                <svg
+                  className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
+                </svg>
+              </div>
+              <div className="space-y-1 sm:space-y-2">
+                <h3 className="text-base sm:text-lg md:text-xl lg:text-2xl font-semibold text-gray-900">
+                  {t("noEventsYet")}
+                </h3>
+                <p className="text-xs sm:text-sm md:text-base text-gray-500">
+                  {t("createFirstEvent")}
+                </p>
+              </div>
+              <a
+                href="/organizer/event/create"
+                className="inline-flex items-center gap-2 px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 md:py-3 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm md:text-base font-medium rounded-lg transition-colors duration-200"
+              >
+                <svg
+                  className="w-4 h-4 sm:w-5 sm:h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                {t("createEvent")}
+              </a>
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
 
   return (
     <>
