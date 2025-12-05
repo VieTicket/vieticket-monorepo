@@ -101,18 +101,29 @@ export function SimpleTicketingMode({
               id={`area-seatCount-${index}`}
               type="text"
               name={`areas[${index}][seatCount]`}
-              placeholder="30-500 seats"
+              placeholder={isAreaFree(area) ? "10-500 seats" : "30-500 seats"}
               value={area.seatCount}
               onChange={(e) => handleSeatCountChange(index, e.target.value)}
               required
-              className={`h-9 text-sm ${area.seatCount && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500) ? "border-red-300" : ""}`}
-              title="Seat count must be between 30 and 500"
-              min="30"
+              className={`h-9 text-sm ${
+                area.seatCount && 
+                ((isAreaFree(area) && (parseInt(area.seatCount) < 10 || parseInt(area.seatCount) > 500)) ||
+                 (!isAreaFree(area) && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500)))
+                ? "border-red-300" : ""
+              }`}
+              title={isAreaFree(area) ? "Seat count must be between 10 and 500 for free events" : "Seat count must be between 30 and 500"}
+              min={isAreaFree(area) ? "10" : "30"}
               max="500"
             />
-            {area.seatCount && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500) && (
+            {area.seatCount && (
+              (isAreaFree(area) && (parseInt(area.seatCount) < 10 || parseInt(area.seatCount) > 500)) ||
+              (!isAreaFree(area) && (parseInt(area.seatCount) < 30 || parseInt(area.seatCount) > 500))
+            ) && (
               <p className="text-xs text-red-500 mt-1">
-                Must be between 30 and 500 seats
+                {isAreaFree(area) 
+                  ? "Must be between 10 and 500 seats for free events"
+                  : "Must be between 30 and 500 seats"
+                }
               </p>
             )}
           </div>
@@ -121,20 +132,6 @@ export function SimpleTicketingMode({
             <Label htmlFor={`area-ticketPrice-${index}`} className="text-sm font-medium">
               Ticket Price (VND)
             </Label>
-            
-            {/* Free Event Checkbox */}
-            <div className="flex items-center space-x-2 mb-2">
-              <input
-                type="checkbox"
-                id={`area-free-${index}`}
-                checked={isAreaFree(area)}
-                onChange={(e) => handleFreeToggle(index, e.target.checked)}
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-              />
-              <label htmlFor={`area-free-${index}`} className="text-sm text-gray-700">
-                Free Event (0 VND)
-              </label>
-            </div>
             
             <Input
               id={`area-ticketPrice-${index}`}
@@ -150,6 +147,20 @@ export function SimpleTicketingMode({
               }`}
               title={isAreaFree(area) ? "Free event - price is 0 VND" : "Minimum ticket price is 10,000 VND"}
             />
+            
+            {/* Free Event Checkbox - moved below input */}
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id={`area-free-${index}`}
+                checked={isAreaFree(area)}
+                onChange={(e) => handleFreeToggle(index, e.target.checked)}
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+              />
+              <label htmlFor={`area-free-${index}`} className="text-sm text-gray-700">
+                Free Event (0 VND)
+              </label>
+            </div>
             
             {/* Validation Messages */}
             {area.ticketPrice && !isAreaFree(area) && parseInt(area.ticketPrice) < 10000 && (

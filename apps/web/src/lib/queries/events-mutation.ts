@@ -43,7 +43,19 @@ export async function getEventsById(eventId: string) {
           },
         },
       },
-      showings: true,
+      showings: {
+        with: {
+          areas: {
+            with: {
+              rows: {
+                with: {
+                  seats: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 

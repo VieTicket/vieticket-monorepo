@@ -515,65 +515,78 @@ function CreateEventPageInner() {
 
         // Load showings data if available
         if (event.showings?.length > 0) {
-          setShowings(
-            event.showings.map((showing: any) => {
-              const startTime = showing.startTime
-                ? new Date(showing.startTime)
-                : new Date();
-              const endTime = showing.endTime
-                ? new Date(showing.endTime)
-                : new Date();
+          const processedShowings = event.showings.map((showing: any) => {
+            const startTime = showing.startTime
+              ? new Date(showing.startTime)
+              : new Date();
+            const endTime = showing.endTime
+              ? new Date(showing.endTime)
+              : new Date();
 
-              const isValidStartTime =
-                startTime instanceof Date && !isNaN(startTime.getTime());
-              const isValidEndTime =
-                endTime instanceof Date && !isNaN(endTime.getTime());
+            const isValidStartTime =
+              startTime instanceof Date && !isNaN(startTime.getTime());
+            const isValidEndTime =
+              endTime instanceof Date && !isNaN(endTime.getTime());
 
-              // Generate default ticket sale times if they don't exist
-              let ticketSaleStartValue = "";
-              let ticketSaleEndValue = "";
+            // Generate default ticket sale times if they don't exist
+            let ticketSaleStartValue = "";
+            let ticketSaleEndValue = "";
 
-              if (showing.ticketSaleStart) {
-                ticketSaleStartValue = new Date(showing.ticketSaleStart)
-                  .toISOString()
-                  .slice(0, 16);
-              } else if (isValidStartTime) {
-                // Default: ticket sale starts 7 days before showing
-                const defaultStart = new Date(startTime);
-                defaultStart.setDate(defaultStart.getDate() - 7);
-                ticketSaleStartValue = defaultStart.toISOString().slice(0, 16);
-              }
+            if (showing.ticketSaleStart) {
+              ticketSaleStartValue = new Date(showing.ticketSaleStart)
+                .toISOString()
+                .slice(0, 16);
+            } else if (isValidStartTime) {
+              // Default: ticket sale starts 7 days before showing
+              const defaultStart = new Date(startTime);
+              defaultStart.setDate(defaultStart.getDate() - 7);
+              ticketSaleStartValue = defaultStart.toISOString().slice(0, 16);
+            }
 
-              if (showing.ticketSaleEnd) {
-                ticketSaleEndValue = new Date(showing.ticketSaleEnd)
-                  .toISOString()
-                  .slice(0, 16);
-              } else if (isValidStartTime) {
-                // Default: ticket sale ends 1 hour before showing
-                const defaultEnd = new Date(startTime);
-                defaultEnd.setHours(defaultEnd.getHours() - 1);
-                ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
+            if (showing.ticketSaleEnd) {
+              ticketSaleEndValue = new Date(showing.ticketSaleEnd)
+                .toISOString()
+                .slice(0, 16);
+            } else if (isValidStartTime) {
+              // Default: ticket sale ends 1 hour before showing
+              const defaultEnd = new Date(startTime);
+              defaultEnd.setHours(defaultEnd.getHours() - 1);
+              ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
+            }
+
+            const processedAreas = showing.areas?.map((area: any) => {
+              // Calculate seat count from rows and seats
+              let calculatedSeatCount = 0;
+              if (area.rows) {
+                area.rows.forEach((row: any) => {
+                  if (row.seats) {
+                    calculatedSeatCount += row.seats.length;
+                  }
+                });
               }
 
               return {
-                name: showing.name,
-                startTime: isValidStartTime
-                  ? startTime.toISOString().slice(0, 16)
-                  : "",
-                endTime: isValidEndTime
-                  ? endTime.toISOString().slice(0, 16)
-                  : "",
-                ticketSaleStart: ticketSaleStartValue,
-                ticketSaleEnd: ticketSaleEndValue,
-                areas:
-                  showing.areas?.map((area: any) => ({
-                    name: area.name,
-                    ticketPrice: area.price.toString(),
-                    seatCount: area.seatCount?.toString() || "0",
-                  })) || [],
+                name: area.name,
+                ticketPrice: area.price.toString(),
+                seatCount: calculatedSeatCount > 0 ? calculatedSeatCount.toString() : "0",
               };
-            })
-          );
+            }) || [];
+
+            return {
+              name: showing.name,
+              startTime: isValidStartTime
+                ? startTime.toISOString().slice(0, 16)
+                : "",
+              endTime: isValidEndTime
+                ? endTime.toISOString().slice(0, 16)
+                : "",
+              ticketSaleStart: ticketSaleStartValue,
+              ticketSaleEnd: ticketSaleEndValue,
+              areas: processedAreas,
+            };
+          });
+
+          setShowings(processedShowings);
         }
 
         setPosterPreview(event.posterUrl ?? null);
