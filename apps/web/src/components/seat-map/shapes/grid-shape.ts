@@ -431,6 +431,7 @@ export const preserveSeatIndividualSettings = (seatIds: string[]): void => {
 /**
  * ✅ Recreate GridShape
  */
+
 export async function recreateGridShape(
   gridData: GridShape
 ): Promise<GridShape> {
@@ -458,20 +459,15 @@ export async function recreateGridShape(
     createdAt: gridData.createdAt,
   };
 
-  // ✅ Recreate RowShape children with grid's seat settings
+  // ✅ Recreate RowShape children WITHOUT modifying their coordinates
   if (gridData.children && gridData.children.length > 0) {
-    for (let rowIndex = 0; rowIndex < gridData.children.length; rowIndex++) {
-      const rowData = gridData.children[rowIndex];
+    for (const rowData of gridData.children) {
       try {
-        // ✅ If row spacing changed, update row Y position
-        const updatedRowData = {
-          ...rowData,
-          y: rowIndex * recreatedGrid.seatSettings.rowSpacing, // Apply new row spacing
-        };
-
+        // ✅ Pass preserveOriginalCoordinates: true to prevent coordinate modification
         const recreatedRow = await recreateRowShape(
-          updatedRowData,
-          recreatedGrid.seatSettings // ✅ Pass grid's seat settings to row recreation
+          rowData,
+          undefined, // Don't override seat settings during normal recreation
+          true // preserveOriginalCoordinates flag
         );
 
         recreatedGrid.children.push(recreatedRow);

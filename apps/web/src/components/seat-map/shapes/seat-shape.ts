@@ -123,23 +123,36 @@ export const recreateSeat = (
   seatData: SeatShape,
   addShapeEvents: boolean = true,
   canAddSeatToGrid: boolean = true,
-  seatSettings?: SeatGridSettings // ✅ Add seatSettings parameter
+  seatSettings?: SeatGridSettings // ✅ Only apply if provided AND we're not preserving coordinates
 ): SeatShape => {
   const container = new PIXI.Container();
   container.eventMode = "static";
   container.cursor = "pointer";
   container.interactive = true;
 
-  // ✅ Use provided seatSettings or fallback to seat's original data
-  const effectiveSettings = seatSettings || {
-    seatRadius: seatData.radiusX,
-    seatColor: seatData.color,
-    seatStrokeColor: seatData.strokeColor,
-    seatStrokeWidth: seatData.strokeWidth,
-    seatSpacing: 25, // Default fallback
-    rowSpacing: 30, // Default fallback
-    price: 0, // Default fallback
-  };
+  // ✅ Use provided seatSettings only for visual properties, not positioning
+  const effectiveSettings = seatSettings
+    ? {
+        // Visual properties from new settings
+        seatRadius: seatSettings.seatRadius,
+        seatColor: seatSettings.seatColor,
+        seatStrokeColor: seatSettings.seatStrokeColor,
+        seatStrokeWidth: seatSettings.seatStrokeWidth,
+        // Preserve original positioning and other properties
+        seatSpacing: seatData.radiusX ? 25 : seatSettings.seatSpacing, // Fallback spacing
+        rowSpacing: 30, // Default fallback
+        price: seatSettings.price,
+      }
+    : {
+        // Use original seat's properties exactly
+        seatRadius: seatData.radiusX,
+        seatColor: seatData.color,
+        seatStrokeColor: seatData.strokeColor,
+        seatStrokeWidth: seatData.strokeWidth,
+        seatSpacing: 25, // Default fallback
+        rowSpacing: 30, // Default fallback
+        price: 0, // Default fallback
+      };
 
   const seatGraphics = new PIXI.Graphics();
   seatGraphics
@@ -165,6 +178,7 @@ export const recreateSeat = (
   container.addChild(seatGraphics);
   container.addChild(labelGraphics);
 
+  // ✅ ALWAYS preserve original position exactly
   container.position.set(seatData.x, seatData.y);
   container.rotation = seatData.rotation || 0;
   container.scale.set(seatData.scaleX || 1, seatData.scaleY || 1);
@@ -178,8 +192,8 @@ export const recreateSeat = (
     graphics: container,
     seatGraphics,
     labelGraphics,
-    x: seatData.x,
-    y: seatData.y,
+    x: seatData.x, // ✅ Preserve exact original X
+    y: seatData.y, // ✅ Preserve exact original Y
     status: seatData.status,
     radiusX: effectiveSettings.seatRadius,
     radiusY: effectiveSettings.seatRadius,
