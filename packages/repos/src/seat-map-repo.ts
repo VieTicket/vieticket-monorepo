@@ -137,7 +137,7 @@ export async function duplicateSeatMapForEvent(
   eventName: string,
   eventId: string,
   userId: string
-): Promise<{ success: boolean; seatMapId?: string; error?: string }> {
+): Promise<{ success: boolean; seatMap?: SeatMap; error?: string }> {
   try {
     await ensureMongoConnection();
     const originalSeatMap = await SeatMapModel.findById(originalSeatMapId);
@@ -250,7 +250,7 @@ export async function duplicateSeatMapForEvent(
 
     return {
       success: true,
-      seatMapId: savedSeatMap.id,
+      seatMap: savedSeatMap.toObject() as SeatMap,
     };
   } catch (error) {
     console.error("❌ Error duplicating seat map:", error);
@@ -577,9 +577,7 @@ export async function findAccessibleSeatMaps(
   await ensureMongoConnection();
 
   const filter: any = {
-    $or: [
-      { createdBy: userId },
-    ],
+    $or: [{ createdBy: userId }],
   };
 
   // If organization context exists, also include organization seat maps
@@ -587,9 +585,7 @@ export async function findAccessibleSeatMaps(
     filter.$or.push({ organizationId });
   }
 
-  const docs = await SeatMapModel.find(filter)
-    .sort({ createdAt: -1 })
-    .exec();
+  const docs = await SeatMapModel.find(filter).sort({ createdAt: -1 }).exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
 }
 
@@ -609,9 +605,7 @@ export async function searchAccessibleSeatMaps(
 
   const filter: any = {
     name: { $regex: searchQuery, $options: "i" },
-    $or: [
-      { createdBy: userId },
-    ],
+    $or: [{ createdBy: userId }],
   };
 
   // If organization context exists, also include organization seat maps
@@ -619,8 +613,6 @@ export async function searchAccessibleSeatMaps(
     filter.$or.push({ organizationId });
   }
 
-  const docs = await SeatMapModel.find(filter)
-    .sort({ createdAt: -1 })
-    .exec();
+  const docs = await SeatMapModel.find(filter).sort({ createdAt: -1 }).exec();
   return docs.map((doc) => doc.toObject() as SeatMap);
 }

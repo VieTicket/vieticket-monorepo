@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client";
 import { Armchair, Calendar, Clock, MapPin, Ticket as TicketIcon } from "lucide-react";
-import { SendTicketEmail } from "@/components/tickets/send-ticket-email";
+import { ShareTicket } from "@/components/tickets/share-ticket";
 
 // This type should ideally be defined in a shared types file
 type TicketDetails = {
@@ -22,10 +22,12 @@ type TicketDetails = {
 
 interface TicketDetailsViewProps {
     ticket: TicketDetails;
+    hideShare?: boolean;
 }
 
-export function TicketDetailsView({ ticket }: TicketDetailsViewProps) {
+export function TicketDetailsView({ ticket, hideShare }: TicketDetailsViewProps) {
     const [qrCodeImage, setQrCodeImage] = useState<string | null>(null);
+    const captureRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         async function createQrCode() {
@@ -41,7 +43,7 @@ export function TicketDetailsView({ ticket }: TicketDetailsViewProps) {
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center p-4">
-            <Card className="w-full max-w-md shadow-lg">
+            <Card className="w-full max-w-md shadow-lg" ref={captureRef}>
                 <CardHeader className="text-center">
                     <TicketIcon className="mx-auto h-12 w-12 text-primary" />
                     <CardTitle className="text-2xl font-bold mt-2">{ticket.eventName}</CardTitle>
@@ -98,11 +100,12 @@ export function TicketDetailsView({ ticket }: TicketDetailsViewProps) {
                         </div>
                     </div>
                     
-                    {/* Send by email section */}
-                    <div className="mt-6">
-                        <h3 className="font-medium mb-3 text-center">Send this ticket to another email</h3>
-                        <SendTicketEmail ticketId={ticket.ticketId} />
-                    </div>
+                    {!hideShare && (
+                        <div className="mt-6">
+                            <h3 className="font-medium mb-3 text-center">Share this ticket</h3>
+                            <ShareTicket ticketId={ticket.ticketId} ticket={ticket} />
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

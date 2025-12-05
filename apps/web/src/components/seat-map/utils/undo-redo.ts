@@ -870,15 +870,15 @@ export const recreateShape = async (
       } else if ((containerData as RowShape).rowName !== undefined) {
         const rowData = containerData as RowShape;
 
-        let currentSeatSettings: SeatGridSettings | undefined;
-        if (areaModeContainer) {
-          const grid = getGridById(rowData.gridId);
-          if (grid) {
-            currentSeatSettings = grid.seatSettings;
-          }
-        }
+        // let currentSeatSettings: SeatGridSettings | undefined;
+        // if (areaModeContainer) {
+        //   const grid = getGridById(rowData.gridId);
+        //   if (grid) {
+        //     currentSeatSettings = grid.seatSettings;
+        //   }
+        // }
 
-        recreatedShape = await recreateRowShape(rowData, currentSeatSettings);
+        recreatedShape = await recreateRowShape(rowData, undefined, true);
       } else {
         recreatedShape = createContainer(
           [],

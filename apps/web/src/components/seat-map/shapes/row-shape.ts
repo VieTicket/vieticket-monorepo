@@ -668,23 +668,23 @@ export const createRowShape = (
 /**
  * ✅ Updated recreateRowShape with label support
  */
+/**
+ * ✅ Updated recreateRowShape - preserving exact coordinates
+ */
 export async function recreateRowShape(
   rowData: RowShape,
-  seatSettings?: SeatGridSettings // ✅ Add seatSettings parameter
+  seatSettings?: SeatGridSettings, // Only used for applying new settings (grid updates)
+  preserveOriginalCoordinates: boolean = true // ✅ New flag to control coordinate preservation
 ): Promise<RowShape> {
   const rowGraphics = new PIXI.Container();
   rowGraphics.eventMode = "static";
-
-  // ✅ Get effective seat spacing from settings or row data
-  const effectiveSeatSpacing =
-    seatSettings?.seatSpacing || rowData.seatSpacing || 25;
 
   const recreatedRow: RowShape = {
     id: rowData.id,
     name: rowData.name,
     type: "container",
-    x: rowData.x,
-    y: rowData.y,
+    x: rowData.x, // ✅ Always preserve original X
+    y: rowData.y, // ✅ Always preserve original Y
     rotation: rowData.rotation || 0,
     scaleX: rowData.scaleX || 1,
     scaleY: rowData.scaleY || 1,
@@ -696,40 +696,42 @@ export async function recreateRowShape(
     graphics: rowGraphics,
     children: [],
     rowName: rowData.rowName,
-    seatSpacing: effectiveSeatSpacing, // ✅ Apply updated seat spacing
+    seatSpacing: rowData.seatSpacing, // ✅ Preserve original seat spacing unless explicitly updating
     gridId: rowData.gridId,
     createdAt: rowData.createdAt,
     labelPlacement: rowData.labelPlacement || "none",
   };
 
-  // ✅ Recreate seats with updated settings
+  // ✅ Only apply new seat settings if specifically provided AND not preserving coordinates
+  if (seatSettings && !preserveOriginalCoordinates) {
+    recreatedRow.seatSpacing = seatSettings.seatSpacing;
+  }
+
+  // ✅ Recreate seats with exact coordinate preservation
   if (rowData.children && rowData.children.length > 0) {
     for (let i = 0; i < rowData.children.length; i++) {
       const seatData = rowData.children[i];
       try {
-        // ✅ If seatSettings provided, apply spacing to seat positions
-        if (seatSettings) {
-          // Update seat position based on new spacing
-          const seatWithUpdatedPosition = {
+        let seatToRecreate = seatData;
+
+        // ✅ Only modify seat positions if explicitly updating settings AND not preserving coordinates
+        if (seatSettings && !preserveOriginalCoordinates) {
+          seatToRecreate = {
             ...seatData,
-            x: i * effectiveSeatSpacing, // Apply new spacing
+            x: i * seatSettings.seatSpacing, // Apply new spacing only when updating
           };
-
-          const recreatedSeat = recreateSeat(
-            seatWithUpdatedPosition,
-            true,
-            false, // Don't auto-add to grid during recreation
-            seatSettings // ✅ Pass settings to seat recreation
-          );
-
-          recreatedRow.children.push(recreatedSeat);
-          rowGraphics.addChild(recreatedSeat.graphics);
-        } else {
-          // Use original positions and settings
-          const recreatedSeat = recreateSeat(seatData, true, false);
-          recreatedRow.children.push(recreatedSeat);
-          rowGraphics.addChild(recreatedSeat.graphics);
         }
+        // ✅ Otherwise, use exact original coordinates
+
+        const recreatedSeat = recreateSeat(
+          seatToRecreate,
+          true,
+          false, // Don't auto-add to grid during recreation
+          preserveOriginalCoordinates ? undefined : seatSettings // Only apply settings if not preserving coordinates
+        );
+
+        recreatedRow.children.push(recreatedSeat);
+        rowGraphics.addChild(recreatedSeat.graphics);
       } catch (error) {
         console.error(`Failed to recreate seat in row:`, error);
       }

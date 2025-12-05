@@ -19,6 +19,7 @@ import {
   updateEventById,
   updateEventWithShowingsIndividualOptimized,
   updateEventWithShowingsOptimized,
+  createSeatMapStructureBatch,
 } from "../queries/events-mutation";
 import { createEventInputSchema } from "../validaters/validateEvent";
 import { GridShape, SeatGridSettings } from "@/components/seat-map/types";
@@ -139,7 +140,7 @@ export async function createEventWithShowingsAndSeatMap(
     ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
-  grids: GridShape[],
+  grids: GridShape[][],
   defaultSeatSettings: SeatGridSettings
 ): Promise<{ eventId: string } | null> {
   const result = createEventInputSchema.safeParse(event);
@@ -172,123 +173,14 @@ export async function createEventWithShowingsAndSeatMap(
       createdShowings.push(createdShowing);
     }
 
-    for (const showing of createdShowings) {
-      for (const grid of grids) {
-        const gridPrice =
-          grid.seatSettings?.price || defaultSeatSettings?.price || 0;
-
-        await createAreaWithId({
-          id: grid.id,
-          eventId: createdEvent.id,
-          showingId: showing.id,
-          name: grid.name,
-          price: gridPrice,
-        });
-
-        for (const row of grid.children) {
-          await createRowWithId({
-            id: row.id,
-            areaId: grid.id,
-            rowName: row.name,
-          });
-
-          const seatValues = row.children.map((seat) => ({
-            id: seat.id,
-            rowId: row.id,
-            seatNumber: seat.name,
-          }));
-
-          if (seatValues.length > 0) {
-            await createSeatsWithIds(seatValues);
-          }
-        }
-      }
-    }
-  });
-
-  return createdEventId ? { eventId: createdEventId } : null;
-}
-
-/**
- * ✅ Create event with showings using seat map (individual mode)
- * Each showing has its own seat map configuration
- */
-export async function createEventWithShowingsAndSeatMapIndividual(
-  event: NewEvent,
-  showings: {
-    name: string;
-    startTime: Date;
-    endTime: Date;
-    ticketSaleStart?: Date | null;
-    ticketSaleEnd?: Date | null;
-    seatMapId?: string;
-  }[],
-  showingSeatMapConfigs: GridShape[][],
-  defaultSeatSettings: SeatGridSettings
-): Promise<{ eventId: string } | null> {
-  const result = createEventInputSchema.safeParse(event);
-  if (!result.success) {
-    throw new Error(
-      result.error.issues
-        .map((i) => `${i.path.join(".")} — ${i.message}`)
-        .join("\n")
-    );
-  }
-
-  const validEvent = result.data;
-  let createdEventId: string | null = null;
-
-  await db.transaction(async () => {
-    const [createdEvent] = await createEvent(validEvent);
-    createdEventId = createdEvent.id;
-
-    for (let i = 0; i < showings.length; i++) {
-      const showing = showings[i];
-      const grids = showingSeatMapConfigs[i] || [];
-
-      const [createdShowing] = await createShowing({
-        eventId: createdEvent.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        ticketSaleStart: showing.ticketSaleStart || null,
-        ticketSaleEnd: showing.ticketSaleEnd || null,
-        seatMapId: showing.seatMapId || null,
-      });
-
-      for (const grid of grids) {
-        const gridPrice =
-          grid.seatSettings?.price || defaultSeatSettings?.price || 0;
-        const uniqueGridId = uuidv4();
-
-        await createAreaWithId({
-          id: uniqueGridId,
-          eventId: createdEvent.id,
-          showingId: createdShowing.id,
-          name: grid.name,
-          price: gridPrice,
-        });
-
-        for (const row of grid.children) {
-          const uniqueRowId = uuidv4();
-
-          await createRowWithId({
-            id: uniqueRowId,
-            areaId: uniqueGridId,
-            rowName: row.name,
-          });
-
-          const seatValues = row.children.map((seat, idx) => ({
-            id: uuidv4(),
-            rowId: uniqueRowId,
-            seatNumber: `${row.name}-${idx + 1}`,
-          }));
-
-          if (seatValues.length > 0) {
-            await createSeatsWithIds(seatValues);
-          }
-        }
-      }
+    // Create seat map structure for all showings (copy mode - same structure)
+    for (var i = 0; i < createdShowings.length; i++) {
+      await createSeatMapStructureBatch(
+        createdEvent.id,
+        createdShowings[i].id,
+        grids[i],
+        defaultSeatSettings
+      );
     }
   });
 
@@ -367,9 +259,6 @@ export async function updateEventWithShowingsAndAreasIndividual(
   }
 }
 
-/**
- * ✅ Update event with showings using seat map (copy mode)
- */
 export async function updateEventWithShowingsAndSeatMap(
   event: Event,
   showings: {
@@ -380,8 +269,9 @@ export async function updateEventWithShowingsAndSeatMap(
     ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[],
-  grids: GridShape[],
-  defaultSeatSettings: SeatGridSettings
+  grids: GridShape[][],
+  defaultSeatSettings: SeatGridSettings,
+  seatMapChanged: boolean = true // ✅ New flag to indicate if seat map changed
 ) {
   const result = createEventInputSchema.safeParse(event);
   if (!result.success) {
@@ -397,138 +287,53 @@ export async function updateEventWithShowingsAndSeatMap(
   await db.transaction(async () => {
     await updateEventById(event.id, validEvent);
 
-    await deleteAreasByEventId(event.id);
-    await deleteShowingsByEventId(event.id);
+    // ✅ Only delete and recreate areas/rows/seats if seat map changed
+    if (seatMapChanged) {
+      await deleteAreasByEventId(event.id);
+      await deleteShowingsByEventId(event.id);
 
-    const createdShowings = [];
-    for (const showing of showings) {
-      const [createdShowing] = await createShowing({
-        eventId: event.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        ticketSaleStart: showing.ticketSaleStart || null,
-        ticketSaleEnd: showing.ticketSaleEnd || null,
-        seatMapId: showing.seatMapId || null,
-      });
-      createdShowings.push(createdShowing);
-    }
-
-    for (const showing of createdShowings) {
-      for (const grid of grids) {
-        const gridPrice =
-          grid.seatSettings?.price || defaultSeatSettings?.price || 0;
-
-        await createAreaWithId({
-          id: grid.id,
+      const createdShowings = [];
+      for (const showing of showings) {
+        const [createdShowing] = await createShowing({
           eventId: event.id,
-          showingId: showing.id,
-          name: grid.name,
-          price: gridPrice,
+          name: showing.name,
+          startTime: showing.startTime,
+          endTime: showing.endTime,
+          ticketSaleStart: showing.ticketSaleStart || null,
+          ticketSaleEnd: showing.ticketSaleEnd || null,
+          seatMapId: showing.seatMapId || null,
         });
-
-        for (const row of grid.children) {
-          await createRowWithId({
-            id: row.id,
-            areaId: grid.id,
-            rowName: row.name,
-          });
-
-          const seatValues = row.children.map((seat) => ({
-            id: seat.id,
-            rowId: row.id,
-            seatNumber: seat.name,
-          }));
-
-          if (seatValues.length > 0) {
-            await createSeatsWithIds(seatValues);
-          }
-        }
+        createdShowings.push(createdShowing);
       }
-    }
-  });
-}
 
-/**
- * ✅ Update event with showings using seat map (individual mode)
- */
-export async function updateEventWithShowingsAndSeatMapIndividual(
-  event: Event,
-  showings: {
-    name: string;
-    startTime: Date;
-    endTime: Date;
-    ticketSaleStart?: Date | null;
-    ticketSaleEnd?: Date | null;
-    seatMapId?: string;
-  }[],
-  showingSeatMapConfigs: GridShape[][],
-  defaultSeatSettings: SeatGridSettings
-) {
-  const result = createEventInputSchema.safeParse(event);
-  if (!result.success) {
-    throw new Error(
-      result.error.issues
-        .map((i) => `${i.path.join(".")} — ${i.message}`)
-        .join("\n")
-    );
-  }
+      // Create seat map structure for all showings
+      for (let i = 0; i < createdShowings.length; i++) {
+        await createSeatMapStructureBatch(
+          event.id,
+          createdShowings[i].id,
+          grids[i],
+          defaultSeatSettings
+        );
+      }
+    } else {
+      // ✅ Seat map didn't change - only update showings without touching areas/rows/seats
+      await deleteShowingsByEventId(event.id);
 
-  const validEvent = result.data;
-
-  await db.transaction(async () => {
-    await updateEventById(event.id, validEvent);
-
-    await deleteAreasByEventId(event.id);
-    await deleteShowingsByEventId(event.id);
-
-    for (let i = 0; i < showings.length; i++) {
-      const showing = showings[i];
-      const grids = showingSeatMapConfigs[i] || [];
-
-      const [createdShowing] = await createShowing({
-        eventId: event.id,
-        name: showing.name,
-        startTime: showing.startTime,
-        endTime: showing.endTime,
-        ticketSaleStart: showing.ticketSaleStart || null,
-        ticketSaleEnd: showing.ticketSaleEnd || null,
-        seatMapId: showing.seatMapId || null,
-      });
-
-      for (const grid of grids) {
-        const gridPrice =
-          grid.seatSettings?.price || defaultSeatSettings?.price || 0;
-        const uniqueGridId = uuidv4();
-
-        await createAreaWithId({
-          id: uniqueGridId,
+      for (const showing of showings) {
+        await createShowing({
           eventId: event.id,
-          showingId: createdShowing.id,
-          name: grid.name,
-          price: gridPrice,
+          name: showing.name,
+          startTime: showing.startTime,
+          endTime: showing.endTime,
+          ticketSaleStart: showing.ticketSaleStart || null,
+          ticketSaleEnd: showing.ticketSaleEnd || null,
+          seatMapId: showing.seatMapId || null,
         });
-
-        for (const row of grid.children) {
-          const uniqueRowId = uuidv4();
-
-          await createRowWithId({
-            id: uniqueRowId,
-            areaId: uniqueGridId,
-            rowName: row.name,
-          });
-
-          const seatValues = row.children.map((seat, idx) => ({
-            id: uuidv4(),
-            rowId: uniqueRowId,
-            seatNumber: `${row.name}-${idx + 1}`,
-          }));
-
-          if (seatValues.length > 0) {
-            await createSeatsWithIds(seatValues);
-          }
-        }
       }
+
+      console.log(
+        "✅ Seat map unchanged - preserved existing areas, rows, and seats"
+      );
     }
   });
 }

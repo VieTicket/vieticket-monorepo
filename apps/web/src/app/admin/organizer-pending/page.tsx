@@ -35,6 +35,8 @@ import {
   MapPin,
   Phone,
   Mail,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -73,6 +75,8 @@ export default function OrganizerPendingPage() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
 
   useEffect(() => {
     fetchPendingOrganizers();
@@ -176,6 +180,12 @@ export default function OrganizerPendingPage() {
     setRejectDialogOpen(true);
   };
 
+  // Calculate pagination
+  const totalPages = Math.ceil(organizers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedOrganizers = organizers.slice(startIndex, endIndex);
+
   if (loading) {
     return (
       <div className="space-y-6">
@@ -222,6 +232,11 @@ export default function OrganizerPendingPage() {
           <CardTitle className="flex items-center gap-2">
             <UserCheck className="h-5 w-5" />
             Pending Organizer Applications ({organizers.length})
+            {totalPages > 1 && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (Page {currentPage} of {totalPages})
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -233,20 +248,20 @@ export default function OrganizerPendingPage() {
             </div>
           ) : (
             <div className="rounded-md border">
-              <Table>
+              <Table className="table-fixed w-full">
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Organizer Name</TableHead>
-                    <TableHead>User Details</TableHead>
-                    <TableHead>Business Info</TableHead>
-                    <TableHead>Applied Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="w-[250px]">Organizer Name</TableHead>
+                    <TableHead className="w-[250px]">User Details</TableHead>
+                    <TableHead className="w-[250px]">Business Info</TableHead>
+                    <TableHead className="w-[150px]">Applied Date</TableHead>
+                    <TableHead className="w-[200px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {organizers.map((organizer) => (
+                  {paginatedOrganizers.map((organizer) => (
                     <TableRow key={organizer.id}>
-                      <TableCell>
+                      <TableCell className="w-[250px] min-w-0">
                         <div className="flex items-center gap-3 min-w-0">
                           {organizer.user.image && (
                             <img
@@ -256,32 +271,32 @@ export default function OrganizerPendingPage() {
                             />
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate">{organizer.name}</div>
-                            <div className="text-sm text-muted-foreground truncate">
+                            <div className="font-medium truncate" title={organizer.name}>{organizer.name}</div>
+                            <div className="text-sm text-muted-foreground truncate" title={organizer.organizerType || "Type not specified"}>
                               {organizer.organizerType || "Type not specified"}
                             </div>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[250px] min-w-0">
                         <div className="space-y-1 min-w-0">
-                          <div className="font-medium truncate">
+                          <div className="font-medium truncate" title={organizer.user.name}>
                             {organizer.user.name}
                           </div>
                           <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
                             <Mail className="h-3 w-3 flex-shrink-0" />
-                            <span className="truncate">{organizer.user.email}</span>
+                            <span className="truncate min-w-0" title={organizer.user.email}>{organizer.user.email}</span>
                           </div>
                           {organizer.user.phone && (
                             <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
                               <Phone className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">{organizer.user.phone}</span>
+                              <span className="truncate min-w-0" title={organizer.user.phone}>{organizer.user.phone}</span>
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-sm min-w-0 max-w-xs">
+                      <TableCell className="w-[250px] min-w-0">
+                        <div className="space-y-1 text-sm min-w-0">
                           {organizer.website && (
                             <div className="flex items-center gap-1 text-muted-foreground min-w-0">
                               <Globe className="h-3 w-3 flex-shrink-0" />
@@ -289,7 +304,7 @@ export default function OrganizerPendingPage() {
                                 href={organizer.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:underline truncate"
+                                className="hover:underline truncate min-w-0"
                                 title={organizer.website}
                               >
                                 {organizer.website}
@@ -299,7 +314,7 @@ export default function OrganizerPendingPage() {
                           {organizer.address && (
                             <div className="flex items-center gap-1 text-muted-foreground min-w-0">
                               <MapPin className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate" title={organizer.address}>
+                              <span className="truncate min-w-0" title={organizer.address}>
                                 {organizer.address}
                               </span>
                             </div>
@@ -307,17 +322,17 @@ export default function OrganizerPendingPage() {
                           {organizer.foundedDate && (
                             <div className="flex items-center gap-1 text-muted-foreground min-w-0">
                               <Calendar className="h-3 w-3 flex-shrink-0" />
-                              <span className="truncate">
+                              <span className="truncate min-w-0" title={`Founded: ${formatDate(organizer.foundedDate)}`}>
                                 Founded: {formatDate(organizer.foundedDate)}
                               </span>
                             </div>
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="w-[150px]">
                         {formatDate(organizer.user.createdAt)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="w-[200px] text-right">
                         <div className="flex items-center gap-2 justify-end">
                           <Button
                             variant="outline"
@@ -357,6 +372,38 @@ export default function OrganizerPendingPage() {
                   ))}
                 </TableBody>
               </Table>
+            </div>
+          )}
+          
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, organizers.length)} of {organizers.length} organizers
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="h-4 w-4 mr-1" />
+                  Previous
+                </Button>
+                <div className="text-sm font-medium px-3">
+                  Page {currentPage} of {totalPages}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="h-4 w-4 ml-1" />
+                </Button>
+              </div>
             </div>
           )}
         </CardContent>

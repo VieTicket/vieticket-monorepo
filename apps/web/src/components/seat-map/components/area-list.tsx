@@ -41,7 +41,14 @@ export const AreaList = () => {
       };
     }
 
-    const grids = container.children as GridShape[];
+    // ✅ Fixed filter - only include grids that have at least one seat
+    const grids = container.children.filter((grid) => {
+      const totalSeats = grid.children.reduce(
+        (total, row) => total + row.children.length,
+        0
+      );
+      return totalSeats > 0; // Only show grids with seats
+    }) as GridShape[];
 
     // ✅ Calculate totals from the new structure
     const totalGrids = grids.length;
@@ -65,21 +72,24 @@ export const AreaList = () => {
         0
       );
 
-      const rowDetails = rows.map((row) => {
-        const seats = row.children as SeatShape[];
-        return {
-          id: row.id,
-          name: row.rowName || `Row ${rows.indexOf(row) + 1}`,
-          seatCount: seats.length,
-          seatSpacing: row.seatSpacing || grid.seatSettings.seatSpacing,
-        };
-      });
+      // ✅ Also filter out empty rows if needed
+      const rowDetails = rows
+        .filter((row) => row.children.length > 0) // Only include rows with seats
+        .map((row) => {
+          const seats = row.children as SeatShape[];
+          return {
+            id: row.id,
+            name: row.rowName || `Row ${rows.indexOf(row) + 1}`,
+            seatCount: seats.length,
+            seatSpacing: row.seatSpacing || grid.seatSettings.seatSpacing,
+          };
+        });
 
       return {
         id: grid.id,
         name: grid.gridName,
         seatCount: gridSeatCount,
-        rowCount: rows.length,
+        rowCount: rowDetails.length, // Use filtered row count
         rows: rowDetails,
         createdAt: grid.createdAt,
         price: grid.seatSettings.price,

@@ -54,7 +54,7 @@ export function ShowingsTicketing({
   setShowSeatMapModal,
 }: ShowingsTicketingProps) {
   const [selectedShowingIndex, setSelectedShowingIndex] = useState(0);
-  const [copyToAllShowings, setCopyToAllShowings] = useState(true);
+  const [copyToAllShowings, setCopyToAllShowings] = useState(false);
   const [showingConfigs, setShowingConfigs] = useState<ShowingConfig[]>([]);
 
   const currentShowing = showings[selectedShowingIndex] || showings[0];
@@ -70,12 +70,21 @@ export function ShowingsTicketing({
         seatMapData: selectedSeatMapData,
       }));
     } else {
-      // Each showing has its own configuration or falls back to global
-      return showings.map((_, index) => {
+      // Each showing has its own configuration or uses its own areas
+      return showings.map((showing, index) => {
         const config = showingConfigs.find((c) => c.showingIndex === index);
+        
+        // Priority: individual config > showing's own areas > default area
+        let showingAreas = config?.areas;
+        if (!showingAreas) {
+          showingAreas = showing.areas && showing.areas.length > 0 
+            ? showing.areas 
+            : [{ name: "Area A", seatCount: "", ticketPrice: "" }];
+        }
+        
         return {
           showingIndex: index,
-          areas: config?.areas || areas,
+          areas: showingAreas,
           seatMapId: config?.seatMapId || selectedSeatMap,
           seatMapData: config?.seatMapData || selectedSeatMapData,
         };
@@ -103,8 +112,8 @@ export function ShowingsTicketing({
       return currentShowing.areas;
     }
 
-    // Fallback to global areas
-    return areas;
+    // If no areas exist, create a default area for this showing
+    return [{ name: "Area A", seatCount: "", ticketPrice: "" }];
   };
 
   const getCurrentShowingSeatMap = () => {
@@ -198,12 +207,14 @@ export function ShowingsTicketing({
     <div className="space-y-4 sm:space-y-6">
       {/* Showings List */}
       <div>
-        <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-          <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
-          <span className="text-sm sm:text-base">
-            Configure Ticketing for Each Showing
-          </span>
-        </h3>
+        {ticketingMode === "simple" && (
+          <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
+            <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
+            <span className="text-sm sm:text-base">
+              Configure Ticketing for Each Showing
+            </span>
+          </h3>
+        )}
 
         <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {showings.map((showing, index) => (
@@ -255,15 +266,17 @@ export function ShowingsTicketing({
       {/* Selected Showing Configuration */}
       <div className="border-t pt-4 sm:pt-6">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
-            <h4 className="text-base sm:text-lg font-semibold truncate">
-              Configuring: {currentShowing.name}
-            </h4>
-          </div>
+          {showings.length > 1 && ticketingMode === "simple" && (
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+              <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 flex-shrink-0" />
+              <h4 className="text-base sm:text-lg font-semibold truncate">
+                Configuring: {currentShowing.name}
+              </h4>
+            </div>
+          )}
 
           {/* Copy Mode Toggle */}
-          {showings.length > 1 && (
+          {showings.length > 1 && ticketingMode === "simple" && (
             <div className="flex items-center space-x-2 flex-shrink-0">
               <Switch
                 id="copy-mode"
@@ -286,7 +299,7 @@ export function ShowingsTicketing({
         </div>
 
         {/* Copy Mode Info */}
-        {showings.length > 1 && (
+        {showings.length > 1 && ticketingMode === "simple" && (
           <div
             className={`mb-3 sm:mb-4 p-2 sm:p-3 rounded-lg ${
               copyToAllShowings

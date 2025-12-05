@@ -8,6 +8,8 @@ import {
   seats,
   showings,
 } from "@vieticket/db/pg/schema";
+import { GridShape } from "@vieticket/db/mongo/models/seat-map";
+import { SeatGridSettings } from "@/types/event-types";
 
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
@@ -43,7 +45,19 @@ export async function getEventsById(eventId: string) {
           },
         },
       },
-      showings: true,
+      showings: {
+        with: {
+          areas: {
+            with: {
+              rows: {
+                with: {
+                  seats: true,
+                },
+              },
+            },
+          },
+        },
+      },
     },
   });
 
@@ -246,6 +260,148 @@ export async function updateSeatById(
   data: Partial<typeof seats.$inferInsert>
 ) {
   return db.update(seats).set(data).where(eq(seats.id, seatId)).returning();
+}
+
+// Add these batch insert functions after the existing functions
+
+/**
+ * Batch insert areas with IDs
+ */
+export async function createAreasWithIdsBatch(
+  areasData: {
+    id: string;
+    eventId: string;
+    showingId: string;
+    name: string;
+    price: number;
+  }[]
+) {
+  if (areasData.length === 0) return;
+
+  const areaInsertSql = sql`
+    INSERT INTO areas (id, event_id, showing_id, name, price, created_at, updated_at)
+    VALUES ${sql.join(
+      areasData.map(
+        (area) =>
+          sql`(${area.id}, ${area.eventId}, ${area.showingId}, ${area.name}, ${area.price}, NOW(), NOW())`
+      ),
+      sql`, `
+    )}
+  `;
+
+  return db.execute(areaInsertSql);
+}
+
+/**
+ * Batch insert rows with IDs
+ */
+export async function createRowsWithIdsBatch(
+  rowsData: {
+    id: string;
+    areaId: string;
+    rowName: string;
+  }[]
+) {
+  if (rowsData.length === 0) return;
+
+  const rowInsertSql = sql`
+    INSERT INTO rows (id, area_id, row_name, created_at, updated_at)
+    VALUES ${sql.join(
+      rowsData.map(
+        (row) => sql`(${row.id}, ${row.areaId}, ${row.rowName}, NOW(), NOW())`
+      ),
+      sql`, `
+    )}
+  `;
+
+  return db.execute(rowInsertSql);
+}
+
+/**
+ * Batch insert seats with IDs (optimized for large batches)
+ */
+export async function createSeatsWithIdsBatch(
+  seatsData: {
+    id: string;
+    rowId: string;
+    seatNumber: string;
+  }[]
+) {
+  if (seatsData.length === 0) return;
+
+  // Split into smaller batches to avoid SQL parameter limits
+  const batchSize = 1000;
+  const batches = [];
+
+  for (let i = 0; i < seatsData.length; i += batchSize) {
+    batches.push(seatsData.slice(i, i + batchSize));
+  }
+
+  for (const batch of batches) {
+    const seatInsertSql = sql`
+      INSERT INTO seats (id, row_id, seat_number, created_at, updated_at)
+      VALUES ${sql.join(
+        batch.map(
+          (seat) =>
+            sql`(${seat.id}, ${seat.rowId}, ${seat.seatNumber}, NOW(), NOW())`
+        ),
+        sql`, `
+      )}
+    `;
+
+    await db.execute(seatInsertSql);
+  }
+}
+
+/**
+ * Batch create complete seat map structure for a showing
+ */
+export async function createSeatMapStructureBatch(
+  eventId: string,
+  showingId: string,
+  grids: GridShape[],
+  defaultSeatSettings: SeatGridSettings
+) {
+  const areasData = [];
+  const rowsData = [];
+  const seatsData = [];
+
+  for (const grid of grids) {
+    const gridPrice =
+      grid.seatSettings?.price || defaultSeatSettings?.price || 0;
+
+    // Prepare area data
+    areasData.push({
+      id: grid.id,
+      eventId,
+      showingId,
+      name: grid.gridName || grid.name || `Grid ${grid.id}`,
+      price: gridPrice,
+    });
+
+    // Prepare rows and seats data
+    for (const row of grid.children) {
+      rowsData.push({
+        id: row.id,
+        areaId: grid.id,
+        rowName: row.rowName || row.name || `Row ${row.id}`,
+      });
+
+      // Prepare seats data for this row
+      for (const seat of row.children) {
+        seatsData.push({
+          id: seat.id,
+          rowId: row.id,
+          seatNumber: seat.name || `${seat.id}`,
+        });
+      }
+    }
+  }
+
+  // Execute batch inserts in order
+  await createAreasWithIdsBatch(areasData);
+  await createRowsWithIdsBatch(rowsData);
+  await createSeatsWithIdsBatch(seatsData);
 }
 
 export async function deleteSeatsByRowId(rowId: string) {

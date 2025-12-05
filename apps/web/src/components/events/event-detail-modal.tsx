@@ -71,7 +71,7 @@ export function EventDetailModal({
     if (!event) return null;
 
     return {
-      start: new Date(event.start_date).toLocaleDateString("vi-VN", {
+      start: new Date(event.start_date).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -79,7 +79,7 @@ export function EventDetailModal({
         minute: "2-digit",
         weekday: "long",
       }),
-      end: new Date(event.end_date).toLocaleDateString("vi-VN", {
+      end: new Date(event.end_date).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -87,7 +87,7 @@ export function EventDetailModal({
         minute: "2-digit",
         weekday: "long",
       }),
-      created: new Date(event.created_at).toLocaleDateString("vi-VN", {
+      created: new Date(event.created_at).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
         day: "numeric",
@@ -106,7 +106,7 @@ export function EventDetailModal({
 
   // Format showing date/time
   const formatShowingDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString("vi-VN", {
+    return new Date(dateString).toLocaleString("en-US", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -119,7 +119,7 @@ export function EventDetailModal({
   if (!event || !formattedDates) return null;
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("vi-VN", {
+    return new Intl.NumberFormat("en-US", {
       style: "currency",
       currency: "VND",
       minimumFractionDigits: 0,
@@ -169,7 +169,7 @@ export function EventDetailModal({
 
         {/* Seat Map Image */}
         {event.seatMapImage ? (
-          <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+          <DetailCard icon={ImageIcon} title="Seat Map">
             <div className="space-y-2">
               <img
                 src={event.seatMapImage}
@@ -187,7 +187,7 @@ export function EventDetailModal({
           </DetailCard>
         ) : (
           event.seatMapId && (
-            <DetailCard icon={ImageIcon} title="Sơ đồ chỗ ngồi (Seat Map)">
+            <DetailCard icon={ImageIcon} title="Seat Map">
               <div className="text-sm text-gray-500">
                 Seat map ID: {event.seatMapId} (Image not available)
               </div>
@@ -197,7 +197,7 @@ export function EventDetailModal({
 
         {/* Showings Dropdown */}
         {event.showings && event.showings.length > 0 && (
-          <DetailCard icon={Film} title={`Lịch chiếu (Showings) - ${event.showings.length} suất`}>
+          <DetailCard icon={Film} title={`Showings - ${event.showings.length} sessions`}>
             <div className="space-y-4">
               <div className="space-y-2">
                 {event.showings.map((showing) => (
@@ -217,7 +217,7 @@ export function EventDetailModal({
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-gray-900 truncate">
-                          {showing.name || "Lịch chiếu không tên"}
+                          {showing.name || "Unnamed showing"}
                         </div>
                         <div className="text-sm text-gray-600 mt-1">
                           {formatShowingDateTime(showing.startTime)}
@@ -226,11 +226,11 @@ export function EventDetailModal({
                       <div className="ml-3 flex items-center gap-2">
                         {showing.isActive ? (
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-                            Hoạt động
+                            Active
                           </span>
                         ) : (
                           <span className="px-2 py-1 text-xs font-medium rounded-full bg-red-100 text-red-800">
-                            Không hoạt động
+                            Inactive
                           </span>
                         )}
                         <Clock className={`h-4 w-4 text-gray-400 transition-transform ${
@@ -245,32 +245,32 @@ export function EventDetailModal({
               {selectedShowing && (
                 <div className="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200 space-y-3">
                   <h4 className="font-semibold text-gray-900 text-base mb-3">
-                    Chi tiết lịch chiếu
+                    Showing Details
                   </h4>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm">
                     <div>
                       <span className="font-semibold text-gray-700">
-                        Tên lịch chiếu:
+                        Showing Name:
                       </span>
                       <p className="text-gray-600 mt-1">
-                        {selectedShowing.name || "Không có tên"}
+                        {selectedShowing.name || "No name"}
                       </p>
                     </div>
                     <div>
                       <span className="font-semibold text-gray-700">
-                        Trạng thái:
+                        Status:
                       </span>
                       <p className="text-gray-600 mt-1">
                         {selectedShowing.isActive ? (
-                          <span className="text-green-600 font-medium">Đang hoạt động</span>
+                          <span className="text-green-600 font-medium">Active</span>
                         ) : (
-                          <span className="text-red-600 font-medium">Không hoạt động</span>
+                          <span className="text-red-600 font-medium">Inactive</span>
                         )}
                       </p>
                     </div>
                     <div>
                       <span className="font-semibold text-gray-700">
-                        Thời gian bắt đầu:
+                        Start Time:
                       </span>
                       <p className="text-gray-600 mt-1">
                         {formatShowingDateTime(selectedShowing.startTime)}
@@ -278,7 +278,7 @@ export function EventDetailModal({
                     </div>
                     <div>
                       <span className="font-semibold text-gray-700">
-                        Thời gian kết thúc:
+                        End Time:
                       </span>
                       <p className="text-gray-600 mt-1">
                         {formatShowingDateTime(selectedShowing.endTime)}
@@ -287,7 +287,7 @@ export function EventDetailModal({
                     {selectedShowing.ticketSaleStart && (
                       <div>
                         <span className="font-semibold text-gray-700">
-                          Bắt đầu bán vé:
+                          Ticket Sale Start:
                         </span>
                         <p className="text-gray-600 mt-1">
                           {formatShowingDateTime(selectedShowing.ticketSaleStart)}
@@ -297,7 +297,7 @@ export function EventDetailModal({
                     {selectedShowing.ticketSaleEnd && (
                       <div>
                         <span className="font-semibold text-gray-700">
-                          Kết thúc bán vé:
+                          Ticket Sale End:
                         </span>
                         <p className="text-gray-600 mt-1">
                           {formatShowingDateTime(selectedShowing.ticketSaleEnd)}
@@ -330,7 +330,7 @@ export function EventDetailModal({
           </DetailCard>
 
           <DetailCard icon={Eye} title="Capacity">
-            {event.capacity > 0 ? `${event.capacity.toLocaleString("vi-VN")} chỗ` : "Chưa xác định"}
+            {event.capacity > 0 ? `${event.capacity.toLocaleString("en-US")} seats` : "To be determined"}
           </DetailCard>
 
           <DetailCard icon={Tag} title="Price">
@@ -344,7 +344,7 @@ export function EventDetailModal({
             ) : event.price > 0 ? (
               formatCurrency(event.price)
             ) : (
-              "Chưa xác định"
+              "To be determined"
             )}
           </DetailCard>
         </div>

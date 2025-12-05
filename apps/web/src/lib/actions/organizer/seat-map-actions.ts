@@ -294,7 +294,10 @@ export async function getUserSeatMapsAction() {
     // Get active organization context (if any)
     const organizationId = await getActiveOrganizationId();
 
-    const seatMaps = await getUserSeatMapsWithEventInfo(user as User, organizationId);
+    const seatMaps = await getUserSeatMapsWithEventInfo(
+      user as User,
+      organizationId
+    );
     if (!seatMaps) {
       return { success: true, data: [] };
     }
@@ -592,7 +595,11 @@ export async function searchSeatMapsAction(searchQuery: string) {
     // Get active organization context (if any)
     const organizationId = await getActiveOrganizationId();
 
-    const seatMaps = await searchUserSeatMaps(searchQuery, user as User, organizationId);
+    const seatMaps = await searchUserSeatMaps(
+      searchQuery,
+      user as User,
+      organizationId
+    );
     const plainData = JSON.parse(JSON.stringify(seatMaps));
 
     return { success: true, data: plainData };
@@ -713,6 +720,36 @@ export async function publishSeatMapAction(seatMapId: string) {
   }
 }
 
+export async function unpublishSeatMapAction(seatMapId: string) {
+  try {
+    const session = await getAuthSession(await headersFn());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to publish seat maps.");
+    }
+
+    // Get active organization context (if any)
+    const organizationId = await getActiveOrganizationId();
+
+    const updatedSeatMap = await updateSeatMapPublicityService(
+      seatMapId,
+      "private",
+      user as User,
+      organizationId
+    );
+
+    const plainData = JSON.parse(JSON.stringify(updatedSeatMap));
+
+    return { success: true, data: plainData };
+  } catch (error) {
+    console.error("Error in publishSeatMapAction:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}
+
 export async function deleteSeatMapAction(seatMapId: string) {
   try {
     const session = await getAuthSession(await headersFn());
@@ -725,7 +762,11 @@ export async function deleteSeatMapAction(seatMapId: string) {
     // Get active organization context (if any)
     const organizationId = await getActiveOrganizationId();
 
-    const deletedSeatMap = await deleteSeatMapService(seatMapId, user as User, organizationId);
+    const deletedSeatMap = await deleteSeatMapService(
+      seatMapId,
+      user as User,
+      organizationId
+    );
     const plainData = JSON.parse(JSON.stringify(deletedSeatMap));
 
     return { success: true, data: plainData };

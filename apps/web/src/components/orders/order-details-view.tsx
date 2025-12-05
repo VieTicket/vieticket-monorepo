@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { generateQRCodeImage } from "@vieticket/utils/ticket-validation/client"
 import { Armchair, Calendar, Clock, MapPin, Receipt, User } from "lucide-react"
-import { SendTicketEmail } from "@/components/tickets/send-ticket-email"
+import { ShareTicket } from "@/components/tickets/share-ticket"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
 
@@ -280,8 +280,7 @@ export function OrderDetailsView({ order }: OrderDetailsViewProps) {
                                 <div key={ticket.ticketId} className="space-y-4">
                                     <TicketCard ticket={ticket} eventName={order.event.eventName} />
                                     <div className="ml-4">
-                                        <h3 className="font-medium mb-2">Send this ticket to another email:</h3>
-                                        <SendTicketEmail ticketId={ticket.ticketId} />
+                                        <ShareTicket ticketId={ticket.ticketId} />
                                     </div>
                                 </div>
                             ))}

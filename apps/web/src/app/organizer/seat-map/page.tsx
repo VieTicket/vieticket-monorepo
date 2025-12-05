@@ -8,6 +8,7 @@ import {
   createDraftFromPublicSeatMapAction,
   publishSeatMapAction,
   deleteSeatMapAction,
+  unpublishSeatMapAction,
 } from "@/lib/actions/organizer/seat-map-actions";
 import { toast } from "sonner";
 import { Sidebar } from "./components/sidebar";
@@ -219,6 +220,30 @@ export default function SeatMapDirectory() {
     }
   };
 
+  const handleUnpublishSeatMap = async (seatMapId: string) => {
+    try {
+      setPublishingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(seatMapId);
+        return newSet;
+      });
+
+      const result = await unpublishSeatMapAction(seatMapId);
+
+      if (result.success) {
+        toast.success("Seat map unpublished successfully!");
+        loadSeatMaps();
+      } else {
+        toast.error(result.error || "Failed to unpublish seat map");
+      }
+    } catch (error) {
+      console.error("Error unpublishing seat map:", error);
+      toast.error("An unexpected error occurred while publishing");
+    } finally {
+      setPublishingIds((prev) => new Set([...prev, seatMapId]));
+    }
+  };
+
   const handleDeleteSeatMap = async (seatMapId: string) => {
     if (
       !confirm(
@@ -302,6 +327,7 @@ export default function SeatMapDirectory() {
           onShowTemplates={handleShowTemplates}
           setViewMode={setViewMode}
           onPublish={handlePublishSeatMap}
+          onUnpublish={handleUnpublishSeatMap}
           onDelete={handleDeleteSeatMap}
           publishingIds={publishingIds}
           deletingIds={deletingIds}

@@ -37,6 +37,7 @@ interface DraftsViewProps {
   setViewMode: (mode: "grid" | "list") => void;
   onShowTemplates: () => void;
   onPublish: (seatMapId: string) => void;
+  onUnpublish: (seatMapId: string) => void;
   onDelete: (seatMapId: string) => void;
 }
 
@@ -49,6 +50,7 @@ export function DraftsView({
   viewMode,
   setViewMode,
   onPublish,
+  onUnpublish,
   onDelete,
   onShowTemplates,
   publishingIds,
@@ -202,6 +204,7 @@ export function DraftsView({
             searchQuery={draftsSearchQuery}
             viewMode={viewMode}
             onPublish={onPublish}
+            onUnpublish={onUnpublish}
             onDelete={onDelete}
             publishingIds={publishingIds}
             deletingIds={deletingIds}
@@ -289,6 +292,7 @@ const DraftsTemplates = ({
   searchQuery,
   viewMode,
   onPublish,
+  onUnpublish,
   onDelete,
   publishingIds,
   deletingIds,
@@ -298,6 +302,7 @@ const DraftsTemplates = ({
   searchQuery: string;
   viewMode: "grid" | "list";
   onPublish: (seatMapId: string) => void;
+  onUnpublish: (seatMapId: string) => void;
   onDelete: (seatMapId: string) => void;
   publishingIds: Set<string>;
   deletingIds: Set<string>;
@@ -351,6 +356,7 @@ const DraftsTemplates = ({
           seatMap={seatMap}
           viewMode={viewMode}
           onPublish={onPublish}
+          onUnpublish={onUnpublish}
           onDelete={onDelete}
           publishingIds={publishingIds}
           deletingIds={deletingIds}
@@ -415,6 +421,7 @@ const DraftTemplateCard = ({
   seatMap,
   viewMode,
   onPublish,
+  onUnpublish,
   onDelete,
   publishingIds,
   deletingIds,
@@ -422,6 +429,7 @@ const DraftTemplateCard = ({
   seatMap: SeatMapItem;
   viewMode: "grid" | "list";
   onPublish: (id: string) => void;
+  onUnpublish: (id: string) => void;
   onDelete: (id: string) => void;
   publishingIds: Set<string>;
   deletingIds: Set<string>;
@@ -482,8 +490,12 @@ const DraftTemplateCard = ({
                   {publishingIds.has(seatMap.id) ? "Publishing..." : "Publish"}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" disabled>
-                  Published
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onUnpublish(seatMap.id)}
+                >
+                  Unpublish
                 </Button>
               )}
             </div>
@@ -567,8 +579,12 @@ const DraftTemplateCard = ({
                 {publishingIds.has(seatMap.id) ? "Publishing..." : "Publish"}
               </Button>
             ) : (
-              <Button variant="outline" className="flex-1 text-xs" disabled>
-                Published
+              <Button
+                variant="outline"
+                className="flex-1 text-xs"
+                onClick={() => onUnpublish(seatMap.id)}
+              >
+                Unpublish
               </Button>
             )}
 
