@@ -215,7 +215,7 @@ export default function AdminPaymentRequestsPage() {
                   </td>
                   <td className="p-2">
                     <span className="whitespace-nowrap">
-                      {request.requestedAmount.toLocaleString("vi-VN")} VND
+                      {request.requestedAmount.toLocaleString("en-US")} VND
                     </span>
                   </td>
                     <td className="p-2">
@@ -262,10 +262,10 @@ export default function AdminPaymentRequestsPage() {
                     </div>
                   </td>
                   <td className="p-2 whitespace-nowrap">
-                    {new Date(request.requestDate).toLocaleDateString("vi-VN")}
+                    {new Date(request.requestDate).toLocaleDateString("en-US")}
                   </td>
                   <td className="p-2 whitespace-nowrap">
-                    {request.completionDate ? new Date(request.completionDate).toLocaleDateString("vi-VN") : "N/A"}
+                    {request.completionDate ? new Date(request.completionDate).toLocaleDateString("en-US") : "N/A"}
                   </td>
                     <td className="p-2 space-y-2 min-w-0 max-w-xs">
                     {/* Show preview if already uploaded */}

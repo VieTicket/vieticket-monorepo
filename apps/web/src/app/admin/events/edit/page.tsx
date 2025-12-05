@@ -346,8 +346,9 @@ function CreateEventPageInner() {
         const showingValidation = validateSingleShowing(showings[i], i);
         Object.assign(allErrors, showingValidation.errors);
 
-        const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
-        Object.assign(allErrors, ticketSaleValidation.errors);
+        // Skip ticket sale time validation for admin edit
+        // const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
+        // Object.assign(allErrors, ticketSaleValidation.errors);
       }
     }
 
@@ -824,6 +825,7 @@ function CreateEventPageInner() {
               setFormData({ ...formData, description: value });
             }}
             onShowingsChange={handleShowingsChange}
+            disableTicketSaleValidation={true}
           />
         );
       case 2:
@@ -997,19 +999,18 @@ function CreateEventPageInner() {
       <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Xác nhận thoát</AlertDialogTitle>
+            <AlertDialogTitle>Confirm Exit</AlertDialogTitle>
             <AlertDialogDescription>
-              Bạn có chắc chắn muốn thoát? Tất cả các thay đổi chưa lưu sẽ bị
-              mất.
+              Are you sure you want to exit? All unsaved changes will be lost.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Hủy</AlertDialogCancel>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmExit}
               className="bg-red-600 hover:bg-red-700"
             >
-              Thoát
+              Exit
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

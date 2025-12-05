@@ -20,6 +20,7 @@ interface EventDetailsStepProps {
   ) => void;
   onDescriptionChange: (value: string) => void;
   onShowingsChange: (showings: ShowingFormData[]) => void;
+  disableTicketSaleValidation?: boolean;
 }
 
 export function EventDetailsStep({
@@ -30,6 +31,7 @@ export function EventDetailsStep({
   onInputChange,
   onDescriptionChange,
   onShowingsChange,
+  disableTicketSaleValidation = false,
 }: EventDetailsStepProps) {
   const t = useTranslations("organizer-dashboard.CreateEvent");
   const renderField = (
@@ -40,6 +42,10 @@ export function EventDetailsStep({
   ) => {
     // Helper function to get minimum datetime for fields
     const getMinDateTime = (fieldName: string) => {
+      if (disableTicketSaleValidation && (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd")) {
+        return undefined;
+      }
+      
       const now = new Date();
       const currentDateTime = now.toISOString().slice(0, 16);
 
@@ -55,6 +61,10 @@ export function EventDetailsStep({
 
     // Helper function to get maximum datetime for fields
     const getMaxDateTime = (fieldName: string) => {
+      if (disableTicketSaleValidation && (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd")) {
+        return undefined;
+      }
+      
       switch (fieldName) {
         case "ticketSaleStart":
           // Ticket sale start must be at least 3 days before the earliest event showing

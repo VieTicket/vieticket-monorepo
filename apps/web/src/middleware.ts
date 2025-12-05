@@ -40,6 +40,7 @@ const publicRoutes = [
   "/about",
   "/contact",
   "/search",
+  "/terms"
 ];
 
 // Routes that require authentication but no specific role

@@ -3,7 +3,6 @@
 import {
   getEventById,
   updateEventWithShowingsAndSeatMap,
-  updateEventWithShowingsAndSeatMapIndividual,
   updateEventWithShowingsAndAreas,
   updateEventWithShowingsAndAreasIndividual,
 } from "@/lib/services/eventService";
@@ -212,6 +211,14 @@ export async function handleAdminUpdateEvent(formData: FormData) {
         throw new Error("Seat map has no seating areas configured");
       }
 
+      // Check if seat map changed by comparing with existing event's seatMapId
+      const existingSeatMapId =
+        existingEvent.showings?.[0]?.seatMapId || existingEvent.seatMapId;
+      const seatMapChanged = seatMapId !== existingSeatMapId;
+
+      // Create grids array for each showing (copy mode uses same grids for all)
+      const finalSeatMapGrids: GridShape[][] = showings.map(() => grids);
+
       // Check if using copy mode (all showings use same seat map config)
       const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
@@ -219,31 +226,9 @@ export async function handleAdminUpdateEvent(formData: FormData) {
         await updateEventWithShowingsAndSeatMap(
           eventPayload,
           showings,
-          grids,
-          defaultSeatSettings
-        );
-      } else {
-        // Individual seat map configs per showing
-        const showingSeatMapConfigs: GridShape[][] = [];
-
-        for (let showingIdx = 0; showingIdx < showings.length; showingIdx++) {
-          const showingConfigData = formData.get(
-            `showingConfigs[${showingIdx}].seatMapData`
-          );
-
-          if (showingConfigData) {
-            const config = JSON.parse(showingConfigData as string);
-            showingSeatMapConfigs.push(config.grids || grids);
-          } else {
-            showingSeatMapConfigs.push(grids);
-          }
-        }
-
-        await updateEventWithShowingsAndSeatMapIndividual(
-          eventPayload,
-          showings,
-          showingSeatMapConfigs,
-          defaultSeatSettings
+          finalSeatMapGrids,
+          defaultSeatSettings,
+          seatMapChanged
         );
       }
     } else {
