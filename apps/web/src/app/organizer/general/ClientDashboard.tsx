@@ -234,8 +234,8 @@ export default function OrganizerDashboardModern({
                 {formatCurrencyVND(totalRevenue)}
               </div>
               <p className="text-xs text-muted-foreground">
-                {t("actual(-20%)")}{" "}
-                {formatCurrencyVND((totalRevenue * 80) / 100)}
+                {t("actual(-5%)")}{" "}
+                {formatCurrencyVND((totalRevenue * 95) / 100)}
               </p>
             </CardContent>
           </Card>
