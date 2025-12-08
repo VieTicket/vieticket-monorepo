@@ -23,7 +23,7 @@ export function CreateOrgForm({ onSuccess }: { onSuccess?: () => void }) {
       const { data, error } = await authClient.organization.create({
         name,
         // Slug is ignored on server; pass any placeholder string
-        slug: "",
+        slug: "slug",
       });
 
       if (error) {
