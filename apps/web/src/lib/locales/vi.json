@@ -459,19 +459,24 @@
         "completed": "Hoàn thành"
       },
       "noRequests": "Không tìm thấy yêu cầu thanh toán.",
+      "currentRevenue": "Doanh thu hiện tại",
       "table": {
         "event": "Sự kiện",
         "requestedAmount": "Số tiền yêu cầu",
         "amount": "Số tiền",
         "agreedAmount": "Số tiền thỏa thuận",
         "status": "Trạng thái",
+        "deduction": "Khấu trừ (%)",
         "requestDate": "Ngày yêu cầu",
         "completionDate": "Ngày hoàn tất",
         "actions": "Hành động",
+        "notSet": "Chưa đặt",
         "viewEvidence": "Xem chứng từ",
         "uploadEvidence": "Tải lên chứng từ"
       },
       "viewDetails": "Xem chi tiết",
+      "backToList": "Quay lại danh sách",
+      "searchPlaceholder": "Tìm kiếm yêu cầu thanh toán",
       "empty": {
         "title": "Không có yêu cầu thanh toán",
         "description": "Bạn chưa tạo yêu cầu thanh toán nào.",
@@ -482,9 +487,11 @@
       },
       "buttons": {
         "save": "Lưu",
+        "saving": "Đang lưu...",
         "previous": "Trước",
         "next": "Tiếp",
-        "newPayout": "Yêu cầu thanh toán mới"
+        "newPayout": "Yêu cầu thanh toán mới",
+        "cancelRequest": "Hủy yêu cầu"
       },
       "page": {
         "title": "Danh sách yêu cầu thanh toán"
@@ -494,7 +501,13 @@
       },
       "confirm": {
         "updateAgreed": "Bạn có chắc muốn cập nhật số tiền thỏa thuận không?",
-        "updateStatus": "Bạn có chắc muốn cập nhật trạng thái không?"
+        "updateStatus": "Bạn có chắc muốn cập nhật trạng thái không?",
+        "cancelRequest": "Bạn có chắc muốn hủy yêu cầu thanh toán này không?"
+      },
+      "errors": {
+        "invalidAmount": "Vui lòng nhập số tiền hợp lệ.",
+        "amountExceedsRevenue": "Số tiền thỏa thuận không được vượt quá doanh thu sự kiện.",
+        "cannotEditAgreedStatus": "Chỉ chỉnh sửa được khi trạng thái là đang chờ hoặc đang thảo luận."
       },
       "toasts": {
         "fetchFailed": "Tải yêu cầu thanh toán thất bại",
@@ -504,7 +517,9 @@
         "statusUpdated": "Cập nhật trạng thái thành công",
         "statusUpdateFailed": "Cập nhật trạng thái thất bại",
         "proofUploaded": "Tải chứng từ thành công",
-        "proofUploadFailed": "Tải chứng từ thất bại"
+        "proofUploadFailed": "Tải chứng từ thất bại",
+        "cancelled": "Hủy yêu cầu thanh toán thành công",
+        "cancelFailed": "Hủy yêu cầu thanh toán thất bại"
       }
     },
     "NewPayoutRequest": {

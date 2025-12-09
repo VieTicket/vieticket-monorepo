@@ -27,6 +27,8 @@ import { PayoutRequestFormSchema } from "@/lib/validations/payout-request";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { calculateNetPayoutAmount } from "@vieticket/utils/finance/payouts";
+import { formatCurrencyVND } from "@vieticket/utils/formatters/currency";
 
 interface PayoutRequestFormProps {
   events: Array<{ id: string; name: string; hasActivePayoutRequest?: boolean }>;
@@ -46,21 +48,39 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
       amount: "",
     },
   });
+  const eventId = form.watch("eventId");
+  const watchedAmount = form.watch("amount");
+
+  const deductionPercent =
+    revenue !== null &&
+    watchedAmount !== "" &&
+    Number.isFinite(Number(watchedAmount))
+      ? Math.max(
+          0,
+          Math.min(
+            100,
+            ((revenue - Number(watchedAmount)) / revenue) * 100
+          )
+        )
+      : null;
 
   // Fetch revenue when event selection changes
   useEffect(() => {
-    const eventId = form.watch("eventId");
     if (eventId) {
       setIsLoadingRevenue(true);
       getEventRevenueAction(eventId)
         .then(result => {
           if (result.success) {
-            setRevenue(result.data!.revenue);
+            const grossRevenue = result.data!.revenue;
+            setRevenue(grossRevenue);
+            const suggestedAmount = calculateNetPayoutAmount(grossRevenue);
+            form.setValue("amount", suggestedAmount.toString());
           } else {
             toast.error(t("failedLoadRevenue"), {
               description: result.message || t("pleaseTryAgain"),
             });
             setRevenue(null);
+            form.setValue("amount", "");
           }
         })
         .catch(() => {
@@ -68,12 +88,14 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
             description: t("unexpectedErrorRevenue"),
           });
           setRevenue(null);
+          form.setValue("amount", "");
         })
         .finally(() => setIsLoadingRevenue(false));
     } else {
       setRevenue(null);
+      form.setValue("amount", "");
     }
-  }, [form.watch("eventId")]);
+  }, [eventId, form, t]);
 
   async function onSubmit(values: z.infer<typeof PayoutRequestFormSchema>) {
     setIsSubmitting(true);
@@ -142,7 +164,7 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
                 isLoadingRevenue
                   ? t("loadingRevenue")
                   : revenue !== null
-                    ? revenue.toLocaleString('vi-VN')
+                    ? formatCurrencyVND(revenue)
                     : t("selectEventToSeeRevenue")
               }
             />
@@ -162,10 +184,29 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
                   {...field}
                 />
               </FormControl>
+              {field.value && (
+                <p className="text-xs text-muted-foreground">
+                  {formatCurrencyVND(Number(field.value))}
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
         />
+
+        <FormItem>
+          <FormLabel>{t("table.deduction")}</FormLabel>
+          <FormControl>
+            <Input
+              readOnly
+              value={
+                deductionPercent !== null
+                  ? `${deductionPercent.toFixed(2)}%`
+                  : t("selectEventToSeeRevenue")
+              }
+            />
+          </FormControl>
+        </FormItem>
 
         <div className="flex justify-end gap-4">
           <Button

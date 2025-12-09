@@ -1,8 +1,33 @@
 import { db } from "@vieticket/db/pg";
 import { payoutRequests } from "@vieticket/db/pg/schemas/payout-requests";
-import { and, eq, sql } from "drizzle-orm";
+import { events } from "@vieticket/db/pg/schemas/events";
+import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { PayoutStatus } from "@vieticket/db/pg/schema";
 import { PaginationParams } from "./types";
+
+type PayoutFilters = PaginationParams & {
+  status?: PayoutStatus;
+  search?: string;
+};
+
+function buildBaseConditions(options: {
+  organizerId?: string;
+  status?: PayoutStatus;
+  search?: string;
+}) {
+  const conditions = [];
+  if (options.organizerId) {
+    conditions.push(eq(payoutRequests.organizerId, options.organizerId));
+  }
+  if (options.status) {
+    conditions.push(eq(payoutRequests.status, options.status));
+  }
+  if (options.search) {
+    const pattern = `%${options.search}%`;
+    conditions.push(ilike(events.name, pattern));
+  }
+  return conditions;
+}
 
 export async function createPayoutRequest(data: {
     eventId: string;
@@ -45,24 +70,34 @@ export async function findPayoutRequestsByEventId(eventId: string) {
 
 export async function findPayoutRequestsByOrganizerId(
     organizerId: string,
-    pagination: PaginationParams = { offset: 0, limit: 10 }
+    pagination: PayoutFilters = { offset: 0, limit: 10 }
 ) {
-    return db.query.payoutRequests.findMany({
-        where: eq(payoutRequests.organizerId, organizerId),
-        offset: pagination.offset,
-        limit: pagination.limit,
-        orderBy: (payoutRequests, { desc }) => [desc(payoutRequests.requestDate)],
-        with: {
+    const { offset, limit, status, search } = pagination;
+    const conditions = buildBaseConditions({ organizerId, status, search }).filter(Boolean);
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    const baseRowsQuery = db
+        .select({
+            payout: payoutRequests,
             event: {
-                columns: {
-                    id: true,
-                    name: true,
-                    startTime: true,
-                    endTime: true
-                }
-            }
-        }
-    });
+                id: events.id,
+                name: events.name,
+                startTime: events.startTime,
+                endTime: events.endTime,
+            },
+        })
+        .from(payoutRequests)
+        .leftJoin(events, eq(payoutRequests.eventId, events.id));
+
+    const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
+        .orderBy(desc(payoutRequests.requestDate))
+        .offset(offset)
+        .limit(limit);
+
+    return rows.map(({ payout, event }) => ({
+        ...payout,
+        event,
+    }));
 }
 
 export async function updatePayoutRequest(
@@ -82,11 +117,20 @@ export async function updatePayoutRequest(
     return request;
 }
 
-export async function countPayoutRequestsByOrganizerId(organizerId: string) {
-    const [result] = await db
+export async function countPayoutRequestsByOrganizerId(
+    organizerId: string,
+    pagination: PayoutFilters = { offset: 0, limit: 10 }
+) {
+    const { status, search } = pagination;
+    const conditions = buildBaseConditions({ organizerId, status, search }).filter(Boolean);
+    const whereClause = conditions.length ? and(...conditions) : undefined;
+
+    const baseCountQuery = db
         .select({ count: sql<number>`count(*)` })
         .from(payoutRequests)
-        .where(eq(payoutRequests.organizerId, organizerId));
+        .leftJoin(events, eq(payoutRequests.eventId, events.id));
+
+    const [result] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
 
     return result.count;
 }
@@ -109,47 +153,46 @@ export async function hasActivePayoutRequestForEvent(eventId: string): Promise<b
 }
 
 export async function getPayoutRequestsForAdmin(
-  pagination: PaginationParams & { status?: PayoutStatus } = { offset: 0, limit: 10 }
+  pagination: PayoutFilters = { offset: 0, limit: 10 }
 ): Promise<{
   data: any[];
   totalCount: number;
   totalPages: number;
 }> {
-  const whereClause = pagination.status
-    ? eq(payoutRequests.status, pagination.status)
-    : undefined;
+  const { offset, limit, status, search } = pagination;
+  const conditions = buildBaseConditions({ status, search }).filter(Boolean);
+  const whereClause = conditions.length ? and(...conditions) : undefined;
 
-  const data = await db.query.payoutRequests.findMany({
-    offset: pagination.offset,
-    limit: pagination.limit,
-    ...(whereClause ? { where: whereClause } : {}),
-    orderBy: (payoutRequests, { desc }) => [desc(payoutRequests.requestDate)],
-    with: {
+  const baseRowsQuery = db
+    .select({
+      payout: payoutRequests,
       event: {
-        columns: {
-          id: true,
-          name: true,
-          startTime: true,
-          endTime: true
-        }
-      }
-    }
-  });
+        id: events.id,
+        name: events.name,
+        startTime: events.startTime,
+        endTime: events.endTime,
+      },
+    })
+    .from(payoutRequests)
+    .leftJoin(events, eq(payoutRequests.eventId, events.id));
 
-  // Get total count
-  const countQuery = db
+  const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
+    .orderBy(desc(payoutRequests.requestDate))
+    .offset(offset)
+    .limit(limit);
+
+  const baseCountQuery = db
     .select({ count: sql<number>`count(*)` })
-    .from(payoutRequests);
+    .from(payoutRequests)
+    .leftJoin(events, eq(payoutRequests.eventId, events.id));
 
-  const [result] = whereClause
-    ? await countQuery.where(whereClause)
-    : await countQuery;
+  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
 
-  const totalCount = result.count;
+  const totalCount = countResult.count;
   const totalPages = Math.ceil(totalCount / pagination.limit);
 
   return {
-    data,
+    data: rows.map(({ payout, event }) => ({ ...payout, event })),
     totalCount,
     totalPages,
   };

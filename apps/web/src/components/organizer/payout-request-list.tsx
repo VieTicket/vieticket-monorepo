@@ -10,8 +10,17 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { CalendarIcon, CreditCardIcon, EyeIcon } from "lucide-react";
-import { getPayoutRequests } from "@/lib/actions/organizer/payout-request-actions";
+import { getPayoutRequestsWithFilters } from "@/lib/actions/organizer/payout-request-actions";
 import Link from "next/link";
+import { Input } from "../ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import { PayoutStatus } from "@vieticket/db/pg/schema";
 
 const columns: ColumnDef<PayoutRequestWithEvent>[] = [];
 
@@ -21,6 +30,14 @@ export function PayoutRequestList() {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<PayoutStatus | "all">("all");
+
+  useEffect(() => {
+    const handler = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(handler);
+  }, [searchTerm]);
 
   const columns: ColumnDef<PayoutRequestWithEvent>[] = [
     {
@@ -79,8 +96,16 @@ export function PayoutRequestList() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const result = await getPayoutRequests(page, 10);
-        setData(result.data);
+        const result = await getPayoutRequestsWithFilters(page, 10, {
+          status: statusFilter === "all" ? undefined : statusFilter,
+          search: debouncedSearch || undefined,
+        });
+        // Normalize API result to match PayoutRequestWithEvent typing
+        const normalized = result.data.map((item) => ({
+          ...item,
+          event: item.event ? { ...item.event } : undefined,
+        })) as PayoutRequestWithEvent[];
+        setData(normalized);
         setTotalPages(result.totalPages);
       } catch (error) {
         console.error("Failed to fetch payout requests:", error);
@@ -90,7 +115,17 @@ export function PayoutRequestList() {
     };
     
     fetchData();
-  }, [page]);
+  }, [page, statusFilter, debouncedSearch]);
+
+  const statusOptions: Array<{ label: string; value: PayoutStatus | "all" }> = [
+    { label: t("statusOptions.all"), value: "all" },
+    { label: t("statusOptions.pending"), value: "pending" },
+    { label: t("statusOptions.approved"), value: "approved" },
+    { label: t("statusOptions.rejected"), value: "rejected" },
+    { label: t("statusOptions.cancelled"), value: "cancelled" },
+    { label: t("statusOptions.in_discussion"), value: "in_discussion" },
+    { label: t("statusOptions.completed"), value: "completed" },
+  ];
 
   if (loading) {
     return (
@@ -114,6 +149,36 @@ export function PayoutRequestList() {
 
   return (
     <div>
+      <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-4">
+        <Input
+          placeholder={t("searchPlaceholder", { defaultValue: "Search payouts" })}
+          value={searchTerm}
+          onChange={(e) => {
+            setPage(1);
+            setSearchTerm(e.target.value);
+          }}
+          className="w-full md:w-1/2"
+        />
+        <Select
+          value={statusFilter}
+          onValueChange={(value) => {
+            setPage(1);
+            setStatusFilter(value as PayoutStatus | "all");
+          }}
+        >
+          <SelectTrigger className="w-full md:w-56">
+            <SelectValue placeholder={t("filterLabel")} />
+          </SelectTrigger>
+          <SelectContent>
+            {statusOptions.map((option) => (
+              <SelectItem key={option.value} value={option.value}>
+                {option.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Desktop Table View */}
       <div className="hidden md:block">
         <DataTable columns={columns} data={data} />

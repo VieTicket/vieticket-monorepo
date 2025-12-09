@@ -17,3 +17,8 @@ export async function getEventRevenueService(
 
   return getEventRevenue(eventId);
 }
+
+export async function getEventRevenueForAdminService(eventId: string): Promise<number> {
+  // Admins can view any event revenue for payout validations
+  return getEventRevenue(eventId);
+}

@@ -114,7 +114,7 @@ export function EventCard({
             </div>
             {/* Organizer - Only show if organizer exists */}
             {organizer?.name && (
-              <div className="absolute bottom-2 left-2 bg-gradient-to-r from-violet-500/90 to-indigo-500/90 backdrop-blur-sm text-white font-medium text-xs px-2 py-1 rounded-full border border-violet-400/40 shadow-lg animate-shimmer">
+              <div className="absolute bottom-2 left-2 max-w-[calc(100%-1rem)] truncate bg-linear-to-r from-violet-500/90 to-indigo-500/90 backdrop-blur-sm text-white font-medium text-xs px-2 py-1 rounded-full border border-violet-400/40 shadow-lg animate-shimmer">
                 {organizer.name}
               </div>
             )}
