@@ -9,7 +9,9 @@
     "./vnpay": "./src/vnpay/public.ts",
     "./mailer": "./src/mailer/index.ts",
     "./ticket-validation/*": "./src/ticket-validation/*.ts",
-    "./ai/text-generator": "./src/ai/text-generator.ts"
+    "./ai/text-generator": "./src/ai/text-generator.ts",
+    "./formatters/currency": "./src/formatters/currency.ts",
+    "./finance/payouts": "./src/finance/payouts.ts"
   },
   "scripts": {
     "build": "tsc",

@@ -11,6 +11,7 @@ import {
 import { PayoutRequestWithEvent } from "@vieticket/db/pg/models/payout-requests";
 import { PayoutStatus } from "@vieticket/db/pg/schema";
 import { FileUploader } from "@/components/ui/file-uploader";
+import { formatCurrencyVND } from "@vieticket/utils/formatters/currency";
 
 const PAGE_SIZE = 10;
 const STATUS_OPTIONS: PayoutStatus[] = [
@@ -37,8 +38,18 @@ export default function AdminPaymentRequestsPage() {
     try {
       const response = await getAdminPayoutRequestsAction(pageNum, PAGE_SIZE, status !== "all" ? status : undefined);
       if (response.success && response.data) {
-        setRequests(response.data.data || []);
+        const requestData = response.data.data || [];
+        setRequests(requestData);
         setTotalPages(response.data.totalPages || 1);
+        setAgreedAmountEdits((prev) => {
+          const next = { ...prev };
+          requestData.forEach((req) => {
+            if (next[req.id] === undefined) {
+              next[req.id] = req.agreedAmount ?? req.requestedAmount;
+            }
+          });
+          return next;
+        });
       } else {
         setRequests([]);
         toast.error(t("toasts.fetchFailed"), { description: response.message || t("toasts.unexpectedError") });
@@ -61,12 +72,17 @@ export default function AdminPaymentRequestsPage() {
   };
 
   const handleAgreedAmountSave = async (requestId: string) => {
-    const newAmount = agreedAmountEdits[requestId];
+    const currentRequest = requests.find((r) => r.id === requestId);
+    if (!currentRequest) return;
+    const newAmount =
+      agreedAmountEdits[requestId] ??
+      currentRequest.agreedAmount ??
+      currentRequest.requestedAmount;
     if (newAmount === undefined || newAmount === null) return;
   if (!window.confirm(t("confirm.updateAgreed"))) return;
 
     try {
-      const result = await updatePayoutStatusAction(requestId, requests.find(r => r.id === requestId)?.status!, newAmount);
+      const result = await updatePayoutStatusAction(requestId, currentRequest.status, newAmount);
       if (result) {
         toast.success(t("toasts.agreedAmountUpdated"));
         setRequests((prev) =>
@@ -107,8 +123,14 @@ export default function AdminPaymentRequestsPage() {
       agreedAmount?: number;
     } = { status: newStatus };
 
-    if (newStatus === "approved" && agreedAmountEdits[requestId] !== undefined) {
-      updateData.agreedAmount = agreedAmountEdits[requestId];
+    const currentRequest = requests.find((r) => r.id === requestId);
+    const resolvedAgreedAmount =
+      agreedAmountEdits[requestId] ??
+      currentRequest?.agreedAmount ??
+      currentRequest?.requestedAmount;
+
+    if (newStatus === "approved" && resolvedAgreedAmount !== undefined) {
+      updateData.agreedAmount = resolvedAgreedAmount;
     }
 
     try {
@@ -199,6 +221,7 @@ export default function AdminPaymentRequestsPage() {
                 <th className="p-2">{t("table.event")}</th>
                 <th className="p-2">{t("table.requestedAmount")}</th>
                 <th className="p-2">{t("table.agreedAmount")}</th>
+                <th className="p-2">Deduction (%)</th>
                 <th className="p-2">{t("table.status")}</th>
                 <th className="p-2">{t("table.requestDate")}</th>
                 <th className="p-2">{t("table.completionDate")}</th>
@@ -206,89 +229,115 @@ export default function AdminPaymentRequestsPage() {
               </tr>
             </thead>
             <tbody>
-              {requests.map((request) => (
-                <tr key={request.id} className="border-b">
-                  <td className="p-2 min-w-0 max-w-xs">
-                    <div className="truncate" title={request.event?.name || "N/A"}>
-                      {request.event?.name || "N/A"}
-                    </div>
-                  </td>
-                  <td className="p-2">
-                    <span className="whitespace-nowrap">
-                      {request.requestedAmount.toLocaleString("en-US")} VND
-                    </span>
-                  </td>
+              {requests.map((request) => {
+                const editedAgreedAmount = agreedAmountEdits[request.id];
+                const displayAgreedValue =
+                  editedAgreedAmount ?? request.agreedAmount ?? request.requestedAmount;
+
+                return (
+                  <tr key={request.id} className="border-b">
+                    <td className="p-2 min-w-0 max-w-xs">
+                      <div className="truncate" title={request.event?.name || "N/A"}>
+                        {request.event?.name || "N/A"}
+                      </div>
+                    </td>
                     <td className="p-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <input
-                        type="number"
-                        min={0}
-                        value={agreedAmountEdits[request.id] ?? request.agreedAmount ?? ""}
-                        onChange={e => handleAgreedAmountEdit(request.id, e.target.value)}
-                        className="border p-1 w-24"
-                        placeholder={t("placeholders.agreedAmount")}
-                      />
-                      {agreedAmountEdits[request.id] !== undefined &&
-                        agreedAmountEdits[request.id] !== request.agreedAmount && (
-                          <button
-                            className="px-2 py-1 bg-green-500 text-white rounded whitespace-nowrap"
-                            onClick={() => handleAgreedAmountSave(request.id)}
-                          >
+                      <span className="whitespace-nowrap">
+                        {formatCurrencyVND(request.requestedAmount)}
+                      </span>
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          type="number"
+                          min={0}
+                          value={displayAgreedValue ?? ""}
+                          onChange={e => handleAgreedAmountEdit(request.id, e.target.value)}
+                          className="border p-1 w-24"
+                          placeholder={t("placeholders.agreedAmount")}
+                        />
+                        {displayAgreedValue !== undefined && displayAgreedValue !== null && (
+                          <span className="text-xs text-muted-foreground">
+                            {formatCurrencyVND(Number(displayAgreedValue))}
+                          </span>
+                        )}
+                        {editedAgreedAmount !== undefined &&
+                          editedAgreedAmount !== request.agreedAmount && (
+                            <button
+                              className="px-2 py-1 bg-green-500 text-white rounded whitespace-nowrap"
+                              onClick={() => handleAgreedAmountSave(request.id)}
+                            >
                             {t("buttons.save")}
                           </button>
                         )
                       }
                     </div>
                   </td>
-                  <td className="p-2">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <select
-                        value={statusEdits[request.id] ?? request.status}
-                        onChange={(e) => handleStatusEdit(request.id, e.target.value)}
-                        className="border p-1"
-                      >
-                        {STATUS_OPTIONS.map((status) => (
-                          <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
-                        ))}
-                      </select>
-                      {statusEdits[request.id] && statusEdits[request.id] !== request.status && (
-                        <button
-                          className="px-2 py-1 bg-blue-500 text-white rounded whitespace-nowrap"
-                          onClick={() => handleStatusSave(request.id)}
+                    <td className="p-2 whitespace-nowrap">
+                      {request.requestedAmount > 0 &&
+                      displayAgreedValue !== undefined &&
+                      displayAgreedValue !== null &&
+                      Number.isFinite(Number(displayAgreedValue))
+                        ? `${Math.max(
+                            0,
+                            Math.min(
+                              100,
+                              ((request.requestedAmount - Number(displayAgreedValue)) / request.requestedAmount) *
+                                100
+                            )
+                          ).toFixed(2)}%`
+                        : "—"}
+                    </td>
+                    <td className="p-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <select
+                          value={statusEdits[request.id] ?? request.status}
+                          onChange={(e) => handleStatusEdit(request.id, e.target.value)}
+                          className="border p-1"
                         >
-                          {t("buttons.save")}
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                  <td className="p-2 whitespace-nowrap">
-                    {new Date(request.requestDate).toLocaleDateString("en-US")}
-                  </td>
-                  <td className="p-2 whitespace-nowrap">
-                    {request.completionDate ? new Date(request.completionDate).toLocaleDateString("en-US") : "N/A"}
-                  </td>
+                          {STATUS_OPTIONS.map((status) => (
+                            <option key={status} value={status}>{t(`statusOptions.${status}`)}</option>
+                          ))}
+                        </select>
+                        {statusEdits[request.id] && statusEdits[request.id] !== request.status && (
+                          <button
+                            className="px-2 py-1 bg-blue-500 text-white rounded whitespace-nowrap"
+                            onClick={() => handleStatusSave(request.id)}
+                          >
+                            {t("buttons.save")}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-2 whitespace-nowrap">
+                      {new Date(request.requestDate).toLocaleDateString("en-US")}
+                    </td>
+                    <td className="p-2 whitespace-nowrap">
+                      {request.completionDate ? new Date(request.completionDate).toLocaleDateString("en-US") : "N/A"}
+                    </td>
                     <td className="p-2 space-y-2 min-w-0 max-w-xs">
-                    {/* Show preview if already uploaded */}
-                    {request.proofDocumentUrl && (
-                      <a
-                        href={request.proofDocumentUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block mb-2 text-blue-600 underline truncate"
-                        title={request.proofDocumentUrl}
-                      >
-                        {t("table.viewEvidence")}
-                      </a>
-                    )}
-                    <FileUploader
-                      folder="payout-evidence"
+                      {/* Show preview if already uploaded */}
+                      {request.proofDocumentUrl && (
+                        <a
+                          href={request.proofDocumentUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block mb-2 text-blue-600 underline truncate"
+                          title={request.proofDocumentUrl}
+                        >
+                          {t("table.viewEvidence")}
+                        </a>
+                      )}
+                      <FileUploader
+                        folder="payout-evidence"
                         buttonLabel={t("table.uploadEvidence")}
-                      mode="button"
-                      onUploadSuccess={(response) => handleProofUploadSuccess(request.id, response)}
-                    />
-                  </td>
-                </tr>
-              ))}
+                        mode="button"
+                        onUploadSuccess={(response) => handleProofUploadSuccess(request.id, response)}
+                      />
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           <div className="flex justify-center items-center mt-4 space-x-2">
