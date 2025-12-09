@@ -1,0 +1,22 @@
+Order / Checkout / Refund Requirements
+
+- Seat ownership: areas/rows/seats are unique to a single showing; seat map asset is only for rendering and not part of checkout logic.
+- Return URL: VNPay (and other PSPs) callbacks must work without an authenticated user session; rely on provider signature + txn ref.
+- Data stores: Postgres (primary), MongoDB also available today; Upstash Redis will be added and can be used for queueing/timeouts.
+- Expiry handling: orders carry `expires_at`; payment confirmation must reject if order/holds are expired. A queued job (QStash) should call an internal API after TTL to query the PSP for definitive status, then set order to paid/failed/expired and clear holds.
+- General admission: must support showings that sell by quantity (no seat map); changes to event creation schema should be minimal. Use “virtual” seats in the existing seats table (GA-1..GA-N) and COUNT/locks for availability instead of new inventory tables.
+- Refund policy (business logic):
+  - Personal reason: customer initiated; auto-approve when `event.autoApproveRefund=true`, otherwise organizer decides; admin can override but only within allowed percentages.
+  - Event cancelled: admin confirms cancellation; batch 100% refunds; organizer does not approve per-order.
+  - Event postponed: admin marks postponed; customer may choose refund; admin approves; organizer bypassed.
+  - Fraud/buyer protection: admin investigates; affected orders refunded 100%; organizer bypassed and revenue frozen.
+  - Scope: one order is always for a single showing/event; personal refunds may be partial (subset of tickets); cancelled/postponed/fraud are full-order refunds.
+  - Percentages and timing (personal reason, based on `ticketSaleEnd` vs `requestedAt`):
+    - diffHours ≥ 168: 80% of selected tickets.
+    - 120 ≤ diffHours < 168: 60% of selected tickets.
+    - diffHours < 120: no personal refund.
+  - Postponed: 90% of `orders.totalAmount`.
+  - Cancelled: 100% of `orders.totalAmount`.
+  - Fraud: 100% of `orders.totalAmount`.
+  - Calculations: baseAmount = sum(selected tickets) for personal, otherwise `orders.totalAmount`; refundAmount = round(baseAmount * percentage / 100, 2).
+  - Admin overrides: only to policy-valid percentages (0/60/80/90/100); must log old/new values and actor.

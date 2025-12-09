@@ -153,6 +153,7 @@ export async function findPendingOrganizers(): Promise<
       rejectionSeen: organizers.rejectionSeen,
       rejectedAt: organizers.rejectedAt,
       taxCode: organizers.taxCode,
+      organizerMetadata: organizers.organizerMetadata,
       userId: user.id,
       userName: user.name,
       userEmail: user.email,
@@ -179,6 +180,7 @@ export async function findPendingOrganizers(): Promise<
     rejectionSeen: row.rejectionSeen,
     rejectedAt: row.rejectedAt,
     taxCode: row.taxCode,
+    organizerMetadata: row.organizerMetadata,
     user: {
       id: row.userId,
       name: row.userName,
@@ -294,6 +296,7 @@ export async function findOrganizersWithPagination(
         rejectionSeen: organizers.rejectionSeen,
         rejectedAt: organizers.rejectedAt,
         taxCode: organizers.taxCode,
+        organizerMetadata: organizers.organizerMetadata,
         userId: user.id,
         userName: user.name,
         userEmail: user.email,
@@ -324,6 +327,7 @@ export async function findOrganizersWithPagination(
     rejectionSeen: row.rejectionSeen,
     rejectedAt: row.rejectedAt,
     taxCode: row.taxCode,
+    organizerMetadata: row.organizerMetadata,
     user: {
       id: row.userId,
       name: row.userName,

@@ -2,6 +2,7 @@ import {
   boolean,
   date,
   index,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -10,6 +11,7 @@ import {
 import { genderEnum, roleEnum } from "../enums";
 import { type InferSelectModel } from "drizzle-orm";
 import { relations } from "drizzle-orm";
+import type { OrganizerMetadata } from "../custom-types";
 
 export const user = pgTable(
   "user",
@@ -117,7 +119,10 @@ export const organizers = pgTable("organizers", {
   rejectionReason: text("rejection_reason"),
   rejectionSeen: boolean("rejection_seen").default(false),
   rejectedAt: timestamp("rejected_at"),
-});
+  organizerMetadata: jsonb("organizer_metadata").$type<OrganizerMetadata>(),
+}, (table) => [
+  index("organizer_is_active_idx").on(table.isActive),
+]);
 
 export const organization = pgTable("organization", {
   id: text("id").primaryKey(),
