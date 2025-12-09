@@ -459,19 +459,24 @@
         "completed": "Completed"
       },
       "noRequests": "No payout requests found.",
+      "currentRevenue": "Current Revenue",
       "table": {
         "event": "Event",
         "requestedAmount": "Requested Amount",
         "amount": "Amount",
         "agreedAmount": "Agreed Amount",
         "status": "Status",
+        "deduction": "Deduction (%)",
         "requestDate": "Request Date",
         "completionDate": "Completion Date",
         "actions": "Actions",
+        "notSet": "Not set",
         "viewEvidence": "View Evidence",
         "uploadEvidence": "Upload Evidence"
       },
       "viewDetails": "View Details",
+      "backToList": "Back to list",
+      "searchPlaceholder": "Search payout requests",
       "empty": {
         "title": "No payout requests",
         "description": "You haven't created any payout requests yet.",
@@ -482,9 +487,11 @@
       },
       "buttons": {
         "save": "Save",
+        "saving": "Saving...",
         "previous": "Previous",
         "next": "Next",
-        "newPayout": "New Payout Request"
+        "newPayout": "New Payout Request",
+        "cancelRequest": "Cancel Request"
       },
       "page": {
         "title": "Payout Requests"
@@ -494,7 +501,13 @@
       },
       "confirm": {
         "updateAgreed": "Are you sure you want to update the agreed amount?",
-        "updateStatus": "Are you sure you want to update the status?"
+        "updateStatus": "Are you sure you want to update the status?",
+        "cancelRequest": "Are you sure you want to cancel this payout request?"
+      },
+      "errors": {
+        "invalidAmount": "Please enter a valid amount.",
+        "amountExceedsRevenue": "Agreed amount cannot exceed event revenue.",
+        "cannotEditAgreedStatus": "Agreed amount can only be edited while pending or in discussion."
       },
       "toasts": {
         "fetchFailed": "Failed to fetch payout requests",
@@ -504,7 +517,9 @@
         "statusUpdated": "Status updated successfully",
         "statusUpdateFailed": "Failed to update status",
         "proofUploaded": "Proof uploaded successfully",
-        "proofUploadFailed": "Failed to upload proof"
+        "proofUploadFailed": "Failed to upload proof",
+        "cancelled": "Payout request cancelled successfully",
+        "cancelFailed": "Failed to cancel payout request"
       }
     },
     "NewPayoutRequest": {

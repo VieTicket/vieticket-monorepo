@@ -6,9 +6,10 @@ import {
   getPayoutRequestsService,
   getPayoutRequestById,
   cancelPayoutRequestService,
-  getPayoutRequestsForAdmin
+  getPayoutRequestsForAdmin,
+  getAdminPayoutRequestByIdService
 } from "@vieticket/services/payout-request";
-import { getEventRevenueService } from "@vieticket/services/event-revenue";
+import { getEventRevenueForAdminService, getEventRevenueService } from "@vieticket/services/event-revenue";
 import { getAuthSession } from "@/lib/auth/auth";
 import { headers } from "next/headers";
 import { PayoutStatus } from "@vieticket/db/pg/schema";
@@ -54,7 +55,8 @@ export async function uploadPayoutProofAction(
     session.user,
     { proofDocumentUrl: proofUrl }
   );
-  revalidatePath("/admin/payouts");
+  revalidatePath("/admin/payment-requests");
+  revalidatePath(`/admin/payment-requests/${requestId}`);
   return updatedRequest;
 }
 
@@ -66,6 +68,20 @@ export async function getPayoutRequests(page: number = 1, limit: number = 10) {
 
   const offset = (page - 1) * limit;
   return getPayoutRequestsService(session.user.id, { offset, limit });
+}
+
+export async function getPayoutRequestsWithFilters(
+  page: number = 1,
+  limit: number = 10,
+  filters?: { status?: PayoutStatus; search?: string }
+) {
+  const session = await getAuthSession(await headers());
+  if (!session?.user) {
+    throw new Error("Unauthorized: Please log in");
+  }
+
+  const offset = (page - 1) * limit;
+  return getPayoutRequestsService(session.user.id, { offset, limit, ...filters });
 }
 
 export async function getEventRevenueAction(eventId: string): Promise<APIResponse<{ revenue: number }>> {
@@ -121,7 +137,8 @@ export async function cancelPayoutRequestAction(
 export async function getAdminPayoutRequestsAction(
   page: number = 1,
   limit: number = 10,
-  status?: PayoutStatus
+  status?: PayoutStatus,
+  search?: string
 ): Promise<APIResponse<{
   data: PayoutRequestWithEvent[];
   totalCount: number;
@@ -134,11 +151,30 @@ export async function getAdminPayoutRequestsAction(
 
   try {
     const offset = (page - 1) * limit;
-    const result = await getPayoutRequestsForAdmin(session.user, { offset, limit, status });
+    const result = await getPayoutRequestsForAdmin(session.user, { offset, limit, status, search });
     return { success: true, data: result };
   } catch (error) {
     console.error(error);
     return { success: false, message: "Failed to fetch payout requests" };
+  }
+}
+
+export async function getAdminPayoutRequestByIdAction(id: string): Promise<APIResponse<{
+  payoutRequest: PayoutRequestWithEvent;
+  revenue: number;
+}>> {
+  const session = await getAuthSession(await headers());
+  if (!session?.user) {
+    return { success: false, message: "Unauthorized: Please log in" };
+  }
+
+  try {
+    const payoutRequest = await getAdminPayoutRequestByIdService(session.user, id);
+    const revenue = await getEventRevenueForAdminService(payoutRequest.eventId);
+    return { success: true, data: { payoutRequest, revenue } };
+  } catch (error) {
+    console.error(error);
+    return { success: false, message: "Failed to fetch payout request" };
   }
 }
 
@@ -158,6 +194,7 @@ export async function updatePayoutStatusAction(
     session.user,
     { status, agreedAmount }
   );
-  revalidatePath("/admin/payouts");
+  revalidatePath("/admin/payment-requests");
+  revalidatePath(`/admin/payment-requests/${requestId}`);
   return updatedRequest;
 }

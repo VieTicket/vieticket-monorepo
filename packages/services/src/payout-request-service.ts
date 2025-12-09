@@ -12,7 +12,7 @@ import { PayoutStatus } from "@vieticket/db/pg/schema";
 import { User } from "@vieticket/db/pg/models/users";
 import { PaginationParams } from "@vieticket/repos/types";
 import { PayoutRequestWithEvent } from "@vieticket/db/pg/models/payout-requests";
-import { getEventRevenueService } from "./event-revenue-service";
+import { getEventRevenueForAdminService, getEventRevenueService } from "./event-revenue-service";
 
 export async function createPayoutRequestService(
   eventId: string,
@@ -62,6 +62,21 @@ export async function updatePayoutRequestService(
     throw new Error("Unauthorized: Only admins can update payout requests");
   }
 
+  const existing = await findPayoutRequestById(requestId);
+  if (!existing) {
+    throw new Error("Payout request not found");
+  }
+
+  if (data.agreedAmount !== undefined) {
+    if (!["pending", "in_discussion"].includes(existing.status)) {
+      throw new Error("Agreed amount can only be updated when status is pending or in discussion");
+    }
+    const revenue = await getEventRevenueForAdminService(existing.eventId);
+    if (data.agreedAmount > revenue) {
+      throw new Error("Agreed amount cannot exceed event revenue");
+    }
+  }
+
 const updateData = { ...data } as typeof data & { completionDate?: Date };
   if (data.status === "approved" || data.status === "rejected") {
     updateData.completionDate = new Date();
@@ -72,11 +87,12 @@ const updateData = { ...data } as typeof data & { completionDate?: Date };
 
 export async function getPayoutRequestsService(
   organizerId: string,
-  pagination: PaginationParams = { offset: 0, limit: 10 }
+  pagination: PaginationParams & { status?: PayoutStatus; search?: string } = { offset: 0, limit: 10 }
 ) {
+  const { status, search } = pagination;
   const [requests, totalCount] = await Promise.all([
     findPayoutRequestsByOrganizerId(organizerId, pagination),
-    countPayoutRequestsByOrganizerId(organizerId)
+    countPayoutRequestsByOrganizerId(organizerId, { ...pagination, status, search })
   ]);
 
   return {
@@ -97,6 +113,22 @@ export async function getPayoutRequestById(
   const payoutRequest = await findPayoutRequestById(id);
   if (!payoutRequest || payoutRequest.organizerId != user.id) {
     throw new Error("Payout request not found or not belongs to you.");
+  }
+
+  return payoutRequest;
+}
+
+export async function getAdminPayoutRequestByIdService(
+  user: Pick<User, "id" | "role">,
+  id: string
+): Promise<PayoutRequestWithEvent> {
+  if (user.role !== "admin") {
+    throw new Error("Unauthorized: Only admins can view payout request detail");
+  }
+
+  const payoutRequest = await findPayoutRequestById(id);
+  if (!payoutRequest) {
+    throw new Error("Payout request not found");
   }
 
   return payoutRequest;
@@ -125,7 +157,7 @@ export async function cancelPayoutRequestService(
 
 export async function getPayoutRequestsForAdmin(
   user: Pick<User, "id" | "role">,
-  pagination: PaginationParams & { status?: PayoutStatus } = { offset: 0, limit: 10 }
+  pagination: PaginationParams & { status?: PayoutStatus; search?: string } = { offset: 0, limit: 10 }
 ): Promise<{
   data: PayoutRequestWithEvent[];
   totalCount: number;

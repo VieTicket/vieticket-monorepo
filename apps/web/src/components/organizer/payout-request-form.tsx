@@ -195,7 +195,7 @@ export function PayoutRequestForm({ events }: PayoutRequestFormProps) {
         />
 
         <FormItem>
-          <FormLabel>Deduction (%)</FormLabel>
+          <FormLabel>{t("table.deduction")}</FormLabel>
           <FormControl>
             <Input
               readOnly
