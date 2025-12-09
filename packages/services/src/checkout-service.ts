@@ -239,11 +239,27 @@ export async function createPendingOrder(
     throw error;
   }
 
-  // 4. Get pricing and calculate total
+  // 4. Get pricing and calculate total (includes showing/event context)
   const seatDetails = await getSeatPricing(selectedSeatIds);
   if (seatDetails.length !== selectedSeatIds.length) {
     throw new Error("Could not retrieve pricing for all selected seats.");
   }
+  // Derive showing context from seats if not provided
+  const derivedShowingId =
+    showingId ??
+    seatDetails[0]?.showingId ??
+    null;
+  if (!derivedShowingId) {
+    throw new Error("Could not determine showing for selected seats.");
+  }
+  // Ensure all seats belong to the same showing
+  const mismatchedShowing = seatDetails.find(
+    (s) => s.showingId && s.showingId !== derivedShowingId
+  );
+  if (mismatchedShowing) {
+    throw new Error("All selected seats must belong to the same showing.");
+  }
+
   const totalAmount = seatDetails.reduce((sum, seat) => sum + seat.price, 0);
 
   // 5. Create order and seat holds in a transaction
@@ -253,11 +269,15 @@ export async function createPendingOrder(
   const newOrder = await executeOrderTransaction(
     {
       userId: user.id,
+      eventId: eventData.id,
+      showingId: derivedShowingId,
       totalAmount: totalAmount,
+      expiresAt,
       status: "pending",
     },
     selectedSeatIds.map((seatId) => ({
       eventId: eventData.id,
+      showingId: derivedShowingId,
       userId: user.id,
       seatId,
       expiresAt,

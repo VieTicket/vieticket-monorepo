@@ -6,7 +6,9 @@ export type {
   TicketStatus,
   OrderStatus,
   RefundStatus,
+  RefundReason,
   EventApprovalStatus,
+  EventLifecycleStatus,
   TicketInspectionStatus,
   PayoutStatus,
 } from "./index";

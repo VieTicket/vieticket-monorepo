@@ -1,7 +1,22 @@
-import { boolean, index, jsonb, pgTable, text, timestamp, uuid, } from "drizzle-orm/pg-core";
-import { events, seats } from "./events-schemas";
+import {
+    boolean,
+    index,
+    integer,
+    jsonb,
+    pgTable,
+    text,
+    timestamp,
+    uniqueIndex,
+    uuid,
+} from "drizzle-orm/pg-core";
+import { events, seats, showings } from "./events-schemas";
 import { currency, type PaymentMetadata } from "../custom-types";
-import { orderStatusEnum, refundStatusEnum, ticketStatusEnum } from "../enums";
+import {
+    orderStatusEnum,
+    refundReasonEnum,
+    refundStatusEnum,
+    ticketStatusEnum,
+} from "../enums";
 import { user } from "./users-schemas";
 import { sql } from "drizzle-orm";
 
@@ -23,6 +38,9 @@ export const seatHolds = pgTable("seat_holds", {
     eventId: uuid("event_id")
         .references(() => events.id)
         .notNull(),
+    showingId: uuid("showing_id")
+        .references(() => showings.id)
+        .notNull(),
     userId: text("user_id")
         .references(() => user.id)
         .notNull(),
@@ -39,6 +57,8 @@ export const seatHolds = pgTable("seat_holds", {
 }, (table) => [
     // Index for querying holds by event
     index("idx_seat_holds_event_id").on(table.eventId),
+    // Index for querying holds by showing
+    index("idx_seat_holds_showing_id").on(table.showingId),
     // Index for querying holds by user
     index("idx_seat_holds_user_id").on(table.userId),
     // Index for querying holds by order
@@ -50,7 +70,7 @@ export const seatHolds = pgTable("seat_holds", {
         table.isConfirmed,
         table.expiresAt,
     ),
-],);
+]);
 
 /**
  * Orders table schema for storing order information.
@@ -60,9 +80,12 @@ export const seatHolds = pgTable("seat_holds", {
  * @table orders
  * @property {string} id - Unique identifier for the order (UUID, auto-generated)
  * @property {string} userId - Reference to the user who created the order
+ * @property {string} eventId - Reference to the event
+ * @property {string} showingId - Reference to the showing (capacity context)
  * @property {Date} orderDate - Timestamp when the order was created (defaults to current time)
  * @property {number} totalAmount - Total amount of the order with 2 decimal precision
  * @property {string} status - Current status of the order (defaults to "pending")
+ * @property {Date | null} expiresAt - Cutoff time for payment/holds; late payments are rejected
  * @property {PaymentMetadata} paymentMetadata - JSON metadata for payment information
  * @property {Date} updatedAt - Timestamp of last update (defaults to current time)
  */
@@ -71,9 +94,16 @@ export const orders = pgTable("orders", {
     userId: text("user_id")
         .references(() => user.id)
         .notNull(),
+    eventId: uuid("event_id")
+        .references(() => events.id)
+        .notNull(),
+    showingId: uuid("showing_id")
+        .references(() => showings.id)
+        .notNull(),
     orderDate: timestamp("order_date").defaultNow(),
     totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
     status: orderStatusEnum("status").default("pending"),
+    expiresAt: timestamp("expires_at"),
     paymentMetadata: jsonb("payment_metadata").$type<PaymentMetadata>(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
@@ -82,6 +112,13 @@ export const orders = pgTable("orders", {
 
     // Index for status (if you filter by status)
     index("idx_orders_status").on(table.status),
+
+    // Index for showing and event lookup
+    index("idx_orders_event_id").on(table.eventId),
+    index("idx_orders_showing_id").on(table.showingId),
+
+    // Index for expiration sweeps
+    index("idx_orders_expires_at").on(table.expiresAt),
 
     // Index for orderDate (if you query by date)
     index("idx_orders_order_date").on(table.orderDate),
@@ -105,24 +142,84 @@ export const tickets = pgTable("tickets", {
     orderId: uuid("order_id")
         .references(() => orders.id)
         .notNull(),
+    eventId: uuid("event_id").references(() => events.id, {
+        onDelete: "set null",
+    }),
+    showingId: uuid("showing_id").references(() => showings.id, {
+        onDelete: "set null",
+    }),
     seatId: uuid("seat_id")
         .references(() => seats.id)
         .notNull(),
+    price: currency("price", { precision: 10, scale: 2 }).default(0).notNull(),
     status: ticketStatusEnum("status").default("active"),
     purchasedAt: timestamp("purchased_at").defaultNow(),
-});
+}, (table) => [
+    index("tickets_order_id_idx").on(table.orderId),
+    index("tickets_event_id_idx").on(table.eventId),
+    index("tickets_showing_id_idx").on(table.showingId),
+    // Ensure a seat cannot be sold twice
+    uniqueIndex("tickets_seat_id_unq").on(table.seatId),
+]);
 
 export const refunds = pgTable("refunds", {
     id: uuid("id").defaultRandom().primaryKey(),
     orderId: uuid("order_id")
         .references(() => orders.id)
         .notNull(),
+    reason: refundReasonEnum("reason").default("personal").notNull(),
     requestedAt: timestamp("requested_at").defaultNow(),
     approvedAt: timestamp("approved_at"),
     refundedAt: timestamp("refunded_at"),
     amount: currency("amount", { precision: 10, scale: 2 }).notNull(),
+    baseAmount: currency("base_amount", { precision: 10, scale: 2 })
+        .default(0)
+        .notNull(),
+    percentageApplied: integer("percentage_applied").default(0).notNull(),
     status: refundStatusEnum("status").default("requested"),
-});
+    createdBy: text("created_by").references(() => user.id, {
+        onDelete: "set null",
+    }),
+    approvedBy: text("approved_by").references(() => user.id, {
+        onDelete: "set null",
+    }),
+    rejectionReason: text("rejection_reason"),
+    adminOverride: boolean("admin_override").default(false).notNull(),
+    adminOverrideBy: text("admin_override_by").references(() => user.id, {
+        onDelete: "set null",
+    }),
+    adminOverrideAt: timestamp("admin_override_at"),
+    adminOverrideReason: text("admin_override_reason"),
+    overridePreviousPercentage: integer("override_previous_percentage"),
+    overridePreviousAmount: currency("override_previous_amount", {
+        precision: 10,
+        scale: 2,
+    }),
+}, (table) => [
+    index("refunds_order_id_idx").on(table.orderId),
+    index("refunds_status_idx").on(table.status),
+    index("refunds_reason_idx").on(table.reason),
+    index("refunds_created_by_idx").on(table.createdBy),
+]);
+
+export const refundTickets = pgTable("refund_tickets", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    refundId: uuid("refund_id")
+        .references(() => refunds.id, { onDelete: "cascade" })
+        .notNull(),
+    ticketId: uuid("ticket_id")
+        .references(() => tickets.id, { onDelete: "cascade" })
+        .notNull(),
+    ticketPrice: currency("ticket_price", { precision: 10, scale: 2 }).notNull(),
+    createdAt: timestamp("created_at").defaultNow(),
+}, (table) => [
+    uniqueIndex("refund_tickets_refund_ticket_unq").on(
+        table.refundId,
+        table.ticketId,
+    ),
+    index("refund_tickets_refund_id_idx").on(table.refundId),
+    index("refund_tickets_ticket_id_idx").on(table.ticketId),
+]);
 
 /**
  * @todo Create a booking sessions table to manage temporary seat selection sessions

@@ -28,27 +28,75 @@ export const TICKET_STATUS_VALUES = ["active", "used", "refunded"] as const;
 export type TicketStatus = (typeof TICKET_STATUS_VALUES)[number];
 export const ticketStatusEnum = pgEnum("ticket_status", TICKET_STATUS_VALUES);
 
+// Order status lifecycle:
+// - pending: legacy pending state (pre-payment intent)
+// - pending_payment: awaiting payment confirmation within TTL
+// - paid: payment confirmed
+// - failed: payment failed
+// - expired: timed out without payment
+// - cancelled: manually cancelled before fulfillment
+// - partial_refunded: partially refunded
+// - refunded: fully refunded
 export const ORDER_STATUS_VALUES = [
   "pending",
+  "pending_payment",
   "paid",
   "failed",
+  "expired",
+  "cancelled",
+  "partial_refunded",
   "refunded",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export const orderStatusEnum = pgEnum("order_status", ORDER_STATUS_VALUES);
 
+// Refund status lifecycle:
+// - requested: submitted by customer
+// - pending_organizer: waiting for organizer decision (personal refunds)
+// - pending_admin: waiting for admin decision (postponed/cancelled/fraud or escalations)
+// - approved: approved and ready for payment execution
+// - declined/rejected: denied by organizer/admin
+// - processing: payout/refund is in-flight with PSP
+// - payment_failed: PSP refund attempt failed; requires manual follow-up
+// - refunded/completed: refund paid out successfully
+// - failed: internal failure unrelated to PSP (e.g., validation/system error)
 export const REFUND_STATUS_VALUES = [
   "requested",
+  "pending_organizer",
+  "pending_admin",
   "approved",
   "declined",
+  "rejected",
+  "processing",
+  "payment_failed",
+  "refunded",
   "completed",
+  "failed",
 ] as const;
 export type RefundStatus = (typeof REFUND_STATUS_VALUES)[number];
 export const refundStatusEnum = pgEnum("refund_status", REFUND_STATUS_VALUES);
 
+export const REFUND_REASON_VALUES = [
+  "personal",
+  "event_cancelled",
+  "event_postponed",
+  "fraud",
+] as const;
+export type RefundReason = (typeof REFUND_REASON_VALUES)[number];
+export const refundReasonEnum = pgEnum("refund_reason", REFUND_REASON_VALUES);
+
 export const EVENT_APPROVAL_STATUS_VALUES = ["pending", "approved", "rejected"] as const;
 export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
 export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
+
+export const EVENT_LIFECYCLE_STATUS_VALUES = [
+  "scheduled",
+  "postponed",
+  "cancelled",
+  "completed",
+] as const;
+export type EventLifecycleStatus = (typeof EVENT_LIFECYCLE_STATUS_VALUES)[number];
+export const eventLifecycleStatusEnum = pgEnum("event_lifecycle_status", EVENT_LIFECYCLE_STATUS_VALUES);
 
 export const TICKET_INSPECTION_STATUS_VALUES = [
   "valid",

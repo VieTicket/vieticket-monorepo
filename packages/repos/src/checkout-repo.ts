@@ -71,6 +71,8 @@ export async function getSeatPricing(selectedSeatIds: string[]) {
       rowName: rows.rowName,
       areaId: areas.id,
       areaName: areas.name,
+      eventId: areas.eventId,
+      showingId: areas.showingId,
       price: areas.price,
     })
     .from(seats)
@@ -375,11 +377,39 @@ export async function executePaymentTransaction(
       );
 
     // 4. Create tickets with provided data
-    const ticketsToInsert = ticketData.map((data) => ({
-      orderId,
-      seatId: data.seatId,
-      status: data.status,
-    }));
+    const seatIds = ticketData.map((data) => data.seatId);
+
+    // Fetch denormalized metadata for tickets (event/showing/price) from seat graph
+    const seatsMeta = await tx
+      .select({
+        seatId: seats.id,
+        eventId: areas.eventId,
+        showingId: areas.showingId,
+        price: areas.price,
+      })
+      .from(seats)
+      .innerJoin(rows, eq(seats.rowId, rows.id))
+      .innerJoin(areas, eq(rows.areaId, areas.id))
+      .where(inArray(seats.id, seatIds));
+
+    const seatsMetaById = new Map(
+      seatsMeta.map((meta) => [meta.seatId, meta])
+    );
+
+    const ticketsToInsert = ticketData.map((data) => {
+      const meta = seatsMetaById.get(data.seatId);
+      if (!meta) {
+        throw new Error(`Seat metadata not found for seat ${data.seatId}`);
+      }
+      return {
+        orderId,
+        seatId: data.seatId,
+        status: data.status,
+        eventId: meta.eventId,
+        showingId: meta.showingId,
+        price: meta.price,
+      };
+    });
 
     const createdTickets = await tx
       .insert(tickets)
