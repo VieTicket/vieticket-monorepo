@@ -30,7 +30,7 @@ const scrollbarHideStyle = `
 
 interface EventListProps {
   title: string;
-  events: Omit<Event, "organizationId">[];
+  events: Omit<Event, "organizationId" | "lifecycleStatus" | "autoApproveRefund">[];
   onEventDeleted?: () => void;
 }
 

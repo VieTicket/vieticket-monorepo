@@ -199,6 +199,8 @@ export async function handleAdminUpdateEvent(formData: FormData) {
       : new Date(),
     views: existingEvent.views || 0,
     approvalStatus: existingEvent.approvalStatus,
+    lifecycleStatus: existingEvent.lifecycleStatus ?? "scheduled",
+    autoApproveRefund: existingEvent.autoApproveRefund ?? false,
   };
 
   try {

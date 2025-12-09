@@ -415,6 +415,8 @@ export async function handleCreateEvent(
     views: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
+    lifecycleStatus: "scheduled" as const,
+    autoApproveRefund: false as const,
   };
 
   let result;
@@ -804,6 +806,8 @@ export async function handleUpdateEvent(formData: FormData) {
         : new Date(),
       views: existingEvent.views,
       approvalStatus: existingEvent.approvalStatus,
+      lifecycleStatus: existingEvent.lifecycleStatus ?? "scheduled",
+      autoApproveRefund: existingEvent.autoApproveRefund ?? false,
     };
 
     let result;
