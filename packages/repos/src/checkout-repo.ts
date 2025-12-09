@@ -71,6 +71,8 @@ export async function getSeatPricing(selectedSeatIds: string[]) {
       rowName: rows.rowName,
       areaId: areas.id,
       areaName: areas.name,
+      eventId: areas.eventId,
+      showingId: areas.showingId,
       price: areas.price,
     })
     .from(seats)

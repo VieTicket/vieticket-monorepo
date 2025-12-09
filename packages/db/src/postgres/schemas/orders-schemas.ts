@@ -38,6 +38,9 @@ export const seatHolds = pgTable("seat_holds", {
     eventId: uuid("event_id")
         .references(() => events.id)
         .notNull(),
+    showingId: uuid("showing_id")
+        .references(() => showings.id)
+        .notNull(),
     userId: text("user_id")
         .references(() => user.id)
         .notNull(),
@@ -54,6 +57,8 @@ export const seatHolds = pgTable("seat_holds", {
 }, (table) => [
     // Index for querying holds by event
     index("idx_seat_holds_event_id").on(table.eventId),
+    // Index for querying holds by showing
+    index("idx_seat_holds_showing_id").on(table.showingId),
     // Index for querying holds by user
     index("idx_seat_holds_user_id").on(table.userId),
     // Index for querying holds by order
@@ -75,9 +80,12 @@ export const seatHolds = pgTable("seat_holds", {
  * @table orders
  * @property {string} id - Unique identifier for the order (UUID, auto-generated)
  * @property {string} userId - Reference to the user who created the order
+ * @property {string} eventId - Reference to the event
+ * @property {string} showingId - Reference to the showing (capacity context)
  * @property {Date} orderDate - Timestamp when the order was created (defaults to current time)
  * @property {number} totalAmount - Total amount of the order with 2 decimal precision
  * @property {string} status - Current status of the order (defaults to "pending")
+ * @property {Date | null} expiresAt - Cutoff time for payment/holds; late payments are rejected
  * @property {PaymentMetadata} paymentMetadata - JSON metadata for payment information
  * @property {Date} updatedAt - Timestamp of last update (defaults to current time)
  */
@@ -86,9 +94,16 @@ export const orders = pgTable("orders", {
     userId: text("user_id")
         .references(() => user.id)
         .notNull(),
+    eventId: uuid("event_id")
+        .references(() => events.id)
+        .notNull(),
+    showingId: uuid("showing_id")
+        .references(() => showings.id)
+        .notNull(),
     orderDate: timestamp("order_date").defaultNow(),
     totalAmount: currency("total_amount", { precision: 10, scale: 2 }).notNull(),
     status: orderStatusEnum("status").default("pending"),
+    expiresAt: timestamp("expires_at"),
     paymentMetadata: jsonb("payment_metadata").$type<PaymentMetadata>(),
     updatedAt: timestamp("updated_at").defaultNow().$onUpdate(() => new Date()),
 }, (table) => [
@@ -97,6 +112,13 @@ export const orders = pgTable("orders", {
 
     // Index for status (if you filter by status)
     index("idx_orders_status").on(table.status),
+
+    // Index for showing and event lookup
+    index("idx_orders_event_id").on(table.eventId),
+    index("idx_orders_showing_id").on(table.showingId),
+
+    // Index for expiration sweeps
+    index("idx_orders_expires_at").on(table.expiresAt),
 
     // Index for orderDate (if you query by date)
     index("idx_orders_order_date").on(table.orderDate),
@@ -136,6 +158,8 @@ export const tickets = pgTable("tickets", {
     index("tickets_order_id_idx").on(table.orderId),
     index("tickets_event_id_idx").on(table.eventId),
     index("tickets_showing_id_idx").on(table.showingId),
+    // Ensure a seat cannot be sold twice
+    uniqueIndex("tickets_seat_id_unq").on(table.seatId),
 ]);
 
 export const refunds = pgTable("refunds", {

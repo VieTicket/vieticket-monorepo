@@ -28,15 +28,38 @@ export const TICKET_STATUS_VALUES = ["active", "used", "refunded"] as const;
 export type TicketStatus = (typeof TICKET_STATUS_VALUES)[number];
 export const ticketStatusEnum = pgEnum("ticket_status", TICKET_STATUS_VALUES);
 
+// Order status lifecycle:
+// - pending: legacy pending state (pre-payment intent)
+// - pending_payment: awaiting payment confirmation within TTL
+// - paid: payment confirmed
+// - failed: payment failed
+// - expired: timed out without payment
+// - cancelled: manually cancelled before fulfillment
+// - partial_refunded: partially refunded
+// - refunded: fully refunded
 export const ORDER_STATUS_VALUES = [
   "pending",
+  "pending_payment",
   "paid",
   "failed",
+  "expired",
+  "cancelled",
+  "partial_refunded",
   "refunded",
 ] as const;
 export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 export const orderStatusEnum = pgEnum("order_status", ORDER_STATUS_VALUES);
 
+// Refund status lifecycle:
+// - requested: submitted by customer
+// - pending_organizer: waiting for organizer decision (personal refunds)
+// - pending_admin: waiting for admin decision (postponed/cancelled/fraud or escalations)
+// - approved: approved and ready for payment execution
+// - declined/rejected: denied by organizer/admin
+// - processing: payout/refund is in-flight with PSP
+// - payment_failed: PSP refund attempt failed; requires manual follow-up
+// - refunded/completed: refund paid out successfully
+// - failed: internal failure unrelated to PSP (e.g., validation/system error)
 export const REFUND_STATUS_VALUES = [
   "requested",
   "pending_organizer",
@@ -44,6 +67,8 @@ export const REFUND_STATUS_VALUES = [
   "approved",
   "declined",
   "rejected",
+  "processing",
+  "payment_failed",
   "refunded",
   "completed",
   "failed",
