@@ -317,33 +317,133 @@ export class AIPersonalizationService {
   }
 
   /**
-   * Get text embedding using OpenAI
+   * Get text embedding using OpenAI or fallback to simulated embeddings
    */
   private async getEmbedding(text: string): Promise<number[]> {
-    if (!this.openai) return [];
+    // Try OpenAI first
+    if (this.openai) {
+      try {
+        const response = await this.openai.embeddings.create({
+          model: "text-embedding-3-small",
+          input: text,
+        });
 
-    try {
-      const response = await this.openai.embeddings.create({
-        model: "text-embedding-3-small",
-        input: text,
-      });
-
-      return response.data[0]?.embedding || [];
-    } catch (error) {
-      console.error("Error getting embedding:", error);
-      return [];
+        return response.data[0]?.embedding || [];
+      } catch (error: any) {
+        // If quota exceeded, fall back to simulated embeddings
+        if (error?.status === 429 || error?.message?.includes('quota')) {
+          console.warn("⚠️ OpenAI quota exceeded, using simulated embeddings");
+          return this.generateSimulatedEmbedding(text);
+        }
+        console.error("Error getting embedding:", error);
+        return this.generateSimulatedEmbedding(text);
+      }
     }
+
+    // No OpenAI configured, use simulated
+    return this.generateSimulatedEmbedding(text);
+  }
+
+  /**
+   * Generate simulated embedding based on keyword analysis
+   * This creates a deterministic 384-dimensional vector based on text features
+   * Not as sophisticated as OpenAI but still demonstrates the concept
+   */
+  private generateSimulatedEmbedding(text: string): number[] {
+    const lowerText = text.toLowerCase();
+    const words: string[] = lowerText.match(/\b\w+\b/g) || [];
+    
+    // Create a 384-dimensional vector (smaller than OpenAI's 1536)
+    const dimension = 384;
+    const embedding: number[] = new Array(dimension).fill(0);
+    
+    // Feature 1: Word presence (first 100 dimensions)
+    const commonWords = [
+      'concert', 'music', 'rock', 'pop', 'jazz', 'classical', 'live', 'band',
+      'sports', 'football', 'soccer', 'basketball', 'tennis', 'game', 'match',
+      'theater', 'drama', 'comedy', 'musical', 'play', 'show', 'performance',
+      'festival', 'exhibition', 'art', 'culture', 'food', 'wine', 'beer',
+      'outdoor', 'indoor', 'family', 'kids', 'children', 'adult', 'nightlife',
+      'conference', 'workshop', 'seminar', 'training', 'education', 'business',
+      'charity', 'fundraising', 'community', 'local', 'international', 'national'
+    ];
+    
+    commonWords.forEach((word, i) => {
+      if (i < 100 && words.includes(word)) {
+        embedding[i] = 1.0;
+      }
+    });
+    
+    // Feature 2: Text length indicator (dimensions 100-110)
+    const lengthScore = Math.min(words.length / 100, 1);
+    for (let i = 100; i < 110; i++) {
+      embedding[i] = lengthScore;
+    }
+    
+    // Feature 3: Category hints (dimensions 110-150)
+    const categories = {
+      'music': ['concert', 'music', 'band', 'singer', 'acoustic', 'festival'],
+      'sports': ['sports', 'game', 'match', 'tournament', 'championship'],
+      'arts': ['theater', 'art', 'exhibition', 'museum', 'gallery'],
+      'food': ['food', 'wine', 'beer', 'dining', 'restaurant', 'cuisine'],
+      'business': ['conference', 'seminar', 'workshop', 'business', 'professional']
+    };
+    
+    Object.entries(categories).forEach(([category, keywords], catIdx) => {
+      const score = keywords.filter(kw => lowerText.includes(kw)).length / keywords.length;
+      const startIdx = 110 + (catIdx * 8);
+      for (let i = 0; i < 8; i++) {
+        embedding[startIdx + i] = score;
+      }
+    });
+    
+    // Feature 4: Sentiment/emotion words (dimensions 150-200)
+    const positiveWords = ['exciting', 'amazing', 'great', 'fantastic', 'wonderful', 'best'];
+    const negativeWords = ['boring', 'bad', 'worst', 'terrible', 'awful'];
+    
+    let sentiment = 0;
+    positiveWords.forEach(w => { if (lowerText.includes(w)) sentiment += 0.2; });
+    negativeWords.forEach(w => { if (lowerText.includes(w)) sentiment -= 0.2; });
+    sentiment = Math.max(-1, Math.min(1, sentiment));
+    
+    for (let i = 150; i < 200; i++) {
+      embedding[i] = sentiment;
+    }
+    
+    // Feature 5: Hash-based features for uniqueness (dimensions 200-384)
+    const hash = this.hashText(text);
+    for (let i = 200; i < dimension; i++) {
+      const hashValue = parseInt(hash.slice((i - 200) % hash.length, (i - 200) % hash.length + 2), 16);
+      embedding[i] = (hashValue / 255) - 0.5; // Normalize to [-0.5, 0.5]
+    }
+    
+    // Normalize the vector
+    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
+    return magnitude > 0 ? embedding.map(val => val / magnitude) : embedding;
+  }
+
+  /**
+   * Simple hash function for text to number conversion
+   */
+  private hashText(text: string): string {
+    let hash = 0;
+    for (let i = 0; i < text.length; i++) {
+      const char = text.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    return Math.abs(hash).toString(16).padStart(8, '0');
   }
 
   /**
    * Calculate cosine similarity between two vectors
    */
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length === 0 || b.length === 0) return 0;
+  private cosineSimilarity(vecA: number[], vecB: number[]): number {
+    if (vecA.length === 0 || vecB.length === 0) return 0;
 
-    const dotProduct = a.reduce((sum, a_i, i) => sum + a_i * b[i], 0);
-    const magnitudeA = Math.sqrt(a.reduce((sum, a_i) => sum + a_i * a_i, 0));
-    const magnitudeB = Math.sqrt(b.reduce((sum, b_i) => sum + b_i * b_i, 0));
+    const dotProduct = vecA.reduce((sum: number, a_i: number, i: number) => sum + a_i * vecB[i], 0);
+    const magnitudeA = Math.sqrt(vecA.reduce((sum: number, a_i: number) => sum + a_i * a_i, 0));
+    const magnitudeB = Math.sqrt(vecB.reduce((sum: number, b_i: number) => sum + b_i * b_i, 0));
 
     return magnitudeA && magnitudeB
       ? dotProduct / (magnitudeA * magnitudeB)
