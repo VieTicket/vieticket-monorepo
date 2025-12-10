@@ -99,6 +99,7 @@ export const CommonTools: React.FC = () => {
 
   const handleExit = () => {
     router.push("/organizer/seat-map");
+    useSeatMapStore.getState().clearStoredHistory();
   };
 
   const handleEnterAreaMode = () => {

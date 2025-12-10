@@ -45,244 +45,49 @@ export const UploadDialog: React.FC = () => {
     };
   }, []);
 
-  // ✅ Fixed captureScreenshot function in upload-dialog.tsx
   const captureScreenshot = async (): Promise<Blob | null> => {
-    if (!pixiApp || !stage || shapes.length === 0) {
-      console.warn(
-        "Cannot capture screenshot: Missing PIXI app, stage, or no shapes"
-      );
-      return null;
-    }
+    if (pixiApp && stage) {
+      // Get the bounds of all content
+      const bounds = stage.getBounds();
 
-    try {
-      // ✅ Calculate bounds using PIXI's built-in bounds calculation
-      const getActualBounds = (): PIXI.Rectangle => {
-        let minX = Infinity;
-        let minY = Infinity;
-        let maxX = -Infinity;
-        let maxY = -Infinity;
+      // Define padding (in pixels)
+      const padding = 75;
 
-        // Helper function to get bounds of a graphics object
-        const addGraphicsBounds = (
-          graphics: PIXI.Graphics | PIXI.Container
-        ) => {
-          if (!graphics || !graphics.getBounds) return;
+      // Calculate dimensions with padding
+      const captureWidth = bounds.width + padding * 2;
+      const captureHeight = bounds.height + padding * 2;
 
-          const bounds = graphics.getBounds();
-          if (bounds.width > 0 && bounds.height > 0) {
-            minX = Math.min(minX, bounds.x);
-            minY = Math.min(minY, bounds.y);
-            maxX = Math.max(maxX, bounds.x + bounds.width);
-            maxY = Math.max(maxY, bounds.y + bounds.height);
-          }
-        };
-
-        // ✅ Process all shapes in the main shapes array
-        shapes.forEach((shape) => {
-          if (shape.graphics) {
-            addGraphicsBounds(shape.graphics);
-          }
-        });
-
-        // ✅ Process area mode container and all its nested children
-        if (areaModeContainer && areaModeContainer.children) {
-          const processContainerRecursively = (container: any) => {
-            // Add the container itself
-            if (container.graphics) {
-              addGraphicsBounds(container.graphics);
-            }
-
-            // Process all children recursively
-            if (container.children && Array.isArray(container.children)) {
-              container.children.forEach((child: any) => {
-                // Add child graphics
-                if (child.graphics) {
-                  addGraphicsBounds(child.graphics);
-                }
-
-                // Add seat graphics specifically for seats
-                if (child.seatGraphics) {
-                  addGraphicsBounds(child.seatGraphics);
-                }
-
-                // Add label graphics for seats
-                if (child.labelGraphics) {
-                  addGraphicsBounds(child.labelGraphics);
-                }
-
-                // Recursively process nested children
-                processContainerRecursively(child);
-              });
-            }
-          };
-
-          areaModeContainer.children.forEach((grid: any) => {
-            processContainerRecursively(grid);
-          });
-        }
-
-        // ✅ Fallback to stage bounds if no content bounds found
-        if (minX === Infinity || minY === Infinity) {
-          console.warn("No content bounds found, using stage bounds");
-          const stageBounds = stage!.getBounds();
-          return new PIXI.Rectangle(
-            stageBounds.x,
-            stageBounds.y,
-            stageBounds.width,
-            stageBounds.height
-          );
-        }
-
-        return new PIXI.Rectangle(minX, minY, maxX - minX, maxY - minY);
-      };
-
-      const contentBounds = getActualBounds();
-      console.log("Content bounds:", contentBounds);
-
-      // ✅ Validate bounds
-      if (contentBounds.width <= 0 || contentBounds.height <= 0) {
-        console.warn("Invalid content bounds, using default");
-        return null;
-      }
-
-      // ✅ Add generous padding
-      const padding = 100; // Increased padding for better results
-      const captureX = contentBounds.x - padding;
-      const captureY = contentBounds.y - padding;
-      const captureWidth = contentBounds.width + padding * 2;
-      const captureHeight = contentBounds.height + padding * 2;
-
-      // ✅ Ensure reasonable dimensions
-      const minWidth = 800;
-      const minHeight = 600;
-      const maxWidth = 4000;
-      const maxHeight = 4000;
-
-      const finalWidth = Math.min(Math.max(captureWidth, minWidth), maxWidth);
-      const finalHeight = Math.min(
-        Math.max(captureHeight, minHeight),
-        maxHeight
-      );
-
-      console.log(`Capture dimensions: ${finalWidth}x${finalHeight}`);
-
-      // ✅ Create render texture with appropriate resolution
-      const resolution = Math.min(
-        1.5, // Max resolution
-        Math.min(maxWidth / finalWidth, maxHeight / finalHeight) // Scale down if too large
-      );
-
+      // Create a render texture with padding
       const renderTexture = PIXI.RenderTexture.create({
-        width: finalWidth,
-        height: finalHeight,
-        resolution: resolution,
+        width: captureWidth,
+        height: captureHeight,
       });
 
-      // ✅ Store original stage transform
-      const originalTransform = {
-        x: stage.x,
-        y: stage.y,
-        scaleX: stage.scale.x,
-        scaleY: stage.scale.y,
-      };
+      // Create transform matrix with offset for padding
+      const matrix = new PIXI.Matrix().translate(
+        padding - bounds.x,
+        padding - bounds.y
+      );
 
-      // ✅ Calculate center offset for better composition
-      const offsetX = (finalWidth - captureWidth) / 2;
-      const offsetY = (finalHeight - captureHeight) / 2;
+      // Render the stage to texture with the new API
+      pixiApp.renderer.render({
+        container: stage,
+        target: renderTexture,
+        transform: matrix,
+      });
 
-      try {
-        // ✅ Temporarily adjust stage for capture
-        stage.scale.set(1, 1);
-        stage.x = -captureX + offsetX;
-        stage.y = -captureY + offsetY;
+      // Extract canvas from render texture
+      const canvas = pixiApp.renderer.extract.canvas(renderTexture);
+      const imageData = canvas.toDataURL!("image/png");
 
-        // ✅ Ensure all graphics are visible before rendering
-        stage.alpha = 1;
-        stage.visible = true;
+      // Clean up
+      renderTexture.destroy(true);
 
-        // ✅ Render to texture
-        pixiApp.renderer.render({
-          container: stage,
-          target: renderTexture,
-          clear: true,
-        });
-
-        // ✅ Create canvas with proper background
-        const canvas = document.createElement("canvas");
-        canvas.width = finalWidth;
-        canvas.height = finalHeight;
-        const ctx = canvas.getContext("2d", { alpha: false });
-
-        if (!ctx) {
-          console.error("Failed to get canvas context");
-          throw new Error("Canvas context creation failed");
-        }
-
-        // ✅ Set white background
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, finalWidth, finalHeight);
-
-        // ✅ Extract and draw the rendered content
-        try {
-          // Method 1: Try direct canvas extraction
-          const extractedCanvas =
-            pixiApp.renderer.extract.canvas(renderTexture);
-
-          let canvasSource: CanvasImageSource;
-          if (extractedCanvas instanceof HTMLCanvasElement) {
-            canvasSource = extractedCanvas;
-          } else if (
-            (extractedCanvas as any)?.view instanceof HTMLCanvasElement
-          ) {
-            canvasSource = (extractedCanvas as any).view;
-          } else {
-            canvasSource = extractedCanvas as unknown as HTMLCanvasElement;
-          }
-
-          ctx.drawImage(canvasSource, 0, 0, finalWidth, finalHeight);
-        } catch (extractError) {
-          console.warn(
-            "Direct extraction failed, trying base64 method:",
-            extractError
-          );
-
-          // Method 2: Base64 fallback
-          const base64 = await pixiApp.renderer.extract.base64(renderTexture);
-          const img = new Image();
-
-          await new Promise<void>((resolve, reject) => {
-            img.onload = () => {
-              ctx.drawImage(img, 0, 0, finalWidth, finalHeight);
-              resolve();
-            };
-            img.onerror = reject;
-            img.src = base64;
-          });
-        }
-
-        // ✅ Convert to blob with optimized quality
-        return new Promise<Blob | null>((resolve) => {
-          canvas.toBlob(
-            (blob) => {
-              resolve(blob);
-            },
-            "image/png",
-            0.95 // Higher quality for better results
-          );
-        });
-      } finally {
-        // ✅ Always restore original transform
-        stage.x = originalTransform.x;
-        stage.y = originalTransform.y;
-        stage.scale.set(originalTransform.scaleX, originalTransform.scaleY);
-
-        // ✅ Clean up render texture
-        renderTexture.destroy();
-      }
-    } catch (error) {
-      console.error("Error capturing screenshot:", error);
-      return null;
+      const response = await fetch(imageData);
+      const blob = await response.blob();
+      return blob;
     }
+    return null;
   };
 
   // Serialization helper to remove PIXI objects
