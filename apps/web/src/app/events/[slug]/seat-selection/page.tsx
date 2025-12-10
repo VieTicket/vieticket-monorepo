@@ -2,13 +2,11 @@
 
 import { useTranslations } from "next-intl";
 import { useTicketData, useShowingTicketData } from "@/hooks/use-ticket-data";
-import { use, useState, useMemo } from "react";
+import { use, useState, useMemo, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { formatCurrencyVND } from "@/lib/utils";
-import { createOrderAction } from "@/lib/actions/customer/checkout-actions";
+import { createGAOrderAction } from "@/lib/actions/customer/checkout-actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +17,7 @@ import {
   Clock,
   Calendar,
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -26,6 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
 
 interface SeatSelectionPageProps {
   params: Promise<{ slug: string }>;
@@ -38,11 +38,11 @@ export default function SeatSelectionPage({
   const t = useTranslations("event.seatSelection");
   const { eventId, showingId } = use(searchParams);
   const router = useRouter();
-  const [selectedSeats, setSelectedSeats] = useState<string[]>([]);
   const [isCreatingOrder, setIsCreatingOrder] = useState(false);
   const [selectedShowingId, setSelectedShowingId] = useState<string>(
     showingId || ""
   );
+  const [gaQuantities, setGaQuantities] = useState<Record<string, number>>({});
 
   // Fetch event data with showings
   const {
@@ -65,7 +65,7 @@ export default function SeatSelectionPage({
   const showingData = showingTicketData?.data?.showingData;
   const seatStatus = selectedShowingId
     ? showingTicketData?.data?.seatStatus
-    : eventTicketData?.data?.seatStatus; // Use event seat status when no showing selected
+    : eventTicketData?.data?.seatStatus;
   const isTicketSaleActive = showingTicketData?.data?.isTicketSaleActive;
 
   // Check if showing-specific error indicates tickets not on sale
@@ -83,174 +83,127 @@ export default function SeatSelectionPage({
 
   const seatingStructure = selectedShowingId
     ? showingTicketData?.data?.seatingStructure
-    : eventTicketData?.data?.seatingStructure; // Use event seating structure when no showing selected
+    : eventTicketData?.data?.seatingStructure;
 
   // Get showings from event data
   const showings = eventTicketData?.data?.showings || [];
   const maxTicketsByOrder = eventData?.maxTicketsByOrder;
+  const isGeneralAdmission = !eventData?.seatMapId;
 
-  // Debug logging
-  console.log("Debug - seat selection data:", {
-    eventId,
-    selectedShowingId,
-    eventData: !!eventData,
-    seatingStructure: !!seatingStructure,
-    seatingStructureLength: seatingStructure?.length,
-    seatStatus: !!seatStatus,
-    showingsLength: showings.length,
-    eventTicketData: !!eventTicketData?.data,
-    showingTicketData: !!showingTicketData?.data,
-    isTicketSaleActive,
-    isShowingNotOnSale,
-    showingError: showingError?.message,
-  });
+  const gaAreas = useMemo(
+    () => (isGeneralAdmission ? seatingStructure || [] : []),
+    [isGeneralAdmission, seatingStructure]
+  );
 
-  // Validate seat selection against maxTicketsByOrder
-  const canSelectMoreSeats = useMemo(() => {
-    if (!maxTicketsByOrder) return true;
-    return selectedSeats.length < maxTicketsByOrder;
-  }, [selectedSeats.length, maxTicketsByOrder]);
+  useEffect(() => {
+    if (gaAreas.length === 0) return;
+    setGaQuantities((prev) => {
+      const next = { ...prev };
+      gaAreas.forEach((area: any) => {
+        if (next[area.id] === undefined) {
+          next[area.id] = 0;
+        }
+      });
+      return next;
+    });
+  }, [gaAreas]);
+
+  const areaAvailability = useMemo(() => {
+    const availability: Record<string, number> = {};
+    gaAreas.forEach((area: any) => {
+      let seatCount = 0;
+      area.rows?.forEach((row: any) => {
+        row.seats?.forEach((seat: any) => {
+          const isUnavailable =
+            seatStatus?.paidSeatIds?.includes(seat.id) ||
+            seatStatus?.activeHoldSeatIds?.includes(seat.id);
+          if (!isUnavailable) seatCount += 1;
+        });
+      });
+      availability[area.id] = seatCount;
+    });
+    return availability;
+  }, [gaAreas, seatStatus]);
+
+  const totalSelectedGA = useMemo(
+    () => Object.values(gaQuantities).reduce((sum, qty) => sum + qty, 0),
+    [gaQuantities]
+  );
+
+  const exceedsMaxTickets =
+    maxTicketsByOrder != null && totalSelectedGA > maxTicketsByOrder;
+
+  const resolvedShowingId =
+    selectedShowingId ||
+    showingId ||
+    (showings.length === 1 ? showings[0].id : "");
+  const canShowContent = showings.length === 0 || !!resolvedShowingId;
+  const proceedDisabled =
+    isCreatingOrder ||
+    isTicketSaleActive === false ||
+    !canShowContent ||
+    !!isShowingNotOnSale ||
+    totalSelectedGA === 0 ||
+    exceedsMaxTickets ||
+    gaAreas.some(
+      (area: any) =>
+        (gaQuantities[area.id] || 0) >
+        (areaAvailability[area.id] ?? Number.MAX_SAFE_INTEGER)
+    );
 
   const handleShowingChange = (newShowingId: string) => {
     setSelectedShowingId(newShowingId);
-    setSelectedSeats([]); // Clear selected seats when changing showing
-  };
-
-  const handleSeatClick = (seatId: string, canSelect: boolean) => {
-    if (!canSelect) return;
-
-    // Don't allow seat selection if tickets are not on sale yet
-    if (isTicketSaleActive === false) {
-      toast.error("Ticket sales have not started yet");
-      return;
-    }
-
-    setSelectedSeats((prev) => {
-      if (prev.includes(seatId)) {
-        // Deselecting - always allowed
-        return prev.filter((id) => id !== seatId);
-      } else {
-        // Selecting - check limits
-        if (!canSelectMoreSeats) {
-          toast.error(
-            `You can only select up to ${maxTicketsByOrder} tickets per order`
-          );
-          return prev;
-        }
-        return [...prev, seatId];
-      }
-    });
-  };
-
-  const getSeatStatus = (seatId: string) => {
-    // Only available if we have seat status data (showing selected)
-    if (!seatStatus) return "available";
-
-    if (seatStatus.paidSeatIds.includes(seatId)) return "sold";
-    if (seatStatus.activeHoldSeatIds.includes(seatId)) return "held";
-    return "available";
-  };
-
-  const getSeatStatusColor = (
-    status: string,
-    isSelected: boolean,
-    canSelect: boolean
-  ) => {
-    if (isSelected) return "bg-blue-500 text-white border-blue-600";
-
-    if (!canSelect && status === "available") {
-      return "bg-gray-200 text-gray-400 cursor-not-allowed border-gray-300";
-    }
-
-    switch (status) {
-      case "sold":
-        return "bg-red-500 text-white cursor-not-allowed";
-      case "held":
-        return "bg-yellow-500 text-white cursor-not-allowed";
-      case "available":
-        return "bg-green-100 text-green-800 border-green-300 hover:bg-green-200 cursor-pointer";
-      default:
-        return "bg-gray-100 text-gray-500";
-    }
-  };
-
-  const calculateTotal = () => {
-    if (!seatingStructure) return 0;
-
-    let total = 0;
-    for (const area of seatingStructure) {
-      for (const row of area.rows) {
-        for (const seat of row.seats) {
-          if (selectedSeats.includes(seat.id)) {
-            total += area.price;
-          }
-        }
-      }
-    }
-    return total;
-  };
-
-  const getSelectedSeatDetails = () => {
-    if (!seatingStructure) return [];
-
-    const details: Array<{
-      seatId: string;
-      areaName: string;
-      rowName: string;
-      seatNumber: string;
-      price: number;
-    }> = [];
-
-    for (const area of seatingStructure) {
-      for (const row of area.rows) {
-        for (const seat of row.seats) {
-          if (selectedSeats.includes(seat.id)) {
-            details.push({
-              seatId: seat.id,
-              areaName: area.name,
-              rowName: row.rowName,
-              seatNumber: seat.seatNumber,
-              price: area.price,
-            });
-          }
-        }
-      }
-    }
-    return details;
   };
 
   const handleProceedToPayment = async () => {
-    if (selectedSeats.length === 0) {
-      toast.error("Please select at least one seat");
-      return;
-    }
+    const targetShowingId =
+      selectedShowingId ||
+      showingId ||
+      (showings.length === 1 ? showings[0].id : "");
 
-    if (!selectedShowingId && showings.length > 0) {
-      toast.error(t("selectShowingFirst"));
-      return;
-    }
-
-    setIsCreatingOrder(true);
-    try {
-      const result = await createOrderAction(
-        eventId!,
-        selectedSeats,
-        selectedShowingId || undefined
-      );
-
-      if (result.success && result.data) {
-        toast.success("Order created successfully! Redirecting to payment...");
-        // Redirect to VNPay payment URL
-        window.location.href = result.data.vnpayURL;
-      } else {
-        toast.error(result.error?.message || "Failed to create order");
+    if (isGeneralAdmission) {
+      if (!targetShowingId) {
+        toast.error(t("selectShowingFirst"));
+        return;
       }
-    } catch (error) {
-      console.error("Error creating order:", error);
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsCreatingOrder(false);
+      if (totalSelectedGA === 0) {
+        toast.error("Please select at least one ticket");
+        return;
+      }
+      if (exceedsMaxTickets) {
+        toast.error(
+          `Cannot select more than ${maxTicketsByOrder} tickets per order`
+        );
+        return;
+      }
+
+      setIsCreatingOrder(true);
+      try {
+        const areaPayload = Object.entries(gaQuantities)
+          .filter(([, qty]) => qty > 0)
+          .map(([areaId, quantity]) => ({ areaId, quantity }));
+
+        const result = await createGAOrderAction(
+          eventId!,
+          targetShowingId,
+          areaPayload
+        );
+
+        if (result.success && result.data) {
+          toast.success("Order created successfully! Redirecting to payment...");
+          window.location.href = result.data.vnpayURL;
+        } else {
+          toast.error(result.error?.message || "Failed to create order");
+        }
+      } catch (error) {
+        console.error("Error creating GA order:", error);
+        toast.error("An unexpected error occurred");
+      } finally {
+        setIsCreatingOrder(false);
+      }
+      return;
     }
+
   };
 
   if (isLoading) {
@@ -448,7 +401,6 @@ export default function SeatSelectionPage({
                     size="sm"
                     onClick={() => {
                       setSelectedShowingId("");
-                      setSelectedSeats([]);
                     }}
                     className="text-orange-700 border-orange-300 hover:bg-orange-100"
                   >
@@ -504,95 +456,69 @@ export default function SeatSelectionPage({
         </Card>
       )}
 
-      {/* Show seating chart if we have seating structure and either no showings exist or a valid showing is selected */}
-      {seatingStructure && (showings.length === 0 || selectedShowingId) && (
+      {isGeneralAdmission && canShowContent && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Seat Map */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Users className="w-5 h-5" />
-                  {t("seatMap")}
+                  General Admission
                 </CardTitle>
-
-                {/* Legend */}
-                <div className="flex flex-wrap gap-4 text-sm">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-100 border border-green-300 rounded"></div>
-                    <span>{t("available")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-blue-500 rounded"></div>
-                    <span>{t("selected")}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-yellow-500 rounded"></div>
-                    <span>On Hold</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-red-500 rounded"></div>
-                    <span>{t("occupied")}</span>
-                  </div>
-                </div>
               </CardHeader>
-
-              <CardContent className="space-y-6">
-                {seatingStructure?.map((area: any) => (
-                  <div key={area.id} className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold">{area.name}</h3>
-                      <Badge variant="secondary">
-                        {formatCurrencyVND(area.price)}
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-3">
-                      {area.rows.map((row: any) => (
-                        <div key={row.id} className="flex items-center gap-2">
-                          {/* <div className="w-12 text-sm font-medium text-gray-600 text-right">
-                            {row.rowName}
-                          </div> */}
-                          <div className="flex flex-wrap gap-1">
-                            {row.seats.map((seat: any) => {
-                              const status = getSeatStatus(seat.id);
-                              const isSelected = selectedSeats.includes(
-                                seat.id
-                              );
-                              const isAvailable = status === "available";
-                              const canSelect =
-                                isAvailable &&
-                                (canSelectMoreSeats || isSelected) &&
-                                isTicketSaleActive !== false; // Disable selection if sales not active
-
-                              return (
-                                <button
-                                  key={seat.id}
-                                  onClick={() =>
-                                    handleSeatClick(seat.id, canSelect)
-                                  }
-                                  className={`
-                                  w-8 h-8 text-xs font-medium rounded border transition-colors
-                                  ${getSeatStatusColor(status, isSelected, canSelect)}
-                                `}
-                                  disabled={!canSelect}
-                                  title={`Seat ${seat.seatNumber} - ${status}${!canSelect && isAvailable ? " (limit reached)" : ""}`}
-                                >
-                                  {seat.seatNumber}
-                                </button>
-                              );
-                            })}
-                          </div>
+              <CardContent className="space-y-4">
+                <div className="space-y-4">
+                  {gaAreas.map((area: any) => (
+                    <div
+                      key={area.id}
+                      className="p-3 rounded-lg border border-gray-100"
+                    >
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <p className="font-semibold">{area.name}</p>
+                          <p className="text-sm text-gray-600">
+                            {formatCurrencyVND(area.price)}
+                          </p>
                         </div>
-                      ))}
+                        <div className="text-right text-sm text-gray-600">
+                          Available: {areaAvailability[area.id] ?? 0}
+                        </div>
+                      </div>
+                      <div className="mt-3">
+                        <label
+                          htmlFor={`ga-quantity-${area.id}`}
+                          className="sr-only"
+                        >
+                          Quantity for {area.name}
+                        </label>
+                        <Input
+                          id={`ga-quantity-${area.id}`}
+                          type="number"
+                          min={0}
+                          max={areaAvailability[area.id] ?? undefined}
+                          value={gaQuantities[area.id] || 0}
+                          onChange={(e) => {
+                            const next = Number(e.target.value);
+                            if (Number.isNaN(next)) return;
+                            const maxAvail = areaAvailability[area.id] ?? next;
+                            const clamped = Math.max(
+                              0,
+                              Math.min(next, maxAvail)
+                            );
+                            setGaQuantities((prev) => ({
+                              ...prev,
+                              [area.id]: clamped,
+                            }));
+                          }}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Order Summary */}
           <div className="space-y-6">
             <Card>
               <CardHeader>
@@ -605,52 +531,55 @@ export default function SeatSelectionPage({
               <CardContent className="space-y-4">
                 {maxTicketsByOrder && (
                   <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded">
-                    {t("selected")}: {selectedSeats.length} / {maxTicketsByOrder}{" "}
+                    {t("selected")}: {totalSelectedGA} / {maxTicketsByOrder}{" "}
                     {t("tickets")}
                   </div>
                 )}
-
-                {selectedSeats.length === 0 ? (
-                  <p className="text-gray-500 text-center py-4">
-                    {t("noSeatsSelected")}
-                  </p>
-                ) : (
-                  <>
-                    <div className="space-y-2">
-                      {getSelectedSeatDetails().map((seat) => (
-                        <div
-                          key={seat.seatId}
-                          className="flex justify-between text-sm"
-                        >
-                          <span>
-                            {seat.areaName} - {seat.rowName} - {t("seat")}{" "}
-                            {seat.seatNumber}
-                          </span>
-                          <span>{formatCurrencyVND(seat.price)}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    <Separator />
-
-                    <div className="flex justify-between font-semibold">
-                      <span>{t("totalAmount")} ({selectedSeats.length} seats)</span>
-                      <span>{formatCurrencyVND(calculateTotal())}</span>
-                    </div>
-                  </>
-                )}
+                <div className="space-y-2">
+                  {gaAreas
+                    .filter((area: any) => (gaQuantities[area.id] || 0) > 0)
+                    .map((area: any) => (
+                      <div
+                        key={area.id}
+                        className="flex justify-between text-sm"
+                      >
+                        <span>
+                          {area.name} x {gaQuantities[area.id]}
+                        </span>
+                        <span>
+                          {formatCurrencyVND(
+                            (gaQuantities[area.id] || 0) * area.price
+                          )}
+                        </span>
+                      </div>
+                    ))}
+                  {totalSelectedGA === 0 && (
+                    <p className="text-gray-500 text-center py-2">
+                      No tickets selected
+                    </p>
+                  )}
+                </div>
+                <Separator />
+                <div className="flex justify-between font-semibold">
+                  <span>
+                    {t("totalAmount")} ({totalSelectedGA} tickets)
+                  </span>
+                  <span>
+                    {formatCurrencyVND(
+                      gaAreas.reduce(
+                        (sum: number, area: any) =>
+                          sum + (gaQuantities[area.id] || 0) * area.price,
+                        0
+                      )
+                    )}
+                  </span>
+                </div>
               </CardContent>
             </Card>
 
             <Button
               onClick={handleProceedToPayment}
-              disabled={
-                selectedSeats.length === 0 ||
-                isCreatingOrder ||
-                isTicketSaleActive === false ||
-                (showings.length > 0 &&
-                  (!selectedShowingId || !!isShowingNotOnSale))
-              }
+              disabled={proceedDisabled}
               className="w-full"
               size="lg"
             >
@@ -668,7 +597,7 @@ export default function SeatSelectionPage({
       )}
 
       {/* Message when no showing selected or showing not on sale */}
-      {showings.length > 0 && !selectedShowingId && (
+      {showings.length > 0 && !resolvedShowingId && (
         <Card className="mt-8">
           <CardContent className="p-8 text-center">
             <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
