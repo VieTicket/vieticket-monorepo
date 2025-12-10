@@ -27,22 +27,20 @@ export const tsVector = customType<{ data: string }>({
   },
 });
 
-/**
- * OrganizerMetadata represents metadata related to an event organizer.
- * It contains proof documents that verify the organizer's identity or credentials.
- *
- * @property organizerProofDocument - An array of proof documents provided by the organizer.
- *   Each entry should have the following structure:
- *     - documentUrl: string - The URL where the document can be accessed.
- *     - documentType: string - The type of document (e.g., "business_license", "id_card").
- *
- * Use this type when you need to store or validate organizer-related documents.
- */
+/** Minimal shape for a submitted proof document. */
+type ProofDocument = {
+  documentType: string;
+  documentUrl: string[];
+};
+
+/** Organizer-level metadata such as verification documents. */
 export type OrganizerMetadata = {
-  organizerProofDocument: Array<{
-    documentUrl: string;
-    documentType: string;
-  }>;
+  organizerProofDocuments: ProofDocument[];
+};
+
+/** Event-level metadata such as proof documents. */
+export type EventMetadata = {
+  eventProofDocuments: ProofDocument[];
 };
 
 export type PaymentMetadata = {

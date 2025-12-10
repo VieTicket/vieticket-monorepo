@@ -5,6 +5,7 @@ import {
   createPendingOrder,
   getTicketData,
   getShowingTicketData,
+  createPendingGAOrder,
 } from "@vieticket/services/checkout";
 import { headers as headersFn } from "next/headers";
 
@@ -20,9 +21,11 @@ export async function getShowingTicketsAction(showingId: string) {
 
     return { success: true, data: ticketData };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "An unexpected error occurred.";
-    return { success: false, error: errorMessage };
+    console.error("getShowingTicketsAction error:", error);
+    return {
+      success: false,
+      error: "An unexpected error occurred while loading tickets.",
+    };
   }
 }
 
@@ -38,9 +41,11 @@ export async function getTicketsAction(eventId: string) {
 
     return { success: true, data: ticketData };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : "An unexpected error occurred.";
-    return { success: false, error: errorMessage };
+    console.error("getTicketsAction error:", error);
+    return {
+      success: false,
+      error: "An unexpected error occurred while loading tickets.",
+    };
   }
 }
 
@@ -70,20 +75,54 @@ export async function createOrderAction(
 
     return { success: true, data: orderDetails };
   } catch (error) {
+    console.error("createOrderAction error:", error);
     const isKnownError = error instanceof Error && "code" in error;
     if (isKnownError) {
       return {
         success: false,
         error: {
           code: (error as any).code,
-          message: error.message,
+          message: "Unable to create order with selected seats.",
           unavailableSeats: (error as any).unavailableSeats,
         },
       };
     }
 
-    const errorMessage =
-      error instanceof Error ? error.message : "An unexpected error occurred.";
-    return { success: false, error: { message: errorMessage } };
+    return {
+      success: false,
+      error: { message: "An unexpected error occurred while creating order." },
+    };
+  }
+}
+
+export async function createGAOrderAction(
+  eventId: string,
+  showingId: string,
+  areas: Array<{ areaId: string; quantity: number }>
+) {
+  try {
+    const headers = await headersFn();
+    const session = await getAuthSession(headers);
+    if (!session?.user) {
+      throw new Error("Unauthenticated: Please sign in to create an order.");
+    }
+
+    const ip = headers.get("x-forwarded-for") ?? "127.0.0.1";
+
+    const orderDetails = await createPendingGAOrder(
+      eventId,
+      showingId,
+      areas,
+      session.user,
+      ip
+    );
+
+    return { success: true, data: orderDetails };
+  } catch (error) {
+    console.error("createGAOrderAction error:", error);
+    return {
+      success: false,
+      error: { message: "An unexpected error occurred while creating order." },
+    };
   }
 }

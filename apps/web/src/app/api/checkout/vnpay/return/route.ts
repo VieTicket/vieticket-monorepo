@@ -41,25 +41,13 @@ export async function GET(request: NextRequest) {
             );
         }
 
-        // 3. Get user session
+        // 3. Get user session if present (VNPay return should work without it)
         const session = await getAuthSession(request.headers);
-        if (!session?.user) {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: {
-                        code: "UNAUTHENTICATED",
-                        message: "User not authenticated"
-                    }
-                },
-                { status: 401 }
-            );
-        }
 
         // 4. Process payment result through service layer
         const result = await processPaymentResult(
             vnpayResponseData,
-            session.user as User
+            session?.user as User | undefined
         );
 
         // 5. Return appropriate response based on result

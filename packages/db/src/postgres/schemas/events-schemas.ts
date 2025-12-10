@@ -7,13 +7,14 @@ import {
   boolean,
   index,
   integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { currency } from "../custom-types";
+import { currency, type EventMetadata } from "../custom-types";
 import {
   eventApprovalStatusEnum,
   eventLifecycleStatusEnum,
@@ -47,6 +48,7 @@ export const events = pgTable(
     autoApproveRefund: boolean("auto_approve_refund").default(false).notNull(),
     createdAt: timestamp("created_at").defaultNow(),
     updatedAt: timestamp("updated_at").defaultNow(),
+    eventMetadata: jsonb("event_metadata").$type<EventMetadata>(),
     // TODO: remove after code migration
     seatMapId: text("seat_map_id"),
     organizerId: text("organizer_id")
