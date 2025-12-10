@@ -808,6 +808,7 @@ export async function handleUpdateEvent(formData: FormData) {
       approvalStatus: existingEvent.approvalStatus,
       lifecycleStatus: existingEvent.lifecycleStatus ?? "scheduled",
       autoApproveRefund: existingEvent.autoApproveRefund ?? false,
+      eventMetadata: null,
     };
 
     let result;
