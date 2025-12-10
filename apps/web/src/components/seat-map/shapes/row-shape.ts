@@ -23,6 +23,7 @@ import {
   createPixiTextStyle,
   DEFAULT_LABEL_STYLE,
   updateSeatLabelRotation,
+  createSeat,
 } from "./seat-shape";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 
@@ -190,7 +191,7 @@ export const getCorrectSeatSpacing = (grid: GridShape): number => {
 };
 
 /**
- * Update row settings
+ * Update row settings (for UI interactions - applies changes to seats)
  */
 export const updateRowSettings = (
   gridId: string,
@@ -228,6 +229,147 @@ export const updateMultipleRowSettings = (
 };
 
 /**
+ * Add seats to an existing row
+ */
+export const addSeatsToRow = (
+  gridId: string,
+  rowId: string,
+  count: number
+): void => {
+  if (!areaModeContainer) return;
+
+  const grid = areaModeContainer.children.find(
+    (g) => g.id === gridId
+  ) as GridShape;
+  if (!grid) return;
+
+  const row = grid.children.find((r) => r.id === rowId) as RowShape;
+  if (!row) return;
+
+  const startIndex = row.children.length;
+  const seatSpacing = row.seatSpacing || grid.seatSettings.seatSpacing;
+
+  // ✅ Calculate the Y position pattern from existing seats
+  let calculateSeatY = (index: number): number => {
+    if (row.children.length === 0) {
+      // No existing seats, start at Y = 0
+      return 0;
+    } else if (row.children.length === 1) {
+      // Only one seat exists, maintain same Y
+      return row.children[0].y;
+    } else {
+      // ✅ Multiple seats exist - extrapolate the bend pattern
+      const sortedSeats = [...row.children].sort((a, b) => a.x - b.x);
+      const lastSeat = sortedSeats[sortedSeats.length - 1];
+      const secondLastSeat = sortedSeats[sortedSeats.length - 2];
+
+      // Calculate the Y difference between the last two seats
+      const yDelta = lastSeat.y - secondLastSeat.y;
+
+      // For the first new seat, continue the pattern
+      if (index === startIndex) {
+        return lastSeat.y + yDelta;
+      } else {
+        // For subsequent new seats, continue extrapolating
+        const offsetFromStart = index - startIndex;
+        return lastSeat.y + yDelta * (offsetFromStart + 1);
+      }
+    }
+  };
+
+  for (let i = 0; i < count; i++) {
+    const seatIndex = startIndex + i;
+    const seatX = seatIndex * seatSpacing;
+    const seatY = calculateSeatY(seatIndex); // ✅ Calculate Y based on bend pattern
+
+    const seat = createSeat(
+      seatX,
+      seatY, // ✅ Use the calculated Y position
+      rowId,
+      gridId,
+      grid.children.indexOf(row),
+      seatIndex,
+      grid.seatSettings,
+      true,
+      generateShapeId()
+    );
+    seat.name = `${seatIndex + 1}`;
+    row.children.push(seat);
+    row.graphics.addChild(seat.graphics);
+  }
+
+  updateRowLabelPosition(row);
+};
+
+/**
+ * Reverse seat labels in a row (e.g., 1,2,3 -> 3,2,1)
+ */
+export const reverseRowSeatLabels = (gridId: string, rowId: string): void => {
+  if (!areaModeContainer) return;
+
+  const row = getRowById(gridId, rowId);
+  if (!row) return;
+
+  const sortedSeats = [...row.children].sort((a, b) => a.x - b.x);
+  const labels = sortedSeats.map((seat) => seat.name);
+  labels.reverse();
+
+  sortedSeats.forEach((seat, index) => {
+    seat.name = labels[index];
+    updateSeatGraphics(seat);
+  });
+};
+
+/**
+ * Renumber seats with custom start number and step
+ */
+export const renumberSeatsInRow = (
+  gridId: string,
+  rowId: string,
+  startNumber: number,
+  step: number
+): void => {
+  if (!areaModeContainer) return;
+
+  const row = getRowById(gridId, rowId);
+  if (!row) return;
+
+  const sortedSeats = [...row.children].sort((a, b) => a.x - b.x);
+
+  sortedSeats.forEach((seat, index) => {
+    seat.name = `${startNumber + index * step}`;
+    updateSeatGraphics(seat);
+  });
+};
+
+/**
+ * Rename row starting from a specific letter
+ */
+export const renameRowFromLetter = (
+  gridId: string,
+  rowId: string,
+  startLetter: string
+): void => {
+  if (!areaModeContainer) return;
+
+  const grid = areaModeContainer.children.find(
+    (g) => g.id === gridId
+  ) as GridShape;
+  if (!grid) return;
+
+  const row = grid.children.find((r) => r.id === rowId) as RowShape;
+  if (!row) return;
+
+  const startCharCode = startLetter.toUpperCase().charCodeAt(0);
+  row.rowName = startLetter.toUpperCase();
+  row.name = startLetter.toUpperCase();
+
+  if (row.labelGraphics) {
+    row.labelGraphics.text = row.rowName;
+  }
+};
+
+/**
  * ✅ Create row label graphics
  */
 export const createRowLabel = (
@@ -250,6 +392,74 @@ export const createRowLabel = (
 
   labelText.anchor.set(0.5, 0.5);
   return labelText;
+};
+
+/**
+ * ✅ Restore row settings (for undo/redo - only updates row properties, not seats)
+ */
+export const restoreRowSettings = (
+  gridId: string,
+  rowId: string,
+  settingsUpdate: Partial<RowShape>
+): void => {
+  if (!areaModeContainer) return;
+
+  const grid = areaModeContainer.children.find(
+    (g) => g.id === gridId
+  ) as GridShape;
+  if (!grid) return;
+
+  const row = grid.children.find((r) => r.id === rowId) as RowShape;
+  if (!row) return;
+
+  // Only update the row properties, don't propagate to graphics/seats
+  Object.assign(row, settingsUpdate);
+
+  // Update only label-related graphics without recalculating seat positions
+  if (settingsUpdate.rowName !== undefined && row.labelGraphics) {
+    row.labelGraphics.text = settingsUpdate.rowName;
+  }
+
+  if (settingsUpdate.labelPlacement !== undefined) {
+    if (settingsUpdate.labelPlacement === "none") {
+      if (row.labelGraphics) {
+        row.labelGraphics.visible = false;
+      }
+    } else {
+      if (!row.labelGraphics) {
+        row.labelGraphics = createRowLabel(row);
+        row.graphics.addChild(row.labelGraphics);
+      }
+      row.labelGraphics.text = row.rowName;
+      updateRowLabelPosition(row);
+      updateRowLabelRotation(row);
+    }
+  }
+};
+
+export const restoreRowLabelPlacement = (
+  row: RowShape,
+  placement: "left" | "middle" | "right" | "none"
+): void => {
+  row.labelPlacement = placement;
+
+  if (placement === "none") {
+    if (row.labelGraphics) {
+      row.labelGraphics.visible = false;
+    }
+    return;
+  }
+
+  // Create label if it doesn't exist
+  if (!row.labelGraphics) {
+    row.labelGraphics = createRowLabel(row);
+    row.graphics.addChild(row.labelGraphics);
+  }
+
+  // Update label text and position
+  row.labelGraphics.text = row.rowName;
+  updateRowLabelPosition(row);
+  updateRowLabelRotation(row);
 };
 
 export const updateRowLabelPosition = (row: RowShape): void => {
