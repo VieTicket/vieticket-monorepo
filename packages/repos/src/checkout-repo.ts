@@ -40,14 +40,19 @@ export async function getSeatStatus(eventId: string) {
 
   const paidSeatIds = paid.map((s) => s.seatId);
 
-  // Get seats that are currently held but not yet confirmed
+  // Get seats that are currently held:
+  // - pending holds (not confirmed yet) regardless of expiration
+  // - or confirmed + paid holds (treat as held)
   const active = await db
     .select({ seatId: seatHolds.seatId })
     .from(seatHolds)
     .where(
       and(
         eq(seatHolds.eventId, eventId),
-        gt(seatHolds.expiresAt, new Date()),
+        or(
+          eq(seatHolds.isFinalized, false),
+          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+        ),
         // Exclude seats that are already confirmed in a paid order
         paidSeatIds.length > 0
           ? notInArray(seatHolds.seatId, paidSeatIds)
@@ -115,7 +120,10 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     .where(
       and(
         inArray(seatHolds.seatId, selectedSeatIds),
-        gt(seatHolds.expiresAt, new Date())
+        or(
+          eq(seatHolds.isFinalized, false),
+          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+        )
       )
     );
 
@@ -179,7 +187,11 @@ export async function createOrderWithSeatLocks(
           inArray(seats.id, seatIds),
           or(
             sql`EXISTS (SELECT 1 FROM ${tickets} WHERE ${tickets.seatId} = ${seats.id} AND ${tickets.status} IN ('active','used'))`,
-            sql`EXISTS (SELECT 1 FROM ${seatHolds} WHERE ${seatHolds.seatId} = ${seats.id} AND ${seatHolds.expiresAt} > now() AND ${seatHolds.isConfirmed} = false)`
+            sql`EXISTS (
+              SELECT 1 FROM ${seatHolds}
+              WHERE ${seatHolds.seatId} = ${seats.id}
+                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
+            )`
           )
         )
       );
@@ -200,7 +212,7 @@ export async function createOrderWithSeatLocks(
       orderId: newOrder.id,
       seatId,
       expiresAt: orderData.expiresAt!,
-      isConfirmed: false,
+      isFinalized: false,
       isPaid: false,
     }));
 
@@ -274,8 +286,7 @@ export async function createGAOrderWithSeatLocks({
             sql`NOT EXISTS (
               SELECT 1 FROM ${seatHolds}
               WHERE ${seatHolds.seatId} = ${seats.id}
-                AND ${seatHolds.expiresAt} > now()
-                AND ${seatHolds.isConfirmed} = false
+                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
             )`
           )
         )
@@ -318,7 +329,7 @@ export async function createGAOrderWithSeatLocks({
       orderId: newOrder.id,
       seatId: seat.seatId,
       expiresAt,
-      isConfirmed: false,
+      isFinalized: false,
       isPaid: false,
     }));
 
@@ -420,6 +431,45 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
 }
 
 /**
+ * Marks an order as failed and flags its holds as released (confirmed + unpaid).
+ * Keeps records for audit while ensuring they no longer block availability.
+ */
+export async function failOrderAndReleaseSeatHolds(
+  orderId: string,
+  userId: string
+) {
+  return db.transaction(async (tx) => {
+    const [orderRow] = await tx
+      .update(orders)
+      .set({
+        status: "failed",
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    const releasedSeats = await tx
+      .update(seatHolds)
+      .set({
+        isFinalized: true,
+        isPaid: false,
+      })
+      .where(
+        and(
+          eq(seatHolds.orderId, orderId),
+          eq(seatHolds.userId, userId)
+        )
+      )
+      .returning({ seatId: seatHolds.seatId });
+
+    return {
+      order: orderRow,
+      releasedSeatIds: releasedSeats.map((seat) => seat.seatId),
+    };
+  });
+}
+
+/**
  * Confirms seat holds for a specific user and order
  * @param userId - The ID of the user
  * @param orderId - The ID of the order
@@ -438,7 +488,7 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
       .select()
       .from(seatHolds)
       .where(
-        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isFinalized, false))
       );
 
     if (seatHoldsList.length === 0) {
@@ -448,11 +498,11 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
     const updatedHolds = await db
       .update(seatHolds)
       .set({
-        isConfirmed: true,
+        isFinalized: true,
         isPaid: true,
       })
       .where(
-        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isFinalized, false))
       )
       .returning();
 
@@ -464,7 +514,7 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
   const updatedHolds = await db
     .update(seatHolds)
     .set({
-      isConfirmed: true,
+      isFinalized: true,
       isPaid: true,
     })
     .where(
@@ -524,7 +574,7 @@ export async function getUserUnconfirmedSeatHolds(
       and(
         eq(seatHolds.userId, userId),
         eq(seatHolds.orderId, orderId),
-        eq(seatHolds.isConfirmed, false)
+        eq(seatHolds.isFinalized, false)
       )
     );
 }
@@ -591,7 +641,7 @@ export async function executePaymentTransaction(
         and(
           eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
+          eq(seatHolds.isFinalized, false)
         )
       )
       .for("update");
@@ -615,14 +665,14 @@ export async function executePaymentTransaction(
     await tx
       .update(seatHolds)
       .set({
-        isConfirmed: true,
+        isFinalized: true,
         isPaid: true,
       })
       .where(
         and(
           eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
+          eq(seatHolds.isFinalized, false)
         )
       );
 

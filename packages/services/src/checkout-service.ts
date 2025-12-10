@@ -6,8 +6,8 @@ import {
   getSeatPricing,
   getSeatStatus,
   updateOrderVNPayData,
-  updateOrderStatus,
   executePaymentTransaction,
+  failOrderAndReleaseSeatHolds,
   getOrderByVNPayTxnRef,
   getUserUnconfirmedSeatHolds,
   createOrderWithSeatLocks,
@@ -485,7 +485,7 @@ export async function processPaymentResult(
     // 4. Check if payment was successful (use verified values from vnpayReturn)
     if (!vnpayReturn.isSuccess) {
       // Payment failed - update order status
-      await updateOrderStatus(order.id, "failed");
+      await failOrderAndReleaseSeatHolds(order.id, order.userId);
 
       return {
         success: false,
@@ -500,7 +500,7 @@ export async function processPaymentResult(
 
     // 5. Verify payment amount matches order (use verified amount from vnpayReturn)
     if (Math.abs(vnpayReturn.vnp_Amount - order.totalAmount) > 0.01) {
-      await updateOrderStatus(order.id, "failed");
+      await failOrderAndReleaseSeatHolds(order.id, order.userId);
 
       return {
         success: false,

@@ -23,15 +23,14 @@ import { sql } from "drizzle-orm";
 /**
  * Table for managing temporary seat reservations during the booking process.
  * 
- * Currently used for pending orders when `isConfirmed` is false. In future iterations,
- * this will support interactive seat selection with real-time updates.
+ * Currently used for pending orders when `isFinalized` is false.
+ * - isFinalized: true when the payment status is known (success/failed)
+ * - isPaid: true when payment status is success
  * 
- * @remarks
- * - Seats are held temporarily with an expiration time to prevent indefinite locks
- * - Confirmed holds represent completed bookings
- * - Unconfirmed holds are used for checkout flows
- * - ~~Future versions will enable real-time seat selection updates~~
- * - Real-time database should be better for this case (real-time seat selection)
+ * A seat is held if isFinalized == false 
+ *  OR (isFinalized == true AND isPaid == true)
+ * 
+ * Do NOT release seat after expiration.
  */
 export const seatHolds = pgTable("seat_holds", {
     id: uuid("id").defaultRandom().primaryKey(),
@@ -50,7 +49,7 @@ export const seatHolds = pgTable("seat_holds", {
     seatId: uuid("seat_id")
         .references(() => seats.id)
         .notNull(),
-    isConfirmed: boolean().default(false).notNull(),
+    isFinalized: boolean("isConfirmed").default(false).notNull(),
     isPaid: boolean().default(false).notNull(),
     expiresAt: timestamp("hold_expires").notNull(),
     createdAt: timestamp("created_at").defaultNow(),
@@ -67,7 +66,7 @@ export const seatHolds = pgTable("seat_holds", {
     index("idx_seat_holds_expires_at").on(table.expiresAt),
     // Composite index to quickly find unconfirmed, expired holds for cleanup tasks.
     index("idx_seat_holds_unconfirmed_expired").on(
-        table.isConfirmed,
+        table.isFinalized,
         table.expiresAt,
     ),
 ]);
