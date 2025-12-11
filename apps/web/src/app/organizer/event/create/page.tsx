@@ -623,6 +623,20 @@ function CreateEventPageInner() {
     toast.success(t("toasts.bannerUploaded"));
   };
 
+  const handleReadyCreateEvent = () => {
+    // First validate the form
+    if (!validateStep1()) {
+      toast.error(t("pleaseFixErrors"));
+      return;
+    }
+
+    // Directly submit the form without evidence
+    const submitForm = document.getElementById("event-form") as HTMLFormElement;
+    if (submitForm) {
+      submitForm.requestSubmit();
+    }
+  };
+
   // ✅ Corrected seat map selection handler
   const handleSeatMapSelection = async (seatMap: SeatMapData) => {
     try {

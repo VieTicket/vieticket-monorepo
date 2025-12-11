@@ -35,6 +35,8 @@ import {
 import { deleteEventAction } from "@/lib/actions/organizer/delete-event-action";
 import { linkEventToOrganizationAction } from "@/lib/actions/organizer/link-event-organization-action";
 import { authClient } from "@/lib/auth/auth-client";
+import { EvidenceUploadDialog, type EvidenceUploadData } from "@/components/event/evidence-upload-dialog";
+import { handleUpdateEvent } from "@/lib/actions/organizer/events-action";
 
 import { EventApprovalStatus } from "@vieticket/db/pg/schema";
 
@@ -47,14 +49,19 @@ interface EventCardProps {
     approvalStatus: EventApprovalStatus;
     bannerUrl?: string;
     organizationId?: string | null;
+    location?: string | null;
   };
   onEventDeleted?: () => void;
 }
 
 const statusConfig = {
+  NotYet: {
+    label: "Draft",
+    className: "bg-blue-100 text-blue-700",
+  },
   pending: {
     label: "Pending",
-    className: "bg-gray-300 text-gray-700",
+    className: "bg-yellow-200 text-yellow-800",
   },
   approved: {
     label: "Approved",
@@ -74,9 +81,12 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
   const [selectedOrganization, setSelectedOrganization] = useState<string>(
     event.organizationId || "personal"
   );
+  const [showEvidenceUpload, setShowEvidenceUpload] = useState(false);
+  const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
   
-  // Get user's organizations
+  // Get user's organizations and user info
   const { data: organizations, isPending: loadingOrgs } = authClient.useListOrganizations();
+  const { data: session } = authClient.useSession();
 
   useEffect(() => {
     setSelectedOrganization(event.organizationId || "personal");
@@ -84,13 +94,16 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
 
   const statusKey = (() => {
     switch (event.approvalStatus) {
+      case "NotYet":
+        return "NotYet";
       case "approved":
         return "approved";
       case "rejected":
         return "rejected";
       case "pending":
-      default:
         return "pending";
+      default:
+        return "NotYet"; // Default to NotYet for unknown statuses
     }
   })();
 
@@ -161,6 +174,34 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
     }
   };
 
+  const handleEvidenceUploadComplete = async (evidenceData: EvidenceUploadData) => {
+    setIsSubmittingEvidence(true);
+    try {
+      // Create form data with just the evidence information
+      const form = new FormData();
+      form.set("eventId", event.id);
+      form.set("evidenceData", JSON.stringify(evidenceData));
+
+      const result = await handleUpdateEvent(form);
+      
+      if (result.success) {
+        toast.success("Evidence submitted successfully! Your event is now under review.");
+        setShowEvidenceUpload(false);
+        if (onEventDeleted) {
+          onEventDeleted(); // Refresh the event list to show updated status
+        }
+        router.refresh();
+      } else {
+        toast.error(result.error || "Failed to submit evidence");
+      }
+    } catch (error) {
+      toast.error("Failed to submit evidence");
+      console.error("Evidence submission error:", error);
+    } finally {
+      setIsSubmittingEvidence(false);
+    }
+  };
+
   // Show delete button only for non-approved events
   const canDelete = event.approvalStatus !== "approved";
 
@@ -204,15 +245,18 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
           </div>
           {/* Actions */}
           <div className="flex gap-1 sm:gap-2 w-full">
-            <Button
-              onClick={() =>
-                router.push(`/organizer/general/create?id=${event.id}`)
-              }
-              variant="outline"
-              className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate"
-            >
-              Statistics
-            </Button>
+            {/* Statistics Button - hide for NotYet status */}
+            {event.approvalStatus !== "NotYet" && (
+              <Button
+                onClick={() =>
+                  router.push(`/organizer/general/create?id=${event.id}`)
+                }
+                variant="outline"
+                className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate"
+              >
+                Statistics
+              </Button>
+            )}
             {event.approvalStatus !== "approved" && (
               <Button
                 onClick={() =>
@@ -221,6 +265,17 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
                 className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate"
               >
                 Edit
+              </Button>
+            )}
+            
+            {/* Submit Evidence Button - only show for NotYet status */}
+            {event.approvalStatus === "NotYet" && (
+              <Button
+                onClick={() => setShowEvidenceUpload(true)}
+                className="flex-1 text-[10px] sm:text-xs py-1.5 sm:py-2 h-7 sm:h-8 min-h-[28px] sm:min-h-[32px] px-1 sm:px-2 truncate bg-green-600 hover:bg-green-700"
+                disabled={isSubmittingEvidence}
+              >
+                {isSubmittingEvidence ? "Submitting..." : "Submit"}
               </Button>
             )}
             
@@ -329,6 +384,21 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
           </div>
         </div>
       </div>
+      
+      {/* Evidence Upload Dialog */}
+      <EvidenceUploadDialog
+        open={showEvidenceUpload}
+        onOpenChange={setShowEvidenceUpload}
+        onComplete={handleEvidenceUploadComplete}
+        eventName={event.name}
+        eventDate={`${formatDate(startDate)} - ${formatDate(endDate)}`}
+        eventLocation={event.location || "Chưa xác định"}
+        organizerInfo={{
+          name: session?.user?.name || "Nhà tổ chức",
+          email: session?.user?.email || "",
+          phone: "Chưa cập nhật",
+        }}
+      />
     </div>
   );
 }

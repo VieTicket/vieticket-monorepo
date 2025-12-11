@@ -45,7 +45,7 @@ export interface PendingEvent {
   organizer_name: string;
   organizer_email: string;
   created_at: string;
-  approvalStatus: "pending" | "approved" | "rejected"; // Changed from is_approved
+  approvalStatus: "NotYet" | "pending" | "approved" | "rejected"; // Changed from is_approved
   image_url?: string;
   category: string;
   showings?: EventShowing[];

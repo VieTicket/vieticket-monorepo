@@ -46,8 +46,8 @@ export const baseEventSchema = z.object({
     z.string().nullable().default(null)
   ),
   approvalStatus: z
-    .enum(["pending", "approved", "rejected"])
-    .default("pending"),
+    .enum(["NotYet", "pending", "approved", "rejected"])
+    .default("NotYet"),
   views: z.number().int().nonnegative().default(0),
   createdAt: z.coerce.date().default(new Date()),
   updatedAt: z.coerce.date().default(new Date()),
