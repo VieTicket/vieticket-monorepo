@@ -8,13 +8,15 @@ import { authClient } from "@/lib/auth/auth-client";
 import { LayoutProvider } from "@/providers/LayoutProvider";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { LocaleProvider } from "@/providers/LocaleProvider";
 import { ActiveOrganizationProvider } from "@/providers/active-organization-provider";
 import { GlobalAIProvider } from "@/components/ai/global-ai-provider";
 
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const lastSessionRef = useRef<string | null>(null);
+  
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -37,8 +39,15 @@ export function Providers({ children }: { children: ReactNode }) {
               authClient={authClient}
               navigate={router.push}
               replace={router.replace}
-              onSessionChange={() => {
-                router.refresh();
+              onSessionChange={async () => {
+
+                const session = await authClient.getSession();
+                const currentSessionId = session?.data?.user?.id || null;
+                
+                if (lastSessionRef.current !== currentSessionId) {
+                  lastSessionRef.current = currentSessionId;
+                  router.refresh();
+                }
               }}
               Link={Link}
               social={{
