@@ -16,7 +16,7 @@ export const getRevenueOverTime = async (organizerId: string) => {
   const result = await db
     .select({
       date: sql<string>`DATE_TRUNC('day', ${orders.orderDate})`,
-      total: sql<number>`SUM(${orders.totalAmount})`,
+      total: sql<number>`SUM(${areas.price})`, // Sum ticket prices, not order total
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
@@ -27,7 +27,7 @@ export const getRevenueOverTime = async (organizerId: string) => {
     .where(and(eq(orders.status, "paid"), eq(events.organizerId, organizerId)))
     .groupBy(sql`DATE_TRUNC('day', ${orders.orderDate})`)
     .orderBy(sql`DATE_TRUNC('day', ${orders.orderDate})`);
-  console.log("getRevenueOverTime", result); // <-- Thêm dòng này
+  console.log("getRevenueOverTime", result);
   // Convert strings to numbers if needed
   return result.map((row) => ({
     ...row,
@@ -39,7 +39,7 @@ export const getRevenueDistributionByEvent = async (organizerId: string) => {
   const result = await db
     .select({
       eventName: events.name,
-      total: sql<number>`SUM(${orders.totalAmount})`,
+      total: sql<number>`SUM(${areas.price})`, // Sum ticket prices per event
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
@@ -49,8 +49,8 @@ export const getRevenueDistributionByEvent = async (organizerId: string) => {
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(and(eq(orders.status, "paid"), eq(events.organizerId, organizerId)))
     .groupBy(events.id, events.name)
-    .orderBy(sql`SUM(${orders.totalAmount}) DESC`);
-  console.log("getRevenueDistributionByEvent Result:", result); // <-- Thêm dòng này
+    .orderBy(sql`SUM(${areas.price}) DESC`);
+  console.log("getRevenueDistributionByEvent Result:", result);
   return result.map((row) => ({
     ...row,
     total:
@@ -64,8 +64,8 @@ export const getTopRevenueEvents = async (organizerId: string, limit = 5) => {
     .select({
       eventId: events.id,
       eventName: events.name,
-      totalRevenue: sql<number>`SUM(${orders.totalAmount})`,
-      ticketsSold: sql<number>`COUNT(${tickets.id})`, // Add this line
+      totalRevenue: sql<number>`SUM(${areas.price})`, // Sum ticket prices
+      ticketsSold: sql<number>`COUNT(${tickets.id})`,
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
@@ -75,7 +75,7 @@ export const getTopRevenueEvents = async (organizerId: string, limit = 5) => {
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(and(eq(orders.status, "paid"), eq(events.organizerId, organizerId)))
     .groupBy(events.id, events.name)
-    .orderBy(sql`SUM(${orders.totalAmount}) DESC`)
+    .orderBy(sql`SUM(${areas.price}) DESC`)
     .limit(limit);
   console.log("getTopRevenueEvents Result:", result);
   return result.map((row) => ({
@@ -84,14 +84,17 @@ export const getTopRevenueEvents = async (organizerId: string, limit = 5) => {
       typeof row.totalRevenue === "string"
         ? Number.parseFloat(row.totalRevenue)
         : row.totalRevenue,
+    ticketsSold:
+      typeof row.ticketsSold === "string"
+        ? Number.parseFloat(row.ticketsSold)
+        : row.ticketsSold,
   }));
-  return result;
 };
 export const getRevenueOverTimeByEvent = async (eventId: string) => {
   const result = await db
     .select({
       date: sql<string>`DATE_TRUNC('day', ${orders.orderDate})`,
-      total: sql<number>`SUM(${areas.price})`, // Adjusted logic to sum areas.price
+      total: sql<number>`SUM(${areas.price})`, // Sum price of each ticket sold
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
@@ -101,7 +104,7 @@ export const getRevenueOverTimeByEvent = async (eventId: string) => {
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(and(eq(orders.status, "paid"), eq(events.id, eventId)))
     .groupBy(sql`DATE_TRUNC('day', ${orders.orderDate})`)
-    .orderBy(sql`DATE_TRUNC('day', ${orders.orderDate}) ASC`); // Ensure ascending order
+    .orderBy(sql`DATE_TRUNC('day', ${orders.orderDate}) ASC`);
 
   return result.map((row) => ({
     ...row,
@@ -113,7 +116,7 @@ export const getRevenueDistributionForSingleEvent = async (eventId: string) => {
   const result = await db
     .select({
       eventName: events.name,
-      total: sql<number>`SUM(${orders.totalAmount})`,
+      total: sql<number>`SUM(${areas.price})`, // Sum ticket prices
     })
     .from(orders)
     .innerJoin(tickets, eq(tickets.orderId, orders.id))
