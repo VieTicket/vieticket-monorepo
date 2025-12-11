@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -80,6 +81,7 @@ export function EvidenceUploadDialog({
   const [isUploading, setIsUploading] = useState(false);
   const [isSigningContract, setIsSigningContract] = useState(false);
   const [typingText, setTypingText] = useState("");
+  const [contractSigned, setContractSigned] = useState(false);
 
   const handleDocumentUploadSuccess = (results: CloudinaryUploadResponse[]) => {
     const newDocument: EvidenceDocument = {
@@ -141,6 +143,21 @@ export function EvidenceUploadDialog({
 
     // Wait additional time to show completed signature
     await new Promise(resolve => setTimeout(resolve, 1500));
+
+    // Force immediate UI update with flushSync
+    flushSync(() => {
+      setContractSigned(true);
+      setIsSigningContract(false);
+    });
+
+    // Wait a bit more to ensure UI has rendered
+    await new Promise(resolve => setTimeout(resolve, 200));
+
+    // Now capture screenshot with updated UI
+    await captureAndUploadContract();
+  };
+
+  const captureAndUploadContract = async () => {
 
     // Capture screenshot
     try {
@@ -219,6 +236,9 @@ export function EvidenceUploadDialog({
     setEvidenceDocuments([]);
     setCurrentDocumentType("event_permit");
     setIsUploading(false);
+    setIsSigningContract(false);
+    setTypingText("");
+    setContractSigned(false);
   };
 
   const handleClose = () => {
@@ -589,15 +609,19 @@ export function EvidenceUploadDialog({
                                     {typingText}
                                     <span className="animate-pulse">|</span>
                                   </span>
-                                ) : (
+                                ) : contractSigned ? (
                                   contractData.organizerName
+                                ) : (
+                                  "..........................."
                                 )}
                               </p>
                               <p className="text-xs text-gray-600 mt-1">
                                 {isSigningContract ? (
                                   <span className="text-blue-600 font-medium">Đang ký hợp đồng...</span>
-                                ) : (
+                                ) : contractSigned ? (
                                   `Chữ ký điện tử: ${contractData.signatureTime}`
+                                ) : (
+                                  "Chưa ký"
                                 )}
                               </p>
                             </div>
@@ -644,10 +668,10 @@ export function EvidenceUploadDialog({
               </Button>
               <Button 
                 onClick={handleAcceptContract}
-                disabled={isSigningContract}
+                disabled={isSigningContract || contractSigned}
                 className="bg-green-600 hover:bg-green-700 text-white"
               >
-                {isSigningContract ? "Đang Ký Hợp Đồng..." : "Chấp Nhận & Ký Hợp Đồng"}
+                {isSigningContract ? "Đang Ký Hợp Đồng..." : contractSigned ? "Đang Xử Lý..." : "Chấp Nhận & Ký Hợp Đồng"}
               </Button>
             </DialogFooter>
           </>
