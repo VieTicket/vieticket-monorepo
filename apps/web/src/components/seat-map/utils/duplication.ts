@@ -527,6 +527,164 @@ const duplicateGrid = (
   return { newGrid, newSeats };
 };
 
+/**
+ * ✅ Create a new empty grid for duplication
+ */
+const createNewGridForDuplication = (
+  sourceGrid: GridShape,
+  offset: { x: number; y: number } = DUPLICATE_OFFSET
+): GridShape => {
+  const newGridId = generateShapeId();
+  const newGridGraphics = new PIXI.Container();
+  newGridGraphics.eventMode = "static";
+  const newGridName = areaModeContainer?.children.length
+    ? `Grid ${areaModeContainer.children.length + 1}`
+    : "Grid 1";
+
+  const newGrid: GridShape = {
+    id: newGridId,
+    name: newGridName,
+    type: "container",
+    x: sourceGrid.x + offset.x,
+    y: sourceGrid.y + offset.y,
+    rotation: sourceGrid.rotation,
+    scaleX: sourceGrid.scaleX,
+    scaleY: sourceGrid.scaleY,
+    opacity: sourceGrid.opacity,
+    visible: sourceGrid.visible,
+    interactive: sourceGrid.interactive,
+    selected: false,
+    expanded: sourceGrid.expanded,
+    graphics: newGridGraphics,
+    children: [],
+    gridName: newGridName,
+    seatSettings: { ...sourceGrid.seatSettings },
+    createdAt: new Date(),
+  };
+
+  newGridGraphics.position.set(newGrid.x, newGrid.y);
+  newGridGraphics.rotation = newGrid.rotation;
+  newGridGraphics.scale.set(newGrid.scaleX, newGrid.scaleY);
+  newGridGraphics.alpha = newGrid.opacity;
+  newGridGraphics.visible = newGrid.visible;
+
+  return newGrid;
+};
+
+/**
+ * ✅ Duplicate rows into a new grid
+ */
+const duplicateRowsToNewGrid = (
+  originalRows: RowShape[],
+  sourceGridId: string
+): {
+  newGrid: GridShape;
+  newRows: RowShape[];
+  newSeats: SeatShape[];
+} => {
+  const sourceGrid = getGridById(sourceGridId);
+  if (!sourceGrid) {
+    throw new Error(`Source grid ${sourceGridId} not found`);
+  }
+
+  const newGrid = createNewGridForDuplication(sourceGrid);
+  const newRows: RowShape[] = [];
+  const newSeats: SeatShape[] = [];
+
+  const sortedRows = [...originalRows].sort((a, b) => a.y - b.y);
+
+  sortedRows.forEach((originalRow, rowIndex) => {
+    const newRowId = generateShapeId();
+    const newRowGraphics = new PIXI.Container();
+    newRowGraphics.eventMode = "static";
+
+    const newRow: RowShape = {
+      id: newRowId,
+      name: `${originalRow.rowName}`,
+      type: "container",
+      x: originalRow.x,
+      y: originalRow.y,
+      rotation: originalRow.rotation,
+      scaleX: originalRow.scaleX,
+      scaleY: originalRow.scaleY,
+      opacity: originalRow.opacity,
+      visible: originalRow.visible,
+      interactive: originalRow.interactive,
+      selected: false,
+      expanded: originalRow.expanded,
+      graphics: newRowGraphics,
+      children: [],
+      rowName: `${originalRow.rowName}`,
+      seatSpacing: originalRow.seatSpacing,
+      gridId: newGrid.id,
+      createdAt: new Date(),
+      labelPlacement: originalRow.labelPlacement,
+    };
+
+    if (originalRow.labelPlacement !== "none") {
+      newRow.labelGraphics = createRowLabel(newRow);
+      newRowGraphics.addChild(newRow.labelGraphics);
+    }
+
+    const sortedSeats = [...originalRow.children].sort((a, b) => {
+      const aNum = parseInt(a.name);
+      const bNum = parseInt(b.name);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return aNum - bNum;
+      }
+      return a.x - b.x;
+    });
+
+    sortedSeats.forEach((originalSeat, seatIndex) => {
+      const newSeat = createSeat(
+        originalSeat.x,
+        originalSeat.y,
+        newRowId,
+        newGrid.id,
+        rowIndex,
+        seatIndex,
+        newGrid.seatSettings,
+        true,
+        generateShapeId(),
+        true
+      );
+
+      newSeat.radiusX = originalSeat.radiusX;
+      newSeat.radiusY = originalSeat.radiusY;
+      newSeat.color = originalSeat.color;
+      newSeat.strokeColor = originalSeat.strokeColor;
+      newSeat.strokeWidth = originalSeat.strokeWidth;
+      newSeat.rotation = originalSeat.rotation;
+      newSeat.scaleX = originalSeat.scaleX;
+      newSeat.scaleY = originalSeat.scaleY;
+      newSeat.opacity = originalSeat.opacity;
+      newSeat.showLabel = originalSeat.showLabel;
+      newSeat.labelStyle = { ...originalSeat.labelStyle };
+      newSeat.name = originalSeat.name;
+
+      newSeats.push(newSeat);
+      newRow.children.push(newSeat);
+      newRowGraphics.addChild(newSeat.graphics);
+    });
+
+    if (newRow.labelGraphics && newRow.labelPlacement !== "none") {
+      updateRowLabelPosition(newRow);
+    }
+
+    newRowGraphics.position.set(newRow.x, newRow.y);
+    newRowGraphics.rotation = newRow.rotation;
+    newRowGraphics.scale.set(newRow.scaleX, newRow.scaleY);
+    newRowGraphics.alpha = newRow.opacity;
+    newRowGraphics.visible = newRow.visible;
+
+    newRows.push(newRow);
+    newGrid.children.push(newRow);
+    newGrid.graphics.addChild(newRowGraphics);
+  });
+
+  return { newGrid, newRows, newSeats };
+};
+
 const duplicateRow = (
   originalRowId: string,
   seatsInRow: SeatShape[]
@@ -638,6 +796,142 @@ const duplicateRow = (
 };
 
 /**
+ * ✅ Duplicate seats into a new grid (creates rows as needed)
+ */
+const duplicateSeatsToNewGrid = (
+  selectedSeats: SeatShape[]
+): {
+  newGrid: GridShape;
+  newRows: RowShape[];
+  newSeats: SeatShape[];
+} => {
+  if (selectedSeats.length === 0) {
+    throw new Error("No seats provided for duplication");
+  }
+
+  const sourceGridId = selectedSeats[0].gridId;
+  const sourceGrid = getGridById(sourceGridId);
+  if (!sourceGrid) {
+    throw new Error(`Source grid ${sourceGridId} not found`);
+  }
+
+  const newGrid = createNewGridForDuplication(sourceGrid);
+  const newRows: RowShape[] = [];
+  const newSeats: SeatShape[] = [];
+
+  const seatsByRow = new Map<string, SeatShape[]>();
+  selectedSeats.forEach((seat) => {
+    if (!seatsByRow.has(seat.rowId)) {
+      seatsByRow.set(seat.rowId, []);
+    }
+    seatsByRow.get(seat.rowId)!.push(seat);
+  });
+
+  const sortedRowEntries = Array.from(seatsByRow.entries()).sort(
+    ([rowIdA], [rowIdB]) => {
+      const rowA = getRowById(sourceGridId, rowIdA);
+      const rowB = getRowById(sourceGridId, rowIdB);
+      if (!rowA || !rowB) return 0;
+      return rowA.y - rowB.y;
+    }
+  );
+
+  sortedRowEntries.forEach(([originalRowId, rowSeats], rowIndex) => {
+    const originalRow = getRowById(sourceGridId, originalRowId);
+    if (!originalRow) return;
+
+    const newRowId = generateShapeId();
+    const newRowGraphics = new PIXI.Container();
+    newRowGraphics.eventMode = "static";
+
+    const newRow: RowShape = {
+      id: newRowId,
+      name: `${originalRow.rowName}`,
+      type: "container",
+      x: originalRow.x,
+      y: originalRow.y,
+      rotation: originalRow.rotation,
+      scaleX: originalRow.scaleX,
+      scaleY: originalRow.scaleY,
+      opacity: originalRow.opacity,
+      visible: originalRow.visible,
+      interactive: originalRow.interactive,
+      selected: false,
+      expanded: originalRow.expanded,
+      graphics: newRowGraphics,
+      children: [],
+      rowName: `${originalRow.rowName}`,
+      seatSpacing: originalRow.seatSpacing,
+      gridId: newGrid.id,
+      createdAt: new Date(),
+      labelPlacement: originalRow.labelPlacement,
+    };
+
+    if (originalRow.labelPlacement !== "none") {
+      newRow.labelGraphics = createRowLabel(newRow);
+      newRowGraphics.addChild(newRow.labelGraphics);
+    }
+
+    const sortedSeats = [...rowSeats].sort((a, b) => {
+      const aNum = parseInt(a.name);
+      const bNum = parseInt(b.name);
+      if (!isNaN(aNum) && !isNaN(bNum)) {
+        return aNum - bNum;
+      }
+      return a.x - b.x;
+    });
+
+    sortedSeats.forEach((originalSeat, seatIndex) => {
+      const newSeat = createSeat(
+        originalSeat.x,
+        originalSeat.y,
+        newRowId,
+        newGrid.id,
+        rowIndex,
+        seatIndex,
+        newGrid.seatSettings,
+        true,
+        generateShapeId(),
+        true
+      );
+
+      newSeat.radiusX = originalSeat.radiusX;
+      newSeat.radiusY = originalSeat.radiusY;
+      newSeat.color = originalSeat.color;
+      newSeat.strokeColor = originalSeat.strokeColor;
+      newSeat.strokeWidth = originalSeat.strokeWidth;
+      newSeat.rotation = originalSeat.rotation;
+      newSeat.scaleX = originalSeat.scaleX;
+      newSeat.scaleY = originalSeat.scaleY;
+      newSeat.opacity = originalSeat.opacity;
+      newSeat.showLabel = originalSeat.showLabel;
+      newSeat.labelStyle = { ...originalSeat.labelStyle };
+      newSeat.name = originalSeat.name;
+
+      newSeats.push(newSeat);
+      newRow.children.push(newSeat);
+      newRowGraphics.addChild(newSeat.graphics);
+    });
+
+    if (newRow.labelGraphics && newRow.labelPlacement !== "none") {
+      updateRowLabelPosition(newRow);
+    }
+
+    newRowGraphics.position.set(newRow.x, newRow.y);
+    newRowGraphics.rotation = newRow.rotation;
+    newRowGraphics.scale.set(newRow.scaleX, newRow.scaleY);
+    newRowGraphics.alpha = newRow.opacity;
+    newRowGraphics.visible = newRow.visible;
+
+    newRows.push(newRow);
+    newGrid.children.push(newRow);
+    newGrid.graphics.addChild(newRowGraphics);
+  });
+
+  return { newGrid, newRows, newSeats };
+};
+
+/**
  * ✅ Helper functions to find shapes in new structure
  */
 const duplicateSeat = (original: SeatShape): SeatShape => {
@@ -717,7 +1011,7 @@ const getAllSeatsInRow = (rowId: string): SeatShape[] => {
 };
 
 /**
- * ✅ Enhanced seat-specific duplication logic (updated for new structure)
+ * ✅ Enhanced seat-specific duplication logic - ALWAYS creates a new grid
  */
 const duplicateSeatsWithGridRowLogic = (
   selectedSeats: SeatShape[]
@@ -727,89 +1021,52 @@ const duplicateSeatsWithGridRowLogic = (
     return [];
   }
 
-  const grouping = analyzeSelectedSeats(selectedSeats);
-  const allNewSeats: SeatShape[] = [];
+  if (selectedSeats.length === 0) {
+    return [];
+  }
 
-  grouping.byGrid.forEach((seatsInGrid, gridId) => {
-    const allGridSeats = getAllSeatsInGrid(gridId);
-    const originalGrid = getGridById(gridId);
+  try {
+    const { newGrid, newSeats } = duplicateSeatsToNewGrid(selectedSeats);
 
-    if (!originalGrid) {
-      console.error(`Grid ${gridId} not found`);
-      return;
-    }
+    areaModeContainer.children.push(newGrid);
+    areaModeContainer.graphics.addChild(newGrid.graphics);
 
-    if (seatsInGrid.length === allGridSeats.length) {
-      try {
-        const { newGrid, newSeats } = duplicateGrid(gridId, seatsInGrid);
+    return newSeats;
+  } catch (error) {
+    console.error("Failed to duplicate seats to new grid:", error);
+    return [];
+  }
+};
 
-        areaModeContainer!.children.push(newGrid);
-        areaModeContainer!.graphics.addChild(newGrid.graphics);
+/**
+ * ✅ Duplicate rows - ALWAYS creates a new grid
+ */
+const duplicateRowsLogic = (selectedRows: RowShape[]): SeatShape[] => {
+  if (!areaModeContainer) {
+    console.error("Area mode container not found");
+    return [];
+  }
 
-        allNewSeats.push(...newSeats);
-      } catch (error) {
-        console.error(`Failed to duplicate grid ${gridId}:`, error);
-        seatsInGrid.forEach((seat) => {
-          const duplicatedSeat = duplicateSeat(seat);
-          allNewSeats.push(duplicatedSeat);
+  if (selectedRows.length === 0) {
+    return [];
+  }
 
-          const row = findRowShape(gridId, seat.rowId);
-          if (row) {
-            row.children.push(duplicatedSeat);
-            row.graphics.addChild(duplicatedSeat.graphics);
-          }
-        });
-      }
-    } else {
-      const seatsByRowInGrid = new Map<string, SeatShape[]>();
-      seatsInGrid.forEach((seat) => {
-        if (!seatsByRowInGrid.has(seat.rowId)) {
-          seatsByRowInGrid.set(seat.rowId, []);
-        }
-        seatsByRowInGrid.get(seat.rowId)!.push(seat);
-      });
+  try {
+    const sourceGridId = selectedRows[0].gridId;
 
-      seatsByRowInGrid.forEach((seatsInRow, rowId) => {
-        const allRowSeats = getAllSeatsInRow(rowId);
+    const { newGrid, newSeats } = duplicateRowsToNewGrid(
+      selectedRows,
+      sourceGridId
+    );
 
-        if (seatsInRow.length === allRowSeats.length) {
-          try {
-            const { newRow, newSeats } = duplicateRow(rowId, seatsInRow);
+    areaModeContainer.children.push(newGrid);
+    areaModeContainer.graphics.addChild(newGrid.graphics);
 
-            originalGrid.children.push(newRow);
-            originalGrid.graphics.addChild(newRow.graphics);
-
-            allNewSeats.push(...newSeats);
-          } catch (error) {
-            console.error(`Failed to duplicate row ${rowId}:`, error);
-            seatsInRow.forEach((seat) => {
-              const duplicatedSeat = duplicateSeat(seat);
-              allNewSeats.push(duplicatedSeat);
-
-              const row = findRowShape(gridId, rowId);
-              if (row) {
-                row.children.push(duplicatedSeat);
-                row.graphics.addChild(duplicatedSeat.graphics);
-              }
-            });
-          }
-        } else {
-          seatsInRow.forEach((seat) => {
-            const duplicatedSeat = duplicateSeat(seat);
-            allNewSeats.push(duplicatedSeat);
-
-            const row = findRowShape(gridId, rowId);
-            if (row) {
-              row.children.push(duplicatedSeat);
-              row.graphics.addChild(duplicatedSeat.graphics);
-            }
-          });
-        }
-      });
-    }
-  });
-
-  return allNewSeats;
+    return newSeats;
+  } catch (error) {
+    console.error("Failed to duplicate rows to new grid:", error);
+    return [];
+  }
 };
 
 /**
@@ -956,9 +1213,15 @@ export const duplicateShape = async (
             duplicated = newGrid;
           } else if ("rowName" in shape) {
             const rowShape = shape as RowShape;
-            const allRowSeats = getAllSeatsInRow(rowShape.id);
-            const { newRow } = duplicateRow(rowShape.id, allRowSeats);
-            duplicated = newRow;
+            const duplicatedSeats = duplicateRowsLogic([rowShape]);
+            if (duplicatedSeats.length > 0) {
+              const newGrid =
+                areaModeContainer!.children[
+                  areaModeContainer!.children.length - 1
+                ];
+              return newGrid;
+            }
+            throw new Error("Failed to duplicate row");
           } else {
             duplicated = await duplicateContainer(shape as ContainerGroup);
           }
@@ -999,9 +1262,11 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
     const seatShapes = selectedShapes.filter((shape): shape is SeatShape =>
       isSeatShape(shape)
     );
-    const areaModeContainerShapes = selectedShapes.filter(
-      (shape): shape is RowShape | GridShape =>
-        isRowShape(shape) || isGridShape(shape)
+    const rowShapes = selectedShapes.filter((shape): shape is RowShape =>
+      isRowShape(shape)
+    );
+    const gridShapes = selectedShapes.filter((shape): shape is GridShape =>
+      isGridShape(shape)
     );
     const regularShapes = selectedShapes.filter(
       (shape) =>
@@ -1012,119 +1277,123 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       const smartDuplicatedSeats = duplicateSeatsWithGridRowLogic(seatShapes);
       duplicatedShapes.push(...smartDuplicatedSeats);
 
-      const afterAreaModeForSeats = cloneCanvasItem(areaModeContainer);
+      const newGrid =
+        areaModeContainer.children[areaModeContainer.children.length - 1];
+      duplicatedShapes.push(newGrid);
 
-      if (smartDuplicatedSeats.length > 0) {
-        const context: ShapeContext = {
-          topLevel: [],
-          nested: [
-            ...smartDuplicatedSeats.map((seat) => ({
-              id: seat.id,
-              type: "ellipse" as const,
-              parentId: seat.rowId,
-            })),
-          ],
-          operation: "duplicate-seats",
-          containerPositions: {
-            [areaModeContainer.id]: {
-              x: areaModeContainer.x,
-              y: areaModeContainer.y,
-            },
+      const context: ShapeContext = {
+        topLevel: [],
+        nested: [
+          {
+            id: newGrid.id,
+            type: "container",
+            parentId: areaModeContainer.id,
           },
-        };
+        ],
+        operation: "duplicate-seats-to-new-grid",
+        containerPositions: {
+          [areaModeContainer.id]: {
+            x: areaModeContainer.x,
+            y: areaModeContainer.y,
+          },
+        },
+      };
 
-        const areaModeAction = useSeatMapStore.getState()._saveToHistory(
-          {
-            shapes: [],
-            selectedShapes: seatShapes,
-            context,
-          },
-          {
-            shapes: [afterAreaModeForSeats as any],
-            selectedShapes: smartDuplicatedSeats,
-            context,
-          }
-        );
-        SeatMapCollaboration.broadcastShapeChange(areaModeAction);
-      }
+      const action = useSeatMapStore.getState()._saveToHistory(
+        {
+          shapes: [],
+          selectedShapes: seatShapes,
+          context,
+        },
+        {
+          shapes: [cloneCanvasItem(newGrid) as any],
+          selectedShapes: [newGrid],
+          context,
+        }
+      );
+      SeatMapCollaboration.broadcastShapeChange(action);
     }
 
-    if (areaModeContainerShapes.length > 0) {
-      for (const shape of areaModeContainerShapes) {
-        const duplicated = await duplicateShape(shape);
+    if (rowShapes.length > 0 && isAreaMode && areaModeContainer) {
+      const duplicatedSeats = duplicateRowsLogic(rowShapes);
+      duplicatedShapes.push(...duplicatedSeats);
+
+      const newGrid =
+        areaModeContainer.children[areaModeContainer.children.length - 1];
+      duplicatedShapes.push(newGrid);
+
+      const context: ShapeContext = {
+        topLevel: [],
+        nested: [
+          {
+            id: newGrid.id,
+            type: "container",
+            parentId: areaModeContainer.id,
+          },
+        ],
+        operation: "duplicate-rows-to-new-grid",
+        containerPositions: {
+          [areaModeContainer.id]: {
+            x: areaModeContainer.x,
+            y: areaModeContainer.y,
+          },
+        },
+      };
+
+      const action = useSeatMapStore.getState()._saveToHistory(
+        {
+          shapes: [],
+          selectedShapes: rowShapes,
+          context,
+        },
+        {
+          shapes: [cloneCanvasItem(newGrid) as any],
+          selectedShapes: [newGrid],
+          context,
+        }
+      );
+      SeatMapCollaboration.broadcastShapeChange(action);
+    }
+
+    if (gridShapes.length > 0 && isAreaMode && areaModeContainer) {
+      for (const gridShape of gridShapes) {
+        const duplicated = await duplicateShape(gridShape);
         if (duplicated) {
           duplicatedShapes.push(duplicated);
-          addShapeToAppropriateContainer(duplicated);
         }
       }
 
-      const afterAreaModeForContainers = cloneCanvasItems(
-        areaModeContainerShapes
-      );
-
-      if (duplicatedShapes.filter((s) => isAreaModeShape(s)).length > 0) {
-        const duplicatedAreaModeShapes = duplicatedShapes.filter((s) =>
-          isAreaModeShape(s)
-        ) as (SeatShape | RowShape | GridShape)[];
-
-        const context: ShapeContext = {
-          topLevel: [],
-          nested: [
-            {
-              id: areaModeContainer!.id,
-              type: "container",
-              parentId: null,
-            },
-
-            ...duplicatedAreaModeShapes
-              .filter((s) => isGridShape(s))
-              .map((grid) => ({
-                id: grid.id,
-                type: "container" as const,
-                parentId: areaModeContainer!.id,
-              })),
-
-            ...duplicatedAreaModeShapes
-              .filter((s) => isRowShape(s))
-              .map((row) => ({
-                id: row.id,
-                type: "container" as const,
-                parentId: (row as RowShape).gridId,
-              })),
-
-            ...duplicatedAreaModeShapes
-              .filter((s) => isSeatShape(s))
-              .map((seat) => ({
-                id: seat.id,
-                type: "ellipse" as const,
-                parentId: (seat as SeatShape).rowId,
-              })),
-          ],
-          operation: "duplicate-containers",
-          containerPositions: {
-            [areaModeContainer!.id]: {
-              x: areaModeContainer!.x,
-              y: areaModeContainer!.y,
-            },
+      const context: ShapeContext = {
+        topLevel: [],
+        nested: duplicatedShapes
+          .filter((s) => isGridShape(s))
+          .map((grid) => ({
+            id: grid.id,
+            type: "container" as const,
+            parentId: areaModeContainer!.id,
+          })),
+        operation: "duplicate-grids",
+        containerPositions: {
+          [areaModeContainer!.id]: {
+            x: areaModeContainer!.x,
+            y: areaModeContainer!.y,
           },
-        };
+        },
+      };
 
-        const areaModeContainerAction = useSeatMapStore
-          .getState()
-          ._saveToHistory(
-            {
-              shapes: [],
-              selectedShapes: areaModeContainerShapes,
-              context,
-            },
-            {
-              shapes: [afterAreaModeForContainers as any],
-              selectedShapes: duplicatedAreaModeShapes,
-              context,
-            }
-          );
-        SeatMapCollaboration.broadcastShapeChange(areaModeContainerAction);
-      }
+      const action = useSeatMapStore.getState()._saveToHistory(
+        {
+          shapes: [],
+          selectedShapes: gridShapes,
+          context,
+        },
+        {
+          shapes: duplicatedShapes.map((s) => cloneCanvasItem(s) as any),
+          selectedShapes: duplicatedShapes,
+          context,
+        }
+      );
+      SeatMapCollaboration.broadcastShapeChange(action);
     }
 
     if (regularShapes.length > 0) {
@@ -1136,11 +1405,11 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
         }
       }
 
-      const regularShapesDuplicated = duplicatedShapes.filter(
-        (s) => !isAreaModeShape(s)
-      );
+      if (duplicatedShapes.filter((s) => !isAreaModeShape(s)).length > 0) {
+        const regularShapesDuplicated = duplicatedShapes.filter(
+          (s) => !isAreaModeShape(s)
+        );
 
-      if (regularShapesDuplicated.length > 0) {
         const regularShapesContext: ShapeContext = {
           topLevel: regularShapesDuplicated.map((s) => ({
             id: s.id,
@@ -1166,16 +1435,6 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       }
     }
 
-    if (seatShapes.length > 0 && (!isAreaMode || !areaModeContainer)) {
-      for (const seat of seatShapes) {
-        const duplicated = await duplicateShape(seat);
-        if (duplicated) {
-          duplicatedShapes.push(duplicated);
-          addShapeToAppropriateContainer(duplicated);
-        }
-      }
-    }
-
     useSeatMapStore.getState().setSelectedShapes(duplicatedShapes, false);
 
     const selectionTransform = getSelectionTransform();
@@ -1190,7 +1449,9 @@ export const duplicateSelectedShapes = async (): Promise<CanvasItem[]> => {
       selectionTransform.updateSelection(duplicatedShapes);
     }
 
-    useSeatMapStore.getState().updateShapes([...shapes], false);
+    useSeatMapStore
+      .getState()
+      .updateShapes([...shapes], false, undefined, false);
 
     return duplicatedShapes;
   } catch (error) {

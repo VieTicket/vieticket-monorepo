@@ -8,8 +8,15 @@ import { Event } from "@vieticket/db/pg/schema";
 import { useTranslations } from "next-intl";
 import { authClient } from "@/lib/auth/auth-client";
 
+type OrganizerEvent = Omit<
+  Event,
+  "organizationId" | "lifecycleStatus" | "autoApproveRefund" | "eventMetadata"
+> & {
+  eventMetadata: Event["eventMetadata"] | null;
+};
+
 export default function OrganizerDashboardPage() {
-  const [events, setEvents] = useState<Omit<Event, "organizationId" | "lifecycleStatus" | "autoApproveRefund">[]>([]);
+  const [events, setEvents] = useState<OrganizerEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const t = useTranslations("organizer-dashboard.ListEvent");
   const router = useRouter();
@@ -20,7 +27,12 @@ export default function OrganizerDashboardPage() {
     try {
       setLoading(true);
       const allEvents = await fetchCurrentOrganizerEvents();
-      setEvents(allEvents);
+      const normalizedEvents: OrganizerEvent[] = allEvents.map((event) => ({
+        ...event,
+        // Ensure new schema fields are present even if the API omits them
+        eventMetadata: (event as unknown as Event).eventMetadata ?? null,
+      }));
+      setEvents(normalizedEvents);
     } catch (error) {
       console.error("Error loading events:", error);
     } finally {

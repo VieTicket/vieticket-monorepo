@@ -3,15 +3,15 @@ import { db } from "@vieticket/db/pg";
 import { showings } from "@vieticket/db/pg/schemas/events";
 import { eq } from "drizzle-orm";
 import {
-  executeOrderTransaction,
-  getSeatAvailabilityStatus,
   getSeatPricing,
   getSeatStatus,
   updateOrderVNPayData,
-  updateOrderStatus,
   executePaymentTransaction,
+  failOrderAndReleaseSeatHolds,
   getOrderByVNPayTxnRef,
   getUserUnconfirmedSeatHolds,
+  createOrderWithSeatLocks,
+  createGAOrderWithSeatLocks,
 } from "@vieticket/repos/checkout";
 import { getEventByTicketId, getTicketDetails } from "@vieticket/repos/orders";
 import {
@@ -28,6 +28,7 @@ import {
 import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
+import { user as users } from "@vieticket/db/pg/schemas/users";
 
 export async function getShowingTicketData(
   showingId: string,
@@ -211,6 +212,22 @@ export async function createPendingOrder(
     if (!showing) {
       throw new Error("Showing not found.");
     }
+    if (!showing.isActive) {
+      throw new Error("Showing is not active.");
+    }
+    if (showing.event.approvalStatus !== "approved") {
+      throw new Error("Event is not approved for ticket sales.");
+    }
+    const now = new Date();
+    const ticketSaleStart =
+      showing.ticketSaleStart || showing.event.ticketSaleStart;
+    const ticketSaleEnd = showing.ticketSaleEnd || showing.event.ticketSaleEnd;
+    if (ticketSaleEnd && now > ticketSaleEnd) {
+      throw new Error("Ticket sales have ended for this showing.");
+    }
+    if (ticketSaleStart && now < ticketSaleStart) {
+      throw new Error("Ticket sales have not started for this showing.");
+    }
     eventData = showing.event;
   } else {
     eventData = await findEventById(eventId);
@@ -229,17 +246,7 @@ export async function createPendingOrder(
     );
   }
 
-  // 3. Check seat availability
-  const { unavailableSeatIds } =
-    await getSeatAvailabilityStatus(selectedSeatIds);
-  if (unavailableSeatIds.length > 0) {
-    const error: any = new Error("Selected seats are no longer available.");
-    error.code = "SEATS_UNAVAILABLE";
-    error.unavailableSeats = unavailableSeatIds;
-    throw error;
-  }
-
-  // 4. Get pricing and calculate total (includes showing/event context)
+  // 3. Get pricing and calculate total (includes showing/event context)
   const seatDetails = await getSeatPricing(selectedSeatIds);
   if (seatDetails.length !== selectedSeatIds.length) {
     throw new Error("Could not retrieve pricing for all selected seats.");
@@ -262,30 +269,23 @@ export async function createPendingOrder(
 
   const totalAmount = seatDetails.reduce((sum, seat) => sum + seat.price, 0);
 
-  // 5. Create order and seat holds in a transaction
+  // 4. Create order and seat holds in a transaction with locking
   const holdDurationMinutes = 15;
   const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
 
-  const newOrder = await executeOrderTransaction(
+  const { order: newOrder } = await createOrderWithSeatLocks(
     {
       userId: user.id,
       eventId: eventData.id,
       showingId: derivedShowingId,
       totalAmount: totalAmount,
       expiresAt,
-      status: "pending",
+      status: "pending_payment",
     },
-    selectedSeatIds.map((seatId) => ({
-      eventId: eventData.id,
-      showingId: derivedShowingId,
-      userId: user.id,
-      seatId,
-      expiresAt,
-      isConfirmed: false,
-    }))
+    selectedSeatIds
   );
 
-  // 6. Generate VNPay payment URL
+  // 5. Generate VNPay payment URL
   const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
   const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
     ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
@@ -302,16 +302,112 @@ export async function createPendingOrder(
 
   console.log(paymentURL);
 
-  // 7. Store VNPay transaction reference (optional, but good practice)
+  // 6. Store VNPay transaction reference (optional, but good practice)
   await updateOrderVNPayData(newOrder.id, { vnp_TxnRef });
 
-  // 8. Return response
+  // 7. Return response
   return {
     vnpayURL: paymentURL,
     orderId: newOrder.id,
     totalAmount,
     expiresAt,
     selectedSeats: seatDetails,
+  };
+}
+
+/**
+ * GA checkout: lock GA seats by quantity and create order + holds atomically.
+ */
+export async function createPendingGAOrder(
+  eventId: string,
+  showingId: string,
+  areaRequests: Array<{ areaId: string; quantity: number }>,
+  user: Pick<User, "id" | "role">,
+  clientIp: string
+) {
+  if (user.role !== "customer") {
+    throw new Error("Unauthorized: Only customers can purchase tickets.");
+  }
+  if (!showingId) {
+    throw new Error("Showing is required for general admission checkout.");
+  }
+  const validRequests = areaRequests.filter((r) => r.quantity > 0);
+  if (validRequests.length === 0) {
+    throw new Error("At least one ticket must be selected.");
+  }
+
+  const showing = await db.query.showings.findFirst({
+    where: eq(showings.id, showingId),
+    with: { event: true },
+  });
+
+  if (!showing) {
+    throw new Error("Showing not found.");
+  }
+  if (showing.event.id !== eventId) {
+    throw new Error("Showing does not belong to the specified event.");
+  }
+  if (!showing.isActive) {
+    throw new Error("Showing is not active.");
+  }
+  if (showing.event.approvalStatus !== "approved") {
+    throw new Error("Event is not approved for ticket sales.");
+  }
+  const now = new Date();
+  const ticketSaleStart =
+    showing.ticketSaleStart || showing.event.ticketSaleStart;
+  const ticketSaleEnd = showing.ticketSaleEnd || showing.event.ticketSaleEnd;
+  if (ticketSaleEnd && now > ticketSaleEnd) {
+    throw new Error("Ticket sales have ended for this showing.");
+  }
+  if (ticketSaleStart && now < ticketSaleStart) {
+    throw new Error("Ticket sales have not started for this showing.");
+  }
+
+  if (
+    showing.event.maxTicketsByOrder &&
+    validRequests.reduce((sum, r) => sum + r.quantity, 0) >
+      showing.event.maxTicketsByOrder
+  ) {
+    throw new Error(
+      `Cannot select more than ${showing.event.maxTicketsByOrder} tickets per order.`
+    );
+  }
+
+  const holdDurationMinutes = 15;
+  const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
+
+  const { order, seats, totalAmount } = await createGAOrderWithSeatLocks({
+    eventId: showing.event.id,
+    showingId,
+    userId: user.id,
+    requests: validRequests,
+    expiresAt,
+    status: "pending_payment",
+  });
+
+  const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
+  const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
+    ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
+    : 900;
+
+  const { vnp_TxnRef, paymentURL } = generatePaymentUrl({
+    amount: totalAmount,
+    ipAddr: clientIp,
+    orderId: order.id,
+    orderInfo: `Thanh toan don hang ${order.id}`,
+    returnUrl,
+    paymentExpirationSeconds,
+  });
+
+  await updateOrderVNPayData(order.id, { vnp_TxnRef });
+
+  return {
+    vnpayURL: paymentURL,
+    orderId: order.id,
+    totalAmount,
+    expiresAt,
+    selectedSeats: seats,
   };
 }
 
@@ -345,21 +441,16 @@ export interface PaymentProcessingResult {
  */
 export async function processPaymentResult(
   vnpayResponseData: ReturnQueryFromVNPay,
-  user: User
+  user?: User | null
 ): Promise<PaymentProcessingResult> {
   try {
-    // 1. Authorize user (must be customer)
-    if (user.role !== "customer") {
-      throw new Error("Unauthorized: Only customers can process payments");
-    }
-
-    // 2. Validate VNPay response signature and parameters
+    // 1. Validate VNPay response signature and parameters
     const vnpayReturn = verifyVNPayResponse(vnpayResponseData);
     if (!vnpayReturn.isVerified) {
       throw new Error("Invalid VNPay response signature");
     }
 
-    // 3. Retrieve order data using VNPay transaction reference stored in payment metadata
+    // 2. Retrieve order data using VNPay transaction reference stored in payment metadata
     const order = await getOrderByVNPayTxnRef(vnpayReturn.vnp_TxnRef);
     if (!order) {
       return {
@@ -373,23 +464,28 @@ export async function processPaymentResult(
       };
     }
 
-    // 4. Verify order belongs to user
-    if (order.userId !== user.id) {
-      return {
-        success: false,
-        orderId: order.id,
-        orderStatus: "unauthorized",
-        error: {
-          code: "ORDER_USER_MISMATCH",
-          message: "Order does not belong to authenticated user",
-        },
-      };
+    // 3. If a session exists, ensure it belongs to the order owner
+    if (user) {
+      if (user.role !== "customer") {
+        throw new Error("Unauthorized: Only customers can process payments");
+      }
+      if (order.userId !== user.id) {
+        return {
+          success: false,
+          orderId: order.id,
+          orderStatus: "unauthorized",
+          error: {
+            code: "ORDER_USER_MISMATCH",
+            message: "Order does not belong to authenticated user",
+          },
+        };
+      }
     }
 
-    // 5. Check if payment was successful (use verified values from vnpayReturn)
+    // 4. Check if payment was successful (use verified values from vnpayReturn)
     if (!vnpayReturn.isSuccess) {
       // Payment failed - update order status
-      await updateOrderStatus(order.id, "failed");
+      await failOrderAndReleaseSeatHolds(order.id, order.userId);
 
       return {
         success: false,
@@ -402,9 +498,9 @@ export async function processPaymentResult(
       };
     }
 
-    // 6. Verify payment amount matches order (use verified amount from vnpayReturn)
+    // 5. Verify payment amount matches order (use verified amount from vnpayReturn)
     if (Math.abs(vnpayReturn.vnp_Amount - order.totalAmount) > 0.01) {
-      await updateOrderStatus(order.id, "failed");
+      await failOrderAndReleaseSeatHolds(order.id, order.userId);
 
       return {
         success: false,
@@ -417,7 +513,7 @@ export async function processPaymentResult(
       };
     }
 
-    // 7. Check if order is already processed
+    // 6. Handle idempotency/terminal states
     if (order.status === "paid") {
       // Order already confirmed, return existing ticket details
       const tickets = await getTicketDetails(order.id);
@@ -439,43 +535,69 @@ export async function processPaymentResult(
       };
     }
 
-    // 8. Generate ticket data before executing payment transaction
-    const seatHolds = await getUserUnconfirmedSeatHolds(user.id, order.id);
+    if (
+      order.status === "expired" ||
+      order.status === "failed" ||
+      order.status === "cancelled" ||
+      order.status === "refunded" ||
+      order.status === "partial_refunded"
+    ) {
+      return {
+        success: false,
+        orderId: order.id,
+        orderStatus: order.status,
+        error: {
+          code: "ORDER_TERMINAL",
+          message: `Order is already ${order.status}`,
+        },
+      };
+    }
+
+    // 7. Generate ticket data before executing payment transaction
+    const seatHolds = await getUserUnconfirmedSeatHolds(order.userId, order.id);
 
     if (seatHolds.length === 0) {
       throw new Error("No seat holds found for this order");
     }
+
+    const orderOwner =
+      user ??
+      (await db.query.user.findFirst({
+        where: eq(users.id, order.userId),
+      }));
 
     const ticketData = seatHolds.map((hold) => ({
       seatId: hold.seatId,
       status: "active" as const,
     }));
 
-    // 9. Execute payment confirmation transaction with pre-generated ticket data
+    // 8. Execute payment confirmation transaction with pre-generated ticket data
     const transactionResult = await executePaymentTransaction(
       order.id,
-      user.id,
+      order.userId,
       ticketData
     );
 
-    // 10. Get detailed ticket information
+    // 9. Get detailed ticket information
     const ticketDetails = await getTicketDetails(order.id);
 
-    // 11. Send order confirmation email
+    // 10. Send order confirmation email
     let emailSent = false;
     try {
       // Get user details to obtain email
-      emailSent = await sendOrderConfirmationEmail(
-        user,
-        transactionResult.order,
-        ticketDetails
-      );
+      if (orderOwner) {
+        emailSent = await sendOrderConfirmationEmail(
+          orderOwner,
+          transactionResult.order,
+          ticketDetails
+        );
+      }
     } catch (emailError) {
       // Log email error but don't fail the order
       console.error("Failed to send order confirmation email:", emailError);
     }
 
-    // 12. Return success response
+    // 11. Return success response
     return {
       success: true,
       orderId: order.id,

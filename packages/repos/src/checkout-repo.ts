@@ -8,7 +8,15 @@ import {
 import { areas, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { orders, seatHolds, tickets } from "@vieticket/db/pg/schemas/orders";
 import { VNPayOrderData } from "@vieticket/utils/vnpay";
-import { and, eq, gt, inArray, notInArray, sql } from "drizzle-orm";
+import {
+  and,
+  eq,
+  gt,
+  inArray,
+  notInArray,
+  or,
+  sql,
+} from "drizzle-orm";
 
 /**
  * Gets the status of all seats for an event, including confirmed purchases and active holds.
@@ -32,14 +40,19 @@ export async function getSeatStatus(eventId: string) {
 
   const paidSeatIds = paid.map((s) => s.seatId);
 
-  // Get seats that are currently held but not yet confirmed
+  // Get seats that are currently held:
+  // - pending holds (not confirmed yet) regardless of expiration
+  // - or confirmed + paid holds (treat as held)
   const active = await db
     .select({ seatId: seatHolds.seatId })
     .from(seatHolds)
     .where(
       and(
         eq(seatHolds.eventId, eventId),
-        gt(seatHolds.expiresAt, new Date()),
+        or(
+          eq(seatHolds.isFinalized, false),
+          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+        ),
         // Exclude seats that are already confirmed in a paid order
         paidSeatIds.length > 0
           ? notInArray(seatHolds.seatId, paidSeatIds)
@@ -107,7 +120,10 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     .where(
       and(
         inArray(seatHolds.seatId, selectedSeatIds),
-        gt(seatHolds.expiresAt, new Date())
+        or(
+          eq(seatHolds.isFinalized, false),
+          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+        )
       )
     );
 
@@ -119,6 +135,212 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
   ];
 
   return { unavailableSeatIds };
+}
+
+/**
+ * Atomically creates an order and seat holds with seat-level locking to prevent double holds/sells.
+ * - Validates seats belong to the expected showing/event.
+ * - Locks seats with FOR UPDATE SKIP LOCKED semantics.
+ * - Rejects seats that are already sold or actively held.
+ */
+export async function createOrderWithSeatLocks(
+  orderData: NewOrder,
+  seatIds: string[]
+) {
+  if (seatIds.length === 0) {
+    throw new Error("At least one seat must be selected.");
+  }
+
+  return db.transaction(async (tx) => {
+    const lockedSeats = await tx
+      .select({
+        seatId: seats.id,
+        eventId: areas.eventId,
+        showingId: areas.showingId,
+      })
+      .from(seats)
+      .innerJoin(rows, eq(seats.rowId, rows.id))
+      .innerJoin(areas, eq(rows.areaId, areas.id))
+      .where(inArray(seats.id, seatIds))
+      .for("update", { skipLocked: true });
+
+    if (lockedSeats.length !== seatIds.length) {
+      const error: any = new Error("Selected seats are no longer available.");
+      error.code = "SEATS_UNAVAILABLE";
+      throw error;
+    }
+
+    const mismatchedSeat = lockedSeats.find(
+      (seat: { showingId: string | null; eventId: string }) =>
+        seat.showingId !== orderData.showingId ||
+        seat.eventId !== orderData.eventId
+    );
+    if (mismatchedSeat) {
+      throw new Error("All seats must belong to the same showing/event.");
+    }
+
+    const conflicts = await tx
+      .select({ seatId: seats.id })
+      .from(seats)
+      .where(
+        and(
+          inArray(seats.id, seatIds),
+          or(
+            sql`EXISTS (SELECT 1 FROM ${tickets} WHERE ${tickets.seatId} = ${seats.id} AND ${tickets.status} IN ('active','used'))`,
+            sql`EXISTS (
+              SELECT 1 FROM ${seatHolds}
+              WHERE ${seatHolds.seatId} = ${seats.id}
+                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
+            )`
+          )
+        )
+      );
+
+    if (conflicts.length > 0) {
+      const error: any = new Error("Selected seats are no longer available.");
+      error.code = "SEATS_UNAVAILABLE";
+      error.unavailableSeats = conflicts.map((c) => c.seatId);
+      throw error;
+    }
+
+    const [newOrder] = await tx.insert(orders).values(orderData).returning();
+
+    const seatHoldsData: NewSeatHold[] = seatIds.map((seatId) => ({
+      eventId: orderData.eventId,
+      showingId: orderData.showingId!,
+      userId: orderData.userId,
+      orderId: newOrder.id,
+      seatId,
+      expiresAt: orderData.expiresAt!,
+      isFinalized: false,
+      isPaid: false,
+    }));
+
+    await tx.insert(seatHolds).values(seatHoldsData);
+
+    return { order: newOrder, seatIds };
+  });
+}
+
+/**
+ * GA flow: select available GA seats under lock, then create order + holds atomically.
+ * Seats are existing GA “virtual” seats; no new inventory tables.
+ */
+export async function createGAOrderWithSeatLocks({
+  eventId,
+  showingId,
+  userId,
+  expiresAt,
+  status,
+  requests,
+}: {
+  eventId: string;
+  showingId: string;
+  userId: string;
+  expiresAt: Date;
+  status: OrderStatus;
+  requests: Array<{ areaId: string; quantity: number }>;
+}) {
+  const validRequests = requests.filter((r) => r.quantity > 0);
+  if (validRequests.length === 0) {
+    throw new Error("At least one area with quantity is required.");
+  }
+
+  return db.transaction(async (tx) => {
+    const lockedSeats: Array<{
+      seatId: string;
+      price: number;
+      seatNumber: string;
+      areaName: string;
+      areaId: string;
+      eventId: string;
+      showingId: string | null;
+    }> = [];
+
+    for (const req of validRequests) {
+      const seatsForArea = await tx
+        .select({
+          seatId: seats.id,
+          price: areas.price,
+          seatNumber: seats.seatNumber,
+          areaName: areas.name,
+          areaId: areas.id,
+          eventId: areas.eventId,
+          showingId: areas.showingId,
+        })
+        .from(seats)
+        .innerJoin(rows, eq(seats.rowId, rows.id))
+        .innerJoin(areas, eq(rows.areaId, areas.id))
+        .where(
+          and(
+            or(
+              eq(areas.showingId, showingId),
+              and(sql`${areas.showingId} IS NULL`, eq(areas.eventId, eventId))
+            ),
+            eq(areas.id, req.areaId),
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${tickets}
+              WHERE ${tickets.seatId} = ${seats.id}
+                AND ${tickets.status} IN ('active','used')
+            )`,
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${seatHolds}
+              WHERE ${seatHolds.seatId} = ${seats.id}
+                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
+            )`
+          )
+        )
+        .limit(req.quantity)
+        .for("update", { skipLocked: true });
+
+      if (seatsForArea.length < req.quantity) {
+        const error: any = new Error(
+          `Not enough seats available in area ${req.areaId}.`
+        );
+        error.code = "INSUFFICIENT_CAPACITY";
+        error.areaId = req.areaId;
+        throw error;
+      }
+
+      lockedSeats.push(...seatsForArea);
+    }
+
+    const totalAmount = lockedSeats.reduce(
+      (sum: number, seat) => sum + Number(seat.price),
+      0
+    );
+
+    const [newOrder] = await tx
+      .insert(orders)
+      .values({
+        userId,
+        eventId,
+        showingId,
+        totalAmount,
+        status,
+        expiresAt,
+      })
+      .returning();
+
+    const seatHoldsData: NewSeatHold[] = lockedSeats.map((seat) => ({
+      eventId,
+      showingId,
+      userId,
+      orderId: newOrder.id,
+      seatId: seat.seatId,
+      expiresAt,
+      isFinalized: false,
+      isPaid: false,
+    }));
+
+    await tx.insert(seatHolds).values(seatHoldsData);
+
+    return {
+      order: newOrder,
+      seats: lockedSeats,
+      totalAmount,
+    };
+  });
 }
 
 /**
@@ -209,6 +431,45 @@ export async function updateOrderStatus(orderId: string, status: OrderStatus) {
 }
 
 /**
+ * Marks an order as failed and flags its holds as released (confirmed + unpaid).
+ * Keeps records for audit while ensuring they no longer block availability.
+ */
+export async function failOrderAndReleaseSeatHolds(
+  orderId: string,
+  userId: string
+) {
+  return db.transaction(async (tx) => {
+    const [orderRow] = await tx
+      .update(orders)
+      .set({
+        status: "failed",
+        updatedAt: new Date(),
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    const releasedSeats = await tx
+      .update(seatHolds)
+      .set({
+        isFinalized: true,
+        isPaid: false,
+      })
+      .where(
+        and(
+          eq(seatHolds.orderId, orderId),
+          eq(seatHolds.userId, userId)
+        )
+      )
+      .returning({ seatId: seatHolds.seatId });
+
+    return {
+      order: orderRow,
+      releasedSeatIds: releasedSeats.map((seat) => seat.seatId),
+    };
+  });
+}
+
+/**
  * Confirms seat holds for a specific user and order
  * @param userId - The ID of the user
  * @param orderId - The ID of the order
@@ -227,7 +488,7 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
       .select()
       .from(seatHolds)
       .where(
-        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isFinalized, false))
       );
 
     if (seatHoldsList.length === 0) {
@@ -237,11 +498,11 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
     const updatedHolds = await db
       .update(seatHolds)
       .set({
-        isConfirmed: true,
+        isFinalized: true,
         isPaid: true,
       })
       .where(
-        and(eq(seatHolds.userId, userId), eq(seatHolds.isConfirmed, false))
+        and(eq(seatHolds.userId, userId), eq(seatHolds.isFinalized, false))
       )
       .returning();
 
@@ -253,7 +514,7 @@ export async function confirmSeatHolds(userId: string, orderId: string) {
   const updatedHolds = await db
     .update(seatHolds)
     .set({
-      isConfirmed: true,
+      isFinalized: true,
       isPaid: true,
     })
     .where(
@@ -313,7 +574,7 @@ export async function getUserUnconfirmedSeatHolds(
       and(
         eq(seatHolds.userId, userId),
         eq(seatHolds.orderId, orderId),
-        eq(seatHolds.isConfirmed, false)
+        eq(seatHolds.isFinalized, false)
       )
     );
 }
@@ -331,18 +592,45 @@ export async function executePaymentTransaction(
   ticketData: Pick<Ticket, "seatId" | "status">[]
 ) {
   return db.transaction(async (tx) => {
-    // 1. Update order status to paid
-    const [updatedOrder] = await tx
-      .update(orders)
-      .set({
-        status: "paid",
-        updatedAt: new Date(),
-      })
-      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
-      .returning();
+    const now = new Date();
 
-    if (!updatedOrder) {
+    const [orderRow] = await tx
+      .select()
+      .from(orders)
+      .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
+      .for("update");
+
+    if (!orderRow) {
       throw new Error("Order not found or user mismatch");
+    }
+
+    if (orderRow.status === "paid") {
+      const existingTickets = await tx
+        .select()
+        .from(tickets)
+        .where(eq(tickets.orderId, orderId));
+      return {
+        order: orderRow,
+        tickets: existingTickets,
+        seatCount: existingTickets.length,
+      };
+    }
+
+    if (
+      orderRow.status !== "pending_payment" &&
+      orderRow.status !== "pending"
+    ) {
+      throw new Error(
+        `Order is not payable in its current status: ${orderRow.status}`
+      );
+    }
+
+    if (orderRow.expiresAt && orderRow.expiresAt < now) {
+      await tx
+        .update(orders)
+        .set({ status: "expired", updatedAt: now })
+        .where(eq(orders.id, orderId));
+      throw new Error("Order has expired");
     }
 
     // 2. Get seat holds for this specific order
@@ -353,31 +641,63 @@ export async function executePaymentTransaction(
         and(
           eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
+          eq(seatHolds.isFinalized, false)
         )
-      );
+      )
+      .for("update");
 
     if (orderSeatHolds.length === 0) {
       throw new Error("No seat holds found for this order");
+    }
+
+    const expiredHold = orderSeatHolds.find(
+      (hold) => hold.expiresAt && hold.expiresAt < now
+    );
+    if (expiredHold) {
+      await tx
+        .update(orders)
+        .set({ status: "expired", updatedAt: now })
+        .where(eq(orders.id, orderId));
+      throw new Error("Seat holds have expired");
     }
 
     // 3. Confirm seat holds for this specific order
     await tx
       .update(seatHolds)
       .set({
-        isConfirmed: true,
+        isFinalized: true,
         isPaid: true,
       })
       .where(
         and(
           eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId),
-          eq(seatHolds.isConfirmed, false)
+          eq(seatHolds.isFinalized, false)
         )
       );
 
-    // 4. Create tickets with provided data
-    const seatIds = ticketData.map((data) => data.seatId);
+    const existingTickets = await tx
+      .select()
+      .from(tickets)
+      .where(eq(tickets.orderId, orderId));
+
+    if (existingTickets.length > 0) {
+      await tx
+        .update(orders)
+        .set({ status: "paid", updatedAt: now })
+        .where(eq(orders.id, orderId));
+      return {
+        order: { ...orderRow, status: "paid" },
+        tickets: existingTickets,
+        seatCount: existingTickets.length,
+      };
+    }
+
+    // 4. Create tickets with provided or derived data
+    const seatIds =
+      ticketData && ticketData.length > 0
+        ? ticketData.map((data) => data.seatId)
+        : orderSeatHolds.map((hold) => hold.seatId);
 
     // Fetch denormalized metadata for tickets (event/showing/price) from seat graph
     const seatsMeta = await tx
@@ -396,15 +716,17 @@ export async function executePaymentTransaction(
       seatsMeta.map((meta) => [meta.seatId, meta])
     );
 
-    const ticketsToInsert = ticketData.map((data) => {
-      const meta = seatsMetaById.get(data.seatId);
+    const ticketsToInsert = seatIds.map((seatId) => {
+      const meta = seatsMetaById.get(seatId);
       if (!meta) {
-        throw new Error(`Seat metadata not found for seat ${data.seatId}`);
+        throw new Error(`Seat metadata not found for seat ${seatId}`);
       }
+      const ticketStatus =
+        ticketData?.find((data) => data.seatId === seatId)?.status ?? "active";
       return {
         orderId,
-        seatId: data.seatId,
-        status: data.status,
+        seatId,
+        status: ticketStatus,
         eventId: meta.eventId,
         showingId: meta.showingId,
         price: meta.price,
@@ -414,6 +736,15 @@ export async function executePaymentTransaction(
     const createdTickets = await tx
       .insert(tickets)
       .values(ticketsToInsert)
+      .returning();
+
+    const [updatedOrder] = await tx
+      .update(orders)
+      .set({
+        status: "paid",
+        updatedAt: now,
+      })
+      .where(eq(orders.id, orderId))
       .returning();
 
     return {

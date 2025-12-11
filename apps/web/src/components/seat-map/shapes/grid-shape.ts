@@ -184,12 +184,10 @@ export const removeSeatsFromGrid = (seatIds: string[]): void => {
 export const cleanupEmptyGrids = (): void => {
   if (!areaModeContainer) return;
 
-  // Remove empty rows from grids
   areaModeContainer.children.forEach((grid) => {
     grid.children = grid.children.filter((row) => row.children.length > 0);
   });
 
-  // Remove empty grids
   areaModeContainer.children = areaModeContainer.children.filter(
     (grid) => grid.children.length > 0
   );
@@ -218,11 +216,9 @@ export const createSeatGrid = (
   const effectivePrice =
     basePrice ?? areaModeContainer?.defaultSeatSettings.price ?? 0;
 
-  // Create grid graphics
   const gridGraphics = new PIXI.Container();
   gridGraphics.eventMode = "static";
 
-  // Create GridShape
   const gridShape: GridShape = {
     id: gridId,
     name: gridName,
@@ -257,10 +253,8 @@ export const createSeatGrid = (
     createdAt: new Date(),
   };
 
-  // Set grid graphics position
   gridGraphics.position.set(startX, startY);
 
-  // Create rows
   for (let row = 0; row < rows; row++) {
     const rowShape = createRowShape(
       gridId,
@@ -268,17 +262,14 @@ export const createSeatGrid = (
       effectiveSeatSpacing
     );
 
-    // ✅ Row position is relative to grid (0, 0)
     rowShape.x = 0;
     rowShape.y = row * effectiveRowSpacing;
     rowShape.graphics.position.set(0, row * effectiveRowSpacing);
     rowShape.labelPlacement = "none";
 
-    // Create seats for this row
     for (let seat = 0; seat < seatsPerRow; seat++) {
-      // ✅ Seat position is relative to row (0, 0)
       const seatX = seat * effectiveSeatSpacing;
-      const seatY = 0; // Centered in row
+      const seatY = 0;
 
       const seatShape = createSeat(
         seatX,
@@ -309,7 +300,6 @@ export const createSeatGrid = (
     gridGraphics.addChild(rowShape.graphics);
   }
 
-  // Add grid to area mode container
   if (areaModeContainer) {
     areaModeContainer.children.push(gridShape);
   }
@@ -351,15 +341,12 @@ export const updateGridGraphics = (grid: GridShape): void => {
     rowsMap.set(row.id, row);
     allSeats.push(...row.children);
 
-    // row.y = rowIndex * grid.seatSettings.rowSpacing;
-    // row.graphics.position.set(row.x, row.y);
-
     updateRowGraphics(row, grid);
   });
 };
 
 /**
- * Update grid settings
+ * Update grid settings (for UI interactions - applies changes to seats)
  */
 export const updateGridSettings = (
   gridId: string,
@@ -377,6 +364,23 @@ export const updateGridSettings = (
     row.seatSpacing = grid.seatSettings.seatSpacing;
   });
   updateGridGraphics(grid);
+};
+
+/**
+ * ✅ Update grid settings (for undo/redo - only updates grid properties, not seats)
+ */
+export const restoreGridSettings = (
+  gridId: string,
+  settingsUpdate: Partial<SeatGridSettings>
+): void => {
+  if (!areaModeContainer) return;
+
+  const grid = areaModeContainer.children.find(
+    (g) => g.id === gridId
+  ) as GridShape;
+  if (!grid) return;
+
+  grid.seatSettings = { ...grid.seatSettings, ...settingsUpdate };
 };
 
 /**
@@ -421,6 +425,70 @@ export const preserveSeatIndividualSettings = (seatIds: string[]): void => {
   });
 };
 
+export const addRowToGrid = (
+  gridId: string,
+  seatsCount: number,
+  rowName: string
+): RowShape | undefined => {
+  if (!areaModeContainer) return;
+
+  const grid = areaModeContainer.children.find(
+    (g) => g.id === gridId
+  ) as GridShape;
+  if (!grid) return;
+
+  // Calculate the Y position for the new row
+  const rowY = grid.children.length * grid.seatSettings.rowSpacing;
+
+  // Create the new row
+  const newRow = createRowShape(gridId, rowName, grid.seatSettings.seatSpacing);
+  newRow.y = rowY;
+  newRow.graphics.position.set(0, rowY);
+
+  // Get the last row to check for bending
+  const lastRow =
+    grid.children.length > 0 ? grid.children[grid.children.length - 1] : null;
+
+  // Add seats to the row
+  for (let i = 0; i < seatsCount; i++) {
+    const seatX = i * grid.seatSettings.seatSpacing;
+
+    // ✅ Check if the last row has a seat at this index to copy its Y position (for bent rows)
+    let seatY = 0;
+    if (lastRow && lastRow.children[i]) {
+      // Use the same Y position as the corresponding seat in the last row
+      seatY = lastRow.children[i].y;
+    }
+
+    const seat = createSeat(
+      seatX,
+      seatY, // ✅ Use the bent Y position if available
+      newRow.id,
+      gridId,
+      grid.children.length,
+      i,
+      grid.seatSettings,
+      true,
+      generateShapeId()
+    );
+    seat.name = `${i + 1}`;
+    newRow.children.push(seat);
+    newRow.graphics.addChild(seat.graphics);
+  }
+
+  // Add row to grid
+  grid.children.push(newRow);
+  grid.graphics.addChild(newRow.graphics);
+
+  // Update row label
+  if (newRow.labelPlacement !== "none") {
+    newRow.labelGraphics = createRowLabel(newRow);
+    newRow.graphics.addChild(newRow.labelGraphics);
+    updateRowLabelPosition(newRow);
+  }
+  return newRow;
+};
+
 /**
  * ✅ Recreate GridShape
  */
@@ -451,20 +519,18 @@ export async function recreateGridShape(
     createdAt: gridData.createdAt,
   };
 
-  // ✅ Recreate RowShape children with grid's seat settings
   if (gridData.children && gridData.children.length > 0) {
     for (let rowIndex = 0; rowIndex < gridData.children.length; rowIndex++) {
       const rowData = gridData.children[rowIndex];
       try {
-        // ✅ If row spacing changed, update row Y position
         const updatedRowData = {
           ...rowData,
-          y: rowIndex * recreatedGrid.seatSettings.rowSpacing, // Apply new row spacing
+          y: rowIndex * recreatedGrid.seatSettings.rowSpacing,
         };
 
         const recreatedRow = await recreateRowShape(
           updatedRowData,
-          recreatedGrid.seatSettings // ✅ Pass grid's seat settings to row recreation
+          recreatedGrid.seatSettings
         );
 
         recreatedGrid.children.push(recreatedRow);
@@ -486,22 +552,38 @@ export async function recreateGridShape(
 
 export const createNewGridFromSelection = () => {
   const updateShapes = useSeatMapStore.getState().updateShapes;
-  const selectedShapes = useSeatMapStore.getState()
-    .selectedShapes as SeatShape[];
+  const selectedShapes = useSeatMapStore.getState().selectedShapes;
   if (!areaModeContainer || selectedShapes.length === 0) return;
 
-  // ✅ Capture the original grid state before extraction
-  const originalGrid = getGridById(selectedShapes[0].gridId);
+  const selectedSeats = selectedShapes.filter(
+    (shape): shape is SeatShape =>
+      shape.type === "ellipse" && "rowId" in shape && "gridId" in shape
+  );
+  const selectedRows = selectedShapes.filter(
+    (shape): shape is RowShape =>
+      shape.type === "container" && "rowName" in shape && "gridId" in shape
+  );
+
+  const allSeatsToExtract: SeatShape[] = [...selectedSeats];
+  selectedRows.forEach((row) => {
+    allSeatsToExtract.push(...row.children);
+  });
+
+  const uniqueSeats = Array.from(
+    new Map(allSeatsToExtract.map((seat) => [seat.id, seat])).values()
+  );
+
+  if (uniqueSeats.length === 0) return;
+  const originalGrid = getGridById(uniqueSeats[0].gridId);
   if (!originalGrid) return;
   const originalGridClone = cloneCanvasItem(originalGrid);
 
-  const newGrid = extractToNewGrid(selectedShapes, originalGrid);
+  const newGrid = extractToNewGrid(uniqueSeats, originalGrid);
   if (!newGrid) return;
 
   const modifiedOriginalGrid = cloneCanvasItem(originalGrid);
   const newGridClone = cloneCanvasItem(newGrid);
 
-  // ✅ Save to history using _saveToHistory with proper context
   const context = {
     topLevel: [
       { id: originalGrid.id, type: "grid", parentId: null },
@@ -513,18 +595,17 @@ export const createNewGridFromSelection = () => {
 
   const action = useSeatMapStore.getState()._saveToHistory(
     {
-      shapes: [originalGridClone], // Before state: original grid
+      shapes: [originalGridClone],
       selectedShapes: selectedShapes,
       context,
     },
     {
-      shapes: [modifiedOriginalGrid, newGridClone], // After state: both grids
+      shapes: [modifiedOriginalGrid, newGridClone],
       selectedShapes: [newGrid],
       context,
     }
   );
 
-  // Update with the entire shapes array
   const shapes = useSeatMapStore.getState().shapes;
   updateShapes([...shapes], false, undefined, false);
   SeatMapCollaboration.broadcastShapeChange(action);
@@ -535,19 +616,29 @@ export const createNewGridFromSelection = () => {
 };
 
 export function extractToNewGrid(
-  selectedShapes: SeatShape[],
+  seatsToExtract: SeatShape[],
   originalGrid: GridShape,
   gridId?: string
 ): GridShape | undefined {
+  if (!seatsToExtract || seatsToExtract.length === 0) return;
+
   const seatsByRow = new Map<string, SeatShape[]>();
-  selectedShapes.forEach((seat) => {
+  seatsToExtract.forEach((seat) => {
     if (!seatsByRow.has(seat.rowId)) {
       seatsByRow.set(seat.rowId, []);
     }
     seatsByRow.get(seat.rowId)!.push(seat);
   });
 
-  // ✅ Sort rows by their Y position to maintain order
+  const rowsToExtract: RowShape[] = [];
+  seatsByRow.forEach((seats, rowId) => {
+    const originalRow = getRowById(originalGrid.id, rowId);
+    if (originalRow && seats.length === originalRow.children.length) {
+      rowsToExtract.push(originalRow);
+    }
+  });
+  console.log("Rows to Extract:", rowsToExtract, seatsByRow);
+
   const sortedRowEntries = Array.from(seatsByRow.entries()).sort(
     ([, seatsA], [, seatsB]) => {
       const rowA = getRowById(originalGrid.id, seatsA[0].rowId);
@@ -556,7 +647,6 @@ export function extractToNewGrid(
     }
   );
 
-  // ✅ Get the first seat of the first row that was selected
   const firstRowSeats = sortedRowEntries[0][1];
   const firstRowOriginalRow = getRowById(
     originalGrid.id,
@@ -564,40 +654,32 @@ export function extractToNewGrid(
   );
   if (!firstRowOriginalRow) return;
 
-  // Sort seats in first row by X position to get the leftmost seat
   const firstSeat = firstRowSeats.sort((a, b) => a.x - b.x)[0];
 
-  // ✅ Calculate the world position of the first seat WITHOUT rotation (for subtraction)
   const firstSeatWorldX = originalGrid.x + firstRowOriginalRow.x + firstSeat.x;
   const firstSeatWorldY = originalGrid.y + firstRowOriginalRow.y + firstSeat.y;
 
-  // ✅ Get rotation values for grid and row
   const gridRotation = originalGrid.rotation || 0;
   const rowRotation = firstRowOriginalRow.rotation || 0;
   const totalRotation = gridRotation + rowRotation;
 
-  // ✅ Calculate the rotated position of the first seat for grid placement
   let rotatedFirstSeatX = firstSeatWorldX;
   let rotatedFirstSeatY = firstSeatWorldY;
 
   if (totalRotation !== 0) {
-    // Calculate relative position of first seat to grid center
     const relativeX = firstRowOriginalRow.x + firstSeat.x;
     const relativeY = firstRowOriginalRow.y + firstSeat.y;
 
-    // Apply grid rotation
     const cos = Math.cos(gridRotation);
     const sin = Math.sin(gridRotation);
 
     const rotatedRelativeX = relativeX * cos - relativeY * sin;
     const rotatedRelativeY = relativeX * sin + relativeY * cos;
 
-    // If row has additional rotation, apply it
     if (rowRotation !== 0) {
       const rowCos = Math.cos(rowRotation);
       const rowSin = Math.sin(rowRotation);
 
-      // Apply row rotation to seat position relative to row
       const seatRelativeToRowX = firstSeat.x;
       const seatRelativeToRowY = firstSeat.y;
 
@@ -606,11 +688,9 @@ export function extractToNewGrid(
       const rotatedSeatY =
         seatRelativeToRowX * rowSin + seatRelativeToRowY * rowCos;
 
-      // Combine with rotated row position
       rotatedFirstSeatX = originalGrid.x + rotatedRelativeX + rotatedSeatX;
       rotatedFirstSeatY = originalGrid.y + rotatedRelativeY + rotatedSeatY;
     } else {
-      // Only grid rotation
       rotatedFirstSeatX = originalGrid.x + rotatedRelativeX;
       rotatedFirstSeatY = originalGrid.y + rotatedRelativeY;
     }
@@ -621,29 +701,27 @@ export function extractToNewGrid(
   const newGridName = areaModeContainer!.children.length + 1;
   newGridGraphics.eventMode = "static";
 
-  // ✅ Set the position of the new grid to the ROTATED position of the first seat
   const newGrid: GridShape = {
     id: newGridId,
     name: `Grid ${newGridName}`,
     type: "container",
     x: rotatedFirstSeatX,
     y: rotatedFirstSeatY,
-    rotation: originalGrid.rotation || 0, // ✅ Inherit rotation
-    scaleX: originalGrid.scaleX || 1, // ✅ Inherit scale X
-    scaleY: originalGrid.scaleY || 1, // ✅ Inherit scale Y
-    opacity: originalGrid.opacity || 1, // ✅ Inherit opacity
-    visible: originalGrid.visible, // ✅ Inherit visibility
-    interactive: originalGrid.interactive, // ✅ Inherit interactivity
+    rotation: originalGrid.rotation || 0,
+    scaleX: originalGrid.scaleX || 1,
+    scaleY: originalGrid.scaleY || 1,
+    opacity: originalGrid.opacity || 1,
+    visible: originalGrid.visible,
+    interactive: originalGrid.interactive,
     selected: false,
-    expanded: originalGrid.expanded, // ✅ Inherit expanded state
+    expanded: originalGrid.expanded,
     graphics: newGridGraphics,
     children: [],
     gridName: `Grid ${newGridName}`,
-    seatSettings: { ...originalGrid.seatSettings }, // ✅ Deep copy seat settings
+    seatSettings: { ...originalGrid.seatSettings },
     createdAt: new Date(),
   };
 
-  // ✅ Apply all transform properties to graphics
   newGridGraphics.position.set(newGrid.x, newGrid.y);
   newGridGraphics.rotation = newGrid.rotation;
   newGridGraphics.scale.set(newGrid.scaleX, newGrid.scaleY);
@@ -654,21 +732,20 @@ export function extractToNewGrid(
     const originalRow = getRowById(originalGrid.id, originalRowId);
     if (!originalRow) return;
 
+    const isFullRowExtraction = rowSeats.length === originalRow.children.length;
+
     const newRow = createRowShape(
       newGridId,
       `${originalRow.rowName}`,
       originalRow.seatSpacing
     );
 
-    // ✅ Calculate row position relative to the first seat's position (WITHOUT rotation)
     const originalRowWorldX = originalGrid.x + originalRow.x;
     const originalRowWorldY = originalGrid.y + originalRow.y;
 
-    // ✅ Use the NON-ROTATED first seat coordinates for subtraction
     newRow.x = originalRowWorldX - firstSeatWorldX;
     newRow.y = originalRowWorldY - firstSeatWorldY;
 
-    // ✅ Inherit row transform properties from original row
     newRow.rotation = originalRow.rotation || 0;
     newRow.scaleX = originalRow.scaleX || 1;
     newRow.scaleY = originalRow.scaleY || 1;
@@ -677,58 +754,67 @@ export function extractToNewGrid(
     newRow.interactive = originalRow.interactive;
     newRow.expanded = originalRow.expanded;
 
-    // ✅ Inherit row-specific properties
     newRow.seatSpacing = originalRow.seatSpacing;
     newRow.labelPlacement = originalRow.labelPlacement || "none";
 
-    // ✅ Apply all transform properties to row graphics
     newRow.graphics.position.set(newRow.x, newRow.y);
     newRow.graphics.rotation = newRow.rotation;
     newRow.graphics.scale.set(newRow.scaleX, newRow.scaleY);
     newRow.graphics.alpha = newRow.opacity;
     newRow.graphics.visible = newRow.visible;
 
-    // Remove seats from original row
-    originalRow.children = originalRow.children.filter(
-      (seat: SeatShape) => !rowSeats.find((rs) => rs.id === seat.id)
-    );
+    // ✅ Handle removal BEFORE processing seats
+    if (isFullRowExtraction) {
+      const rowIndex = originalGrid.children.findIndex(
+        (r) => r.id === originalRowId
+      );
+      if (rowIndex !== -1) {
+        originalGrid.children.splice(rowIndex, 1);
+        // Don't destroy graphics yet, we still need to move the seats
+      }
+    } else {
+      // Remove seats from original row's children array
+      originalRow.children = originalRow.children.filter(
+        (seat: SeatShape) => !rowSeats.find((rs) => rs.id === seat.id)
+      );
+    }
 
-    // ✅ Sort seats by their X position to maintain order
     const sortedSeats = rowSeats.sort((a, b) => a.x - b.x);
 
     sortedSeats.forEach((seat, index) => {
-      // Remove from original graphics
-      if (seat.graphics.parent) {
+      // ✅ Remove from parent if it exists
+      if (seat.graphics && seat.graphics.parent) {
         seat.graphics.parent.removeChild(seat.graphics);
       }
 
-      // ✅ Calculate original world position of this seat (WITHOUT rotation)
       const originalSeatWorldX = originalGrid.x + originalRow.x + seat.x;
       const originalSeatWorldY = originalGrid.y + originalRow.y + seat.y;
 
-      // ✅ Subtract using NON-ROTATED first seat coordinates
       const newLocalX = originalSeatWorldX - firstSeatWorldX - newRow.x;
       const newLocalY = originalSeatWorldY - firstSeatWorldY - newRow.y;
 
       seat.name = `${index + 1}`;
 
-      // Update seat properties
       seat.gridId = newGridId;
       seat.rowId = newRow.id;
 
-      // ✅ Set seat position relative to first seat (non-rotated coordinates)
       seat.x = newLocalX;
       seat.y = newLocalY;
 
-      // ✅ Update graphics position to match logical position
-      seat.graphics.position.set(seat.x, seat.y);
+      // ✅ Only set position if graphics exists
+      if (seat.graphics) {
+        seat.graphics.position.set(seat.x, seat.y);
+      }
 
-      // Add to new row
       newRow.children.push(seat);
       newRow.graphics.addChild(seat.graphics);
     });
 
-    // ✅ Recreate row label if it exists
+    // ✅ Now destroy the original row graphics if it was fully extracted
+    if (isFullRowExtraction && originalRow.graphics) {
+      originalRow.graphics.destroy({ children: true });
+    }
+
     if (newRow.labelPlacement !== "none") {
       newRow.labelGraphics = createRowLabel(newRow);
       newRow.graphics.addChild(newRow.labelGraphics);
@@ -739,17 +825,21 @@ export function extractToNewGrid(
     newGridGraphics.addChild(newRow.graphics);
   });
 
-  // Add new grid to area mode container
   areaModeContainer!.children.push(newGrid);
 
-  // Add new grid graphics to area mode container graphics
   if (areaModeContainer!.graphics) {
     areaModeContainer!.graphics.addChild(newGridGraphics);
   }
 
-  // ✅ Update graphics for all affected rows to ensure proper event handling
   newGrid.children.forEach((row) => {
     updateRowGraphics(row, newGrid, false);
   });
+
+  originalGrid.children = originalGrid.children.filter(
+    (row) => row.children.length > 0
+  );
+
+  updateGridGraphics(originalGrid);
+
   return newGrid;
 }

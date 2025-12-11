@@ -63,12 +63,15 @@ import {
   getGridById,
   recreateGridShape,
   removeSeatFromGrid,
+  restoreGridSettings,
   updateGridGraphics,
 } from "../shapes/grid-shape";
 import {
   createRowLabel,
   createRowShape,
   recreateRowShape,
+  restoreRowLabelPlacement,
+  restoreRowSettings,
   updateMultipleRowLabelRotations,
   updateRowGraphics,
   updateRowLabelPosition,
@@ -222,6 +225,13 @@ const applyDeltaRestore = async (
                 );
                 if (childIndex !== -1) {
                   const childToRemove = container.children[childIndex];
+                  console.log(
+                    "Removing nested shape:",
+                    targetId,
+                    "from parent:",
+                    parentId,
+                    childToRemove
+                  );
 
                   eventManager?.removeShapeEvents(childToRemove);
                   if (childToRemove.graphics && childToRemove.graphics.parent) {
@@ -618,9 +628,34 @@ const applyDeltaRestore = async (
                   break;
                 case "container":
                   if ("gridName" in (existingShape as GridShape)) {
-                    updateGridGraphics(existingShape as GridShape);
+                    const grid = existingShape as GridShape;
+                    const gridToApply = shapeToApply as GridShape;
+
+                    restoreGridSettings(grid.id, gridToApply.seatSettings);
+
+                    grid.graphics.position.set(grid.x, grid.y);
+                    grid.graphics.rotation = grid.rotation || 0;
+                    grid.graphics.scale.set(grid.scaleX || 1, grid.scaleY || 1);
+                    grid.graphics.alpha = grid.opacity || 1;
+                    grid.graphics.visible = grid.visible;
                   } else if ("rowName" in (existingShape as RowShape)) {
-                    updateRowGraphics(existingShape as RowShape);
+                    const row = existingShape as RowShape;
+                    const rowToApply = shapeToApply as RowShape;
+
+                    restoreRowSettings(row.gridId, row.id, {
+                      rowName: rowToApply.rowName,
+                      seatSpacing: rowToApply.seatSpacing,
+                    });
+
+                    if (rowToApply.labelPlacement !== undefined) {
+                      restoreRowLabelPlacement(row, rowToApply.labelPlacement);
+                    }
+
+                    row.graphics.position.set(row.x, row.y);
+                    row.graphics.rotation = row.rotation || 0;
+                    row.graphics.scale.set(row.scaleX || 1, row.scaleY || 1);
+                    row.graphics.alpha = row.opacity || 1;
+                    row.graphics.visible = row.visible;
                   } else {
                     updateContainerGraphics(existingShape as ContainerGroup);
                   }
@@ -869,14 +904,6 @@ export const recreateShape = async (
         recreatedShape = await recreateGridShape(containerData as GridShape);
       } else if ((containerData as RowShape).rowName !== undefined) {
         const rowData = containerData as RowShape;
-
-        // let currentSeatSettings: SeatGridSettings | undefined;
-        // if (areaModeContainer) {
-        //   const grid = getGridById(rowData.gridId);
-        //   if (grid) {
-        //     currentSeatSettings = grid.seatSettings;
-        //   }
-        // }
 
         recreatedShape = await recreateRowShape(rowData, undefined, true);
       } else {
@@ -1158,17 +1185,14 @@ export const restoreHistoryAfterSeatMapLoad = async (
   const store = useSeatMapStore.getState();
 
   try {
-    // Restore history from localStorage
     const storedData = loadHistoryFromStorage(seatMapId);
 
     if (storedData) {
       const { historyStack, currentIndex: currentHistoryIndex } = storedData;
       if (historyStack.length > 0 && currentHistoryIndex >= 0) {
-        // Get the current state by applying all actions up to currentHistoryIndex
         for (let i = 0; i <= currentHistoryIndex; i++) {
           const action = historyStack[i];
           try {
-            // Apply each action to build up the current state
             await applyDeltaRestore(action, false, false, false);
           } catch (error) {
             console.error(`Failed to apply stored action ${action.id}:`, error);
@@ -1185,7 +1209,7 @@ export const restoreHistoryAfterSeatMapLoad = async (
     return false;
   } catch (error) {
     console.error("Failed to restore history after seat map load:", error);
-    // Clear corrupted history
+
     store.clearStoredHistory();
     return false;
   }

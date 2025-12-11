@@ -15,7 +15,7 @@ import { updateContainerGraphics } from "../shapes/container-shape";
 import { findParentContainer, updateSeatGraphics } from "../shapes";
 import { calculateWorldTransform, calculateGroupBounds } from "./bounds";
 import { getSelectionTransform } from "../events/transform-events";
-import { getGridByRowId } from "../shapes/row-shape";
+import { getGridByRowId, updateRowLabelRotation } from "../shapes/row-shape";
 
 /**
  * Mirror types
@@ -85,6 +85,9 @@ const mirrorContainer = (
   if ("gridName" in container) {
     const shape = container as GridShape;
     shape.children.forEach((row) => {
+      // ✅ Update row label rotation for mirroring
+      updateRowLabelRotationForMirroring(row, shape, direction);
+
       row.children.forEach((seat) => {
         updateSeatLabelRotationForMirroring(seat, row, shape, direction);
       });
@@ -92,6 +95,10 @@ const mirrorContainer = (
   } else if ("rowName" in container) {
     const row = container as RowShape;
     const grid = getGridByRowId(row.id);
+
+    // ✅ Update row label rotation for mirroring
+    updateRowLabelRotationForMirroring(row, grid, direction);
+
     row.children.forEach((seat) => {
       updateSeatLabelRotationForMirroring(seat, row, grid!, direction);
     });
@@ -99,6 +106,65 @@ const mirrorContainer = (
 
   // Update container graphics (don't change container's own transforms)
   updateContainerGraphics(container);
+};
+
+/**
+ * ✅ Update row label rotation when mirroring
+ */
+export const updateRowLabelRotationForMirroring = (
+  row: RowShape,
+  grid?: GridShape,
+  direction?: MirrorDirection
+): void => {
+  if (!row.labelGraphics || row.labelPlacement === "none") return;
+
+  // If grid is not provided, find it
+  if (!grid && areaModeContainer) {
+    grid = getGridByRowId(row.id);
+  }
+
+  // Calculate total rotation from row and grid
+  let totalRotation = (row.rotation || 0) + (grid?.rotation || 0);
+
+  // Calculate effective scale from row and grid
+  let effectiveScaleX = row.scaleX || 1;
+  let effectiveScaleY = row.scaleY || 1;
+
+  if (grid) {
+    effectiveScaleX *= grid.scaleX || 1;
+    effectiveScaleY *= grid.scaleY || 1;
+  }
+
+  // Counter negative scales to prevent flipped text
+  const labelScaleX = effectiveScaleX < 0 ? -1 : 1;
+  const labelScaleY = effectiveScaleY < 0 ? -1 : 1;
+
+  // Apply the counter-scale to keep text readable
+  row.labelGraphics.scale.set(labelScaleX, labelScaleY);
+
+  // Base label rotation to counter the total rotation
+  let labelRotation = -totalRotation;
+
+  // Check if any parent containers are mirrored
+  const isHorizontallyMirrored = effectiveScaleX < 0;
+  const isVerticallyMirrored = effectiveScaleY < 0;
+
+  // Apply additional rotation adjustments for mirrored states
+  if (isHorizontallyMirrored && isVerticallyMirrored) {
+    // Both mirrored - no additional adjustment needed
+  } else if (isHorizontallyMirrored) {
+    // Horizontally mirrored - flip rotation
+    labelRotation = -labelRotation;
+  } else if (isVerticallyMirrored) {
+    // Vertically mirrored - flip rotation
+    labelRotation = -labelRotation;
+  }
+
+  // Normalize rotation to [-π, π]
+  while (labelRotation > Math.PI) labelRotation -= 2 * Math.PI;
+  while (labelRotation < -Math.PI) labelRotation += 2 * Math.PI;
+
+  row.labelGraphics.rotation = labelRotation;
 };
 
 export const updateSeatLabelRotationForMirroring = (
@@ -170,9 +236,12 @@ export const updateSeatLabelRotationForMirroring = (
 
   // Apply additional rotation adjustments for mirrored states
   if (isHorizontallyMirrored && isVerticallyMirrored) {
+    // Both mirrored - no additional adjustment needed
   } else if (isHorizontallyMirrored) {
+    // Horizontally mirrored - flip rotation
     labelRotation = -labelRotation;
   } else if (isVerticallyMirrored) {
+    // Vertically mirrored - flip rotation
     labelRotation = -labelRotation;
   }
 
