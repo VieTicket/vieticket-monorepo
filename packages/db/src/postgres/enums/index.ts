@@ -85,7 +85,7 @@ export const REFUND_REASON_VALUES = [
 export type RefundReason = (typeof REFUND_REASON_VALUES)[number];
 export const refundReasonEnum = pgEnum("refund_reason", REFUND_REASON_VALUES);
 
-export const EVENT_APPROVAL_STATUS_VALUES = ["pending", "approved", "rejected"] as const;
+export const EVENT_APPROVAL_STATUS_VALUES = ["NotYet", "pending", "approved", "rejected"] as const;
 export type EventApprovalStatus = typeof EVENT_APPROVAL_STATUS_VALUES[number];
 export const eventApprovalStatusEnum = pgEnum("event_approval_status", EVENT_APPROVAL_STATUS_VALUES);
 

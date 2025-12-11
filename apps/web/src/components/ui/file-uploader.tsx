@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import axios from "axios";
 
 // Define the structure of the Cloudinary upload response
-interface CloudinaryUploadResponse {
+export interface CloudinaryUploadResponse {
   secure_url: string;
   public_id: string;
   version: number;
@@ -107,6 +107,35 @@ export const uploadFileToCloudinary = async (
   onProgress?: (progress: number) => void
 ): Promise<CloudinaryUploadResponse> => {
   return uploadBlobToCloudinary(file, file.name, folder, onProgress);
+};
+
+// Utility function để upload multiple files lên Cloudinary
+export const uploadMultipleFilesToCloudinary = async (
+  files: File[],
+  folder: string,
+  onProgress?: (fileIndex: number, progress: number) => void,
+  onComplete?: (fileIndex: number, result: CloudinaryUploadResponse) => void
+): Promise<CloudinaryUploadResponse[]> => {
+  const results: CloudinaryUploadResponse[] = [];
+  
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    try {
+      const result = await uploadBlobToCloudinary(
+        file,
+        file.name,
+        folder,
+        (progress) => onProgress?.(i, progress)
+      );
+      results.push(result);
+      onComplete?.(i, result);
+    } catch (error) {
+      console.error(`Failed to upload file ${file.name}:`, error);
+      throw error;
+    }
+  }
+  
+  return results;
 };
 
 // Define the props for our component

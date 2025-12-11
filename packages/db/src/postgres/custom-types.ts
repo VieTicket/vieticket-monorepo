@@ -41,6 +41,7 @@ export type OrganizerMetadata = {
 /** Event-level metadata such as proof documents. */
 export type EventMetadata = {
   eventProofDocuments: ProofDocument[];
+  contractScreenshotUrl?: string | null;
 };
 
 export type PaymentMetadata = {

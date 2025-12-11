@@ -41,7 +41,7 @@ export const events = pgTable(
     bannerUrl: varchar("banner_url", { length: 255 }),
     views: integer().notNull().default(0),
     approvalStatus:
-      eventApprovalStatusEnum("approval_status").default("pending"),
+      eventApprovalStatusEnum("approval_status").default("NotYet"),
     lifecycleStatus: eventLifecycleStatusEnum("lifecycle_status")
       .default("scheduled")
       .notNull(),

@@ -151,14 +151,14 @@ export default function EventList({
               {t("allEvents")}
             </button>
             <button
-              onClick={() => setStatusFilter("approved")}
+              onClick={() => setStatusFilter("NotYet")}
               className={`px-1.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[28px] sm:min-h-[32px] flex items-center justify-center ${
-                statusFilter === "approved"
-                  ? "bg-green-100 text-green-800 shadow-md transform scale-105 border border-green-200"
-                  : "text-gray-600 hover:text-green-700 hover:bg-green-50"
+                statusFilter === "NotYet"
+                  ? "bg-blue-100 text-blue-800 shadow-md transform scale-105 border border-blue-200"
+                  : "text-gray-600 hover:text-blue-700 hover:bg-blue-50"
               }`}
             >
-              {t("approved")}
+              Draft
             </button>
             <button
               onClick={() => setStatusFilter("pending")}
@@ -169,6 +169,16 @@ export default function EventList({
               }`}
             >
               {t("pending")}
+            </button>
+            <button
+              onClick={() => setStatusFilter("approved")}
+              className={`px-1.5 sm:px-3 md:px-4 py-1 sm:py-1.5 md:py-2 rounded-md sm:rounded-lg text-xs sm:text-sm font-medium transition-all duration-200 whitespace-nowrap min-h-[28px] sm:min-h-[32px] flex items-center justify-center ${
+                statusFilter === "approved"
+                  ? "bg-green-100 text-green-800 shadow-md transform scale-105 border border-green-200"
+                  : "text-gray-600 hover:text-green-700 hover:bg-green-50"
+              }`}
+            >
+              {t("approved")}
             </button>
             <button
               onClick={() => setStatusFilter("rejected")}
@@ -198,8 +208,9 @@ export default function EventList({
                   event.endTime instanceof Date
                     ? event.endTime.toISOString()
                     : String(event.endTime),
-                approvalStatus: event.approvalStatus ?? "pending",
+                approvalStatus: event.approvalStatus ?? "NotYet",
                 bannerUrl: event.bannerUrl ?? undefined,
+                location: event.location ?? null,
               }}
               onEventDeleted={onEventDeleted}
             />

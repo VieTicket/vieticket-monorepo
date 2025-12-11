@@ -394,6 +394,12 @@ export async function handleCreateEvent(
   }
 
   console.log("Showings after seat map assignment:", showings);
+  
+  // For normal event creation, always start with "NotYet" status and null metadata
+  // Evidence will be submitted separately via EventCard button
+  const eventMetadata = null;
+  const approvalStatus: "NotYet" = "NotYet";
+  
   const eventPayload = {
     id: eventId,
     name: eventName,
@@ -411,12 +417,13 @@ export async function handleCreateEvent(
     seatMapId: duplicatedSeatMapId ? duplicatedSeatMapId[0] : null,
     organizerId,
     organizationId: null,
-    approvalStatus: "pending" as const,
+    approvalStatus,
     views: 0,
     createdAt: new Date(),
     updatedAt: new Date(),
     lifecycleStatus: "scheduled" as const,
     autoApproveRefund: false as const,
+    eventMetadata,
   };
 
   let result;
@@ -548,6 +555,64 @@ export async function handleUpdateEvent(formData: FormData) {
     const organizerId = session.user.id;
 
     const eventId = formData.get("eventId") as string;
+    const evidenceDataStr = formData.get("evidenceData") as string;
+    
+    // Check if this is an evidence-only submission
+    const isEvidenceOnlySubmission = evidenceDataStr && !formData.get("name");
+    
+    if (isEvidenceOnlySubmission) {
+      // Handle evidence-only submission - just update metadata and approval status
+      const existingEvent = await getEventById(eventId);
+      if (!existingEvent) {
+        return { success: false, error: "Event not found" };
+      }
+
+      // Parse evidence data
+      let eventMetadata = existingEvent.eventMetadata;
+      let approvalStatus = existingEvent.approvalStatus;
+      
+      if (evidenceDataStr) {
+        try {
+          const evidenceData = JSON.parse(evidenceDataStr);
+          eventMetadata = {
+            eventProofDocuments: evidenceData.evidenceDocuments,
+            contractScreenshotUrl: evidenceData.contractScreenshotUrl || null,
+          };
+          if (existingEvent.approvalStatus === "NotYet") {
+            approvalStatus = "pending";
+          }
+        } catch (error) {
+          console.error("Failed to parse evidence data:", error);
+          return { success: false, error: "Invalid evidence data format" };
+        }
+      }
+
+      // Use direct database update to avoid area validation
+      try {
+        const { db } = await import("@/lib/db");
+        const { events } = await import("@vieticket/db/pg/schema");
+        const { eq } = await import("drizzle-orm");
+        
+        await db
+          .update(events)
+          .set({
+            approvalStatus: approvalStatus as any,
+            eventMetadata,
+            updatedAt: new Date(),
+          })
+          .where(eq(events.id, eventId));
+
+        revalidatePath("/organizer/events");
+        revalidatePath("/organizer");
+        revalidatePath(`/event/${existingEvent.slug}`);
+        return { success: true, data: { eventId } };
+      } catch (error) {
+        console.error("Failed to update event metadata:", error);
+        return { success: false, error: "Failed to update event" };
+      }
+    }
+
+    // Continue with full event update logic
     const eventName = formData.get("name") as string;
     const description = formData.get("description") as string;
     const location = formData.get("location") as string;
@@ -805,10 +870,10 @@ export async function handleUpdateEvent(formData: FormData) {
         ? new Date(existingEvent.createdAt)
         : new Date(),
       views: existingEvent.views,
-      approvalStatus: existingEvent.approvalStatus,
+      approvalStatus: existingEvent.approvalStatus, // Don't change status in normal updates
       lifecycleStatus: existingEvent.lifecycleStatus ?? "scheduled",
       autoApproveRefund: existingEvent.autoApproveRefund ?? false,
-      eventMetadata: null,
+      eventMetadata: existingEvent.eventMetadata, // Keep existing metadata
     };
 
     let result;
