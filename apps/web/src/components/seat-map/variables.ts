@@ -20,6 +20,7 @@ export let zoom = 1;
 export let pan = { x: 0, y: 0 };
 export let previouslyClickedShape: CanvasItem | null = null;
 export let selectedContainer: ContainerGroup[] = [];
+export let guideLineGraphics: PIXI.Graphics | null = null;
 
 // Track if any shapes were moved or transformed
 export let wasDragged = false;
@@ -83,6 +84,10 @@ export const setPreviewContainer = (container: PIXI.Container | null) => {
 };
 export const setPreviewGraphics = (graphics: PIXI.Graphics | null) => {
   previewGraphics = graphics;
+};
+
+export const setGuidelineGraphics = (graphics: PIXI.Graphics | null) => {
+  guideLineGraphics = graphics;
 };
 export const setShapes = (newShapes: CanvasItem[]) => {
   shapes = newShapes;

@@ -20,7 +20,7 @@ interface SeatPropertiesTabProps {
     }
   ) => void;
 
-  onReverseRowLabels: (gridId: string, rowIds: string[]) => void;
+  onReverseSeatLabels: (gridId: string, rowIds: string[]) => void;
   onRenumberSeats: (
     gridId: string,
     rowIds: string[],
@@ -36,7 +36,7 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
   onGridUpdate,
   onSeatUpdate,
 
-  onReverseRowLabels,
+  onReverseSeatLabels,
   onRenumberSeats,
 }) => {
   const [startNumber, setStartNumber] = useState(1);
@@ -188,7 +188,7 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
           Apply Custom Numbering
         </button>
         <button
-          onClick={() => onReverseRowLabels(gridId, getTargetRowIds())}
+          onClick={() => onReverseSeatLabels(gridId, getTargetRowIds())}
           className="w-full mt-2 px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm font-medium transition-colors flex items-center justify-center gap-2"
         >
           <ArrowLeftRight className="w-4 h-4" />

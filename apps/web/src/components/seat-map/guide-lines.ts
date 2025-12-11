@@ -260,82 +260,6 @@ class GuideLines {
     return { x: closestX, y: closestY };
   }
 
-  public showSeatAlignmentGuides(
-    x: number,
-    y: number,
-    horizontalGuides: Array<{ y: number }>,
-    verticalGuides: Array<{ x: number }>
-  ): void {
-    if (!previewContainer) return;
-
-    this.clearSeatAlignmentGuides();
-
-    const nearbyHorizontal = horizontalGuides.filter(
-      (guide) => Math.abs(guide.y - y) <= this.options.snapDistance
-    );
-    const nearbyVertical = verticalGuides.filter(
-      (guide) => Math.abs(guide.x - x) <= this.options.snapDistance
-    );
-
-    if (nearbyHorizontal.length === 0 && nearbyVertical.length === 0) return;
-
-    this.seatAlignmentGraphics = new PIXI.Graphics();
-    this.seatAlignmentGraphics.stroke({
-      width: 1,
-      color: 0x00ccff,
-      alpha: 0.7,
-    });
-
-    const canvasSize = 3000;
-
-    nearbyHorizontal.forEach((guide) => {
-      this.seatAlignmentGraphics!.moveTo(-canvasSize, guide.y).lineTo(
-        canvasSize,
-        guide.y
-      );
-    });
-
-    nearbyVertical.forEach((guide) => {
-      this.seatAlignmentGraphics!.moveTo(guide.x, -canvasSize).lineTo(
-        guide.x,
-        canvasSize
-      );
-    });
-
-    this.seatAlignmentGraphics.stroke();
-    previewContainer.addChild(this.seatAlignmentGraphics);
-  }
-
-  public snapToSeatAlignment(
-    x: number,
-    y: number,
-    horizontalGuides: Array<{ y: number }>,
-    verticalGuides: Array<{ x: number }>
-  ): { x: number; y: number } {
-    let snappedX = x;
-    let snappedY = y;
-
-    let minHorizontalDistance = this.options.snapDistance;
-    horizontalGuides.forEach((guide) => {
-      const distance = Math.abs(guide.y - y);
-      if (distance < minHorizontalDistance) {
-        snappedY = guide.y;
-        minHorizontalDistance = distance;
-      }
-    });
-
-    let minVerticalDistance = this.options.snapDistance;
-    verticalGuides.forEach((guide) => {
-      const distance = Math.abs(guide.x - x);
-      if (distance < minVerticalDistance) {
-        snappedX = guide.x;
-        minVerticalDistance = distance;
-      }
-    });
-
-    return { x: snappedX, y: snappedY };
-  }
-
   private findClosestSnapPoints(
     x: number,
     y: number,
@@ -367,14 +291,6 @@ class GuideLines {
     }
   }
 
-  public clearSeatAlignmentGuides(): void {
-    if (this.seatAlignmentGraphics && previewContainer) {
-      previewContainer.removeChild(this.seatAlignmentGraphics);
-      this.seatAlignmentGraphics.destroy();
-      this.seatAlignmentGraphics = null;
-    }
-  }
-
   public clearPolygonEdgeGuides(): void {
     if (this.polygonEdgeGraphics && previewContainer) {
       previewContainer.removeChild(this.polygonEdgeGraphics);
@@ -387,7 +303,6 @@ class GuideLines {
     this.clearGrid();
     this.clearSnapGuides();
     this.clearPolygonEdgeGuides();
-    this.clearSeatAlignmentGuides();
   }
 
   public updateOptions(newOptions: Partial<GuideLineOptions>): void {

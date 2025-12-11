@@ -235,7 +235,7 @@ export const addSeatsToRow = (
   gridId: string,
   rowId: string,
   count: number
-): void => {
+): SeatShape | undefined => {
   if (!areaModeContainer) return;
 
   const grid = areaModeContainer.children.find(
@@ -276,13 +276,13 @@ export const addSeatsToRow = (
       }
     }
   };
-
+  let seat;
   for (let i = 0; i < count; i++) {
     const seatIndex = startIndex + i;
     const seatX = seatIndex * seatSpacing;
     const seatY = calculateSeatY(seatIndex); // ✅ Calculate Y based on bend pattern
 
-    const seat = createSeat(
+    seat = createSeat(
       seatX,
       seatY, // ✅ Use the calculated Y position
       rowId,
@@ -299,6 +299,7 @@ export const addSeatsToRow = (
   }
 
   updateRowLabelPosition(row);
+  return seat;
 };
 
 /**

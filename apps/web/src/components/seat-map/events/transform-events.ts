@@ -1064,7 +1064,7 @@ export class SelectionTransform {
 
     if (this.state.transformType === "vertex") {
       this.handleVertexMove(deltaX, deltaY);
-    } else if (this.state.transformType === "scale") {
+    } else if (this.state.transformType === "scale" && !isAreaMode) {
       this.handleScale(deltaX, deltaY);
     } else if (this.state.transformType === "rotate") {
       this.handleRotate(deltaX, deltaY);

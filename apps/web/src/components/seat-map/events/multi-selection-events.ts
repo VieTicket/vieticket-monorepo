@@ -246,6 +246,7 @@ const processShapeSelection = (
 
   // Apply selection
   if (shapesToSelect.length > 0) {
+    console.log(shapesToSelect);
     if (!isMultiSelect) {
       // Clear existing selection
       clearAllSelections();
@@ -258,7 +259,7 @@ const processShapeSelection = (
     // Update store and UI
     const allSelectedShapes = getAllSelectedShapes();
     useSeatMapStore.getState().setSelectedShapes(allSelectedShapes, false);
-
+    console.log("Selected shapes:", allSelectedShapes);
     // Update selection transform
     const selectionTransform = getSelectionTransform();
     if (selectionTransform) {

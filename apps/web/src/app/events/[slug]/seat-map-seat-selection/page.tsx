@@ -44,7 +44,6 @@ interface SeatMapSeatSelectionPageProps {
   searchParams: Promise<{ eventId?: string }>;
 }
 
-// ✅ Memoized components for better performance
 const SeatLegend = () => {
   const t = useTranslations("event.seatSelection");
 
@@ -77,7 +76,6 @@ const SeatLegend = () => {
   );
 };
 
-// ✅ Optimized seat info hover component
 const SeatInfoHover = ({ seatId }: { seatId: string }) => {
   const hoveredSeat = useMemo(
     () => useSeatMapStore.getState().customerFindSeatInfoById(seatId),
@@ -99,7 +97,6 @@ const SeatInfoHover = ({ seatId }: { seatId: string }) => {
   );
 };
 
-// ✅ Optimized selected seats display
 const SelectedSeatsDisplay = ({
   selectedSeatsGrouped,
   onToggleSeat,
@@ -148,7 +145,6 @@ export default function SeatMapSeatSelectionPage({
   const t = useTranslations("event.seatSelection");
   const pixiContainerRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Reduced state variables and combined related state
   const [appState, setAppState] = useState({
     isCreatingOrder: false,
     loadingSeatMap: true,
@@ -156,7 +152,6 @@ export default function SeatMapSeatSelectionPage({
     seatMapLoaded: false,
   });
 
-  // ✅ Memoized selectors for better performance
   const {
     customer,
     customerInitializeEventData,
@@ -173,7 +168,6 @@ export default function SeatMapSeatSelectionPage({
 
   const { data: ticketData, isLoading, error } = useTicketData(eventId!);
 
-  // ✅ Memoized computed values
   const eventData = useMemo(() => ticketData?.data?.eventData, [ticketData]);
   const selectedSeatsInfo = useMemo(
     () => customer.customerSelectedSeatsInfo,
@@ -185,7 +179,6 @@ export default function SeatMapSeatSelectionPage({
     [customer]
   );
 
-  // ✅ Initialize event data with better error handling
   useEffect(() => {
     if (ticketData?.data && eventId) {
       try {
@@ -216,7 +209,6 @@ export default function SeatMapSeatSelectionPage({
     customerSetSelectionLimits,
   ]);
 
-  // ✅ Optimized resize handler with throttling
   const handleResize = useCallback(() => {
     if (pixiApp && pixiContainerRef.current) {
       const container = pixiContainerRef.current;
@@ -228,16 +220,14 @@ export default function SeatMapSeatSelectionPage({
     }
   }, []);
 
-  // ✅ Throttled resize function
   const throttledResize = useMemo(() => {
     let timeoutId: NodeJS.Timeout;
     return () => {
       clearTimeout(timeoutId);
-      timeoutId = setTimeout(handleResize, 16); // 60fps throttling
+      timeoutId = setTimeout(handleResize, 16);
     };
   }, [handleResize]);
 
-  // ✅ Optimized PIXI initialization
   useEffect(() => {
     if (appState.pixiInitialized || !pixiContainerRef.current) return;
 
@@ -266,7 +256,6 @@ export default function SeatMapSeatSelectionPage({
         container.appendChild(app.canvas as HTMLCanvasElement);
         setPixiApp(app);
 
-        // ✅ Create containers in batch
         const stageContainer = new PIXI.Container();
         const shapesContainer = new PIXI.Container();
 
@@ -285,7 +274,6 @@ export default function SeatMapSeatSelectionPage({
         );
         initializeAreaModeContainer();
 
-        // ✅ Prevent zoom with better event handling
         const canvas = app.canvas;
         const preventZoom = (e: WheelEvent) => {
           if (e.ctrlKey || e.metaKey) {
@@ -313,7 +301,6 @@ export default function SeatMapSeatSelectionPage({
     };
   }, [customerGetSeatStatus]);
 
-  // ✅ Optimized resize listeners
   useEffect(() => {
     window.addEventListener("resize", throttledResize);
 
@@ -329,7 +316,6 @@ export default function SeatMapSeatSelectionPage({
     };
   }, [throttledResize]);
 
-  // ✅ Optimized seat map loading with better caching
   useEffect(() => {
     if (
       !eventData?.seatMapId ||
@@ -380,7 +366,6 @@ export default function SeatMapSeatSelectionPage({
     t,
   ]);
 
-  // ✅ Optimized seat map restoration with batch processing
   const restoreSeatMap = useCallback(
     async (seatMapData: any) => {
       if (!seatMapData.shapes || !Array.isArray(seatMapData.shapes)) {
@@ -392,7 +377,6 @@ export default function SeatMapSeatSelectionPage({
         setShapes([]);
         const recreatedShapes: CanvasItem[] = [];
 
-        // ✅ Process shapes in batches to avoid blocking
         const batchSize = 10;
         for (let i = 0; i < seatMapData.shapes.length; i += batchSize) {
           const batch = seatMapData.shapes.slice(i, i + batchSize);
@@ -411,7 +395,6 @@ export default function SeatMapSeatSelectionPage({
           batchResults.forEach((recreatedShape) => {
             if (!recreatedShape) return;
 
-            // ✅ Add to stage more efficiently
             if (pixiApp?.stage && recreatedShape.graphics) {
               const shapeContainer = pixiApp.stage.children
                 .find((child) => child instanceof PIXI.Container)
@@ -424,12 +407,10 @@ export default function SeatMapSeatSelectionPage({
               }
             }
 
-            // ✅ Batch event manager updates
             if (recreatedShape.id === "area-mode-container-id") {
               const areaModeContainer = recreatedShape as AreaModeContainer;
               const eventManager = getCustomerEventManager();
               if (eventManager) {
-                // Process seats in smaller batches for better performance
                 const seats: any[] = [];
                 areaModeContainer.children.forEach((grid) => {
                   grid.children.forEach((row) => {
@@ -439,12 +420,10 @@ export default function SeatMapSeatSelectionPage({
                   });
                 });
 
-                // Update seats in batches
                 const seatBatchSize = 50;
                 for (let j = 0; j < seats.length; j += seatBatchSize) {
                   const seatBatch = seats.slice(j, j + seatBatchSize);
 
-                  // Use requestAnimationFrame for smooth processing
                   new Promise((resolve) => {
                     requestAnimationFrame(() => {
                       seatBatch.forEach((seat) => {
@@ -461,7 +440,6 @@ export default function SeatMapSeatSelectionPage({
             recreatedShapes.push(recreatedShape);
           });
 
-          // Allow other tasks to run between batches
           await new Promise((resolve) => setTimeout(resolve, 0));
         }
 
@@ -476,18 +454,14 @@ export default function SeatMapSeatSelectionPage({
     [updateShapes]
   );
 
-  // ✅ Optimized seat click handler
-  // ✅ Fixed seat click handler to properly handle deselection
   const customerHandleSeatClick = useCallback(
     (seatId: string, isAvailable: boolean) => {
       const isCurrentlySelected =
         customer.customerSelectedSeatIds.includes(seatId);
 
-      // ✅ Allow clicking on selected seats to deselect them
       if (isCurrentlySelected) {
         customerToggleSeatSelection(seatId);
 
-        // Update visual feedback
         const eventManager = getCustomerEventManager();
         if (eventManager) {
           requestAnimationFrame(() => {
@@ -497,23 +471,21 @@ export default function SeatMapSeatSelectionPage({
         return;
       }
 
-      // ✅ For unselected seats, check availability and limits
       if (!isAvailable) {
         toast.warning("This seat is not available for selection.");
         return;
       }
 
+      customerToggleSeatSelection(seatId);
+
       if (!customerCanSelectMoreSeats()) {
+        customerToggleSeatSelection(seatId);
         toast.warning(
           "The number of selected seats has reached the maximum allowed."
         );
         return;
       }
 
-      // Select the seat
-      customerToggleSeatSelection(seatId);
-
-      // ✅ Batch visual updates
       const eventManager = getCustomerEventManager();
       if (eventManager) {
         requestAnimationFrame(() => {
@@ -528,7 +500,6 @@ export default function SeatMapSeatSelectionPage({
     ]
   );
 
-  // ✅ Optimized clear all handler
   const customerHandleClearAllSelections = useCallback(() => {
     customerClearAllSelections();
 
@@ -542,7 +513,6 @@ export default function SeatMapSeatSelectionPage({
     toast.info("All selections cleared");
   }, [customerClearAllSelections]);
 
-  // ✅ Optimized payment handler
   const customerHandleProceedToPayment = useCallback(async () => {
     const validation = customerValidateSelection();
     if (!validation.isValid) {
@@ -571,7 +541,6 @@ export default function SeatMapSeatSelectionPage({
     }
   }, [customerValidateSelection, eventId, customer.customerSelectedSeatIds, t]);
 
-  // ✅ Memoized loading state
   const isMainLoading = useMemo(
     () => isLoading || appState.loadingSeatMap || !appState.pixiInitialized,
     [isLoading, appState.loadingSeatMap, appState.pixiInitialized]

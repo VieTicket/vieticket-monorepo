@@ -5,8 +5,8 @@ import { Toaster } from "sonner";
 import { Montserrat } from "next/font/google";
 
 const montserrat = Montserrat({
-    subsets: ["latin", "vietnamese"],
-})
+  subsets: ["latin", "vietnamese"],
+});
 
 export const metadata: Metadata = {
   title: "VieTicket",
@@ -20,9 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${montserrat.className} antialiased`}
-      >
+      <body className={`${montserrat.className} antialiased`}>
         <Providers>{children}</Providers>
         <Toaster />
       </body>

@@ -1162,7 +1162,8 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   customerCanSelectMoreSeats: () => {
     const { customer } = get();
     return (
-      customer.customerSelectedSeatIds.length < customer.customerMaxSeatsAllowed
+      customer.customerSelectedSeatIds.length <=
+      customer.customerMaxSeatsAllowed
     );
   },
 
