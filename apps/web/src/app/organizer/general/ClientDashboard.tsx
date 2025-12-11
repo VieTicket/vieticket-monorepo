@@ -94,6 +94,67 @@ export default function OrganizerDashboardModern({
     0
   );
   const t = useTranslations("organizer-dashboard.General");
+  const [isClient, setIsClient] = useState(false);
+  const [fromDate, setFromDate] = useState<string>("");
+  const [toDate, setToDate] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<string>("all");
+
+  // Ensure translations are loaded on client
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // Calculate date ranges based on filter selection
+  const getDateRange = useCallback(
+    (filter: string) => {
+      const now = new Date();
+      const today = now.toISOString().split("T")[0];
+
+      switch (filter) {
+        case "7days":
+          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+          return {
+            from: last7Days.toISOString().split("T")[0],
+            to: today,
+          };
+        case "30days":
+          const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+          return {
+            from: last30Days.toISOString().split("T")[0],
+            to: today,
+          };
+        case "custom":
+          return { from: fromDate, to: toDate };
+        case "all":
+        default:
+          return { from: "", to: "" };
+      }
+    },
+    [fromDate, toDate]
+  );
+
+  // Filter data by date range - memoized for performance
+  const filteredRevenue = useMemo(() => {
+    const { from, to } = getDateRange(dateFilter);
+
+    if (!from || !to) {
+      return revenueOverTime;
+    }
+
+    return revenueOverTime.filter((item) => {
+      const itemDate = new Date(item.date).toISOString().split("T")[0];
+      return itemDate >= from && itemDate <= to;
+    });
+  }, [revenueOverTime, dateFilter, getDateRange]);
+
+  // Show loading state if translations not ready
+  if (!isClient) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
     if (active && payload && payload.length && label) {
@@ -161,55 +222,9 @@ export default function OrganizerDashboardModern({
     }
     return colors;
   };
-  const [fromDate, setFromDate] = useState<string>("");
-  const [toDate, setToDate] = useState<string>("");
-  const [dateFilter, setDateFilter] = useState<string>("all");
 
-  // Calculate date ranges based on filter selection
-  const getDateRange = useCallback(
-    (filter: string) => {
-      const now = new Date();
-      const today = now.toISOString().split("T")[0];
-
-      switch (filter) {
-        case "7days":
-          const last7Days = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          return {
-            from: last7Days.toISOString().split("T")[0],
-            to: today,
-          };
-        case "30days":
-          const last30Days = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-          return {
-            from: last30Days.toISOString().split("T")[0],
-            to: today,
-          };
-        case "custom":
-          return { from: fromDate, to: toDate };
-        case "all":
-        default:
-          return { from: "", to: "" };
-      }
-    },
-    [fromDate, toDate]
-  );
-
-  // Filter data by date range - memoized for performance
-  const filteredRevenue = useMemo(() => {
-    const { from, to } = getDateRange(dateFilter);
-
-    if (!from && !to) return revenueOverTime;
-
-    // Pre-calculate time values for better performance
-    const fromTime = from ? new Date(from).getTime() : -Infinity;
-    const toTime = to ? new Date(to).getTime() : Infinity;
-
-    return revenueOverTime.filter((item) => {
-      const current = new Date(item.date).getTime();
-      return current >= fromTime && current <= toTime;
-    });
-  }, [revenueOverTime, dateFilter, fromDate, toDate, getDateRange]);
   const dynamicColors = generateColors(revenueDistribution.length);
+
   return (
     <div className="flex min-h-screen w-full flex-col">
       <main className="flex flex-1 flex-col gap-4 p-2 sm:p-4 md:gap-8 md:p-8">
