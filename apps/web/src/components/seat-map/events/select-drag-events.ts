@@ -228,12 +228,10 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
     const newX = originalPos.x + deltaX;
     const newY = originalPos.y + deltaY;
 
-    // Get snap points from other shapes (excluding dragged ones)
     const snapPoints = getSnapPointsExcludingShapes(draggedShapes);
     const snappedPos = guideLines.snapToPoints(newX, newY, snapPoints);
     const gridSnappedPos = guideLines.snapToGrid(newX, newY);
 
-    // Use the closest snap
     const objectDistance = Math.sqrt(
       Math.pow(snappedPos.x - newX, 2) + Math.pow(snappedPos.y - newY, 2)
     );
@@ -252,7 +250,6 @@ export const handleShapeDrag = (event: PIXI.FederatedPointerEvent) => {
     deltaX = finalPos.x - originalPos.x;
     deltaY = finalPos.y - originalPos.y;
 
-    // Show snap guides
     guideLines.showSnapGuides(finalPos.x, finalPos.y, snapPoints);
   }
 
@@ -440,11 +437,9 @@ const getSnapPointsExcludingShapes = (
     let worldX = shape.x;
     let worldY = shape.y;
 
-    // For seats, add row and grid positions
     if (shape.type === "ellipse" && "rowId" in shape && "gridId" in shape) {
       const seat = shape as SeatShape;
 
-      // Find the row and grid
       if (areaModeContainer) {
         for (const grid of areaModeContainer.children) {
           if (grid.id === seat.gridId) {
@@ -462,9 +457,7 @@ const getSnapPointsExcludingShapes = (
           }
         }
       }
-    }
-    // For rows, add grid position
-    else if (shape.type === "container" && "rowName" in shape) {
+    } else if (shape.type === "container" && "rowName" in shape) {
       const row = shape as RowShape;
 
       if (areaModeContainer) {
@@ -482,7 +475,15 @@ const getSnapPointsExcludingShapes = (
   };
 
   shapes.forEach((shape: CanvasItem) => {
-    if (excludeIds.has(shape.id) || shape.type === "container") return;
+    if (excludeIds.has(shape.id)) return;
+
+    if (shape.id === areaModeContainer?.id) return;
+
+    if (shape.type === "container") return;
+
+    if (shape.type === "ellipse" && "rowId" in shape && "gridId" in shape)
+      return;
+
     const worldPos = getWorldCoordinates(shape);
     snapPoints.push(worldPos);
 
@@ -507,71 +508,12 @@ const getSnapPointsExcludingShapes = (
         { x: worldPos.x, y: worldPos.y - shape.radiusY },
         { x: worldPos.x, y: worldPos.y + shape.radiusY }
       );
+    } else if (shape.type === "polygon" && shape.points) {
+      shape.points.forEach((point) => {
+        snapPoints.push({ x: worldPos.x + point.x, y: worldPos.y + point.y });
+      });
     }
   });
-
-  if (areaModeContainer) {
-    areaModeContainer.children.forEach((grid) => {
-      if (excludeIds.has(grid.id)) return;
-
-      // Add grid center
-      snapPoints.push({ x: grid.x, y: grid.y });
-
-      // Calculate grid bounds for corner snap points
-      let minX = Infinity,
-        maxX = -Infinity,
-        minY = Infinity,
-        maxY = -Infinity;
-      let hasContent = false;
-
-      grid.children.forEach((row) => {
-        if (excludeIds.has(row.id)) return;
-
-        // Add row snap points
-        const rowWorldX = grid.x + row.x;
-        const rowWorldY = grid.y + row.y;
-        snapPoints.push({ x: rowWorldX, y: rowWorldY });
-
-        row.children.forEach((seat) => {
-          if (excludeIds.has(seat.id)) return;
-
-          // Add seat snap points
-          const seatWorldX = grid.x + row.x + seat.x;
-          const seatWorldY = grid.y + row.y + seat.y;
-          snapPoints.push({ x: seatWorldX, y: seatWorldY });
-
-          // Add seat edge points
-          snapPoints.push(
-            { x: seatWorldX - seat.radiusX, y: seatWorldY },
-            { x: seatWorldX + seat.radiusX, y: seatWorldY },
-            { x: seatWorldX, y: seatWorldY - seat.radiusY },
-            { x: seatWorldX, y: seatWorldY + seat.radiusY }
-          );
-
-          // Track grid bounds
-          minX = Math.min(minX, seatWorldX - seat.radiusX);
-          maxX = Math.max(maxX, seatWorldX + seat.radiusX);
-          minY = Math.min(minY, seatWorldY - seat.radiusY);
-          maxY = Math.max(maxY, seatWorldY + seat.radiusY);
-          hasContent = true;
-        });
-      });
-
-      // Add grid corner snap points based on content bounds
-      if (hasContent) {
-        snapPoints.push(
-          { x: minX, y: minY }, // Top-left
-          { x: maxX, y: minY }, // Top-right
-          { x: minX, y: maxY }, // Bottom-left
-          { x: maxX, y: maxY }, // Bottom-right
-          { x: (minX + maxX) / 2, y: minY }, // Top-center
-          { x: (minX + maxX) / 2, y: maxY }, // Bottom-center
-          { x: minX, y: (minY + maxY) / 2 }, // Left-center
-          { x: maxX, y: (minY + maxY) / 2 } // Right-center
-        );
-      }
-    });
-  }
 
   return snapPoints;
 };

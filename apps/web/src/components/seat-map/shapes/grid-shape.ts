@@ -25,6 +25,7 @@ import {
   updateRowLabelPosition,
 } from "./row-shape";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
+import { clearAllSelections } from ".";
 
 /**
  * Set seat grid settings
@@ -105,6 +106,24 @@ export const selectSeatsInGrid = (gridId: string): void => {
   const selectionTransform = getSelectionTransform();
   if (selectionTransform) {
     selectionTransform.updateSelection(seats);
+  }
+};
+
+/**
+ * Select all seats in a grid
+ */
+export const selectGrid = (gridId: string): void => {
+  if (!areaModeContainer) return;
+
+  const grid = getGridById(gridId);
+  if (!grid) return;
+  clearAllSelections();
+  grid.selected = true;
+  useSeatMapStore.getState().setSelectedShapes([grid], false);
+
+  const selectionTransform = getSelectionTransform();
+  if (selectionTransform) {
+    selectionTransform.updateSelection([grid]);
   }
 };
 

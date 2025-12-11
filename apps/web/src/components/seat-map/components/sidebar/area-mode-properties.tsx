@@ -16,6 +16,7 @@ import {
   selectSeatsInGrid,
   createNewGridFromSelection,
   addRowToGrid,
+  selectGrid,
 } from "../../shapes/grid-shape";
 import {
   getRowById,
@@ -131,7 +132,7 @@ export const AreaModeProperties = React.memo(
     );
 
     const handleSelectAllInGrid = useCallback((gridId: string) => {
-      selectSeatsInGrid(gridId);
+      selectGrid(gridId);
     }, []);
 
     const handleExtractGrid = useCallback(() => {
@@ -660,21 +661,22 @@ export const AreaModeProperties = React.memo(
         ) as RowShape[];
         if (affectedRows.length === 0) return;
 
-        const beforeRows = cloneCanvasItems(affectedRows);
-
-        // Apply to all rows
+        let seats: SeatShape[] = [];
         rowIds.forEach((rowId) => {
-          addSeatsToRow(gridId, rowId, count);
+          const seat = addSeatsToRow(gridId, rowId, count);
+          if (seat) {
+            seats.push(seat);
+          }
         });
 
         updateShapes([...shapes], false, undefined, false);
 
         const context: ShapeContext = {
           topLevel: [],
-          nested: affectedRows.map((row) => ({
-            id: row.id,
+          nested: seats.map((seat) => ({
+            id: seat.id,
             type: "container",
-            parentId: gridId,
+            parentId: seat.rowId,
           })),
           operation: "modify",
           containerPositions: {
@@ -687,12 +689,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: beforeRows,
+            shapes: [],
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: affectedRows,
+            shapes: seats,
             selectedShapes: selectedShapes,
             context,
           }
@@ -703,7 +705,7 @@ export const AreaModeProperties = React.memo(
       [shapes, selectedShapes]
     );
 
-    const handleReverseRowLabels = useCallback(
+    const handleReverseSeatLabels = useCallback(
       (gridId: string, rowIds: string[]) => {
         if (!areaModeContainer) return;
 
@@ -958,7 +960,7 @@ export const AreaModeProperties = React.memo(
               selectedShapes={selectedShapes}
               onGridUpdate={handleGridUpdate}
               onSeatUpdate={handleSeatUpdate}
-              onReverseRowLabels={handleReverseRowLabels}
+              onReverseSeatLabels={handleReverseSeatLabels}
               onRenumberSeats={handleRenumberSeats}
             />
           )}
