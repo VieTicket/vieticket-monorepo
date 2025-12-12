@@ -22,11 +22,14 @@ import {
   SeatShape,
   SeatGridSettings,
 } from "@/components/seat-map/types";
+import { ShowingWithAreas } from "@/types/showings";
 
 interface SeatMapSelectionModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSelect: (seatMap: SeatMapData) => void;
+  onSetShowings: (showings: ShowingWithAreas[]) => void;
+  showings: ShowingWithAreas[];
   selectedSeatMapId?: string;
   selectedSeatMapData?: SeatMapData | null; // Add this to identify the current seat map used by the event
 }
@@ -35,6 +38,8 @@ export function SeatMapSelectionModal({
   open,
   onOpenChange,
   onSelect,
+  onSetShowings,
+  showings,
   selectedSeatMapId,
   selectedSeatMapData,
 }: SeatMapSelectionModalProps) {
@@ -42,7 +47,7 @@ export function SeatMapSelectionModal({
   const [seatMaps, setSeatMaps] = useState<SeatMapData[]>([]);
   const [filteredSeatMaps, setFilteredSeatMaps] = useState<SeatMapData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-
+  console.log(showings);
   const loadSeatMaps = async () => {
     try {
       setIsLoading(true);
