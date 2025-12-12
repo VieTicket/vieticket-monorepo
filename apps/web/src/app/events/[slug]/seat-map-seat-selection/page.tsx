@@ -17,6 +17,8 @@ import {
   ArrowLeft,
   X,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { loadSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import * as PIXI from "pixi.js";
@@ -48,28 +50,28 @@ const SeatLegend = () => {
   const t = useTranslations("event.seatSelection");
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">{t("legend")}</CardTitle>
+    <Card className="border-gray-200">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-base sm:text-lg">{t("legend")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-4 border-blue-500 bg-white rounded-full relative">
+      <CardContent className="space-y-2 sm:space-y-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 border-2 sm:border-4 border-blue-500 bg-white rounded-full relative flex-shrink-0">
             <div className="absolute -inset-1 border border-blue-300 rounded-full opacity-60"></div>
           </div>
-          <span className="text-sm">{t("selected")}</span>
+          <span className="text-xs sm:text-sm">{t("selected")}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-2 border-yellow-500 bg-white rounded-full"></div>
-          <span className="text-sm">{t("onHold")}</span>
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 border border-yellow-500 bg-white rounded-full flex-shrink-0"></div>
+          <span className="text-xs sm:text-sm">{t("onHold")}</span>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="w-4 h-4 border-2 border-red-500 bg-white rounded-full relative">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="w-3 h-3 sm:w-4 sm:h-4 border border-red-500 bg-white rounded-full relative flex-shrink-0">
             <div className="absolute inset-0 flex items-center justify-center">
-              <X className="w-3 h-3 text-red-500" />
+              <X className="w-2 h-2 sm:w-3 sm:h-3 text-red-500" />
             </div>
           </div>
-          <span className="text-sm">{t("sold")}</span>
+          <span className="text-xs sm:text-sm">{t("sold")}</span>
         </div>
       </CardContent>
     </Card>
@@ -85,12 +87,12 @@ const SeatInfoHover = ({ seatId }: { seatId: string }) => {
   if (!hoveredSeat) return null;
 
   return (
-    <div className="absolute top-4 left-4 bg-black/80 text-white px-3 py-2 rounded-lg text-sm">
+    <div className="absolute top-2 left-2 sm:top-4 sm:left-4 bg-black/90 text-white px-2 py-1.5 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm shadow-lg z-10">
       <div className="font-medium">{hoveredSeat.areaName}</div>
-      <div>
+      <div className="text-gray-200">
         Row {hoveredSeat.rowName} • Seat {hoveredSeat.seatNumber}
       </div>
-      <div className="text-green-400">
+      <div className="text-green-400 font-semibold">
         {formatCurrencyVND(hoveredSeat.price)}
       </div>
     </div>
@@ -109,22 +111,25 @@ const SelectedSeatsDisplay = ({
   const t = useTranslations("event.seatSelection");
 
   return (
-    <div className="space-y-4 max-h-64 overflow-y-auto">
+    <div className="space-y-3 max-h-48 sm:max-h-64 overflow-y-auto">
       {Object.entries(selectedSeatsGrouped).map(([areaName, seats]) => (
-        <div key={areaName} className="border border-gray-200 rounded-lg p-3">
-          <div className="font-medium mb-2">
+        <div
+          key={areaName}
+          className="border border-gray-200 rounded-lg p-2 sm:p-3"
+        >
+          <div className="font-medium mb-2 text-sm sm:text-base">
             <div>
               {areaName} ({seats.length} seats)
             </div>
           </div>
-          <div className="flex gap-2 flex-wrap">
+          <div className="flex gap-1.5 sm:gap-2 flex-wrap">
             {seats.map((seat) => (
               <div
                 key={seat.seatId}
-                className="flex justify-between items-center bg-blue-50/50 p-2 rounded"
+                className="flex justify-between items-center bg-blue-50/50 p-1.5 sm:p-2 rounded text-xs sm:text-sm"
               >
-                <span className="text-sm">
-                  Row {seat.rowName} • Seat {seat.seatNumber}
+                <span>
+                  R{seat.rowName} • S{seat.seatNumber}
                 </span>
               </div>
             ))}
@@ -144,7 +149,7 @@ export default function SeatMapSeatSelectionPage({
   const router = useRouter();
   const t = useTranslations("event.seatSelection");
   const pixiContainerRef = useRef<HTMLDivElement>(null);
-
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [appState, setAppState] = useState({
     isCreatingOrder: false,
     loadingSeatMap: true,
@@ -547,37 +552,38 @@ export default function SeatMapSeatSelectionPage({
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b shadow-sm p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => router.back()}
-              className="flex items-center gap-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Back
-            </Button>
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header - Mobile Optimized */}
+      <div className="bg-white border-b shadow-sm sticky top-0 z-20">
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => router.back()}
+                className="flex items-center gap-1 sm:gap-2 flex-shrink-0 p-2 sm:px-3"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                <span className="hidden sm:inline">Back</span>
+              </Button>
 
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">
-                {t("selectYourSeats")}
-              </h1>
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
-                <span>{eventData?.name || "Loading..."}</span>
-                <span>•</span>
-                <span>{eventData?.location || "Loading..."}</span>
+              <div className="flex-1 min-w-0">
+                <h1 className="text-base sm:text-xl font-bold text-gray-900 truncate">
+                  {t("selectYourSeats")}
+                </h1>
+                <div className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm text-gray-600">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
+                  <span className="truncate">
+                    {eventData?.name || "Loading..."}
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <div className="flex items-center gap-4">
+            {/* Desktop Checkout Button */}
             <Button
-              className="bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-semibold"
+              className="hidden md:flex bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-semibold"
               onClick={customerHandleProceedToPayment}
               disabled={
                 selectedSeatsInfo.length === 0 || appState.isCreatingOrder
@@ -594,36 +600,91 @@ export default function SeatMapSeatSelectionPage({
               )}
             </Button>
           </div>
+
+          {/* Mobile: Selected Count & Toggle */}
+          <div className="md:hidden mt-2 flex items-center justify-between">
+            <div className="text-xs sm:text-sm text-gray-600">
+              <span className="font-medium text-gray-900">
+                {selectedSeatsInfo.length}
+              </span>{" "}
+              / {customer.customerMaxSeatsAllowed} {t("selectedSeats")}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="text-xs"
+            >
+              {isSidebarOpen ? (
+                <>
+                  <ChevronDown className="w-4 h-4 mr-1" />
+                  Hide Details
+                </>
+              ) : (
+                <>
+                  <ChevronUp className="w-4 h-4 mr-1" />
+                  Show Details
+                </>
+              )}
+            </Button>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden relative">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         {/* Seat Map Canvas */}
-        <div className="flex-1 relative">
+        <div
+          className="flex-1 relative bg-gray-50"
+          style={{ minHeight: isSidebarOpen ? "50vh" : "calc(100vh - 140px)" }}
+        >
           <div
             ref={pixiContainerRef}
             className="w-full h-full absolute inset-0"
             style={{ touchAction: "none" }}
           />
 
-          {/* ✅ Optimized hover info */}
+          {/* Hover Info - Optimized for Mobile */}
           {customer.customerHoveredSeatId && (
             <SeatInfoHover seatId={customer.customerHoveredSeatId} />
           )}
+
+          {/* Mobile Legend - Floating */}
+          <div className="md:hidden absolute bottom-4 right-4 z-10">
+            <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-lg p-3 text-xs">
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border-2 border-blue-500 bg-white rounded-full"></div>
+                  <span>Selected</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border border-yellow-500 bg-white rounded-full"></div>
+                  <span>On Hold</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 border border-red-500 bg-white rounded-full relative">
+                    <X className="w-2 h-2 text-red-500 absolute inset-0 m-auto" />
+                  </div>
+                  <span>Sold</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Order Summary Sidebar */}
-        <div className="w-80 bg-white border-l shadow-sm overflow-y-auto">
+        {/* Order Summary Sidebar - Desktop */}
+        <div className="hidden md:block w-80 bg-white border-l shadow-sm overflow-y-auto">
           <div className="p-6 space-y-6">
             <SeatLegend />
 
             {/* Selected Seats */}
-            <Card>
+            <Card className="border-gray-200">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <CreditCard className="w-5 h-5" />
-                  {t("Tickets")}
+                <CardTitle className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="w-5 h-5" />
+                    {t("Tickets")}
+                  </div>
                   {selectedSeatsInfo.length > 0 && (
                     <Button
                       variant="ghost"
@@ -657,7 +718,7 @@ export default function SeatMapSeatSelectionPage({
                 </div>
 
                 {orderSummary.totalSeats === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
+                  <p className="text-gray-500 text-center py-8 text-sm">
                     {t("clickOnAvailableSeats")}
                   </p>
                 ) : (
@@ -704,12 +765,118 @@ export default function SeatMapSeatSelectionPage({
           </div>
         </div>
 
+        {/* Mobile Bottom Sheet */}
+        {isSidebarOpen && (
+          <div className="md:hidden fixed inset-x-0 bottom-0 z-30 bg-white border-t shadow-2xl rounded-t-2xl max-h-[70vh] overflow-y-auto">
+            <div className="p-4 space-y-4">
+              {/* Drag Handle */}
+              <div className="w-12 h-1.5 bg-gray-300 rounded-full mx-auto"></div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">{t("selectedSeats")}</span>
+                  <span className="font-medium">
+                    {selectedSeatsInfo.length} /{" "}
+                    {customer.customerMaxSeatsAllowed}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-blue-500 h-2 rounded-full transition-all"
+                    style={{
+                      width: `${(selectedSeatsInfo.length / customer.customerMaxSeatsAllowed) * 100}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              {orderSummary.totalSeats === 0 ? (
+                <p className="text-gray-500 text-center py-6 text-sm">
+                  {t("clickOnAvailableSeats")}
+                </p>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-base">Selected Seats</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={customerHandleClearAllSelections}
+                      className="text-xs text-red-500"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+
+                  <SelectedSeatsDisplay
+                    selectedSeatsGrouped={selectedSeatsGrouped}
+                    onToggleSeat={customerToggleSeatSelection}
+                    onClearAll={customerHandleClearAllSelections}
+                  />
+
+                  <Separator />
+
+                  <div className="flex justify-between items-center font-semibold text-lg">
+                    <span>{t("total")}</span>
+                    <span className="text-green-600 text-xl">
+                      {formatCurrencyVND(orderSummary.total)}
+                    </span>
+                  </div>
+
+                  <Button
+                    onClick={customerHandleProceedToPayment}
+                    disabled={appState.isCreatingOrder}
+                    className="w-full bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-semibold"
+                    size="lg"
+                  >
+                    {appState.isCreatingOrder ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        {t("creatingOrder")}
+                      </>
+                    ) : (
+                      <>
+                        {t("proceedToCheckout")}
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Floating Checkout Button */}
+        {!isSidebarOpen && selectedSeatsInfo.length > 0 && (
+          <div className="md:hidden fixed bottom-4 inset-x-4 z-20">
+            <Button
+              onClick={customerHandleProceedToPayment}
+              disabled={appState.isCreatingOrder}
+              className="w-full bg-yellow-300 hover:bg-yellow-400 text-gray-900 font-semibold shadow-xl"
+              size="lg"
+            >
+              {appState.isCreatingOrder ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                  {t("creating")}
+                </>
+              ) : (
+                <>
+                  Checkout ({selectedSeatsInfo.length}) •{" "}
+                  {formatCurrencyVND(orderSummary.total)}
+                </>
+              )}
+            </Button>
+          </div>
+        )}
+
         {/* Loading Overlay */}
         {isMainLoading && (
-          <div className="absolute inset-0 bg-white/80 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="text-center">
-              <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-              <p className="text-gray-700 font-medium">
+          <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex items-center justify-center z-50">
+            <div className="text-center px-4">
+              <Loader2 className="w-8 h-8 sm:w-10 sm:h-10 animate-spin mx-auto mb-4 text-blue-600" />
+              <p className="text-gray-700 font-medium text-sm sm:text-base">
                 {isLoading && "Loading event data..."}
                 {!isLoading && appState.loadingSeatMap && "Loading seat map..."}
                 {!isLoading &&
