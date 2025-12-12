@@ -1,6 +1,7 @@
 import { drizzle, NeonDatabase } from "drizzle-orm/neon-serverless";
 import { Pool } from "@neondatabase/serverless";
 import * as schema from "./schema";
+import { upstashCache } from "drizzle-orm/cache/upstash";
 
 // Define a type for our Drizzle client with the schema
 export type DbClient = NeonDatabase<typeof schema>;
@@ -35,16 +36,22 @@ export function configureDb(url: string): DbClient {
  */
 function createDbInstance(url?: string): DbClient {
   const connectionString = url ?? process.env.DATABASE_URL;
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const missing = [
+    !connectionString && "DATABASE_URL",
+    !redisUrl && "UPSTASH_REDIS_REST_URL",
+    !redisToken && "UPSTASH_REDIS_REST_TOKEN",
+  ].filter(Boolean);
 
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL is not set. Please provide it in your .env file or via the configureDb function.",
-    );
+  if (missing.length) {
+    throw new Error(`Missing env: ${missing.join(", ")}`);
   }
 
-  const pool = new Pool({ connectionString });
+  const pool = new Pool({ connectionString: connectionString! });
 
   const instance = drizzle(pool, {
+    cache: upstashCache({ url: redisUrl!, token: redisToken! }),
     schema,
   });
 

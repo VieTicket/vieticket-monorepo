@@ -8,8 +8,6 @@ import {
     getTicketDetails,
 } from "@vieticket/repos/orders";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
-import { sendMail } from "@vieticket/utils/mailer";
-import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
 
 /**
  * Gets a paginated list of orders for a given user.
