@@ -1,4 +1,5 @@
 import { drizzle, NeonHttpDatabase } from "drizzle-orm/neon-http";
+import { upstashCache } from "drizzle-orm/cache/upstash";
 import * as schema from "./schema";
 
 // Reuse the same typed Drizzle client as other connections in this package
@@ -26,17 +27,25 @@ export function configureDb(url: string): DbClient {
 
 function createDbInstance(url?: string): DbClient {
   const connectionString = url ?? process.env.DATABASE_URL;
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  const missing = [
+    !connectionString && "DATABASE_URL",
+    !redisUrl && "UPSTASH_REDIS_REST_URL",
+    !redisToken && "UPSTASH_REDIS_REST_TOKEN",
+  ].filter(Boolean);
 
-  if (!connectionString) {
-    throw new Error(
-      "DATABASE_URL is not set. Please provide it in your .env file or via the configureDb function.",
-    );
+  if (missing.length) {
+    throw new Error(`Missing env: ${missing.join(", ")}`);
   }
 
   // For the neon-http driver Drizzle accepts a connection string (or a
   // NeonQueryFunction). We pass the connection string here and rely on
   // db.$withAuth(token) for per-request auth when needed.
-  const instance = drizzle(connectionString, { schema });
+  const instance = drizzle(connectionString!, {
+    cache: upstashCache({ url: redisUrl!, token: redisToken! }),
+    schema,
+  });
 
   // Cache the instance globally when using the default env-derived URL
   if (!url) {
