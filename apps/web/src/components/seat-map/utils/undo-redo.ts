@@ -78,7 +78,11 @@ import {
   updateRowLabelRotation,
   updateSeatLabelNumberingInRow,
 } from "../shapes/row-shape";
-import { createPixiTextStyle, recreateSeat } from "../shapes/seat-shape";
+import {
+  createPixiTextStyle,
+  recreateSeat,
+  updateSeatLabel,
+} from "../shapes/seat-shape";
 
 const applyDeltaRestore = async (
   action: UndoRedoAction,
@@ -225,13 +229,6 @@ const applyDeltaRestore = async (
                 );
                 if (childIndex !== -1) {
                   const childToRemove = container.children[childIndex];
-                  console.log(
-                    "Removing nested shape:",
-                    targetId,
-                    "from parent:",
-                    parentId,
-                    childToRemove
-                  );
 
                   eventManager?.removeShapeEvents(childToRemove);
                   if (childToRemove.graphics && childToRemove.graphics.parent) {
@@ -625,6 +622,12 @@ const applyDeltaRestore = async (
                   break;
                 case "svg":
                   updateSVGGraphics(existingShape as SVGShape);
+                  break;
+                case "ellipse":
+                  updateSeatLabel(
+                    existingShape as SeatShape,
+                    shapeToApply.name
+                  );
                   break;
                 case "container":
                   if ("gridName" in (existingShape as GridShape)) {

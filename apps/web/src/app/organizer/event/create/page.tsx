@@ -106,6 +106,7 @@ function CreateEventPageInner() {
       startTime: "",
       endTime: "",
       areas: [],
+      seatMapId: "",
     },
   ]);
   const [posterPreview, setPosterPreview] = useState<string | null>(null);
@@ -554,32 +555,34 @@ function CreateEventPageInner() {
               ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
             }
 
-            const processedAreas = showing.areas?.map((area: any) => {
-              // Calculate seat count from rows and seats
-              let calculatedSeatCount = 0;
-              if (area.rows) {
-                area.rows.forEach((row: any) => {
-                  if (row.seats) {
-                    calculatedSeatCount += row.seats.length;
-                  }
-                });
-              }
+            const processedAreas =
+              showing.areas?.map((area: any) => {
+                // Calculate seat count from rows and seats
+                let calculatedSeatCount = 0;
+                if (area.rows) {
+                  area.rows.forEach((row: any) => {
+                    if (row.seats) {
+                      calculatedSeatCount += row.seats.length;
+                    }
+                  });
+                }
 
-              return {
-                name: area.name,
-                ticketPrice: area.price.toString(),
-                seatCount: calculatedSeatCount > 0 ? calculatedSeatCount.toString() : "0",
-              };
-            }) || [];
+                return {
+                  name: area.name,
+                  ticketPrice: area.price.toString(),
+                  seatCount:
+                    calculatedSeatCount > 0
+                      ? calculatedSeatCount.toString()
+                      : "0",
+                };
+              }) || [];
 
             return {
               name: showing.name,
               startTime: isValidStartTime
                 ? startTime.toISOString().slice(0, 16)
                 : "",
-              endTime: isValidEndTime
-                ? endTime.toISOString().slice(0, 16)
-                : "",
+              endTime: isValidEndTime ? endTime.toISOString().slice(0, 16) : "",
               ticketSaleStart: ticketSaleStartValue,
               ticketSaleEnd: ticketSaleEndValue,
               areas: processedAreas,
@@ -1159,6 +1162,8 @@ function CreateEventPageInner() {
         open={showSeatMapModal}
         onOpenChange={setShowSeatMapModal}
         onSelect={handleSeatMapSelection}
+        onSetShowings={setShowings}
+        showings={showings}
         selectedSeatMapId={selectedSeatMap}
       />
 

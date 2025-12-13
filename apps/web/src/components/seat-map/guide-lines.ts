@@ -129,6 +129,105 @@ class GuideLines {
     previewContainer.addChild(this.polygonEdgeGraphics);
   }
 
+  public isNearGuideLines(
+    x: number,
+    y: number,
+    tolerance: number = this.options.snapDistance
+  ): {
+    isNear: boolean;
+    nearestPoint: { x: number; y: number } | null;
+    guideType: "grid" | "snapGuide" | "polygonEdge" | null;
+    distance: number;
+  } {
+    let minDistance = Infinity;
+    let nearestPoint: { x: number; y: number } | null = null;
+    let guideType: "grid" | "snapGuide" | "polygonEdge" | null = null;
+
+    // Check grid lines
+    if (this.gridGraphics && this.options.showGrid) {
+      const gridSnap = this.snapToGrid(x, y);
+      const gridDistanceX = Math.abs(x - gridSnap.x);
+      const gridDistanceY = Math.abs(y - gridSnap.y);
+      const gridDistance = Math.min(gridDistanceX, gridDistanceY);
+
+      if (gridDistance < minDistance && gridDistance <= tolerance) {
+        minDistance = gridDistance;
+        nearestPoint = {
+          x: gridDistanceX < gridDistanceY ? gridSnap.x : x,
+          y: gridDistanceY < gridDistanceX ? gridSnap.y : y,
+        };
+        guideType = "grid";
+      }
+    }
+
+    // Check snap guide lines (vertical and horizontal alignment guides)
+    if (this.snapGuideGraphics && this.options.showSnapGuides) {
+      // The snap guides are drawn at specific x or y coordinates
+      // We need to check if the point is near any vertical or horizontal guide
+      // This requires tracking active snap guide positions
+      // For now, we'll check if we're within snap distance of round numbers
+      const snapX =
+        Math.round(x / this.options.gridSpacing) * this.options.gridSpacing;
+      const snapY =
+        Math.round(y / this.options.gridSpacing) * this.options.gridSpacing;
+
+      const snapDistanceX = Math.abs(x - snapX);
+      const snapDistanceY = Math.abs(y - snapY);
+
+      if (snapDistanceX <= tolerance && snapDistanceX < minDistance) {
+        minDistance = snapDistanceX;
+        nearestPoint = { x: snapX, y };
+        guideType = "snapGuide";
+      }
+
+      if (snapDistanceY <= tolerance && snapDistanceY < minDistance) {
+        minDistance = snapDistanceY;
+        nearestPoint = { x, y: snapY };
+        guideType = "snapGuide";
+      }
+    }
+
+    return {
+      isNear: minDistance <= tolerance,
+      nearestPoint,
+      guideType,
+      distance: minDistance === Infinity ? 0 : minDistance,
+    };
+  }
+
+  public isNearPolygonEdge(
+    x: number,
+    y: number,
+    polygonEdges: PolygonEdge[],
+    tolerance: number = this.options.snapDistance
+  ): {
+    isNear: boolean;
+    nearestPoint: { x: number; y: number } | null;
+    distance: number;
+    edge: PolygonEdge | null;
+  } {
+    let minDistance = Infinity;
+    let nearestPoint: { x: number; y: number } | null = null;
+    let nearestEdge: PolygonEdge | null = null;
+
+    polygonEdges.forEach((edge) => {
+      const distance = this.distanceToLine(x, y, edge);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        nearestPoint = this.projectPointOntoLine(x, y, edge);
+        nearestEdge = edge;
+      }
+    });
+
+    return {
+      isNear: minDistance <= tolerance,
+      nearestPoint,
+      distance: minDistance,
+      edge: nearestEdge,
+    };
+  }
+
   private drawExtendedEdgeLine(edge: PolygonEdge): void {
     if (!this.polygonEdgeGraphics) return;
 

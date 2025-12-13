@@ -719,21 +719,27 @@ export const AreaModeProperties = React.memo(
         ) as RowShape[];
         if (affectedRows.length === 0) return;
 
-        const beforeRows = cloneCanvasItems(affectedRows);
+        // ✅ Clone BEFORE making changes (captures original seat labels)
+        const beforeSeats = cloneCanvasItems(
+          affectedRows.map((row) => row.children).flat()
+        );
 
-        // Apply to all rows
+        // Apply changes
         rowIds.forEach((rowId) => {
           reverseRowSeatLabels(gridId, rowId);
         });
+
+        // ✅ Get the AFTER state (now affectedRows have updated seat labels)
+        const afterSeats = affectedRows.map((row) => row.children).flat(); // These are already modified
 
         updateShapes([...shapes], false, undefined, false);
 
         const context: ShapeContext = {
           topLevel: [],
-          nested: affectedRows.map((row) => ({
-            id: row.id,
+          nested: afterSeats.map((seat) => ({
+            id: seat.id,
             type: "container",
-            parentId: gridId,
+            parentId: seat.rowId,
           })),
           operation: "modify",
           containerPositions: {
@@ -746,12 +752,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: beforeRows,
+            shapes: beforeSeats, // Original state with old labels
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: affectedRows,
+            shapes: afterSeats, // Modified state with reversed labels
             selectedShapes: selectedShapes,
             context,
           }
@@ -776,21 +782,26 @@ export const AreaModeProperties = React.memo(
         ) as RowShape[];
         if (affectedRows.length === 0) return;
 
-        const beforeRows = cloneCanvasItems(affectedRows);
+        const beforeSeats = cloneCanvasItems(
+          affectedRows.map((row) => row.children).flat()
+        );
 
-        // Apply to all rows
+        // Apply changes
         rowIds.forEach((rowId) => {
           renumberSeatsInRow(gridId, rowId, startNumber, step);
         });
+
+        // ✅ Get the AFTER state (now affectedRows have updated seat numbers)
+        const afterSeats = affectedRows.map((row) => row.children).flat(); // These are already modified
 
         updateShapes([...shapes], false, undefined, false);
 
         const context: ShapeContext = {
           topLevel: [],
-          nested: affectedRows.map((row) => ({
-            id: row.id,
+          nested: afterSeats.map((seat) => ({
+            id: seat.id,
             type: "container",
-            parentId: gridId,
+            parentId: seat.rowId,
           })),
           operation: "modify",
           containerPositions: {
@@ -803,12 +814,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: beforeRows,
+            shapes: beforeSeats, // Original state with old numbers
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: affectedRows,
+            shapes: afterSeats, // Modified state with new numbers
             selectedShapes: selectedShapes,
             context,
           }
