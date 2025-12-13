@@ -418,21 +418,6 @@ export function SeatMapSelectionModal({
 
                         <div className="flex gap-2">
                           <Button
-                            variant="outline"
-                            size="sm"
-                            className="flex-1"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              window.open(
-                                `/seat-map?id=${seatMap.id}&preview=true`,
-                                "_blank"
-                              );
-                            }}
-                          >
-                            <Eye className="w-3 h-3 mr-1" />
-                            Preview
-                          </Button>
-                          <Button
                             size="sm"
                             className="flex-1"
                             disabled={!isUsable || seatMap.isDraftedFromCurrent}
