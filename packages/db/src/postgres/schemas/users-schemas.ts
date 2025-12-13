@@ -42,29 +42,6 @@ export const user = pgTable(
   ]
 );
 
-export const session = pgTable(
-  "session",
-  {
-    id: text("id").primaryKey(),
-    expiresAt: timestamp("expires_at").notNull(),
-    token: text("token").notNull().unique(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-    ipAddress: text("ip_address"),
-    userAgent: text("user_agent"),
-    userId: text("user_id")
-      .notNull()
-      .references(() => user.id, { onDelete: "cascade" }),
-    activeOrganizationId: text("active_organization_id"),
-  },
-  (table) => [
-    index("session_user_id_idx").on(table.userId),
-    index("token_idx").on(table.token),
-  ]
-);
-
 export const account = pgTable(
   "account",
   {
@@ -180,7 +157,6 @@ export const userRelations = relations(user, ({ one, many }) => ({
     fields: [user.id],
     references: [organizers.id],
   }),
-  sessions: many(session),
   accounts: many(account),
   members: many(member),
   invitations: many(invitation),
@@ -189,13 +165,6 @@ export const userRelations = relations(user, ({ one, many }) => ({
 export const organizerRelations = relations(organizers, ({ one }) => ({
   user: one(user, {
     fields: [organizers.id],
-    references: [user.id],
-  }),
-}));
-
-export const sessionRelations = relations(session, ({ one }) => ({
-  user: one(user, {
-    fields: [session.userId],
     references: [user.id],
   }),
 }));
