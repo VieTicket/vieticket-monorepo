@@ -107,7 +107,7 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
         </div>
 
         {/* Slider Wrapper */}
-        <div 
+        <div
           className="relative group"
           onMouseEnter={() => setIsPaused(true)}
           onMouseLeave={() => setIsPaused(false)}
