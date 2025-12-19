@@ -44,6 +44,10 @@ import {
   approveOrganizerAction,
   rejectOrganizerAction,
 } from "@/lib/actions/admin/organizer-actions";
+import {
+  lookupTaxCodeAction,
+  type TaxCodeLookupResult,
+} from "@/lib/actions/admin/tax-code-actions";
 
 interface PendingOrganizer {
   id: string;
@@ -77,10 +81,54 @@ export default function OrganizerPendingPage() {
   const [rejectReason, setRejectReason] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [taxCodeLookupResult, setTaxCodeLookupResult] =
+    useState<TaxCodeLookupResult | null>(null);
+  const [taxCodeLookupLoading, setTaxCodeLookupLoading] = useState(false);
+  const [taxCodeLookupError, setTaxCodeLookupError] = useState<string | null>(
+    null
+  );
 
   useEffect(() => {
     fetchPendingOrganizers();
   }, []);
+
+  // Auto lookup tax code when dialog opens and organizer has tax code
+  useEffect(() => {
+    if (
+      detailsDialogOpen &&
+      selectedOrganizer?.taxCode &&
+      selectedOrganizer.taxCode.trim()
+    ) {
+      lookupTaxCode(selectedOrganizer.taxCode);
+    } else {
+      // Reset when dialog closes
+      setTaxCodeLookupResult(null);
+      setTaxCodeLookupError(null);
+    }
+  }, [detailsDialogOpen, selectedOrganizer?.taxCode]);
+
+  const lookupTaxCode = async (taxCode: string) => {
+    setTaxCodeLookupLoading(true);
+    setTaxCodeLookupError(null);
+    setTaxCodeLookupResult(null);
+
+    try {
+      const result = await lookupTaxCodeAction(taxCode);
+
+      if (result.success && result.data) {
+        setTaxCodeLookupResult(result.data);
+      } else {
+        setTaxCodeLookupError(
+          result.error || "Không thể tra cứu thông tin mã số thuế"
+        );
+      }
+    } catch (error) {
+      console.error("Error looking up tax code:", error);
+      setTaxCodeLookupError("Đã xảy ra lỗi khi tra cứu mã số thuế");
+    } finally {
+      setTaxCodeLookupLoading(false);
+    }
+  };
 
   const fetchPendingOrganizers = async () => {
     try {
@@ -466,6 +514,53 @@ export default function OrganizerPendingPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Tax Code Lookup Section */}
+              {selectedOrganizer.taxCode && (
+                <div className="border-t pt-4">
+                  <Label className="text-sm font-medium mb-3 block">
+                    Tax Code Verification
+                  </Label>
+                  {taxCodeLookupLoading ? (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Đang tra cứu thông tin mã số thuế...</span>
+                    </div>
+                  ) : taxCodeLookupError ? (
+                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                      <strong>Lỗi:</strong> {taxCodeLookupError}
+                    </div>
+                  ) : taxCodeLookupResult ? (
+                    <div className="space-y-3 bg-muted/50 p-4 rounded-md">
+                      <div className="space-y-3 text-sm">
+                        <div>
+                          <strong className="text-muted-foreground">
+                            Tên doanh nghiệp:
+                          </strong>
+                          <div className="mt-1 font-medium break-words">
+                            {taxCodeLookupResult.name}
+                          </div>
+                        </div>
+                        <div>
+                          <strong className="text-muted-foreground">
+                            Địa chỉ:
+                          </strong>
+                          <div className="mt-1 break-words">
+                            {taxCodeLookupResult.address}
+                          </div>
+                        </div>
+                        {taxCodeLookupResult.disclaimer && (
+                          <div className="pt-2 border-t">
+                            <div className="text-xs text-muted-foreground italic">
+                              {taxCodeLookupResult.disclaimer}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              )}
               {selectedOrganizer.website && (
                 <div>
                   <Label className="text-sm font-medium">Website</Label>
