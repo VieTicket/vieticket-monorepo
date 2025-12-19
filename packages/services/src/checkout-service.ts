@@ -513,6 +513,25 @@ export async function processPaymentResult(
       };
     }
 
+    // Persist VNPay payment identifiers for refunds/reconciliation.
+    try {
+      const existing =
+        order.paymentMetadata &&
+        (order.paymentMetadata as any).provider === "vnpay" &&
+        (order.paymentMetadata as any).data
+          ? ((order.paymentMetadata as any).data as Record<string, unknown>)
+          : {};
+
+      await updateOrderVNPayData(order.id, {
+        ...existing,
+        vnp_TxnRef: vnpayReturn.vnp_TxnRef,
+        vnp_PayDate: vnpayReturn.vnp_PayDate,
+        vnp_TransactionNo: vnpayReturn.vnp_TransactionNo,
+      } as any);
+    } catch (metaError) {
+      console.error("Failed to persist VNPay payment metadata:", metaError);
+    }
+
     // 6. Handle idempotency/terminal states
     if (order.status === "paid") {
       // Order already confirmed, return existing ticket details

@@ -42,6 +42,9 @@ export function ProfileDropdown() {
           <DropdownMenuItem>
             <Link href={"/orders"}>My Orders</Link>
           </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Link href={"/orders/refunds"}>My Refunds</Link>
+          </DropdownMenuItem>
           <DropdownMenuItem>Interests</DropdownMenuItem>
           <DropdownMenuItem>
             <Link href={"/profile/edit"}>Account Settings</Link>
