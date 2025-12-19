@@ -209,7 +209,7 @@ export function EventDetailsStep({
           }}
           className={errors.maxTicketsByOrder ? "border-red-500" : ""}
           min="1"
-          max="20"
+          max="50"
           placeholder={t("placeholders.example5")}
         />
         {errors.maxTicketsByOrder && (

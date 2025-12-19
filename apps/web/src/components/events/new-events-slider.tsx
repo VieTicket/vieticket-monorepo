@@ -17,6 +17,7 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Sắp xếp events theo thời gian tạo gần nhất (newest first) và lấy 15 sự kiện
   const newEvents = events
@@ -26,6 +27,9 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
         new Date(a.createdAt || 0).getTime()
     )
     .slice(0, 15);
+
+  // Nhân đôi mảng để tạo hiệu ứng infinite loop
+  const duplicatedEvents = [...newEvents, ...newEvents];
 
   // Xử lý sự kiện scroll để ẩn/hiện nút điều hướng
   const handleScroll = () => {
@@ -49,6 +53,30 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
       }
     }
   };
+
+  // Auto scroll với infinite loop
+  useEffect(() => {
+    const ref = scrollRef.current;
+    if (!ref) return;
+
+    const cardWidth = 240 + 16; // width + gap
+    const totalWidth = cardWidth * newEvents.length;
+
+    const autoScroll = () => {
+      if (isPaused) return;
+
+      if (ref.scrollLeft >= totalWidth) {
+        // Reset về đầu khi đến cuối phần đầu tiên
+        ref.scrollLeft = 0;
+      } else {
+        ref.scrollLeft += 1; // Tốc độ scroll (pixel/frame)
+      }
+    };
+
+    const intervalId = setInterval(autoScroll, 30); // 30ms/frame ≈ 33fps
+
+    return () => clearInterval(intervalId);
+  }, [isPaused, newEvents.length]);
 
   useEffect(() => {
     const ref = scrollRef.current;
@@ -79,7 +107,11 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
         </div>
 
         {/* Slider Wrapper */}
-        <div className="relative group">
+        <div 
+          className="relative group"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           {/* Nút Previous */}
           {showLeftArrow && (
             <button
@@ -103,17 +135,17 @@ export default function NewEventsSlider({ events }: NewEventsSliderProps) {
           {/* Scroll Container */}
           <div
             ref={scrollRef}
-            className="flex gap-4 overflow-x-auto pb-8 pt-4 px-2 snap-x snap-mandatory scrollbar-hide"
+            className="flex gap-4 overflow-x-auto pb-8 pt-4 px-2 scrollbar-hide"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
           >
-            {newEvents.map((event) => (
+            {duplicatedEvents.map((event, index) => (
               <Link
-                key={event.id}
+                key={`${event.id}-${index}`}
                 href={`/events/${event.slug}`}
-                className="flex-none w-[200px] md:w-[240px] snap-start group/card cursor-pointer"
+                className="flex-none w-[200px] md:w-[240px] group/card cursor-pointer"
               >
                 {/* Poster Only Card */}
                 <div className="relative overflow-hidden rounded-xl shadow-lg border border-slate-700/30 hover:border-violet-400/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl hover:shadow-violet-500/20 aspect-[3/4]">
