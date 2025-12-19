@@ -156,7 +156,6 @@ export const updateRowGraphics = (
     return;
   }
 
-  // Update seat positions and graphics
   row.children.forEach((seat, index) => {
     seat.radiusX = grid.seatSettings.seatRadius;
     seat.radiusY = grid.seatSettings.seatRadius;
@@ -249,28 +248,21 @@ export const addSeatsToRow = (
   const startIndex = row.children.length;
   const seatSpacing = row.seatSpacing || grid.seatSettings.seatSpacing;
 
-  // ✅ Calculate the Y position pattern from existing seats
   let calculateSeatY = (index: number): number => {
     if (row.children.length === 0) {
-      // No existing seats, start at Y = 0
       return 0;
     } else if (row.children.length === 1) {
-      // Only one seat exists, maintain same Y
       return row.children[0].y;
     } else {
-      // ✅ Multiple seats exist - extrapolate the bend pattern
       const sortedSeats = [...row.children].sort((a, b) => a.x - b.x);
       const lastSeat = sortedSeats[sortedSeats.length - 1];
       const secondLastSeat = sortedSeats[sortedSeats.length - 2];
 
-      // Calculate the Y difference between the last two seats
       const yDelta = lastSeat.y - secondLastSeat.y;
 
-      // For the first new seat, continue the pattern
       if (index === startIndex) {
         return lastSeat.y + yDelta;
       } else {
-        // For subsequent new seats, continue extrapolating
         const offsetFromStart = index - startIndex;
         return lastSeat.y + yDelta * (offsetFromStart + 1);
       }
@@ -280,11 +272,11 @@ export const addSeatsToRow = (
   for (let i = 0; i < count; i++) {
     const seatIndex = startIndex + i;
     const seatX = seatIndex * seatSpacing;
-    const seatY = calculateSeatY(seatIndex); // ✅ Calculate Y based on bend pattern
+    const seatY = calculateSeatY(seatIndex);
 
     seat = createSeat(
       seatX,
-      seatY, // ✅ Use the calculated Y position
+      seatY,
       rowId,
       gridId,
       grid.children.indexOf(row),
@@ -413,10 +405,8 @@ export const restoreRowSettings = (
   const row = grid.children.find((r) => r.id === rowId) as RowShape;
   if (!row) return;
 
-  // Only update the row properties, don't propagate to graphics/seats
   Object.assign(row, settingsUpdate);
 
-  // Update only label-related graphics without recalculating seat positions
   if (settingsUpdate.rowName !== undefined && row.labelGraphics) {
     row.labelGraphics.text = settingsUpdate.rowName;
   }
@@ -451,13 +441,11 @@ export const restoreRowLabelPlacement = (
     return;
   }
 
-  // Create label if it doesn't exist
   if (!row.labelGraphics) {
     row.labelGraphics = createRowLabel(row);
     row.graphics.addChild(row.labelGraphics);
   }
 
-  // Update label text and position
   row.labelGraphics.text = row.rowName;
   updateRowLabelPosition(row);
   updateRowLabelRotation(row);
@@ -493,7 +481,6 @@ export const updateRowLabelPosition = (row: RowShape): void => {
       if (sortedSeats.length === 1) {
         labelY = firstSeat.y;
       } else {
-        // Use two nearest seats (leftmost two) to compute Y
         const a = sortedSeats[0];
         const b = sortedSeats[1];
         labelY = a.y + (a.y - b.y) / 2;
@@ -505,7 +492,6 @@ export const updateRowLabelPosition = (row: RowShape): void => {
       if (sortedSeats.length === 1) {
         labelY = firstSeat.y;
       } else if (sortedSeats.length < 4) {
-        // Use two center seats when length < 4
         const n = sortedSeats.length;
         const leftIndex = Math.floor((n - 1) / 2);
         const rightIndex = leftIndex + 1;
@@ -517,7 +503,6 @@ export const updateRowLabelPosition = (row: RowShape): void => {
           labelY = sortedSeats[leftIndex].y;
         }
       } else {
-        // Use four middle seats for n >= 4
         const n = sortedSeats.length;
         const start = Math.floor((n - 4) / 2);
         const middleSeats = sortedSeats.slice(start, start + 4);
@@ -533,7 +518,6 @@ export const updateRowLabelPosition = (row: RowShape): void => {
       if (sortedSeats.length === 1) {
         labelY = lastSeat.y;
       } else {
-        // Use two nearest seats (rightmost two) to compute Y
         const a = sortedSeats[sortedSeats.length - 1];
         const b = sortedSeats[sortedSeats.length - 2];
         labelY = a.y + (a.y - b.y) / 2;
@@ -546,20 +530,51 @@ export const updateRowLabelPosition = (row: RowShape): void => {
 
   row.labelGraphics.position.set(labelX, labelY);
 };
+
 export const updateRowLabelRotation = (
   row: RowShape,
   grid?: GridShape
 ): void => {
   if (!row.labelGraphics || row.labelPlacement === "none") return;
-  if (!grid) {
+
+  if (!grid && areaModeContainer) {
     grid = getGridByRowId(row.id);
   }
-  const totalRotation = (row.rotation || 0) + (grid?.rotation || 0);
-  row.labelGraphics.rotation = -totalRotation;
+
+  let totalRotation = (row.rotation || 0) + (grid?.rotation || 0);
+
+  let effectiveScaleX = row.scaleX || 1;
+  let effectiveScaleY = row.scaleY || 1;
+
+  if (grid) {
+    effectiveScaleX *= grid.scaleX || 1;
+    effectiveScaleY *= grid.scaleY || 1;
+  }
+
+  const labelScaleX = effectiveScaleX < 0 ? -1 : 1;
+  const labelScaleY = effectiveScaleY < 0 ? -1 : 1;
+
+  row.labelGraphics.scale.set(labelScaleX, labelScaleY);
+
+  let labelRotation = -totalRotation;
+
+  const isHorizontallyMirrored = effectiveScaleX < 0;
+  const isVerticallyMirrored = effectiveScaleY < 0;
+
+  if (isHorizontallyMirrored && isVerticallyMirrored) {
+  } else if (isHorizontallyMirrored) {
+    labelRotation = -labelRotation;
+  } else if (isVerticallyMirrored) {
+    labelRotation = -labelRotation;
+  }
+
+  while (labelRotation > Math.PI) labelRotation -= 2 * Math.PI;
+  while (labelRotation < -Math.PI) labelRotation += 2 * Math.PI;
+
+  row.labelGraphics.rotation = labelRotation;
 };
 
 export const updateMultipleRowLabelRotations = (rows: RowShape[]): void => {
-  // Group rows by gridId for efficient grid lookup
   const rowsByGrid = new Map<string, RowShape[]>();
 
   rows.forEach((row) => {
@@ -569,14 +584,42 @@ export const updateMultipleRowLabelRotations = (rows: RowShape[]): void => {
     rowsByGrid.get(row.gridId)!.push(row);
   });
 
-  // Process rows by grid to reuse grid lookup
   rowsByGrid.forEach((gridRows, gridId) => {
     const grid = areaModeContainer?.children.find((g) => g.id === gridId);
 
     gridRows.forEach((row) => {
       if (row.labelGraphics && row.labelPlacement !== "none") {
         const totalRotation = (row.rotation || 0) + (grid?.rotation || 0);
-        row.labelGraphics.rotation = -totalRotation;
+
+        let effectiveScaleX = row.scaleX || 1;
+        let effectiveScaleY = row.scaleY || 1;
+
+        if (grid) {
+          effectiveScaleX *= grid.scaleX || 1;
+          effectiveScaleY *= grid.scaleY || 1;
+        }
+
+        const labelScaleX = effectiveScaleX < 0 ? -1 : 1;
+        const labelScaleY = effectiveScaleY < 0 ? -1 : 1;
+
+        row.labelGraphics.scale.set(labelScaleX, labelScaleY);
+
+        let labelRotation = -totalRotation;
+
+        const isHorizontallyMirrored = effectiveScaleX < 0;
+        const isVerticallyMirrored = effectiveScaleY < 0;
+
+        if (isHorizontallyMirrored && isVerticallyMirrored) {
+        } else if (isHorizontallyMirrored) {
+          labelRotation = -labelRotation;
+        } else if (isVerticallyMirrored) {
+          labelRotation = -labelRotation;
+        }
+
+        while (labelRotation > Math.PI) labelRotation -= 2 * Math.PI;
+        while (labelRotation < -Math.PI) labelRotation += 2 * Math.PI;
+
+        row.labelGraphics.rotation = labelRotation;
       }
     });
   });
@@ -665,11 +708,10 @@ export const applyBendToRow = (
     seat.y = baseY + bendOffset;
 
     seat.graphics.position.set(seat.x, seat.y);
-    // ✅ Update seat label rotation with row and grid passed
+
     updateSeatLabelRotation(seat, row, grid);
   });
 
-  // Update row label position after bending is applied
   if (row) {
     updateRowLabelPosition(row);
     updateRowLabelRotation(row);
@@ -685,27 +727,23 @@ export const handleRowsLabelPlacementChange = (
 ): void => {
   if (!areaModeContainer) return;
 
-  // ✅ Store original values for before state
   const beforeRows = cloneCanvasItems(grid.children);
 
-  // Apply the label placement change to all rows
   grid.children.forEach((row) => {
     setRowLabelPlacement(row, placement);
   });
-  // Update shapes without automatic history saving
+
   useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
 
-  // ✅ Context-based history saving for MODIFY operation
   const context: ShapeContext = {
     topLevel: [],
     nested: [
-      // Include the grid
       {
         id: grid.id,
         type: "container",
         parentId: areaModeContainer.id,
       },
-      // Include all affected rows
+
       ...grid.children.map((row) => ({
         id: row.id,
         type: "container",
@@ -734,7 +772,6 @@ export const handleRowsLabelPlacementChange = (
     }
   );
 
-  // Broadcast to collaborators
   SeatMapCollaboration.broadcastShapeChange(action);
 };
 
@@ -744,23 +781,18 @@ export const handleRowLabelPlacementChange = (
 ): void => {
   if (!areaModeContainer) return;
 
-  // Find the grid that contains this row
   const grid = getGridByRowId(row.id);
   if (!grid) {
     console.warn(`Grid not found for row ${row.id}`);
     return;
   }
 
-  // ✅ Store original values for before state
   const beforeRow = cloneCanvasItem(row);
 
-  // Apply the label placement change
   setRowLabelPlacement(row, placement);
 
-  // Update shapes without automatic history saving
   useSeatMapStore.getState().updateShapes([...shapes], false, undefined, false);
 
-  // ✅ Context-based history saving for MODIFY operation
   const context: ShapeContext = {
     topLevel: [],
     nested: [
@@ -792,7 +824,6 @@ export const handleRowLabelPlacementChange = (
     }
   );
 
-  // Broadcast to collaborators
   SeatMapCollaboration.broadcastShapeChange(action);
 };
 
@@ -812,13 +843,11 @@ export const setRowLabelPlacement = (
     return;
   }
 
-  // Create label if it doesn't exist
   if (!row.labelGraphics) {
     row.labelGraphics = createRowLabel(row);
     row.graphics.addChild(row.labelGraphics);
   }
 
-  // Update label text and position
   row.labelGraphics.text = row.rowName;
   updateRowLabelPosition(row);
   updateRowLabelRotation(row);
@@ -884,8 +913,8 @@ export const createRowShape = (
  */
 export async function recreateRowShape(
   rowData: RowShape,
-  seatSettings?: SeatGridSettings, // Only used for applying new settings (grid updates)
-  preserveOriginalCoordinates: boolean = true // ✅ New flag to control coordinate preservation
+  seatSettings?: SeatGridSettings,
+  preserveOriginalCoordinates: boolean = true
 ): Promise<RowShape> {
   const rowGraphics = new PIXI.Container();
   rowGraphics.eventMode = "static";
@@ -894,8 +923,8 @@ export async function recreateRowShape(
     id: rowData.id,
     name: rowData.name,
     type: "container",
-    x: rowData.x, // ✅ Always preserve original X
-    y: rowData.y, // ✅ Always preserve original Y
+    x: rowData.x,
+    y: rowData.y,
     rotation: rowData.rotation || 0,
     scaleX: rowData.scaleX || 1,
     scaleY: rowData.scaleY || 1,
@@ -907,38 +936,34 @@ export async function recreateRowShape(
     graphics: rowGraphics,
     children: [],
     rowName: rowData.rowName,
-    seatSpacing: rowData.seatSpacing, // ✅ Preserve original seat spacing unless explicitly updating
+    seatSpacing: rowData.seatSpacing,
     gridId: rowData.gridId,
     createdAt: rowData.createdAt,
     labelPlacement: rowData.labelPlacement || "none",
   };
 
-  // ✅ Only apply new seat settings if specifically provided AND not preserving coordinates
   if (seatSettings && !preserveOriginalCoordinates) {
     recreatedRow.seatSpacing = seatSettings.seatSpacing;
   }
 
-  // ✅ Recreate seats with exact coordinate preservation
   if (rowData.children && rowData.children.length > 0) {
     for (let i = 0; i < rowData.children.length; i++) {
       const seatData = rowData.children[i];
       try {
         let seatToRecreate = seatData;
 
-        // ✅ Only modify seat positions if explicitly updating settings AND not preserving coordinates
         if (seatSettings && !preserveOriginalCoordinates) {
           seatToRecreate = {
             ...seatData,
-            x: i * seatSettings.seatSpacing, // Apply new spacing only when updating
+            x: i * seatSettings.seatSpacing,
           };
         }
-        // ✅ Otherwise, use exact original coordinates
 
         const recreatedSeat = recreateSeat(
           seatToRecreate,
           true,
-          false, // Don't auto-add to grid during recreation
-          preserveOriginalCoordinates ? undefined : seatSettings // Only apply settings if not preserving coordinates
+          false,
+          preserveOriginalCoordinates ? undefined : seatSettings
         );
 
         recreatedRow.children.push(recreatedSeat);
@@ -949,7 +974,6 @@ export async function recreateRowShape(
     }
   }
 
-  // ✅ Recreate label if it should be visible
   if (recreatedRow.labelPlacement !== "none") {
     recreatedRow.labelGraphics = createRowLabel(recreatedRow);
     rowGraphics.addChild(recreatedRow.labelGraphics);

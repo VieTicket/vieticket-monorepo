@@ -1,10 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FileUploader } from "@/components/ui/file-uploader";
 import { AIImageGenerator } from "@/components/ai/AIImageGenerator";
 import { useTranslations } from "next-intl";
+import { toast } from "sonner";
 import type {
   EventFormData,
   UploadResponse,
@@ -12,26 +14,59 @@ import type {
 
 interface MediaUploadStepProps {
   formData: EventFormData;
-  onPosterUpload: (response: UploadResponse) => void;
-  onBannerUpload: (response: UploadResponse) => void;
-  onUploadError: (error: Error) => void;
-  onPosterRemove: () => void;
-  onBannerRemove: () => void;
-  onPosterGenerated: (imageUrl: string) => void;
-  onBannerGenerated: (imageUrl: string) => void;
+  onFormDataChange: (data: React.SetStateAction<EventFormData>) => void;
 }
 
 export function MediaUploadStep({
   formData,
-  onPosterUpload,
-  onBannerUpload,
-  onUploadError,
-  onPosterRemove,
-  onBannerRemove,
-  onPosterGenerated,
-  onBannerGenerated,
+  onFormDataChange,
 }: MediaUploadStepProps) {
   const t = useTranslations("organizer-dashboard.CreateEvent");
+
+  // ✅ Local state for previews (not needed in parent)
+  const [posterPreview, setPosterPreview] = useState<string | null>(
+    formData.posterUrl || null
+  );
+  const [bannerPreview, setBannerPreview] = useState<string | null>(
+    formData.bannerUrl || null
+  );
+
+  const handlePosterUpload = (response: UploadResponse) => {
+    onFormDataChange((prev) => ({ ...prev, posterUrl: response.secure_url }));
+    setPosterPreview(response.secure_url);
+    toast.success(t("toasts.posterUploaded"));
+  };
+
+  const handleBannerUpload = (response: UploadResponse) => {
+    onFormDataChange((prev) => ({ ...prev, bannerUrl: response.secure_url }));
+    setBannerPreview(response.secure_url);
+    toast.success(t("toasts.bannerUploaded"));
+  };
+
+  const handlePosterRemove = () => {
+    onFormDataChange((prev) => ({ ...prev, posterUrl: "" }));
+    setPosterPreview(null);
+  };
+
+  const handleBannerRemove = () => {
+    onFormDataChange((prev) => ({ ...prev, bannerUrl: "" }));
+    setBannerPreview(null);
+  };
+
+  const handlePosterGenerated = (imageUrl: string) => {
+    onFormDataChange((prev) => ({ ...prev, posterUrl: imageUrl }));
+    setPosterPreview(imageUrl);
+  };
+
+  const handleBannerGenerated = (imageUrl: string) => {
+    onFormDataChange((prev) => ({ ...prev, bannerUrl: imageUrl }));
+    setBannerPreview(imageUrl);
+  };
+
+  const handleUploadError = (error: Error) => {
+    toast.error(t("toasts.uploadFailed", { message: error.message }));
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       {/* Poster Upload Section */}
@@ -50,10 +85,10 @@ export function MediaUploadStep({
               {t("ai.media.uploadYourOwn")}
             </h3>
             <div className="relative w-full aspect-[3/4] border rounded-lg overflow-hidden bg-gray-50 sm:bg-gray-100 flex items-center justify-center min-h-[200px] sm:min-h-[250px]">
-              {formData.posterUrl ? (
+              {posterPreview ? (
                 <>
                   <img
-                    src={formData.posterUrl}
+                    src={posterPreview}
                     alt={t("ai.media.posterAlt")}
                     className="w-full h-full object-cover"
                   />
@@ -61,8 +96,8 @@ export function MediaUploadStep({
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4">
                   <FileUploader
-                    onUploadSuccess={onPosterUpload}
-                    onUploadError={onUploadError}
+                    onUploadSuccess={handlePosterUpload}
+                    onUploadError={handleUploadError}
                     folder="event-posters"
                     mode="dropzone"
                     buttonLabel={t("ai.media.uploadButtonPoster")}
@@ -72,13 +107,13 @@ export function MediaUploadStep({
               )}
             </div>
 
-            {formData.posterUrl && (
+            {posterPreview && (
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={onPosterRemove}
+                  onClick={handlePosterRemove}
                   className="h-8 text-xs sm:text-sm"
                 >
                   {t("ai.media.removePoster")}
@@ -94,7 +129,7 @@ export function MediaUploadStep({
             </h3>
             <AIImageGenerator
               type="poster"
-              onImageGenerated={onPosterGenerated}
+              onImageGenerated={handlePosterGenerated}
               eventType={formData.type}
             />
           </div>
@@ -117,10 +152,10 @@ export function MediaUploadStep({
               {t("ai.media.uploadYourOwn")}
             </h3>
             <div className="relative w-full aspect-[4/3] sm:aspect-[16/9] border rounded-lg overflow-hidden bg-gray-50 sm:bg-gray-100 flex items-center justify-center min-h-[150px] sm:min-h-[200px]">
-              {formData.bannerUrl ? (
+              {bannerPreview ? (
                 <>
                   <img
-                    src={formData.bannerUrl}
+                    src={bannerPreview}
                     alt={t("ai.media.bannerAlt")}
                     className="w-full h-full object-cover"
                   />
@@ -128,8 +163,8 @@ export function MediaUploadStep({
               ) : (
                 <div className="absolute inset-0 flex items-center justify-center p-2 sm:p-4">
                   <FileUploader
-                    onUploadSuccess={onBannerUpload}
-                    onUploadError={onUploadError}
+                    onUploadSuccess={handleBannerUpload}
+                    onUploadError={handleUploadError}
                     folder="event-banners"
                     mode="dropzone"
                     buttonLabel={t("ai.media.uploadButtonBanner")}
@@ -139,13 +174,13 @@ export function MediaUploadStep({
               )}
             </div>
 
-            {formData.bannerUrl && (
+            {bannerPreview && (
               <div className="flex gap-2">
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={onBannerRemove}
+                  onClick={handleBannerRemove}
                   className="h-8 text-xs sm:text-sm"
                 >
                   {t("ai.media.removeBanner")}
@@ -162,7 +197,7 @@ export function MediaUploadStep({
             <div className="w-full">
               <AIImageGenerator
                 type="banner"
-                onImageGenerated={onBannerGenerated}
+                onImageGenerated={handleBannerGenerated}
                 eventType={formData.type}
               />
             </div>

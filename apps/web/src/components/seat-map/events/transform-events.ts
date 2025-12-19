@@ -998,20 +998,6 @@ export class SelectionTransform {
     };
   }
 
-  private drawControlPointLine(x1: number, y1: number, x2: number, y2: number) {
-    const line = new PIXI.Graphics();
-    line
-      .moveTo(x1, y1)
-      .lineTo(x2, y2)
-      .stroke({
-        width: 1 / zoom,
-        color: 0x666666,
-        alpha: 0.6,
-      });
-
-    this.container.addChildAt(line, 0);
-  }
-
   private onHandlePointerDown(
     event: PIXI.FederatedPointerEvent,
     type: string,

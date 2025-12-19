@@ -18,7 +18,11 @@ import {
 } from "@vieticket/repos/seat-map";
 import { CreateSeatMapInput } from "@vieticket/db/mongo/models/seat-map";
 import { findEventById } from "@vieticket/repos";
-import { canUserAccessResource, canUserModifyResource, canUserAccessSeatMaps } from "./authorization-helpers";
+import {
+  canUserAccessResource,
+  canUserModifyResource,
+  canUserAccessSeatMaps,
+} from "./authorization-helpers";
 
 function validateShapesByType(shape: any): boolean {
   const validTypes = [
@@ -269,7 +273,9 @@ export async function saveSeatMap(
 ) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
-    throw new Error("Unauthorized: You don't have permission to create seat maps");
+    throw new Error(
+      "Unauthorized: You don't have permission to create seat maps"
+    );
   }
 
   if (!name || name.trim().length === 0) {
@@ -359,7 +365,9 @@ export async function updateSeatMap(
     );
 
     if (!canModify) {
-      throw new Error("Unauthorized: You don't have permission to modify this seat map");
+      throw new Error(
+        "Unauthorized: You don't have permission to modify this seat map"
+      );
     }
 
     const updateData: any = {
@@ -400,10 +408,15 @@ export async function updateSeatMap(
   }
 }
 
-export async function getUserSeatMapsWithEventInfo(user: User, organizationId?: string | null) {
+export async function getUserSeatMapsWithEventInfo(
+  user: User,
+  organizationId?: string | null
+) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
-    throw new Error("Unauthorized: You don't have permission to access seat maps");
+    throw new Error(
+      "Unauthorized: You don't have permission to access seat maps"
+    );
   }
 
   try {
@@ -424,6 +437,7 @@ export async function getUserSeatMapsWithEventInfo(user: User, organizationId?: 
                 startTime: event.startTime,
                 endTime: event.endTime,
                 location: event.location,
+                status: event.approvalStatus,
               };
             }
           } catch (error) {
@@ -437,7 +451,6 @@ export async function getUserSeatMapsWithEventInfo(user: User, organizationId?: 
         return {
           id: seatMap.id,
           name: seatMap.name,
-          shapes: seatMap.shapes,
           image: seatMap.image,
           createdBy: seatMap.createdBy,
           publicity: seatMap.publicity,
@@ -459,10 +472,15 @@ export async function getUserSeatMapsWithEventInfo(user: User, organizationId?: 
   }
 }
 
-export async function getUserSeatMaps(user: User, organizationId?: string | null) {
+export async function getUserSeatMaps(
+  user: User,
+  organizationId?: string | null
+) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
-    throw new Error("Unauthorized: You don't have permission to access seat maps");
+    throw new Error(
+      "Unauthorized: You don't have permission to access seat maps"
+    );
   }
 
   try {
@@ -488,14 +506,24 @@ export async function getUserSeatMaps(user: User, organizationId?: string | null
   }
 }
 
-export async function searchUserSeatMaps(searchQuery: string, user: User, organizationId?: string | null) {
+export async function searchUserSeatMaps(
+  searchQuery: string,
+  user: User,
+  organizationId?: string | null
+) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
-    throw new Error("Unauthorized: You don't have permission to search seat maps");
+    throw new Error(
+      "Unauthorized: You don't have permission to search seat maps"
+    );
   }
 
   try {
-    const seatMaps = await searchAccessibleSeatMaps(searchQuery, user.id, organizationId);
+    const seatMaps = await searchAccessibleSeatMaps(
+      searchQuery,
+      user.id,
+      organizationId
+    );
 
     const plainSeatMaps = seatMaps.map((seatMap) => ({
       id: seatMap.id,
@@ -627,7 +655,9 @@ export async function updateSeatMapPublicityService(
 ) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
-    throw new Error("Unauthorized: You don't have permission to update publicity");
+    throw new Error(
+      "Unauthorized: You don't have permission to update publicity"
+    );
   }
 
   if (!seatMapId || seatMapId.trim().length === 0) {
@@ -660,7 +690,11 @@ export async function updateSeatMapPublicityService(
   }
 }
 
-export async function getSeatMapDraftInfo(seatMapId: string, user: User, organizationId?: string | null) {
+export async function getSeatMapDraftInfo(
+  seatMapId: string,
+  user: User,
+  organizationId?: string | null
+) {
   const hasAccess = await canUserAccessSeatMaps(user, organizationId);
   if (!hasAccess) {
     throw new Error(
@@ -685,7 +719,11 @@ export async function getSeatMapDraftInfo(seatMapId: string, user: User, organiz
   }
 }
 
-export async function deleteSeatMapService(seatMapId: string, user: User, organizationId?: string | null) {
+export async function deleteSeatMapService(
+  seatMapId: string,
+  user: User,
+  organizationId?: string | null
+) {
   if (!seatMapId || seatMapId.trim().length === 0) {
     throw new Error("Seat map ID is required");
   }
@@ -705,7 +743,9 @@ export async function deleteSeatMapService(seatMapId: string, user: User, organi
     );
 
     if (!canDelete) {
-      throw new Error("Unauthorized: You don't have permission to delete this seat map");
+      throw new Error(
+        "Unauthorized: You don't have permission to delete this seat map"
+      );
     }
 
     const deletedSeatMap = await deleteSeatMapById(seatMapId.trim());

@@ -14,11 +14,14 @@ import {
   findSeatMapWithShapesById,
 } from "@vieticket/repos/seat-map";
 import { v4 as uuidv4 } from "uuid";
-import { Event } from "@vieticket/db/pg/schemas/events";
+import { areas, Event, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { revalidatePath } from "next/cache";
 import { authorise } from "@/lib/auth/authorise";
 import { slugify } from "@/lib/utils";
 import { GridShape, AreaModeContainer } from "@/components/seat-map/types";
+import { getAuthSession } from "@/lib/auth/auth";
+import { headers } from "next/headers";
+import { db } from "@vieticket/db/pg";
 
 /**
  * Validation functions cho event creation/update
@@ -394,12 +397,12 @@ export async function handleCreateEvent(
   }
 
   console.log("Showings after seat map assignment:", showings);
-  
+
   // For normal event creation, always start with "NotYet" status and null metadata
   // Evidence will be submitted separately via EventCard button
   const eventMetadata = null;
   const approvalStatus: "NotYet" = "NotYet";
-  
+
   const eventPayload = {
     id: eventId,
     name: eventName,
@@ -556,10 +559,10 @@ export async function handleUpdateEvent(formData: FormData) {
 
     const eventId = formData.get("eventId") as string;
     const evidenceDataStr = formData.get("evidenceData") as string;
-    
+
     // Check if this is an evidence-only submission
     const isEvidenceOnlySubmission = evidenceDataStr && !formData.get("name");
-    
+
     if (isEvidenceOnlySubmission) {
       // Handle evidence-only submission - just update metadata and approval status
       const existingEvent = await getEventById(eventId);
@@ -570,7 +573,7 @@ export async function handleUpdateEvent(formData: FormData) {
       // Parse evidence data
       let eventMetadata = existingEvent.eventMetadata;
       let approvalStatus = existingEvent.approvalStatus;
-      
+
       if (evidenceDataStr) {
         try {
           const evidenceData = JSON.parse(evidenceDataStr);
@@ -592,7 +595,7 @@ export async function handleUpdateEvent(formData: FormData) {
         const { db } = await import("@/lib/db");
         const { events } = await import("@vieticket/db/pg/schema");
         const { eq } = await import("drizzle-orm");
-        
+
         await db
           .update(events)
           .set({
@@ -1018,3 +1021,153 @@ export const fetchEventById = async (id: string) => {
     return { success: false, error: errorMessage };
   }
 };
+
+interface SyncSeatMapToEventParams {
+  eventId: string;
+  seatMapId: string;
+  grids: GridShape[];
+  createdEntityIds: {
+    grids: string[];
+    rows: Array<{ id: string; gridId: string }>;
+    seats: Array<{ id: string; rowId: string; gridId: string }>;
+  };
+}
+
+export async function syncSeatMapToEventAction(
+  params: SyncSeatMapToEventParams
+) {
+  try {
+    const session = await getAuthSession(await headers());
+    const user = session?.user;
+
+    if (!user) {
+      throw new Error("Unauthenticated: Please sign in to sync seat maps.");
+    }
+
+    const { eventId, seatMapId, grids, createdEntityIds } = params;
+
+    // 1. Get the event
+    const event = await getEventById(eventId);
+    if (!event) {
+      throw new Error("Event not found");
+    }
+
+    // 2. Find the showing that uses this seat map
+    const showing = event.showings?.find((s) => s.seatMapId === seatMapId);
+    if (!showing) {
+      throw new Error(`No showing found using seat map ${seatMapId}`);
+    }
+
+    console.log(`🔄 Syncing seat map ${seatMapId} to showing ${showing.id}`);
+
+    // 3. Filter grids to only include those created in this session
+    const newGrids = grids.filter((grid) =>
+      createdEntityIds.grids.includes(grid.id)
+    );
+
+    if (newGrids.length === 0) {
+      console.log("ℹ️ No new grids to sync");
+      return { success: true, message: "No new changes to sync" };
+    }
+
+    // 4. Process each new grid
+    const processedAreas = [];
+
+    for (const grid of newGrids) {
+      // Get rows created in this session for this grid
+      const newRowIds = createdEntityIds.rows
+        .filter((row) => row.gridId === grid.id)
+        .map((row) => row.id);
+
+      const newRows = grid.children.filter((row) => newRowIds.includes(row.id));
+
+      if (newRows.length === 0) continue;
+
+      // Create area for this grid
+      const [createdArea] = await db
+        .insert(areas)
+        .values({
+          id: grid.id,
+          eventId: eventId,
+          showingId: showing.id,
+          name: grid.gridName || grid.name,
+          price: grid.seatSettings?.price || 0,
+        })
+        .returning();
+
+      console.log(
+        `✅ Created area ${createdArea.id} for showing ${showing.id}`
+      );
+
+      // Process rows
+      const processedRows = [];
+
+      for (const row of newRows) {
+        // Get seats created in this session for this row
+        const newSeatIds = createdEntityIds.seats
+          .filter((seat) => seat.rowId === row.id && seat.gridId === grid.id)
+          .map((seat) => seat.id);
+
+        const newSeats = row.children.filter((seat) =>
+          newSeatIds.includes(seat.id)
+        );
+
+        if (newSeats.length === 0) continue;
+
+        // Create row
+        const [createdRow] = await db
+          .insert(rows)
+          .values({
+            id: row.id,
+            areaId: createdArea.id,
+            rowName: row.rowName || row.name,
+          })
+          .returning();
+
+        console.log(
+          `✅ Created row ${createdRow.id} in area ${createdArea.id}`
+        );
+
+        // Create seats
+        const seatValues = newSeats.map((seat, index) => ({
+          id: seat.id,
+          rowId: createdRow.id,
+          seatNumber: (index + 1).toString(),
+        }));
+
+        if (seatValues.length > 0) {
+          await db.insert(seats).values(seatValues);
+          console.log(
+            `✅ Created ${seatValues.length} seats in row ${createdRow.id}`
+          );
+        }
+
+        processedRows.push({
+          rowId: createdRow.id,
+          seatCount: seatValues.length,
+        });
+      }
+
+      processedAreas.push({
+        areaId: createdArea.id,
+        rowCount: processedRows.length,
+        totalSeats: processedRows.reduce((sum, r) => sum + r.seatCount, 0),
+      });
+    }
+
+    return {
+      success: true,
+      data: {
+        showingId: showing.id,
+        areasCreated: processedAreas.length,
+        totalSeats: processedAreas.reduce((sum, a) => sum + a.totalSeats, 0),
+        processedAreas,
+      },
+    };
+  } catch (error) {
+    console.error("Error syncing seat map to event:", error);
+    const errorMessage =
+      error instanceof Error ? error.message : "An unexpected error occurred.";
+    return { success: false, error: errorMessage };
+  }
+}

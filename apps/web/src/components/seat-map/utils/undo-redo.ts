@@ -734,20 +734,15 @@ export const recreateShape = async (
       if ((ellipseData as any).rowId && (ellipseData as any).gridId) {
         const seatData = ellipseData as SeatShape;
         let currentSeatSettings: SeatGridSettings | undefined;
-        if (areaModeContainer) {
-          const grid = getGridById(seatData.gridId);
-          if (grid) {
-            currentSeatSettings = grid.seatSettings;
-          }
-        }
         recreatedShape = recreateSeat(
           seatData,
           true,
-          false,
-          currentSeatSettings
+          false
+          // currentSeatSettings
         );
 
         const recreatedSeat = recreatedShape as SeatShape;
+        recreatedSeat.color = ellipseData.color;
         recreatedSeat.showLabel = seatData.showLabel;
         recreatedSeat.labelStyle = seatData.labelStyle;
       } else {

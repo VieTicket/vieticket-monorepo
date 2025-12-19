@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
       bodySizeLimit: 4 * 1024 * 1024,
     },
   },
-  allowedDevOrigins: ["**.lo.vtk.io.vn", "lo.vtk.io.vn"],
+  allowedDevOrigins: ["**.lo.vtk.io.vn", "lo.vtk.io.vn", "192.168.1.8"],
 };
 
 export default withNextIntl(nextConfig);
