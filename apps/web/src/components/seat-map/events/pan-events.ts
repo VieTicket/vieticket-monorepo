@@ -13,8 +13,6 @@ import {
 import { updateStageTransform } from "../utils/stageTransform";
 
 export const onPanStart = (event: PIXI.FederatedPointerEvent) => {
-  if (currentTool !== "pan") return;
-
   const globalPoint = event.global;
   const localPoint = stage?.toLocal(globalPoint);
   if (!localPoint) return;
@@ -24,7 +22,7 @@ export const onPanStart = (event: PIXI.FederatedPointerEvent) => {
 };
 
 export const onPanMove = (event: PIXI.FederatedPointerEvent) => {
-  if (currentTool !== "pan" || !isDrawing || !dragStart) return;
+  if (!dragStart) return;
 
   const globalPoint = event.global;
   const localPoint = stage?.toLocal(globalPoint);
@@ -37,8 +35,6 @@ export const onPanMove = (event: PIXI.FederatedPointerEvent) => {
 };
 
 export const onPanEnd = () => {
-  if (currentTool !== "pan") return;
-
   setIsDrawing(false);
   setDragStart(null);
 };

@@ -7,11 +7,9 @@ import ShowingsManagement from "@/components/create-event/ShowingsManagement";
 import type { EventFormData, Area } from "../../../../../types/event-types";
 import type { ShowingFormData } from "@/types/showings";
 import { useTranslations } from "next-intl";
-
 interface EventDetailsStepProps {
   formData: EventFormData;
   errors: Record<string, string>;
-  areas: Area[];
   showings: ShowingFormData[];
   onInputChange: (
     e: React.ChangeEvent<
@@ -20,18 +18,15 @@ interface EventDetailsStepProps {
   ) => void;
   onDescriptionChange: (value: string) => void;
   onShowingsChange: (showings: ShowingFormData[]) => void;
-  disableTicketSaleValidation?: boolean;
 }
 
 export function EventDetailsStep({
   formData,
   errors,
-  areas,
   showings,
   onInputChange,
   onDescriptionChange,
   onShowingsChange,
-  disableTicketSaleValidation = false,
 }: EventDetailsStepProps) {
   const t = useTranslations("organizer-dashboard.CreateEvent");
   const renderField = (
@@ -42,10 +37,10 @@ export function EventDetailsStep({
   ) => {
     // Helper function to get minimum datetime for fields
     const getMinDateTime = (fieldName: string) => {
-      if (disableTicketSaleValidation && (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd")) {
+      if (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd") {
         return undefined;
       }
-      
+
       const now = new Date();
       const currentDateTime = now.toISOString().slice(0, 16);
 
@@ -61,10 +56,10 @@ export function EventDetailsStep({
 
     // Helper function to get maximum datetime for fields
     const getMaxDateTime = (fieldName: string) => {
-      if (disableTicketSaleValidation && (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd")) {
+      if (fieldName === "ticketSaleStart" || fieldName === "ticketSaleEnd") {
         return undefined;
       }
-      
+
       switch (fieldName) {
         case "ticketSaleStart":
           // Ticket sale start must be at least 3 days before the earliest event showing

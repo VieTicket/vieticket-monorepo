@@ -50,6 +50,13 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (seatMap.createdBy !== organizer.id) {
+      return NextResponse.json(
+        { error: "Unauthorized access to seat map" },
+        { status: 403 }
+      );
+    }
+
     return NextResponse.json({ seatMap, organizer }, { status: 200 });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Unknown error";

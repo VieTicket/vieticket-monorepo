@@ -24,12 +24,14 @@ import {
 } from "../../utils/bounds";
 import * as PIXI from "pixi.js";
 import { uploadBlobToCloudinary } from "@/components/ui/file-uploader";
+import { syncSeatMapToEventAction } from "@/lib/actions/organizer/events-action";
 
 export const UploadDialog: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [screenshotProgress, setScreenshotProgress] = useState(0);
   const router = useRouter();
+  const eventId = useSeatMapStore.getState().eventId;
 
   const seatMap = useSeatMapStore((state) => state.seatMap);
   const shapes = useSeatMapStore((state) => state.shapes);
@@ -51,7 +53,7 @@ export const UploadDialog: React.FC = () => {
       const bounds = stage.getBounds();
 
       // Define padding (in pixels)
-      const padding = 75;
+      const padding = 300;
 
       // Calculate dimensions with padding
       const captureWidth = bounds.width + padding * 2;
@@ -245,10 +247,58 @@ export const UploadDialog: React.FC = () => {
           description: "Generating preview image...",
         });
 
+        console.log("Event ID for sync:", eventId, areaModeContainer);
+        if (eventId && areaModeContainer) {
+          // Get session-created entities with parent relationships
+          const createdEntities = useSeatMapStore
+            .getState()
+            .getSessionCreatedEntities();
+
+          // Extract all grids from area mode container
+          const grids = areaModeContainer.children.filter(
+            (child): child is GridShape =>
+              child.type === "container" &&
+              "gridName" in child &&
+              "seatSettings" in child
+          );
+
+          console.log("📊 Syncing entities:", {
+            eventId,
+            seatMapId: seatMap.id,
+            newGrids: createdEntities.grids.length,
+            newRows: createdEntities.rows.length,
+            newSeats: createdEntities.seats.length,
+          });
+
+          // Sync to database
+          const syncResult = await syncSeatMapToEventAction({
+            eventId,
+            seatMapId: seatMap.id,
+            grids,
+            createdEntityIds: createdEntities,
+          });
+
+          if (!syncResult.success) {
+            toast.error("Failed to sync changes to event", {
+              description: syncResult.error,
+            });
+            return;
+          }
+
+          if (syncResult.data) {
+            toast.success("Event seating updated!", {
+              description: `Added ${syncResult.data.areasCreated} areas with ${syncResult.data.totalSeats} seats`,
+            });
+          }
+
+          // Clear session tracking after successful sync
+          useSeatMapStore.getState().clearSessionTracking();
+        }
+        setScreenshotProgress(30);
         const screenshotBlob = await captureScreenshot();
 
         if (screenshotBlob) {
-          setScreenshotProgress(30);
+          setScreenshotProgress(50);
 
           // ✅ Generate filename for screenshot
           const sanitizedName =
@@ -274,7 +324,6 @@ export const UploadDialog: React.FC = () => {
           );
 
           screenshotUrl = uploadResponse.secure_url;
-          setScreenshotProgress(70);
           useSeatMapStore.getState().clearStoredHistory();
 
           toast.success("Screenshot captured and uploaded!", {
@@ -504,7 +553,7 @@ export const UploadDialog: React.FC = () => {
                 isUploading || !seatMap || !seatMap.id || shapes.length === 0
               }
             >
-              {isUploading ? "Saving..." : "Save with Screenshot"}
+              {isUploading ? "Saving..." : "Save Seat Map"}
             </Button>
           </div>
         </div>

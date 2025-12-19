@@ -7,7 +7,7 @@ import React, {
   useCallback,
   Suspense,
 } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import * as PIXI from "pixi.js";
 
 import {
@@ -22,6 +22,7 @@ import {
   shapes,
   setShapes,
   shapeContainer,
+  areaModeContainer,
 } from "@/components/seat-map/variables";
 import {
   createSelectionTransform,
@@ -46,8 +47,10 @@ import {
   recreateShape,
   restoreHistoryAfterSeatMapLoad,
 } from "@/components/seat-map/utils/undo-redo"; // ✅ Import recreateShape
-import { CanvasItem } from "@/components/seat-map/types";
+import { CanvasItem, RowShape } from "@/components/seat-map/types";
 import { ValidationManager } from "@/components/seat-map/components/toolbar/validation-notification";
+import { updateRowLabelRotation } from "@/components/seat-map/shapes/row-shape";
+import { updateSeatLabelRotation } from "@/components/seat-map/shapes/seat-shape";
 
 const SeatMapV2PageInner = () => {
   const pixiContainerRef = useRef<HTMLDivElement>(null);
@@ -56,8 +59,9 @@ const SeatMapV2PageInner = () => {
 
   const searchParams = useSearchParams();
   const seatMapId = searchParams.get("seatMapId");
+  const eventId = searchParams.get("eventId");
   const { data: session } = authClient.useSession();
-
+  const router = useRouter();
   // ✅ Direct API fetch function (copied from socket server)
   const fetchSeatMapAndOrganizer = async (
     seatMapId: string,
@@ -83,7 +87,10 @@ const SeatMapV2PageInner = () => {
     return json; // Expecting { seatMap, organizer } shape from the route
   };
 
-  // ✅ Load seat map data directly without socket
+  if (!seatMapId) {
+    router.push("/organizer");
+  }
+
   const loadSeatMapData = async () => {
     if (!seatMapId || !session?.user?.id) {
       return;
@@ -116,6 +123,7 @@ const SeatMapV2PageInner = () => {
           createdAt: data.seatMap.createdAt,
           updatedAt: data.seatMap.updatedAt,
         },
+        eventId: eventId ? eventId : null,
         isLoading: false,
       });
 
@@ -153,6 +161,18 @@ const SeatMapV2PageInner = () => {
             setShapes([...shapes, ...recreatedShapes]);
           } else {
             setShapes(recreatedShapes);
+          }
+
+          if (areaModeContainer) {
+            areaModeContainer.children.forEach((grid) => {
+              grid.children.forEach((row) => {
+                updateRowLabelRotation(row, grid);
+
+                row.children.forEach((seat) => {
+                  updateSeatLabelRotation(seat, row, grid);
+                });
+              });
+            });
           }
 
           // ✅ Update store with recreated shapes
@@ -367,6 +387,56 @@ const SeatMapV2PageInner = () => {
   const isLoading =
     useSeatMapStore((state) => state.isLoading) || isLoadingSeatMap;
 
+  const renderLoadingError = (error: string) => {
+    console.log("Rendering loading error:", error);
+    if (error.includes("403"))
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="text-center max-w-md mx-4 p-6 bg-white rounded-lg shadow-lg border">
+            <div className="text-red-600 text-5xl mb-4">🚫</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Unauthorized Access
+            </h3>
+            <p className="text-gray-600 mb-4">
+              You do not have permission to access this seat map.
+            </p>
+            <div className="space-x-3">
+              <button
+                onClick={() => window.history.back()}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    if (error.includes("404")) {
+      return (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+          <div className="text-center max-w-md mx-4 p-6 bg-white rounded-lg shadow-lg border">
+            <div className="text-red-600 text-5xl mb-4">🚫</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              Unauthorized Access
+            </h3>
+            <p className="text-gray-600 mb-4">
+              You do not have permission to access this seat map.
+            </p>
+            <div className="space-x-3">
+              <button
+                onClick={() => window.history.back()}
+                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+              >
+                Go Back
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
   return (
     <div className="h-screen flex flex-col bg-gray-50">
       {/* ✅ Commented out ClientConnection */}
@@ -395,31 +465,7 @@ const SeatMapV2PageInner = () => {
       )}
 
       {/* ✅ Error overlay */}
-      {loadingError && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-          <div className="text-center max-w-md mx-4 p-6 bg-white rounded-lg shadow-lg border">
-            <div className="text-red-600 text-5xl mb-4">⚠️</div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Failed to Load Seat Map
-            </h3>
-            <p className="text-gray-600 mb-4">{loadingError}</p>
-            <div className="space-x-3">
-              <button
-                onClick={loadSeatMapData}
-                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              >
-                Retry
-              </button>
-              <button
-                onClick={() => window.history.back()}
-                className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
-              >
-                Go Back
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {loadingError && renderLoadingError(loadingError)}
 
       <MainToolbar />
 
