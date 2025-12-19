@@ -14,6 +14,9 @@ export interface EventFormData {
   maxTicketsByOrder?: number;
   startTime: string;
   endTime: string;
+  // Documents and contract for event approval
+  documentUrls?: string[]; // Array of document image URLs
+  contractUrl?: string; // Contract screenshot URL
 }
 
 export interface Area {

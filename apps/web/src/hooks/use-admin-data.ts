@@ -52,6 +52,13 @@ export interface PendingEvent {
   priceRange?: { min: number; max: number } | null;
   seatMapId?: string | null;
   seatMapImage?: string | null;
+  eventMetadata?: {
+    eventProofDocuments?: Array<{
+      documentType: string;
+      documentUrl: string[];
+    }>;
+    contractScreenshotUrl?: string | null;
+  } | null;
 }
 
 export interface UpdateEventApprovalRequest {
