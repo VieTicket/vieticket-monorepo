@@ -44,9 +44,14 @@ export type EventMetadata = {
   contractScreenshotUrl?: string | null;
 };
 
-export type PaymentMetadata = {
-  provider: "vnpay",
-  data: VNPayOrderData
-} | {
-  provider: "unknown"
-}
+export type { PaymentMetadata } from "@vieticket/utils/finance";
+
+export type RefundPspMetadata = {
+  provider: string;
+  reference?: string;
+  error?: {
+    code?: string;
+    message?: string;
+    raw?: unknown;
+  };
+};

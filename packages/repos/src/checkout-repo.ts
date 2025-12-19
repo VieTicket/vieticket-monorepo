@@ -51,7 +51,16 @@ export async function getSeatStatus(eventId: string) {
         eq(seatHolds.eventId, eventId),
         or(
           eq(seatHolds.isFinalized, false),
-          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+          and(
+            eq(seatHolds.isFinalized, true),
+            eq(seatHolds.isPaid, true),
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${tickets}
+              WHERE ${tickets.orderId} = ${seatHolds.orderId}
+                AND ${tickets.seatId} = ${seatHolds.seatId}
+                AND ${tickets.status} = 'refunded'
+            )`
+          )
         ),
         // Exclude seats that are already confirmed in a paid order
         paidSeatIds.length > 0
@@ -104,16 +113,18 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
     return { unavailableSeatIds: [] };
   }
 
-  // Find seats that are already part of a paid order
+  // Find seats that are already part of an issued (non-refunded) ticket
   const confirmedSeats = await db
     .select({ seatId: tickets.seatId })
     .from(tickets)
-    .innerJoin(orders, eq(tickets.orderId, orders.id))
     .where(
-      and(inArray(tickets.seatId, selectedSeatIds), eq(orders.status, "paid"))
+      and(
+        inArray(tickets.seatId, selectedSeatIds),
+        inArray(tickets.status, ["active", "used"])
+      )
     );
 
-  // Find seats that have an active, unexpired hold
+  // Find seats that have an active
   const activeHolds = await db
     .select({ seatId: seatHolds.seatId })
     .from(seatHolds)
@@ -122,7 +133,16 @@ export async function getSeatAvailabilityStatus(selectedSeatIds: string[]) {
         inArray(seatHolds.seatId, selectedSeatIds),
         or(
           eq(seatHolds.isFinalized, false),
-          and(eq(seatHolds.isFinalized, true), eq(seatHolds.isPaid, true))
+          and(
+            eq(seatHolds.isFinalized, true),
+            eq(seatHolds.isPaid, true),
+            sql`NOT EXISTS (
+              SELECT 1 FROM ${tickets}
+              WHERE ${tickets.orderId} = ${seatHolds.orderId}
+                AND ${tickets.seatId} = ${seatHolds.seatId}
+                AND ${tickets.status} = 'refunded'
+            )`
+          )
         )
       )
     );
@@ -190,7 +210,19 @@ export async function createOrderWithSeatLocks(
             sql`EXISTS (
               SELECT 1 FROM ${seatHolds}
               WHERE ${seatHolds.seatId} = ${seats.id}
-                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
+                AND (
+                  (${seatHolds.isFinalized} = false)
+                  OR (
+                    ${seatHolds.isFinalized} = true
+                    AND ${seatHolds.isPaid} = true
+                    AND NOT EXISTS (
+                      SELECT 1 FROM ${tickets}
+                      WHERE ${tickets.orderId} = ${seatHolds.orderId}
+                        AND ${tickets.seatId} = ${seatHolds.seatId}
+                        AND ${tickets.status} = 'refunded'
+                    )
+                  )
+                )
             )`
           )
         )
@@ -286,7 +318,19 @@ export async function createGAOrderWithSeatLocks({
             sql`NOT EXISTS (
               SELECT 1 FROM ${seatHolds}
               WHERE ${seatHolds.seatId} = ${seats.id}
-                AND ((${seatHolds.isFinalized} = false) OR (${seatHolds.isFinalized} = true AND ${seatHolds.isPaid} = true))
+                AND (
+                  (${seatHolds.isFinalized} = false)
+                  OR (
+                    ${seatHolds.isFinalized} = true
+                    AND ${seatHolds.isPaid} = true
+                    AND NOT EXISTS (
+                      SELECT 1 FROM ${tickets}
+                      WHERE ${tickets.orderId} = ${seatHolds.orderId}
+                        AND ${tickets.seatId} = ${seatHolds.seatId}
+                        AND ${tickets.status} = 'refunded'
+                    )
+                  )
+                )
             )`
           )
         )
@@ -416,23 +460,6 @@ export async function getOrderByVNPayTxnRef(vnpTxnRef: string) {
  * @param orderId - The ID of the order to update
  * @param status - The new status for the order
  * @returns The updated order
- */
-export async function updateOrderStatus(orderId: string, status: OrderStatus) {
-  const [updatedOrder] = await db
-    .update(orders)
-    .set({
-      status,
-      updatedAt: new Date(),
-    })
-    .where(eq(orders.id, orderId))
-    .returning();
-
-  return updatedOrder;
-}
-
-/**
- * Marks an order as failed and flags its holds as released (confirmed + unpaid).
- * Keeps records for audit while ensuring they no longer block availability.
  */
 export async function failOrderAndReleaseSeatHolds(
   orderId: string,

@@ -8,6 +8,14 @@ export type { ReturnQueryFromVNPay } from 'vnpay/types-only';
  */
 export type VNPayOrderData = Partial<Omit<BuildPaymentUrl, 'vnp_TxnRef'>> & {
   vnp_TxnRef: string;
+  /**
+   * Recorded in VNPay system (from return query).
+   */
+  vnp_TransactionNo?: number | string;
+  /**
+   * Payment time (yyyyMMddHHmmss, GMT+7) (from return query).
+   */
+  vnp_PayDate?: number | string;
 };
 
 // Define the configuration interface

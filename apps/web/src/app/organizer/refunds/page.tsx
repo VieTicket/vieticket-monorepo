@@ -1,22 +1,18 @@
-import { Card, CardContent } from "@/components/ui/card";
 import {
   approveRefundAction,
-  executeRefundAction,
   listRefundsAction,
-  markRefundManualAction,
   rejectRefundAction,
 } from "@/lib/actions/refund-actions";
-import { RotateCcw } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
 import { RefundsList } from "@/components/refunds/refunds-list";
 import { revalidatePath } from "next/cache";
 
-export default async function RefundsPage({
+export default async function OrganizerRefundsPage({
   searchParams,
 }: {
   searchParams: Promise<{
     q?: string;
     status?: string;
-    reason?: string;
     sort?: string;
     dir?: string;
     page?: string;
@@ -31,7 +27,7 @@ export default async function RefundsPage({
     const refundId = formData.get("refundId") as string | null;
     if (!refundId) return;
     await approveRefundAction(refundId);
-    revalidatePath("/admin/refunds");
+    revalidatePath("/organizer/refunds");
   }
 
   async function reject(formData: FormData) {
@@ -40,32 +36,14 @@ export default async function RefundsPage({
     const reason = formData.get("reason") as string | null;
     if (!refundId) return;
     await rejectRefundAction(refundId, reason ?? undefined);
-    revalidatePath("/admin/refunds");
-  }
-
-  async function execute(formData: FormData) {
-    "use server";
-    const refundId = formData.get("refundId") as string | null;
-    if (!refundId) return;
-    await executeRefundAction(refundId);
-    revalidatePath("/admin/refunds");
-  }
-
-  async function markManual(formData: FormData) {
-    "use server";
-    const refundId = formData.get("refundId") as string | null;
-    if (!refundId) return;
-    await markRefundManualAction(refundId);
-    revalidatePath("/admin/refunds");
+    revalidatePath("/organizer/refunds");
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 my-8 mx-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Refunds</h1>
-        <p className="text-muted-foreground">
-          Manage refund requests and process refunds.
-        </p>
+        <h1 className="text-2xl font-bold tracking-tight">Refund Requests</h1>
+        <p className="text-muted-foreground">Manage personal refund requests for your events.</p>
       </div>
 
       {!refundsResult.success && (
@@ -80,17 +58,12 @@ export default async function RefundsPage({
 
       {refundsResult.success && refundsResult.pagination && (
         <RefundsList
-          role="admin"
+          role="organizer"
           refunds={(refundsResult.data ?? []) as any[]}
           pagination={refundsResult.pagination}
-          actions={{ approve, reject, execute, markManual }}
-          title={
-            <span className="flex items-center gap-2">
-              <RotateCcw className="h-5 w-5" />
-              Refund Requests
-            </span>
-          }
-          description="Search, filter, and process refund requests."
+          actions={{ approve, reject }}
+          title="Personal refund requests"
+          description="Search and filter personal refunds; approve/reject pending ones."
         />
       )}
     </div>

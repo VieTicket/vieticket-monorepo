@@ -36,6 +36,11 @@ const menuItems = [
     href: "/admin/payment-requests",
     icon: CreditCard,
   },
+  {
+    name: "Refunds",
+    href: "/admin/refunds",
+    icon: RotateCcw,
+  },
   { name: "Chat", href: "/admin/chat", icon: MessageCircle },
   { name: "Sign out", href: "/auth/sign-out", icon: LogOut },
 ];
@@ -57,17 +62,16 @@ const MenuItem = ({
       href={item.href}
       className={`
         group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
-        ${
-          isActive
-            ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm"
-            : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-l-4 hover:border-gray-300"
+        ${isActive
+          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm"
+          : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-l-4 hover:border-gray-300"
         }
       `}
       onClick={onItemClick}
     >
       <Icon
         className={`
-          mr-3 flex-shrink-0 h-5 w-5 transition-colors
+          mr-3 shrink-0 h-5 w-5 transition-colors
           ${isActive ? "text-blue-500" : "text-gray-400 group-hover:text-gray-600"}
         `}
       />

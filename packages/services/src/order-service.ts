@@ -1,4 +1,6 @@
 import { User } from "@vieticket/db/pg/schema";
+import { db } from "@vieticket/db/pg";
+import { showings } from "@vieticket/db/pg/schemas/events";
 import {
     findOrderByIdForUser,
     findOrdersByUserIdWithPagination,
@@ -8,6 +10,12 @@ import {
     getTicketDetails,
 } from "@vieticket/repos/orders";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
+import { eq } from "drizzle-orm";
+
+function toDateSafe(value: unknown): Date | null {
+    const d = value instanceof Date ? value : value ? new Date(value as string) : null;
+    return d && !Number.isNaN(d.getTime()) ? d : null;
+}
 
 /**
  * Gets a paginated list of orders for a given user.
@@ -64,6 +72,43 @@ export async function getOrderDetails(
         throw new Error("Could not retrieve event information for the order.");
     }
 
+    const showingInfo = order.showingId
+        ? await db.query.showings.findFirst({
+            where: eq(showings.id, order.showingId),
+        })
+        : null;
+
+    // Normalize date-like fields
+    const normalizedEventInfo = {
+        ...eventInfo,
+        ticketSaleEnd: toDateSafe((eventInfo as any).ticketSaleEnd),
+        startTime: toDateSafe((showingInfo as any)?.startTime ?? (eventInfo as any).startTime),
+        endTime: toDateSafe((showingInfo as any)?.endTime ?? (eventInfo as any).endTime),
+    };
+
+    const now = new Date();
+    const lifecycleStatus = (normalizedEventInfo as any).lifecycleStatus ?? "scheduled";
+    const startTime = normalizedEventInfo.startTime;
+    const endTime = normalizedEventInfo.endTime;
+    const hoursUntilStartTime =
+        startTime && !Number.isNaN(startTime.getTime())
+            ? (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+            : null;
+    const personalEligible =
+        lifecycleStatus === "scheduled" && hoursUntilStartTime !== null && hoursUntilStartTime >= 120;
+    const postponedEligible = lifecycleStatus === "postponed";
+    const cancelledEligible = lifecycleStatus === "cancelled";
+    const eventPassed = endTime ? endTime < now : false;
+    const fraudAllowed = true; // always allow fraud reporting per requirements
+    const refundEligibility = {
+        personalEligible,
+        postponedEligible,
+        cancelledEligible,
+        fraudAllowed,
+        eventPassed,
+        hoursUntilStartTime,
+    };
+
     const tickets = ticketsRaw.map((ticket) => {
         const qrData = ticket.status === "active"
             ? generateTicketQRData(
@@ -80,7 +125,8 @@ export async function getOrderDetails(
 
     return {
         ...order,
-        event: eventInfo,
+        event: normalizedEventInfo,
+        refundEligibility,
         tickets,
     };
 }
