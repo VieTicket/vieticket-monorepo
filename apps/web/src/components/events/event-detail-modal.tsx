@@ -16,6 +16,8 @@ import {
   FileText,
   Image as ImageIcon,
   Film,
+  Download,
+  FileCheck,
 } from "lucide-react";
 import { PendingEvent } from "@/hooks/use-admin-data";
 
@@ -353,6 +355,100 @@ export function EventDetailModal({
         <DetailCard icon={Calendar} title="Submitted On">
           {formattedDates.created}
         </DetailCard>
+
+        {/* Documents and Contract */}
+        {event.eventMetadata && (
+          <>
+            {/* Documents */}
+            {event.eventMetadata.eventProofDocuments && 
+             event.eventMetadata.eventProofDocuments.length > 0 && 
+             event.eventMetadata.eventProofDocuments[0].documentUrl.length > 0 && (
+              <DetailCard icon={FileCheck} title="Organizer Documents">
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Document images provided by the organizer:
+                  </p>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    {event.eventMetadata.eventProofDocuments[0].documentUrl.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img
+                          src={url}
+                          alt={`Document ${index + 1}`}
+                          className="w-full h-32 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => window.open(url, '_blank')}
+                        />
+                        <a
+                          href={url}
+                          download
+                          className="absolute bottom-2 right-2 bg-blue-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                        <div className="absolute top-2 left-2 bg-black bg-opacity-50 text-white px-2 py-1 rounded text-xs">
+                          Document {index + 1}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {event.eventMetadata.eventProofDocuments[0].documentUrl.map((url, index) => (
+                      <a
+                        key={index}
+                        href={url}
+                        download
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                      >
+                        <Download className="h-4 w-4" />
+                        Download Document {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </DetailCard>
+            )}
+
+            {/* Contract */}
+            {event.eventMetadata.contractScreenshotUrl && (
+              <DetailCard icon={FileCheck} title="Contract">
+                <div className="space-y-3">
+                  <p className="text-sm text-gray-600 mb-3">
+                    Contract image provided by the organizer:
+                  </p>
+                  <div className="relative group">
+                    <img
+                      src={event.eventMetadata.contractScreenshotUrl}
+                      alt="Contract"
+                      className="w-full max-h-96 object-contain rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                      onClick={() => window.open(event.eventMetadata!.contractScreenshotUrl!, '_blank')}
+                    />
+                    <a
+                      href={event.eventMetadata.contractScreenshotUrl}
+                      download
+                      className="absolute bottom-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity hover:bg-blue-700 flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </a>
+                  </div>
+                  <a
+                    href={event.eventMetadata.contractScreenshotUrl}
+                    download
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 underline"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Contract
+                  </a>
+                </div>
+              </DetailCard>
+            )}
+          </>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-4 pt-4 border-t">

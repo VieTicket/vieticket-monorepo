@@ -24,6 +24,7 @@ export async function GET() {
         image_url: events.posterUrl,
         category: events.type,
         seatMapId: events.seatMapId,
+        eventMetadata: events.eventMetadata,
       })
       .from(events)
       .leftJoin(organizers, eq(events.organizerId, organizers.id))

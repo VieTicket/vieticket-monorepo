@@ -23,6 +23,7 @@ export async function GET() {
         type: events.type,
         approvalStatus: events.approvalStatus,
         seatMapId: events.seatMapId,
+        eventMetadata: events.eventMetadata,
         organizer: {
           name: user.name,
           email: user.email,
@@ -136,6 +137,7 @@ export async function GET() {
         approvalStatus: event.approvalStatus,
         image_url: event.posterUrl || "",
         category: event.type || "General",
+        eventMetadata: event.eventMetadata || null,
         showings: eventShowings.map((showing) => ({
           id: showing.id,
           name: showing.name || "",
