@@ -80,7 +80,6 @@ export const createSeat = (
   container.addChild(seatGraphics);
   container.addChild(labelGraphics);
 
-  // ✅ Position relative to parent row
   container.position.set(x, y);
 
   const seat: SeatShape = {
@@ -91,8 +90,8 @@ export const createSeat = (
     seatGraphics,
     labelGraphics,
     status: { name: "available", color: seatSettings.seatColor },
-    x, // Store relative position
-    y, // Store relative position
+    x,
+    y,
     radiusX: seatSettings.seatRadius,
     radiusY: seatSettings.seatRadius,
     color: seatSettings.seatColor,
@@ -123,35 +122,31 @@ export const recreateSeat = (
   seatData: SeatShape,
   addShapeEvents: boolean = true,
   canAddSeatToGrid: boolean = true,
-  seatSettings?: SeatGridSettings // ✅ Only apply if provided AND we're not preserving coordinates
+  seatSettings?: SeatGridSettings
 ): SeatShape => {
   const container = new PIXI.Container();
   container.eventMode = "static";
   container.cursor = "pointer";
   container.interactive = true;
 
-  // ✅ Use provided seatSettings only for visual properties, not positioning
   const effectiveSettings = seatSettings
     ? {
-        // Visual properties from new settings
         seatRadius: seatSettings.seatRadius,
         seatColor: seatSettings.seatColor,
         seatStrokeColor: seatSettings.seatStrokeColor,
         seatStrokeWidth: seatSettings.seatStrokeWidth,
-        // Preserve original positioning and other properties
-        seatSpacing: seatData.radiusX ? 25 : seatSettings.seatSpacing, // Fallback spacing
-        rowSpacing: 30, // Default fallback
+        seatSpacing: seatData.radiusX ? 25 : seatSettings.seatSpacing,
+        rowSpacing: 30,
         price: seatSettings.price,
       }
     : {
-        // Use original seat's properties exactly
         seatRadius: seatData.radiusX,
         seatColor: seatData.color,
         seatStrokeColor: seatData.strokeColor,
         seatStrokeWidth: seatData.strokeWidth,
-        seatSpacing: 25, // Default fallback
-        rowSpacing: 30, // Default fallback
-        price: 0, // Default fallback
+        seatSpacing: 25,
+        rowSpacing: 30,
+        price: 0,
       };
 
   const seatGraphics = new PIXI.Graphics();
@@ -178,7 +173,6 @@ export const recreateSeat = (
   container.addChild(seatGraphics);
   container.addChild(labelGraphics);
 
-  // ✅ ALWAYS preserve original position exactly
   container.position.set(seatData.x, seatData.y);
   container.rotation = seatData.rotation || 0;
   container.scale.set(seatData.scaleX || 1, seatData.scaleY || 1);
@@ -192,8 +186,8 @@ export const recreateSeat = (
     graphics: container,
     seatGraphics,
     labelGraphics,
-    x: seatData.x, // ✅ Preserve exact original X
-    y: seatData.y, // ✅ Preserve exact original Y
+    x: seatData.x,
+    y: seatData.y,
     status: seatData.status,
     radiusX: effectiveSettings.seatRadius,
     radiusY: effectiveSettings.seatRadius,
@@ -256,13 +250,11 @@ export const updateSeatLabelRotation = (
 
   let totalRotation = seat.rotation || 0;
 
-  // If row is not provided, find it
   if (!row && areaModeContainer) {
     for (const g of areaModeContainer.children) {
       const foundRow = g.children.find((r) => r.id === seat.rowId);
       if (foundRow) {
         row = foundRow;
-        // If grid is also not provided, use the found grid
         if (!grid) {
           grid = g;
         }
@@ -271,23 +263,52 @@ export const updateSeatLabelRotation = (
     }
   }
 
-  // If grid is not provided but we have row, find the grid
   if (!grid && row && areaModeContainer) {
     grid = areaModeContainer.children.find((g) => g.id === row!.gridId);
   }
 
-  // Add row rotation if available
   if (row) {
     totalRotation += row.rotation || 0;
   }
 
-  // Add grid rotation if available
   if (grid) {
     totalRotation += grid.rotation || 0;
   }
 
-  // Counter-rotate the label to keep it readable
-  seat.labelGraphics.rotation = -totalRotation;
+  let effectiveScaleX = seat.scaleX || 1;
+  let effectiveScaleY = seat.scaleY || 1;
+
+  if (row) {
+    effectiveScaleX *= row.scaleX || 1;
+    effectiveScaleY *= row.scaleY || 1;
+  }
+
+  if (grid) {
+    effectiveScaleX *= grid.scaleX || 1;
+    effectiveScaleY *= grid.scaleY || 1;
+  }
+
+  const labelScaleX = effectiveScaleX < 0 ? -1 : 1;
+  const labelScaleY = effectiveScaleY < 0 ? -1 : 1;
+
+  seat.labelGraphics.scale.set(labelScaleX, labelScaleY);
+
+  let labelRotation = -totalRotation;
+
+  const isHorizontallyMirrored = effectiveScaleX < 0;
+  const isVerticallyMirrored = effectiveScaleY < 0;
+
+  if (isHorizontallyMirrored && isVerticallyMirrored) {
+  } else if (isHorizontallyMirrored) {
+    labelRotation = -labelRotation;
+  } else if (isVerticallyMirrored) {
+    labelRotation = -labelRotation;
+  }
+
+  while (labelRotation > Math.PI) labelRotation -= 2 * Math.PI;
+  while (labelRotation < -Math.PI) labelRotation += 2 * Math.PI;
+
+  seat.labelGraphics.rotation = labelRotation;
 };
 
 export const updateMultipleSeatLabelsRotation = (
@@ -295,7 +316,6 @@ export const updateMultipleSeatLabelsRotation = (
   rowsMap?: Map<string, RowShape>,
   gridsMap?: Map<string, GridShape>
 ): void => {
-  // Group seats by rowId for efficient processing
   const seatsByRow = new Map<string, SeatShape[]>();
 
   seats.forEach((seat) => {
@@ -307,12 +327,10 @@ export const updateMultipleSeatLabelsRotation = (
     }
   });
 
-  // Process seats by row to reuse row and grid lookups
   seatsByRow.forEach((rowSeats, rowId) => {
     let row: RowShape | undefined = rowsMap?.get(rowId);
     let grid: GridShape | undefined;
 
-    // If row not provided in map, find it once for this row
     if (!row && areaModeContainer) {
       for (const g of areaModeContainer.children) {
         const foundRow = g.children.find((r) => r.id === rowId);
@@ -323,14 +341,12 @@ export const updateMultipleSeatLabelsRotation = (
         }
       }
     } else if (row && !grid) {
-      // If we have row but no grid, get grid from map or find it
       grid = gridsMap?.get(row.gridId);
       if (!grid && areaModeContainer) {
         grid = areaModeContainer.children.find((g) => g.id === row!.gridId);
       }
     }
 
-    // Update all seats in this row with the same row and grid
     rowSeats.forEach((seat) => {
       updateSeatLabelRotation(seat, row, grid);
     });

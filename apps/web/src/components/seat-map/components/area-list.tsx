@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import { AreaModeContainer, GridShape, RowShape, SeatShape } from "../types";
 import { useSeatMapStore } from "../store/seat-map-store";
+import { setPreviouslyClickedShape } from "../variables";
+import { getSelectionTransform } from "../events/transform-events";
 
 export const AreaList = () => {
   const shapes = useSeatMapStore((state) => state.shapes);
@@ -110,15 +112,20 @@ export const AreaList = () => {
 
   const handleGridSelect = (gridId: string) => {
     if (!container) return;
-
     const grid = container.children.find((g) => g.id === gridId) as GridShape;
     if (!grid) return;
+    setPreviouslyClickedShape(grid);
 
     // ✅ Get all seats from all rows in the grid
     const allSeats: SeatShape[] = [];
     grid.children.forEach((row: RowShape) => {
       allSeats.push(...row.children);
     });
+    const selectionTransform = getSelectionTransform();
+    if (selectionTransform) {
+      selectionTransform.updateSelection([grid]);
+    }
+    grid.selected = true;
 
     setSelectedShapes(allSeats);
   };
