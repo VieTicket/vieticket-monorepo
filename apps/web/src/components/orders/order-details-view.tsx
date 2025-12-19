@@ -9,10 +9,17 @@ import { Armchair, Calendar, Clock, MapPin, Receipt, User } from "lucide-react"
 import { ShareTicket } from "@/components/tickets/share-ticket"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { getAvailableRefundReasonsForCustomer } from "@vieticket/utils/finance/refund-policy"
 
 type OrderEvent = {
     eventId: string
     eventName: string
+    lifecycleStatus?: string | null
+    ticketSaleEnd?: Date | null
+    startTime?: Date | null
+    endTime?: Date | null
 }
 
 type OrderTicket = {
@@ -32,6 +39,14 @@ export type OrderDetails = {
     updatedAt: Date
     tickets: OrderTicket[]
     event: OrderEvent
+    refundEligibility?: {
+        personalEligible?: boolean
+        postponedEligible?: boolean
+        cancelledEligible?: boolean
+        fraudAllowed?: boolean
+        eventPassed?: boolean
+        hoursUntilStartTime?: number | null
+    }
 }
 
 interface OrderDetailsViewProps {
@@ -99,7 +114,7 @@ function TicketCard({ ticket, eventName }: { ticket: OrderTicket, eventName: str
                 <div
                     className="absolute left-2/3 top-3 bottom-3 border-l-2 border-dashed border-gray-300 dark:border-gray-600"></div>
 
-                <div className="flex min-h-[160px]">
+                <div className="flex min-h-40">
                     {/* Left Side - Event Information */}
                     <div className="flex-1 p-6 pr-8">
                         <div className="space-y-3">
@@ -178,6 +193,25 @@ function TicketCard({ ticket, eventName }: { ticket: OrderTicket, eventName: str
 export function OrderDetailsView({ order }: OrderDetailsViewProps) {
     const orderDate = new Date(order.orderDate)
     const updatedDate = new Date(order.updatedAt)
+    const now = new Date()
+
+    const eventStatus = order.event.lifecycleStatus ?? "scheduled"
+    const startTime = order.event.startTime ? new Date(order.event.startTime) : null
+    const hoursUntilStartTime = startTime && !Number.isNaN(startTime.getTime())
+        ? (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
+        : null
+
+    const fallbackEligibility = {
+        personalEligible: eventStatus === "scheduled" && hoursUntilStartTime !== null && hoursUntilStartTime >= 120,
+        postponedEligible: eventStatus === "postponed",
+        cancelledEligible: eventStatus === "cancelled",
+        fraudAllowed: true,
+    };
+    const eligibility = order.refundEligibility ?? fallbackEligibility
+
+    const eligibleOrderStatus = ["paid", "partial_refunded"].includes(order.status)
+    const availableReasons = getAvailableRefundReasonsForCustomer(eligibility)
+    const hasRefundOptions = eligibleOrderStatus && availableReasons.length > 0
 
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
@@ -287,6 +321,23 @@ export function OrderDetailsView({ order }: OrderDetailsViewProps) {
                         </div>
                     </CardContent>
                 </Card>
+
+                {/* Refunds */}
+                {hasRefundOptions && (
+                    <Card>
+                        <CardHeader>
+                            <CardTitle className="text-lg">Refunds</CardTitle>
+                            <p className="text-sm text-gray-500">
+                                Request refunds from the dedicated refund page.
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <Button asChild>
+                                <Link href={`/orders/${order.id}/refund`}>Request a refund</Link>
+                            </Button>
+                        </CardContent>
+                    </Card>
+                )}
 
                 {/* Important Notes */}
                 <Card className="border-amber-200 bg-amber-50 dark:bg-amber-950 dark:border-amber-800">

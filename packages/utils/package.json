@@ -11,7 +11,10 @@
     "./ticket-validation/*": "./src/ticket-validation/*.ts",
     "./ai/text-generator": "./src/ai/text-generator.ts",
     "./formatters/currency": "./src/formatters/currency.ts",
-    "./finance/payouts": "./src/finance/payouts.ts"
+    "./finance": "./src/finance/index.ts",
+    "./finance/payouts": "./src/finance/payouts.ts",
+    "./finance/refund-psp": "./src/finance/refund-psp.ts",
+    "./finance/refund-policy": "./src/finance/refund-policy.ts"
   },
   "scripts": {
     "build": "tsc",

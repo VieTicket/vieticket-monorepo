@@ -13,6 +13,7 @@ import {
   Menu,
   MessageCircle,
   NotebookPen,
+  RotateCcw,
   TicketCheck,
   User,
   Wallet,
@@ -78,6 +79,13 @@ export default function Sidebar() {
       label: t("RequestPayout.requestPayout"),
       href: "/organizer/payouts",
       icon: Wallet,
+      // Only organizer role or owners can request payouts
+      visible: isOrganizerRole || isOwner,
+    },
+    {
+      label: t("Refund.refund"),
+      href: "/organizer/refunds",
+      icon: RotateCcw,
       // Only organizer role or owners can request payouts
       visible: isOrganizerRole || isOwner,
     },

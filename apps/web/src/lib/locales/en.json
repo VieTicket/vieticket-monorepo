@@ -547,6 +547,9 @@
       "submissionFailed": "Submission Failed",
       "unexpectedError": "An unexpected error occurred"
     },
+    "Refund": {
+      "refund": "Refund"
+    },
     "InspectTicket": {
       "inspectTicket": "Inspect Ticket"
     },

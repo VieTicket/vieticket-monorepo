@@ -10,7 +10,7 @@ import {
     uuid,
 } from "drizzle-orm/pg-core";
 import { events, seats, showings } from "./events-schemas";
-import { currency, type PaymentMetadata } from "../custom-types";
+import { currency, type PaymentMetadata, type RefundPspMetadata } from "../custom-types";
 import {
     orderStatusEnum,
     refundReasonEnum,
@@ -158,7 +158,9 @@ export const tickets = pgTable("tickets", {
     index("tickets_event_id_idx").on(table.eventId),
     index("tickets_showing_id_idx").on(table.showingId),
     // Ensure a seat cannot be sold twice
-    uniqueIndex("tickets_seat_id_unq").on(table.seatId),
+    uniqueIndex("tickets_seat_id_unq")
+        .on(table.seatId)
+        .where(sql`${table.status} IN ('active','used')`),
 ]);
 
 export const refunds = pgTable("refunds", {
@@ -194,11 +196,16 @@ export const refunds = pgTable("refunds", {
         precision: 10,
         scale: 2,
     }),
+    pspMetadata: jsonb("psp_metadata").$type<RefundPspMetadata>(),
 }, (table) => [
     index("refunds_order_id_idx").on(table.orderId),
     index("refunds_status_idx").on(table.status),
     index("refunds_reason_idx").on(table.reason),
     index("refunds_created_by_idx").on(table.createdBy),
+    index("idx_refunds_psp_ref").on(
+        sql`(${table.pspMetadata} ->> 'provider')`,
+        sql`(${table.pspMetadata} ->> 'reference')`
+    ),
 ]);
 
 export const refundTickets = pgTable("refund_tickets", {

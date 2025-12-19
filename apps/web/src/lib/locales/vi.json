@@ -547,6 +547,9 @@
       "submissionFailed": "Gửi Thất Bại",
       "unexpectedError": "Đã xảy ra lỗi không mong muốn"
     },
+    "Refund": {
+      "refund": "Hoàn tiền"
+    },
     "InspectTicket": {
       "inspectTicket": "Kiểm Tra Vé"
     },
