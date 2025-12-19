@@ -1,43 +1,42 @@
 "use client";
 
-import { useState, useEffect, useTransition, Suspense, Fragment } from "react";
+import {
+  useState,
+  useEffect,
+  useTransition,
+  Suspense,
+  useCallback,
+} from "react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { X } from "lucide-react";
-import {
-  handleAdminUpdateEvent,
-  fetchEventByIdForAdmin,
-} from "../../../../lib/actions/admin/events-action";
+  handleCreateEvent,
+  handleUpdateEvent,
+  fetchEventById,
+} from "../../../../lib/actions/organizer/events-action";
 import { StepProgressBar } from "@/components/create-event/progress-bar";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { getSeatMapGridDataAction } from "@/lib/actions/organizer/seat-map-actions";
-import { SeatMapSelectionModal } from "@/app/organizer/event/create/components/seat-map-selection-modal";
+import type {
+  EventFormData,
+  SeatMapData,
+  TicketingMode,
+} from "../../../../types/event-types";
+import { useTranslations } from "next-intl";
+import { ShowingWithAreas } from "@/types/showings";
+import { useAutoSave, useDraftRecovery } from "@/hooks/useAutoSave";
+import { DraftRecoveryDialog } from "@/components/create-event/draft-recovery-dialog";
+import {
+  clearExpiredDrafts,
+  type EventDraftData,
+} from "@/lib/utils/draft-storage";
+import { AutoSaveIndicator } from "@/components/ui/auto-save-indicator";
+import { useEventValidation } from "@/app/organizer/event/create/components/use-event-validations";
 import { EventDetailsStep } from "@/app/organizer/event/create/components/event-details-step";
 import { MediaUploadStep } from "@/app/organizer/event/create/components/media-upload-step";
 import { PreviewStep } from "@/app/organizer/event/create/components/preview-step";
 import { TicketingStep } from "@/app/organizer/event/create/components/ticketing-step";
-import type {
-  EventFormData,
-  Area,
-  SeatMapData,
-  SeatMapPreviewData,
-  TicketingMode,
-  UploadResponse,
-} from "../../../../types/event-types";
-import { ShowingFormData } from "@/types/showings";
-import { useTranslations } from "next-intl";
-import { ShowingWithAreas } from "@/types/showings";
 
 export default function CreateEventPage() {
   return (
@@ -62,6 +61,12 @@ export default function CreateEventPage() {
 }
 
 function CreateEventPageInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const eventId = searchParams.get("id");
+  const t = useTranslations("organizer-dashboard.CreateEvent");
+  const [isPending, startTransition] = useTransition();
+
   const [formData, setFormData] = useState<EventFormData>({
     name: "",
     type: "",
@@ -77,298 +82,91 @@ function CreateEventPageInner() {
     startTime: "",
     endTime: "",
   });
-  const [step, setStep] = useState(1);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-  const searchParams = useSearchParams();
-  const eventId = searchParams.get("id");
-  const t = useTranslations("organizer-dashboard.CreateEvent");
-  const [areas, setAreas] = useState<Area[]>([
-    { name: t("areaA"), seatCount: "", ticketPrice: "" },
-  ]);
-  const [ticketingMode, setTicketingMode] = useState<TicketingMode>("simple");
-  const [selectedSeatMap, setSelectedSeatMap] = useState<string>("");
-  const [showSeatMapModal, setShowSeatMapModal] = useState(false);
-  const [selectedSeatMapData, setSelectedSeatMapData] =
-    useState<SeatMapData | null>(null);
-  const [seatMapPreviewData, setSeatMapPreviewData] =
-    useState<SeatMapPreviewData | null>(null);
-  const [hasSeatMapChanges, setHasSeatMapChanges] = useState(false);
-  const [confirmSeatMapUpdate, setConfirmSeatMapUpdate] = useState(false);
-  const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
+
   const [showings, setShowings] = useState<ShowingWithAreas[]>([
     {
       name: t("mainShowing"),
       startTime: "",
       endTime: "",
       areas: [],
+      seatMapId: "",
     },
   ]);
-  const [posterPreview, setPosterPreview] = useState<string | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
 
-  // Validation constants (configurable)
-  const VALIDATION_CONFIG = {
-    MIN_SHOWING_DURATION_MINUTES: 30,
-    MAX_SHOWING_DURATION_HOURS: 24,
-    MIN_TICKET_SALE_START_DAYS_BEFORE: 2,
-    MIN_TICKET_SALE_END_DAYS_BEFORE: 1,
-    MIN_TICKET_SALE_WINDOW_HOURS: 6,
-    MAX_TICKET_SALE_WINDOW_DAYS: 90,
-    MIN_BUFFER_BETWEEN_SHOWINGS_HOURS: 1,
-  };
+  const [ticketingMode, setTicketingMode] = useState<TicketingMode>("simple");
+  const [seatMapData, setSeatMapData] = useState<SeatMapData | null>(null);
+  const [originalSeatMapId, setOriginalSeatMapId] = useState<string>("");
+  const [step, setStep] = useState(1);
 
-  // Helper function to get current time in Vietnam timezone
-  const getCurrentVietnamTime = (): Date => {
-    return new Date();
-  };
+  const {
+    errors,
+    validateStep1,
+    validateForSubmission,
+    clearFieldError,
+    updateShowingErrors,
+  } = useEventValidation();
 
-  // Validation for individual showing
-  const validateSingleShowing = (
-    showing: ShowingWithAreas,
-    index: number
-  ): { valid: boolean; errors: Record<string, string> } => {
-    const errors: Record<string, string> = {};
-    const now = getCurrentVietnamTime();
+  const {
+    hasSavedDraft,
+    loadDraft,
+    clearSavedDraft,
+    forceSave,
+    saveStatus,
+    lastSaved,
+  } = useAutoSave({
+    formData,
+    areas: [],
+    showings,
+    ticketingMode,
+    selectedSeatMap: seatMapData?.id || "",
+    selectedSeatMapData: seatMapData,
+    seatMapPreviewData: null,
+    step,
+    posterPreview: formData.posterUrl,
+    bannerPreview: formData.bannerUrl,
+    eventId,
+    autoSaveEnabled: !eventId,
+  });
 
-    // Check required fields
-    if (!showing.startTime) {
-      errors[`showing-${index}-startTime`] = t("errors.startTimePast");
-      return { valid: false, errors };
+  const restoreDraftData = useCallback((draftData: EventDraftData) => {
+    setFormData(draftData.formData);
+    setShowings(draftData.showings);
+    setTicketingMode(draftData.ticketingMode);
+    setStep(draftData.step);
+
+    if (draftData.selectedSeatMapData) {
+      setSeatMapData(draftData.selectedSeatMapData);
     }
+  }, []);
 
-    if (!showing.endTime) {
-      errors[`showing-${index}-endTime`] = t("errors.endTimePast");
-      return { valid: false, errors };
-    }
+  const { showDraftRecovery, draftData, acceptDraft, rejectDraft } =
+    useDraftRecovery({
+      onRestore: (draftData) => {
+        restoreDraftData(draftData);
+        toast.success("Đã khôi phục bản nháp thành công!", {
+          description: "Tất cả dữ liệu đã nhập trước đó đã được phục hồi.",
+        });
+      },
+      eventId,
+      t,
+    });
 
-    const startTime = new Date(showing.startTime);
-    const endTime = new Date(showing.endTime);
+  useEffect(() => {
+    clearExpiredDrafts();
+  }, []);
 
-    // Validate start time is not in the past
-    if (startTime <= now) {
-      errors[`showing-${index}-startTime`] = t("errors.startTimePast");
-    }
-
-    // Validate end time is after start time
-    if (endTime <= startTime) {
-      errors[`showing-${index}-endTime`] = t("errors.endTimeBeforeStart");
-    } else {
-      // Validate duration
-      const durationMs = endTime.getTime() - startTime.getTime();
-      const durationMinutes = durationMs / (1000 * 60);
-      const durationHours = durationMinutes / 60;
-
-      if (durationMinutes < VALIDATION_CONFIG.MIN_SHOWING_DURATION_MINUTES) {
-        errors[`showing-${index}-endTime`] = t(
-          "errors.showingDurationTooShort"
-        );
-      }
-
-      if (durationHours > VALIDATION_CONFIG.MAX_SHOWING_DURATION_HOURS) {
-        errors[`showing-${index}-endTime`] = t("errors.showingDurationTooLong");
-      }
-    }
-
-    return { valid: Object.keys(errors).length === 0, errors };
-  };
-
-  // Validation for ticket sale times
-  const validateTicketSaleTimes = (
-    showing: ShowingWithAreas,
-    index: number
-  ): { valid: boolean; errors: Record<string, string> } => {
-    const errors: Record<string, string> = {};
-    const now = getCurrentVietnamTime();
-
-    // Check if ticket sale times are provided
-    if (!showing.ticketSaleStart) {
-      errors[`showing-${index}-ticketSaleStart`] = t(
-        "errors.ticketSaleStartRequired"
-      );
-      return { valid: false, errors };
-    }
-
-    if (!showing.ticketSaleEnd) {
-      errors[`showing-${index}-ticketSaleEnd`] = t(
-        "errors.ticketSaleEndRequired"
-      );
-      return { valid: false, errors };
-    }
-
-    if (!showing.startTime) {
-      return { valid: false, errors };
-    }
-
-    const ticketSaleStart = new Date(showing.ticketSaleStart);
-    const ticketSaleEnd = new Date(showing.ticketSaleEnd);
-    const showingStart = new Date(showing.startTime);
-
-    // Validate ticket sale start is not in the past
-    if (ticketSaleStart <= now) {
-      errors[`showing-${index}-ticketSaleStart`] = t(
-        "errors.ticketSaleStartPast"
-      );
-    }
-
-    // Validate ticket sale end is after start
-    if (ticketSaleEnd <= ticketSaleStart) {
-      errors[`showing-${index}-ticketSaleEnd`] = t(
-        "errors.ticketSaleEndAfterStart"
-      );
-    }
-
-    // Validate ticket sale starts at least 2 days before showing
-    const minSaleStart = new Date(showingStart);
-    minSaleStart.setDate(
-      minSaleStart.getDate() -
-        VALIDATION_CONFIG.MIN_TICKET_SALE_START_DAYS_BEFORE
-    );
-
-    if (ticketSaleStart > minSaleStart) {
-      errors[`showing-${index}-ticketSaleStart`] = t(
-        "errors.ticketSaleStartTooLate"
-      );
-    }
-
-    // Validate ticket sale ends at least 1 day before showing
-    const maxSaleEnd = new Date(showingStart);
-    maxSaleEnd.setDate(
-      maxSaleEnd.getDate() - VALIDATION_CONFIG.MIN_TICKET_SALE_END_DAYS_BEFORE
-    );
-
-    if (ticketSaleEnd > maxSaleEnd) {
-      errors[`showing-${index}-ticketSaleEnd`] = t(
-        "errors.ticketSaleEndTooLate"
-      );
-    }
-
-    // Validate ticket sale window duration
-    if (ticketSaleStart && ticketSaleEnd && ticketSaleEnd > ticketSaleStart) {
-      const saleWindowMs = ticketSaleEnd.getTime() - ticketSaleStart.getTime();
-      const saleWindowHours = saleWindowMs / (1000 * 60 * 60);
-      const saleWindowDays = saleWindowHours / 24;
-
-      if (saleWindowHours < VALIDATION_CONFIG.MIN_TICKET_SALE_WINDOW_HOURS) {
-        errors[`showing-${index}-ticketSaleStart`] = t(
-          "errors.ticketSaleWindowTooShort"
-        );
-      }
-
-      if (saleWindowDays > VALIDATION_CONFIG.MAX_TICKET_SALE_WINDOW_DAYS) {
-        errors[`showing-${index}-ticketSaleEnd`] = t(
-          "errors.ticketSaleWindowTooLong"
-        );
-      }
-    }
-
-    return { valid: Object.keys(errors).length === 0, errors };
-  };
-
-  // Validation for multiple showings (overlap and duplicates)
-  const validateMultipleShowings = (
-    showings: ShowingWithAreas[]
-  ): { valid: boolean; errors: Record<string, string> } => {
-    const errors: Record<string, string> = {};
-    const validShowings = showings.filter((s) => s.startTime && s.endTime);
-
-    if (validShowings.length <= 1) {
-      return { valid: true, errors };
-    }
-
-    // Sort showings by start time
-    const sortedShowings = [...validShowings].sort(
-      (a, b) =>
-        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
-
-    // Check for duplicate start times
-    const startTimes = new Set<number>();
-
-    for (let i = 0; i < sortedShowings.length; i++) {
-      const startTime = new Date(sortedShowings[i].startTime).getTime();
-
-      if (startTimes.has(startTime)) {
-        // Find original index in unsorted array
-        const originalIndex = showings.findIndex(
-          (s) => s.startTime === sortedShowings[i].startTime
-        );
-        errors[`showing-${originalIndex}-startTime`] = t(
-          "errors.duplicateShowingTime"
-        );
-      } else {
-        startTimes.add(startTime);
-      }
-    }
-
-    // Check for overlaps and insufficient buffer time
-    for (let i = 0; i < sortedShowings.length - 1; i++) {
-      const currentShowing = sortedShowings[i];
-      const nextShowing = sortedShowings[i + 1];
-
-      const currentEnd = new Date(currentShowing.endTime);
-      const nextStart = new Date(nextShowing.startTime);
-
-      const bufferMs = nextStart.getTime() - currentEnd.getTime();
-      const bufferHours = bufferMs / (1000 * 60 * 60);
-
-      if (bufferHours < VALIDATION_CONFIG.MIN_BUFFER_BETWEEN_SHOWINGS_HOURS) {
-        // Find original index in unsorted array
-        const nextOriginalIndex = showings.findIndex(
-          (s) =>
-            s.startTime === nextShowing.startTime &&
-            s.endTime === nextShowing.endTime
-        );
-        errors[`showing-${nextOriginalIndex}-startTime`] = t(
-          "errors.showingTimesOverlap"
-        );
-      }
-    }
-
-    return { valid: Object.keys(errors).length === 0, errors };
-  };
-
-  // Combined validation for all showings
-  const validateAllShowings = (
-    showings: ShowingWithAreas[]
-  ): { valid: boolean; errors: Record<string, string> } => {
-    const allErrors: Record<string, string> = {};
-
-    // Check if at least one showing exists
-    if (showings.length === 0 || !showings.some((s) => s.startTime)) {
-      allErrors.showings = t("errors.showingRequired");
-      return { valid: false, errors: allErrors };
-    }
-
-    // Validate each individual showing
-    for (let i = 0; i < showings.length; i++) {
-      if (showings[i].startTime || showings[i].endTime) {
-        const showingValidation = validateSingleShowing(showings[i], i);
-        Object.assign(allErrors, showingValidation.errors);
-
-        // Skip ticket sale time validation for admin edit
-        // const ticketSaleValidation = validateTicketSaleTimes(showings[i], i);
-        // Object.assign(allErrors, ticketSaleValidation.errors);
-      }
-    }
-
-    // Validate multiple showings relationships
-    const multipleShowingsValidation = validateMultipleShowings(showings);
-    Object.assign(allErrors, multipleShowingsValidation.errors);
-
-    return { valid: Object.keys(allErrors).length === 0, errors: allErrors };
-  };
-
-  // Load event data for editing
   useEffect(() => {
     if (!eventId) return;
 
     const loadEvent = async () => {
       try {
-        const event = await fetchEventByIdForAdmin(eventId);
-        if (!event) return;
+        const result = await fetchEventById(eventId);
+        if (!result.success || !result.data) {
+          toast.error("Event not found");
+          return;
+        }
+
+        const event = result.data;
 
         setFormData({
           name: event.name ?? "",
@@ -391,15 +189,11 @@ function CreateEventPageInner() {
         });
 
         if (event.seatMapId) {
-          console.log("📥 Loading existing seat map:", event.seatMapId);
           const gridDataResult = await getSeatMapGridDataAction(
             event.seatMapId
           );
 
           if (gridDataResult.success && gridDataResult.data) {
-            setSelectedSeatMap(event.seatMapId);
-            setOriginalSeatMapId(event.seatMapId);
-
             const enrichedSeatMap: SeatMapData = {
               id: gridDataResult.data.seatMap.id,
               name: gridDataResult.data.seatMap.name,
@@ -413,77 +207,87 @@ function CreateEventPageInner() {
                 gridDataResult.data.gridData?.defaultSeatSettings || undefined,
             };
 
-            setSelectedSeatMapData(enrichedSeatMap);
-            setSeatMapPreviewData(gridDataResult.data.preview);
+            setSeatMapData(enrichedSeatMap);
+            setOriginalSeatMapId(event.seatMapId);
             setTicketingMode("seatmap");
           }
         } else {
-          // if (event.showings?.length > 0) {
-          //   const firstShowing = event.showings[0];
-          //   if (firstShowing.areas?.length > 0) {
-          //     setAreas(
-          //       firstShowing.areas.map((area: any) => ({
-          //         name: area.name,
-          //         ticketPrice: area.price.toString(),
-          //         seatCount: area.seatCount?.toString() || "0",
-          //       }))
-          //     );
-          //   }
-          if (event.areas?.length > 0) {
-            setAreas(
-              event.areas.map((area: any) => ({
-                name: area.name,
-                ticketPrice: area.price.toString(),
-                seatCount: area.rows?.[0]?.seats?.length.toString() || "0",
-              }))
-            );
-          }
           setTicketingMode("simple");
         }
 
-        // Load showings data if available
         if (event.showings?.length > 0) {
-          setShowings(
-            event.showings.map((showing: any) => {
-              const startTime = showing.startTime
-                ? new Date(showing.startTime)
-                : new Date();
-              const endTime = showing.endTime
-                ? new Date(showing.endTime)
-                : new Date();
+          const processedShowings = event.showings.map((showing: any) => {
+            const startTime = showing.startTime
+              ? new Date(showing.startTime)
+              : new Date();
+            const endTime = showing.endTime
+              ? new Date(showing.endTime)
+              : new Date();
 
-              const isValidStartTime =
-                startTime instanceof Date && !isNaN(startTime.getTime());
-              const isValidEndTime =
-                endTime instanceof Date && !isNaN(endTime.getTime());
+            const isValidStartTime =
+              startTime instanceof Date && !isNaN(startTime.getTime());
+            const isValidEndTime =
+              endTime instanceof Date && !isNaN(endTime.getTime());
 
-              return {
-                name: showing.name,
-                startTime: isValidStartTime
-                  ? startTime.toISOString().slice(0, 16)
-                  : "",
-                endTime: isValidEndTime
-                  ? endTime.toISOString().slice(0, 16)
-                  : "",
-                ticketSaleStart: showing.ticketSaleStart
-                  ? new Date(showing.ticketSaleStart).toISOString().slice(0, 16)
-                  : "",
-                ticketSaleEnd: showing.ticketSaleEnd
-                  ? new Date(showing.ticketSaleEnd).toISOString().slice(0, 16)
-                  : "",
-                areas:
-                  showing.areas?.map((area: any) => ({
-                    name: area.name,
-                    ticketPrice: area.price.toString(),
-                    seatCount: area.seatCount?.toString() || "0",
-                  })) || [],
-              };
-            })
-          );
+            let ticketSaleStartValue = "";
+            let ticketSaleEndValue = "";
+
+            if (showing.ticketSaleStart) {
+              ticketSaleStartValue = new Date(showing.ticketSaleStart)
+                .toISOString()
+                .slice(0, 16);
+            } else if (isValidStartTime) {
+              const defaultStart = new Date(startTime);
+              defaultStart.setDate(defaultStart.getDate() - 7);
+              ticketSaleStartValue = defaultStart.toISOString().slice(0, 16);
+            }
+
+            if (showing.ticketSaleEnd) {
+              ticketSaleEndValue = new Date(showing.ticketSaleEnd)
+                .toISOString()
+                .slice(0, 16);
+            } else if (isValidStartTime) {
+              const defaultEnd = new Date(startTime);
+              defaultEnd.setHours(defaultEnd.getHours() - 1);
+              ticketSaleEndValue = defaultEnd.toISOString().slice(0, 16);
+            }
+
+            const processedAreas =
+              showing.areas?.map((area: any) => {
+                let calculatedSeatCount = 0;
+                if (area.rows) {
+                  area.rows.forEach((row: any) => {
+                    if (row.seats) {
+                      calculatedSeatCount += row.seats.length;
+                    }
+                  });
+                }
+
+                return {
+                  name: area.name,
+                  ticketPrice: area.price.toString(),
+                  seatCount:
+                    calculatedSeatCount > 0
+                      ? calculatedSeatCount.toString()
+                      : "0",
+                };
+              }) || [];
+
+            return {
+              name: showing.name,
+              startTime: isValidStartTime
+                ? startTime.toISOString().slice(0, 16)
+                : "",
+              endTime: isValidEndTime ? endTime.toISOString().slice(0, 16) : "",
+              ticketSaleStart: ticketSaleStartValue,
+              ticketSaleEnd: ticketSaleEndValue,
+              areas: processedAreas,
+              seatMapId: showing.seatMapId || "",
+            };
+          });
+
+          setShowings(processedShowings);
         }
-
-        setPosterPreview(event.posterUrl ?? null);
-        setBannerPreview(event.bannerUrl ?? null);
       } catch (error) {
         console.error("Error loading event:", error);
         toast.error(t("toasts.failedLoadEvent"));
@@ -491,69 +295,13 @@ function CreateEventPageInner() {
     };
 
     loadEvent();
-  }, [eventId]);
+  }, [eventId, t]);
 
-  // Track seat map changes
-  useEffect(() => {
-    if (!eventId) return;
-
-    const hasChanges =
-      selectedSeatMap !== originalSeatMapId ||
+  const hasSeatMapChanges =
+    eventId &&
+    ((seatMapData?.id && seatMapData.id !== originalSeatMapId) ||
       (originalSeatMapId && ticketingMode === "simple") ||
-      (!originalSeatMapId && ticketingMode === "seatmap");
-
-    setHasSeatMapChanges(hasChanges);
-  }, [selectedSeatMap, originalSeatMapId, ticketingMode, eventId]);
-
-  // Media upload handlers
-  const handlePosterUpload = (response: UploadResponse) => {
-    setFormData((prev) => ({ ...prev, posterUrl: response.secure_url }));
-    toast.success(t("toasts.posterUploaded"));
-  };
-
-  const handleBannerUpload = (response: UploadResponse) => {
-    setFormData((prev) => ({ ...prev, bannerUrl: response.secure_url }));
-    toast.success(t("toasts.bannerUploaded"));
-  };
-
-  // Seat map selection handler
-  const handleSeatMapSelection = async (seatMap: SeatMapData) => {
-    console.log("📥 Processing seat map selection:", seatMap.name);
-
-    try {
-      const result = await getSeatMapGridDataAction(seatMap.id);
-
-      if (result.success && result.data) {
-        const enrichedSeatMap: SeatMapData = {
-          ...seatMap,
-          grids: result.data.gridData?.grids || [],
-          defaultSeatSettings:
-            result.data.gridData?.defaultSeatSettings || undefined,
-        };
-
-        setSelectedSeatMap(enrichedSeatMap.id);
-        setSelectedSeatMapData(enrichedSeatMap);
-        setSeatMapPreviewData(result.data.preview);
-        setShowSeatMapModal(false);
-
-        toast.success(
-          t("toasts.selectedSeatMap", { name: enrichedSeatMap.name }),
-          {
-            description: t("toasts.selectedSeatMapDesc", {
-              totalSeats: result.data.preview.totalSeats,
-              areasCount: result.data.preview.areas.length,
-            }),
-          }
-        );
-      } else {
-        console.error("Failed to load seat map data:", result.error);
-        toast.error(result.error || t("toasts.failedLoadSeatMap"));
-      }
-    } catch (error) {
-      console.error("Error processing seat map:", error);
-      toast.error(t("toasts.seatMapLoadError"));
-    }
-  };
+      (!originalSeatMapId && ticketingMode === "seatmap"));
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -570,44 +318,8 @@ function CreateEventPageInner() {
     }
 
     if (name === "maxTicketsByOrder" && errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
+      clearFieldError(name);
     }
-  };
-
-  const validateStep1 = (): boolean => {
-    const newErrors: Record<string, string> = {};
-
-    // Basic field validation
-    if (!formData.name.trim()) {
-      newErrors.name = t("errors.nameRequired");
-    }
-    if (!formData.location.trim()) {
-      newErrors.location = t("errors.locationRequired");
-    }
-    if (!formData.description.trim()) {
-      newErrors.description = t("errors.descriptionRequired");
-    } else if (formData.description.length > 5000) {
-      newErrors.description = t("errors.descriptionTooLong");
-    }
-
-    // Max tickets validation
-    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
-      newErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
-    }
-    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
-      newErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
-    }
-
-    // Comprehensive showings validation
-    const showingsValidation = validateAllShowings(showings);
-    Object.assign(newErrors, showingsValidation.errors);
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
   };
 
   const scrollToTop = () => {
@@ -616,7 +328,7 @@ function CreateEventPageInner() {
 
   const handleNextStep = () => {
     if (step === 1) {
-      if (!validateStep1()) {
+      if (!validateStep1(formData, showings)) {
         toast.error(t("pleaseFixErrors"));
         scrollToTop();
         return;
@@ -629,7 +341,6 @@ function CreateEventPageInner() {
   const handleShowingsChange = (newShowings: ShowingWithAreas[]) => {
     setShowings(newShowings);
 
-    // Auto-calculate ticket sale times if showings are valid
     if (newShowings.length > 0) {
       const validShowings = newShowings.filter((s) => s.startTime);
 
@@ -655,93 +366,20 @@ function CreateEventPageInner() {
       }
     }
 
-    // Clear relevant errors and validate showings
-    const showingsValidation = validateAllShowings(newShowings);
-
-    setErrors((prev) => {
-      const newErrors = { ...prev };
-
-      // Clear old showing-related errors
-      Object.keys(newErrors).forEach((key) => {
-        if (
-          key.startsWith("showing-") ||
-          key === "showings" ||
-          key === "ticketSaleStart" ||
-          key === "ticketSaleEnd"
-        ) {
-          delete newErrors[key];
-        }
-      });
-
-      // Add new validation errors
-      Object.assign(newErrors, showingsValidation.errors);
-
-      return newErrors;
-    });
+    updateShowingErrors(newShowings);
   };
 
   const onSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (eventId && hasSeatMapChanges && !confirmSeatMapUpdate) {
-      toast.error(t("confirmSeatMapUpdate"));
-      return;
-    }
-
-    // Comprehensive validation before submission
-    const basicErrors: Record<string, string> = {};
-
-    // Basic fields validation
-    if (!formData.name.trim()) {
-      basicErrors.name = t("errors.nameRequired");
-    }
-    if (!formData.location.trim()) {
-      basicErrors.location = t("errors.locationRequired");
-    }
-    if (!formData.description.trim()) {
-      basicErrors.description = t("errors.descriptionRequired");
-    } else if (formData.description.length > 5000) {
-      basicErrors.description = t("errors.descriptionTooLong");
-    }
-
-    // Max tickets validation
-    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder < 1) {
-      basicErrors.maxTicketsByOrder = t("errors.maxTicketsMin");
-    }
-    if (formData.maxTicketsByOrder && formData.maxTicketsByOrder > 20) {
-      basicErrors.maxTicketsByOrder = t("errors.maxTicketsMax");
-    }
-
-    // Comprehensive showings validation
-    const showingsValidation = validateAllShowings(showings);
-    Object.assign(basicErrors, showingsValidation.errors);
-
-    if (Object.keys(basicErrors).length > 0) {
-      // Clear old showing-related errors and set new ones
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-
-        // Clear old showing-related errors
-        Object.keys(newErrors).forEach((key) => {
-          if (key.startsWith("showing-") || key === "showings") {
-            delete newErrors[key];
-          }
-        });
-
-        // Add new validation errors
-        Object.assign(newErrors, basicErrors);
-
-        return newErrors;
-      });
-
+    const validation = validateForSubmission(formData, showings);
+    if (!validation.valid) {
       toast.error(t("pleaseFixErrors"));
       return;
     }
 
-    // Get form data from the actual form element to include hidden inputs
     const form = new FormData(e.currentTarget);
 
-    // Add additional data that might not be in the form
     if (eventId) {
       form.set("eventId", eventId);
     }
@@ -757,11 +395,9 @@ function CreateEventPageInner() {
     form.set("ticketingMode", ticketingMode);
     form.set("maxTicketsByOrder", formData.maxTicketsByOrder?.toString() || "");
 
-    // Add showings data - convert times to UTC
     showings.forEach((showing, index) => {
       form.set(`showings[${index}].name`, showing.name);
 
-      // Convert times to UTC before sending to server
       if (showing.startTime) {
         const startTimeUTC = new Date(showing.startTime).toISOString();
         form.set(`showings[${index}].startTime`, startTimeUTC);
@@ -785,27 +421,41 @@ function CreateEventPageInner() {
       }
     });
 
-    if (ticketingMode === "seatmap" && selectedSeatMap && selectedSeatMapData) {
-      form.set("seatMapId", selectedSeatMap);
+    if (ticketingMode === "seatmap" && seatMapData) {
+      form.set("seatMapId", seatMapData.id);
       form.set(
         "seatMapData",
         JSON.stringify({
-          grids: selectedSeatMapData.grids || [],
-          defaultSeatSettings: selectedSeatMapData.defaultSeatSettings,
+          grids: seatMapData.grids || [],
+          defaultSeatSettings: seatMapData.defaultSeatSettings,
         })
       );
     }
-    // Note: Areas data is now handled by hidden inputs in ShowingsTicketing component
 
     startTransition(async () => {
       try {
         if (eventId) {
-          await handleAdminUpdateEvent(form);
-          toast.success(t("toasts.eventUpdated"));
-          router.push("/admin/events-pending");
+          const result = await handleUpdateEvent(form);
+          if (result.success) {
+            toast.success(t("toasts.eventUpdated"));
+          } else {
+            toast.error(result.error || "Failed to update event");
+            return;
+          }
         } else {
-          toast.error("Admin can only edit existing events");
+          await handleCreateEvent(form);
+          toast.success(
+            ticketingMode === "seatmap" && seatMapData
+              ? t("toasts.eventAndSeatMapCreated")
+              : t("toasts.eventCreated")
+          );
         }
+
+        if (!eventId) {
+          clearSavedDraft();
+        }
+
+        router.push("/organizer");
       } catch (err) {
         toast.error(t("toasts.createEventFailed"));
         console.error(err);
@@ -820,38 +470,28 @@ function CreateEventPageInner() {
           <EventDetailsStep
             formData={formData}
             errors={errors}
-            areas={areas}
             showings={showings}
             onInputChange={handleChange}
-            onDescriptionChange={(value: string) => {
+            onDescriptionChange={(value) => {
               setFormData({ ...formData, description: value });
+
+              if (errors.description) {
+                const tempDiv = document.createElement("div");
+                tempDiv.innerHTML = value;
+                const textContent =
+                  tempDiv.textContent || tempDiv.innerText || "";
+
+                if (value.trim() && textContent.length <= 5000) {
+                  clearFieldError("description");
+                }
+              }
             }}
             onShowingsChange={handleShowingsChange}
-            disableTicketSaleValidation={true}
           />
         );
       case 2:
         return (
-          <MediaUploadStep
-            formData={formData}
-            onPosterUpload={handlePosterUpload}
-            onBannerUpload={handleBannerUpload}
-            onUploadError={(error: Error) =>
-              toast.error(t("toasts.uploadFailed", { message: error.message }))
-            }
-            onPosterRemove={() =>
-              setFormData((prev) => ({ ...prev, posterUrl: "" }))
-            }
-            onBannerRemove={() =>
-              setFormData((prev) => ({ ...prev, bannerUrl: "" }))
-            }
-            onPosterGenerated={(imageUrl: string) =>
-              setFormData((prev) => ({ ...prev, posterUrl: imageUrl }))
-            }
-            onBannerGenerated={(imageUrl: string) =>
-              setFormData((prev) => ({ ...prev, bannerUrl: imageUrl }))
-            }
-          />
+          <MediaUploadStep formData={formData} onFormDataChange={setFormData} />
         );
       case 3:
         return <PreviewStep formData={formData} showings={showings} />;
@@ -860,15 +500,8 @@ function CreateEventPageInner() {
           <TicketingStep
             ticketingMode={ticketingMode}
             setTicketingMode={setTicketingMode}
-            areas={areas}
-            setAreas={setAreas}
-            selectedSeatMap={selectedSeatMap}
-            setSelectedSeatMap={setSelectedSeatMap}
-            selectedSeatMapData={selectedSeatMapData}
-            setSelectedSeatMapData={setSelectedSeatMapData}
-            seatMapPreviewData={seatMapPreviewData}
-            setSeatMapPreviewData={setSeatMapPreviewData}
-            setShowSeatMapModal={setShowSeatMapModal}
+            seatMapData={seatMapData}
+            setSeatMapData={setSeatMapData}
             showings={showings}
             hasSeatMapChanges={hasSeatMapChanges}
           />
@@ -878,68 +511,34 @@ function CreateEventPageInner() {
     }
   };
 
-  const handleExit = () => {
-    setShowExitConfirm(true);
-  };
-
-  const handleConfirmExit = () => {
-    router.push("/admin/events-pending");
-  };
-
   return (
-    <div className="max-w-6xl mx-auto p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h1 className="text-3xl font-semibold">
-          {eventId ? "Edit Event (Admin)" : t("createEvent")}
+    <div className="w-full sm:w-11/12 md:w-5/6 lg:w-3/4 xl:max-w-6xl mx-auto px-2 sm:px-4 md:px-6 lg:px-8 xl:px-20 py-6 sm:py-8 lg:py-12">
+      <div className="flex justify-between items-center mb-3 sm:mb-4">
+        <h1 className="text-2xl sm:text-3xl font-semibold">
+          {eventId ? t("editEvent") : t("createEvent")}
         </h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={handleExit}
-          className="h-8 w-8"
-          aria-label="Close"
-        >
-          <X className="h-5 w-5" />
-        </Button>
+
+        {!eventId && (
+          <AutoSaveIndicator
+            status={saveStatus}
+            lastSaved={lastSaved || undefined}
+            className="hidden sm:flex"
+          />
+        )}
       </div>
 
       <StepProgressBar step={step} />
-      <Separator className="mb-6" />
+      <Separator className="mb-4 sm:mb-6" />
 
-      <form onSubmit={onSubmit} className="space-y-6">
+      <form
+        onSubmit={onSubmit}
+        id="event-form"
+        className="space-y-4 sm:space-y-6"
+      >
         {renderStep()}
 
         {step === 4 && (
           <div className="space-y-6">
-            {eventId && hasSeatMapChanges && (
-              <div className="p-4 border border-orange-200 bg-orange-50 rounded-lg">
-                <h4 className="font-medium text-orange-800 mb-2">
-                  {t("seatMapUpdateRequired")}
-                </h4>
-                <p className="text-sm text-orange-700 mb-3">{t("text1")}</p>
-                <ul className="text-sm text-orange-700 mb-4 list-disc list-inside space-y-1">
-                  <li>{t("text2")}</li>
-                  <li>{t("text3")}</li>
-                  <li>{t("text4")}</li>
-                </ul>
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="confirmSeatMapUpdate"
-                    checked={confirmSeatMapUpdate}
-                    onChange={(e) => setConfirmSeatMapUpdate(e.target.checked)}
-                    className="rounded border-orange-300"
-                  />
-                  <label
-                    htmlFor="confirmSeatMapUpdate"
-                    className="text-sm text-orange-800"
-                  >
-                    {t("text5")}
-                  </label>
-                </div>
-              </div>
-            )}
-
             <div className="flex justify-end mt-8 space-x-4">
               <Button
                 variant="outline"
@@ -954,19 +553,14 @@ function CreateEventPageInner() {
               <Button
                 type="submit"
                 className="bg-blue-600 text-white"
-                disabled={
-                  isPending ||
-                  (eventId !== null &&
-                    hasSeatMapChanges &&
-                    !confirmSeatMapUpdate)
-                }
+                disabled={isPending}
               >
                 {isPending
                   ? eventId
                     ? t("updating")
                     : t("creating")
                   : eventId
-                    ? "Update Event"
+                    ? t("updateEvent")
                     : t("createEventt")}
               </Button>
             </div>
@@ -975,7 +569,7 @@ function CreateEventPageInner() {
       </form>
 
       {step < 4 && (
-        <div className="flex justify-end mt-8 space-x-4">
+        <div className="flex flex-col sm:flex-row gap-2 md:gap-4 mt-4 sm:mt-6 lg:mt-8">
           <Button
             variant="outline"
             onClick={() => {
@@ -983,42 +577,27 @@ function CreateEventPageInner() {
               scrollToTop();
             }}
             disabled={step === 1}
+            className="w-full sm:w-auto order-2 sm:order-1"
           >
             {t("goback")}
           </Button>
-          <Button onClick={handleNextStep}>{t("saveandcontinue")}</Button>
+          <Button
+            onClick={handleNextStep}
+            className="w-full sm:w-auto order-1 sm:order-2"
+          >
+            {t("saveandcontinue")}
+          </Button>
         </div>
       )}
 
-      <SeatMapSelectionModal
-        showings={showings}
-        onSetShowings={setShowings}
-        open={showSeatMapModal}
-        onOpenChange={setShowSeatMapModal}
-        onSelect={handleSeatMapSelection}
-        selectedSeatMapId={selectedSeatMap}
+      <DraftRecoveryDialog
+        open={showDraftRecovery}
+        onOpenChange={() => {}}
+        draftData={draftData}
+        onRestore={acceptDraft}
+        onDiscard={rejectDraft}
+        t={t}
       />
-
-      {/* Exit Confirmation Dialog */}
-      <AlertDialog open={showExitConfirm} onOpenChange={setShowExitConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Exit</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to exit? All unsaved changes will be lost.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmExit}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Exit
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </div>
   );
 }
