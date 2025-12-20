@@ -92,29 +92,29 @@ const EventCard = ({
 
   return (
     <Card
-      className="h-full flex flex-col overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="h-full flex flex-col overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 min-w-[280px] max-w-full"
       onClick={onClick}
     >
-      <CardHeader className="pb-3 flex-shrink-0">
-        <div className="flex items-start justify-between">
-          <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold line-clamp-2 leading-tight" title={event.title}>
+      <CardHeader className="pb-3 flex-shrink-0 min-w-0">
+        <div className="flex items-start justify-between min-w-0">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <CardTitle className="text-base sm:text-lg font-semibold line-clamp-2 leading-tight" title={event.title}>
               {event.title}
             </CardTitle>
-            <div className="flex items-center justify-between mt-1">
-              <p className="text-sm text-muted-foreground truncate">
+            <div className="flex items-center justify-between mt-1 gap-2 min-w-0">
+              <p className="text-xs sm:text-sm text-muted-foreground truncate min-w-0 flex-1" title={event.category || "General Event"}>
                 {event.category || "General Event"}
               </p>
-              {getStatusBadge()}
+              <div className="flex-shrink-0">{getStatusBadge()}</div>
             </div>
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-1 flex flex-col min-h-0">
+      <CardContent className="flex-1 flex flex-col min-h-0 min-w-0">
         {/* Event Image */}
         {event.image_url && (
-          <div className="mb-4 flex-shrink-0">
+          <div className="mb-4 flex-shrink-0 min-w-0">
             <Image
               src={event.image_url}
               alt={event.title}
@@ -129,44 +129,44 @@ const EventCard = ({
         )}
 
         {/* Event Details */}
-        <div className="space-y-3 flex-1 min-h-0">
+        <div className="space-y-3 flex-1 min-h-0 min-w-0 overflow-hidden">
           <div 
-            className="text-sm text-gray-600 line-clamp-3 leading-relaxed prose prose-sm max-w-none"
+            className="text-xs sm:text-sm text-gray-600 line-clamp-3 leading-relaxed prose prose-sm max-w-none overflow-hidden"
             dangerouslySetInnerHTML={{ 
               __html: event.description || "No description available" 
             }}
           />
 
-          <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate" title={event.location || "Location TBD"}>
+          <div className="space-y-2 text-xs sm:text-sm min-w-0">
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <MapPin className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate min-w-0" title={event.location || "Location TBD"}>
                 {event.location || "Location TBD"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">{formatDate(event.start_date)}</span>
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate min-w-0">{formatDate(event.start_date)}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Clock className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate min-w-0">
                 Ends: {formatDate(event.end_date)}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <User className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate" title={event.organizer_name || "Unknown Organizer"}>
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate min-w-0" title={event.organizer_name || "Unknown Organizer"}>
                 {event.organizer_name || "Unknown Organizer"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Eye className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+            <div className="flex items-center gap-2 text-gray-600 min-w-0">
+              <Eye className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+              <span className="truncate min-w-0">
                 Capacity: {event.capacity > 0 ? `${event.capacity.toLocaleString("en-US")} seats` : "To be determined"}
               </span>
             </div>
@@ -183,31 +183,31 @@ const EventCard = ({
               <Button
                 onClick={() => onEdit(event.id)}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 min-w-0"
                 size="sm"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+                <Edit className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+                <span className="truncate">Edit</span>
               </Button>
             )}
             <Button
               onClick={() => onApprove(event.id)}
               disabled={isProcessing || event.approvalStatus === "approved"}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-300"
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-300 min-w-0"
               size="sm"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {event.approvalStatus === "approved" ? "Approved" : "Approve"}
+              <CheckCircle className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="truncate">{event.approvalStatus === "approved" ? "Approved" : "Approve"}</span>
             </Button>
             <Button
               onClick={() => onReject(event.id)}
               disabled={isProcessing || event.approvalStatus === "rejected"}
               variant="destructive"
-              className="flex-1 disabled:bg-red-300"
+              className="flex-1 disabled:bg-red-300 min-w-0"
               size="sm"
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              {event.approvalStatus === "rejected" ? "Rejected" : "Reject"}
+              <XCircle className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="truncate">{event.approvalStatus === "rejected" ? "Rejected" : "Reject"}</span>
             </Button>
           </div>
         ) : (
@@ -218,21 +218,21 @@ const EventCard = ({
             <Button
               onClick={() => onApprove(event.id)}
               disabled={isProcessing}
-              className="flex-1 bg-green-600 hover:bg-green-700"
+              className="flex-1 bg-green-600 hover:bg-green-700 min-w-0"
               size="sm"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Approve
+              <CheckCircle className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="truncate">Approve</span>
             </Button>
             <Button
               onClick={() => onReject(event.id)}
               disabled={isProcessing}
               variant="destructive"
-              className="flex-1"
+              className="flex-1 min-w-0"
               size="sm"
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              Reject
+              <XCircle className="h-4 w-4 mr-1 sm:mr-2 flex-shrink-0" />
+              <span className="truncate">Reject</span>
             </Button>
           </div>
         )}

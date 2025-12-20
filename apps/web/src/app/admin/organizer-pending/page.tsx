@@ -295,21 +295,21 @@ export default function OrganizerPendingPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
-              <Table className="table-fixed w-full min-w-[1100px]">
+            <div className="rounded-md border">
+              <Table className="w-full">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[250px]">Organizer Name</TableHead>
                     <TableHead className="w-[250px]">User Details</TableHead>
                     <TableHead className="w-[250px]">Business Info</TableHead>
-                    <TableHead className="w-[150px] pr-2">Applied Date</TableHead>
-                    <TableHead className="w-[200px] text-right pl-4">Actions</TableHead>
+                    <TableHead className="w-[150px] pr-6">Applied Date</TableHead>
+                    <TableHead className="w-[250px] text-right pl-6 min-w-[250px]">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedOrganizers.map((organizer) => (
                     <TableRow key={organizer.id}>
-                      <TableCell className="w-[250px] min-w-0">
+                      <TableCell className="w-[20%] min-w-[200px]">
                         <div className="flex items-center gap-3 min-w-0">
                           {organizer.user.image && (
                             <img
@@ -377,33 +377,33 @@ export default function OrganizerPendingPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[150px] pr-2">
-                        {formatDate(organizer.user.createdAt)}
+                      <TableCell className="w-[150px] pr-6">
+                        <span className="whitespace-nowrap block">{formatDate(organizer.user.createdAt)}</span>
                       </TableCell>
-                      <TableCell className="w-[200px] text-right pl-4">
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 justify-end">
+                      <TableCell className="w-[250px] text-right pl-6 min-w-[250px]">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 justify-end min-w-0 w-full">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewDetails(organizer)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto min-w-[80px]"
                           >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Details
+                            <Eye className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">Details</span>
                           </Button>
                           <Button
                             variant="default"
                             size="sm"
                             onClick={() => handleApprove(organizer)}
                             disabled={processingIds.has(organizer.id)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto min-w-[90px]"
                           >
                             {processingIds.has(organizer.id) ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
+                              <Loader2 className="h-4 w-4 animate-spin flex-shrink-0" />
                             ) : (
                               <>
-                                <UserCheck className="h-4 w-4 mr-1" />
-                                Approve
+                                <UserCheck className="h-4 w-4 mr-1 flex-shrink-0" />
+                                <span className="truncate">Approve</span>
                               </>
                             )}
                           </Button>
@@ -412,10 +412,10 @@ export default function OrganizerPendingPage() {
                             size="sm"
                             onClick={() => handleRejectClick(organizer)}
                             disabled={processingIds.has(organizer.id)}
-                            className="w-full sm:w-auto"
+                            className="w-full sm:w-auto min-w-[80px]"
                           >
-                            <UserX className="h-4 w-4 mr-1" />
-                            Reject
+                            <UserX className="h-4 w-4 mr-1 flex-shrink-0" />
+                            <span className="truncate">Reject</span>
                           </Button>
                         </div>
                       </TableCell>
