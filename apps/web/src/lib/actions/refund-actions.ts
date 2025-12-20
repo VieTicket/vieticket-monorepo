@@ -5,6 +5,7 @@ import { getAuthSession } from "@/lib/auth/auth";
 import {
   approveRefund,
   createRefund,
+  enqueueRefundExecution,
   executeRefund,
   getRefundDetailForRole,
   listRefundsForRole,
@@ -18,7 +19,6 @@ import {
   REFUND_REASON_VALUES,
   validateRefundRequestInput,
 } from "@vieticket/utils/finance/refund-policy";
-import { enqueueRefundExecution } from "@/lib/queues/refund-execution-queue";
 
 async function getCurrentUser() {
   const session = await getAuthSession(await headers());
@@ -157,18 +157,14 @@ export async function executeRefundAction(refundId: string) {
       throw new Error("Unauthorized");
     }
 
-    const queued = await enqueueRefundExecution(refundId);
+    const queued = await enqueueRefundExecution(user, refundId);
     if (queued.queued) {
       return { success: true, data: { ...queued } };
     }
 
-    // Fallback for local/dev when QStash isn't configured yet.
-    if (queued.kind === "config_missing") {
-      const result = await executeRefund(user, refundId);
-      return { success: true, data: { queued: false, result } };
-    }
-
-    throw new Error(queued.reason);
+    // If queueing fails, still allow admins to execute synchronously as a fallback.
+    const result = await executeRefund(user, refundId);
+    return { success: true, data: { queued: false, result } };
   } catch (error) {
     logIfInternal("executeRefundAction", error);
     return {

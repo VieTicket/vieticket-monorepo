@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { executeRefund } from "@vieticket/services/refund";
+import { verifySignatureAppRouter } from "@vieticket/queues/nextjs";
 
 function nonRetryable(message: string, status = 489) {
+  console.error("[qstash] refund error:", message);
   return new Response(message, {
     status,
     headers: {
@@ -10,17 +12,7 @@ function nonRetryable(message: string, status = 489) {
   });
 }
 
-export async function POST(request: Request) {
-  const expectedSecret = process.env.QSTASH_REFUND_CALLBACK_SECRET;
-  if (!expectedSecret) {
-    return nonRetryable("QSTASH_REFUND_CALLBACK_SECRET is not configured.");
-  }
-
-  const providedSecret = request.headers.get("x-vieticket-qstash-secret");
-  if (providedSecret !== expectedSecret) {
-    return nonRetryable("Unauthorized", 401);
-  }
-
+async function handler(request: Request) {
   let body: unknown;
   try {
     body = await request.json();
@@ -41,18 +33,19 @@ export async function POST(request: Request) {
     await executeRefund({ id: "system", role: "admin" } as any, refundId);
     return NextResponse.json({ ok: true });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unexpected error";
-
     // Idempotency / already-processed cases: acknowledge so QStash does not retry.
-    if (message === "Refund is not ready for execution.") {
+    if (error instanceof Error && error.message === "Refund is not ready for execution.") {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    if (message === "Refund not found") {
-      return nonRetryable(message);
+    if (error instanceof Error && error.message === "Refund not found") {
+      return nonRetryable("Refund not found");
     }
 
-    // Let QStash retry transient failures.
-    return new Response(message, { status: 500 });
+    // Do not leak internal errors in responses.
+    console.error("[qstash] refund execution failed", error);
+    return new Response("Internal error", { status: 500 });
   }
 }
+
+export const POST = verifySignatureAppRouter(handler);

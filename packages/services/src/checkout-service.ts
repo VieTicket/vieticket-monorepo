@@ -65,15 +65,6 @@ export async function getShowingTicketData(
       showing.ticketSaleStart || showing.event.ticketSaleStart;
     const ticketSaleEnd = showing.ticketSaleEnd || showing.event.ticketSaleEnd;
 
-    console.log("Debug - showing ticket sale validation:", {
-      showingId,
-      now: now.toISOString(),
-      ticketSaleStart: ticketSaleStart?.toISOString(),
-      ticketSaleEnd: ticketSaleEnd?.toISOString(),
-      isBeforeStart: ticketSaleStart ? now < ticketSaleStart : false,
-      isAfterEnd: ticketSaleEnd ? now > ticketSaleEnd : false,
-    });
-
     // Only check if tickets sales have ended (not started yet should still allow viewing)
     if (ticketSaleEnd && now > ticketSaleEnd) {
       throw new Error("Ticket sales have ended for this showing.");
@@ -87,41 +78,7 @@ export async function getShowingTicketData(
       getShowingSeatingStructure(showingId),
       getSeatStatus(showing.event.id), // Seat status is still event-based for now
     ]);
-
-    console.log("Debug - showing seating structure result:", {
-      showingId,
-      eventId: showing.event.id,
-      seatingStructureLength: seatingStructure?.length,
-      seatStatusPaid: seatStatus?.paidSeatIds?.length,
-      seatStatusHold: seatStatus?.activeHoldSeatIds?.length,
-    });
-
-    // Detailed logging of seating structure
-    console.log("Debug - detailed seating structure:", {
-      areas:
-        seatingStructure?.map((area, areaIndex) => ({
-          areaIndex,
-          areaId: area.id,
-          areaName: area.name,
-          areaPrice: area.price,
-          areaEventId: area.eventId,
-          areaShowingId: area.showingId,
-          rowsCount: area.rows?.length || 0,
-          rows:
-            area.rows?.map((row, rowIndex) => ({
-              rowIndex,
-              rowId: row.id,
-              rowName: row.rowName,
-              seatsCount: row.seats?.length || 0,
-              sampleSeats:
-                row.seats?.slice(0, 3)?.map((seat) => ({
-                  seatId: seat.id,
-                  seatNumber: seat.seatNumber,
-                })) || [],
-            })) || [],
-        })) || [],
-    });
-
+    
     // 4. Return the data
     return {
       eventData: showing.event,
@@ -299,8 +256,6 @@ export async function createPendingOrder(
     returnUrl,
     paymentExpirationSeconds,
   });
-
-  console.log(paymentURL);
 
   // 6. Store VNPay transaction reference (optional, but good practice)
   await updateOrderVNPayData(newOrder.id, { vnp_TxnRef });
