@@ -423,11 +423,13 @@ async function markRefundSuccessfulTx(
 export async function executeRefund(actor: Actor, refundId: string) {
   ensureRole(actor, ["admin"]);
   return db.transaction(async (tx) => {
-    const lockRes = await tx.execute<{ locked: boolean }>(sql`
-      SELECT pg_try_advisory_xact_lock(${refundId}::bigint) AS locked;
+    const lockRes = await tx.execute(sql`
+      SELECT id, status FROM refunds 
+      WHERE id = ${refundId}
+      FOR UPDATE SKIP LOCKED
     `);
-    const lockedRow = (lockRes as unknown as { rows?: { locked?: boolean }[] }).rows?.[0];
-    if (!lockedRow?.locked) {
+    const lockedRow = (lockRes as any).rows?.[0];
+    if (!lockedRow) {
       const latest = await getRefundDetail(refundId, tx);
       if (!latest) throw new Error("Refund not found");
       return { status: (latest.refund.status ?? "processing") as RefundStatus };
