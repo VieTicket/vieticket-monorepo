@@ -1,7 +1,8 @@
-import { db } from "@vieticket/db/pg";
+import { db, type DbClient } from "@vieticket/db/pg";
 import type { RefundPspMetadata } from "@vieticket/db/pg/schema";
 import { Role, RefundReason, RefundStatus } from "@vieticket/db/pg/enums";
 import { User } from "@vieticket/db/pg/schemas/users";
+import { sql } from "drizzle-orm";
 import {
   findBlockingRefundTickets,
   getExistingRefundsForOrder,
@@ -20,6 +21,7 @@ import {
 } from "@vieticket/repos/refunds";
 import { updateOrderStatus } from "@vieticket/repos/orders";
 import { executeRefundWithPSP } from "@vieticket/utils/finance/refund-psp";
+import { publishJson, type QstashPublishResult } from "@vieticket/queues";
 import {
   ALLOWED_REFUND_OVERRIDE_PERCENTAGES,
   type AllowedRefundOverridePercentage,
@@ -51,6 +53,90 @@ function ensureRole(actor: Actor, allowed: Role[]) {
 
 function isRefundStatusBlocking(status: RefundStatus) {
   return !["rejected", "declined", "failed"].includes(status);
+}
+
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function resolveAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  if (explicit) return normalizeBaseUrl(explicit);
+
+  return null;
+}
+
+function resolveRefundExecutionUrl() {
+  const baseUrl = resolveAppBaseUrl();
+  if (!baseUrl) return null;
+  return `${baseUrl}/api/qstash/refunds/execute`;
+}
+
+async function enqueueRefundExecutionWithQstash(
+  refundId: string
+): Promise<QstashPublishResult> {
+  const url = resolveRefundExecutionUrl();
+  if (!url) {
+    return {
+      queued: false,
+      kind: "config_missing",
+      reason: "NEXT_PUBLIC_BASE_URL (or VERCEL_URL) is not set.",
+    };
+  }
+
+  return publishJson({
+    url,
+    body: { refundId },
+    deduplicationId: refundId,
+  });
+}
+
+async function enqueueRefundExecutionAndMarkProcessing(refundId: string) {
+  const queued = await enqueueRefundExecutionWithQstash(refundId);
+  if (queued.queued) {
+    await markRefundProcessing(refundId);
+  }
+  return queued;
+}
+
+async function enqueueRefundExecutionBestEffort(refundId: string) {
+  try {
+    const result = await enqueueRefundExecutionAndMarkProcessing(refundId);
+    if (!result.queued) {
+      if (result.kind === "config_missing") {
+        console.error(
+          `[refund-service] Refund execution queue is not configured for ${refundId}: ${result.reason}`
+        );
+      } else {
+        console.error(
+          `[refund-service] Failed to enqueue refund execution for ${refundId}: ${result.reason}`
+        );
+      }
+    }
+    return result;
+  } catch (error) {
+    console.error(
+      `[refund-service] Failed to enqueue refund execution for ${refundId}`,
+      error
+    );
+    return null;
+  }
+}
+
+export async function enqueueRefundExecution(actor: Actor, refundId: string) {
+  ensureRole(actor, ["admin"]);
+  const detail = await getRefundDetail(refundId);
+  if (!detail) throw new Error("Refund not found");
+
+  const executableStatuses: RefundStatus[] = ["approved", "payment_failed", "processing"];
+  if (
+    !detail.refund.status ||
+    !executableStatuses.includes(detail.refund.status as RefundStatus)
+  ) {
+    throw new Error("Refund is not ready for execution.");
+  }
+
+  return enqueueRefundExecutionAndMarkProcessing(refundId);
 }
 
 export async function createRefund(
@@ -133,7 +219,7 @@ export async function createRefund(
         }
       : {};
 
-  return db.transaction(async (tx) => {
+  const record = await db.transaction(async (tx) => {
     const record = await insertRefundWithTickets(
       {
         orderId: payload.orderId,
@@ -155,6 +241,15 @@ export async function createRefund(
 
     return record;
   });
+
+  if (record.status === "approved") {
+    const queued = await enqueueRefundExecutionBestEffort(record.id);
+    if (queued?.queued) {
+      record.status = "processing";
+    }
+  }
+
+  return record;
 }
 
 export async function approveRefund(
@@ -222,7 +317,14 @@ export async function approveRefund(
     patch.percentageApplied = percentage;
   }
 
-  return updateRefundRecord(refundId, patch);
+  const updated = await updateRefundRecord(refundId, patch);
+  if (updated?.status === "approved") {
+    const queued = await enqueueRefundExecutionBestEffort(updated.id);
+    if (queued?.queued) {
+      updated.status = "processing";
+    }
+  }
+  return updated;
 }
 
 export async function rejectRefund(
@@ -275,94 +377,132 @@ async function markRefundSuccessful(
   pspMetadata?: RefundPspMetadata
 ) {
   return db.transaction(async (tx) => {
-    const clearedMetadata: RefundPspMetadata | undefined = pspMetadata
-      ? { ...pspMetadata, error: undefined }
-      : undefined;
-
-    await updateRefundRecord(
+    return markRefundSuccessfulTx(
+      tx,
       refundId,
-      {
-        status: "refunded",
-        refundedAt: new Date(),
-        pspMetadata: clearedMetadata,
-      },
-      tx
+      orderId,
+      ticketIds,
+      totalAmount,
+      pspMetadata
     );
-
-    await updateTicketsStatus(ticketIds, "refunded", tx);
-    await releaseSeatHoldsForTickets(ticketIds, tx);
-
-    const newTotal = await sumRefundAmountsForOrder(orderId, tx);
-    const nextOrderStatus =
-      newTotal >= totalAmount ? "refunded" : "partial_refunded";
-
-    await updateOrderStatus(orderId, nextOrderStatus, tx);
   });
+}
+
+async function markRefundSuccessfulTx(
+  tx: DbClient,
+  refundId: string,
+  orderId: string,
+  ticketIds: string[],
+  totalAmount: number,
+  pspMetadata?: RefundPspMetadata
+) {
+  const clearedMetadata: RefundPspMetadata | undefined = pspMetadata
+    ? { ...pspMetadata, error: undefined }
+    : undefined;
+
+  await updateRefundRecord(
+    refundId,
+    {
+      status: "refunded",
+      refundedAt: new Date(),
+      pspMetadata: clearedMetadata,
+    },
+    tx
+  );
+
+  await updateTicketsStatus(ticketIds, "refunded", tx);
+  await releaseSeatHoldsForTickets(ticketIds, tx);
+
+  const newTotal = await sumRefundAmountsForOrder(orderId, tx);
+  const nextOrderStatus =
+    newTotal >= totalAmount ? "refunded" : "partial_refunded";
+
+  await updateOrderStatus(orderId, nextOrderStatus, tx);
 }
 
 export async function executeRefund(actor: Actor, refundId: string) {
   ensureRole(actor, ["admin"]);
-  const detail = await getRefundDetail(refundId);
-  if (!detail) throw new Error("Refund not found");
-  const { refund, tickets } = detail;
+  return db.transaction(async (tx) => {
+    const lockRes = await tx.execute<{ locked: boolean }>(sql`
+      SELECT pg_try_advisory_xact_lock(${refundId}::bigint) AS locked;
+    `);
+    const lockedRow = (lockRes as unknown as { rows?: { locked?: boolean }[] }).rows?.[0];
+    if (!lockedRow?.locked) {
+      const latest = await getRefundDetail(refundId, tx);
+      if (!latest) throw new Error("Refund not found");
+      return { status: (latest.refund.status ?? "processing") as RefundStatus };
+    }
 
-  const executableStatuses: RefundStatus[] = ["approved", "payment_failed"];
-  if (
-    !refund.status ||
-    !executableStatuses.includes(refund.status as RefundStatus)
-  ) {
-    throw new Error("Refund is not ready for execution.");
-  }
+    const detail = await getRefundDetail(refundId, tx);
+    if (!detail) throw new Error("Refund not found");
+    const { refund, tickets } = detail;
 
-  const transitioned = await markRefundProcessing(refundId);
-  if (!transitioned) {
-    const latest = await getRefundDetail(refundId);
-    return { status: (latest?.refund.status ?? refund.status) as RefundStatus };
-  }
+    if (!refund.status) throw new Error("Refund is not ready for execution.");
+    const status = refund.status as RefundStatus;
 
-  const result = await executeRefundWithPSP({
-    refundId,
-    orderId: refund.orderId,
-    amount: Number(refund.amount),
-    reason: refund.reason,
-    metadata: refund.paymentMetadata as any,
-  });
+    // Idempotency: if already in a terminal state, do nothing.
+    if (["refunded", "completed", "declined", "rejected", "failed"].includes(status)) {
+      return { status };
+    }
 
-  if (result.success) {
-    const pspMetadata: RefundPspMetadata = {
-      provider: result.provider ?? "unknown",
-      reference: result.reference,
-    };
-    const ticketIds =
-      refund.reason === "personal"
-        ? tickets.map((t) => t.ticketId)
-        : (await getOrderTicketsForRefund(refund.orderId)).map(
-            (t) => t.ticketId
-          );
-    await markRefundSuccessful(
+    const executableStatuses: RefundStatus[] = ["approved", "payment_failed", "processing"];
+    if (!executableStatuses.includes(status)) {
+      throw new Error("Refund is not ready for execution.");
+    }
+
+    if (status !== "processing") {
+      await markRefundProcessing(refundId, tx);
+    }
+
+    const result = await executeRefundWithPSP({
       refundId,
-      refund.orderId,
-      ticketIds,
-      Number(refund.totalAmount),
-      pspMetadata
-    );
-    return { status: "refunded" as RefundStatus };
-  }
+      orderId: refund.orderId,
+      amount: Number(refund.amount),
+      reason: refund.reason,
+      metadata: refund.paymentMetadata as any,
+    });
 
-  await updateRefundRecord(refundId, {
-    status: "payment_failed",
-    pspMetadata: {
-      provider: result.provider ?? "unknown",
-      reference: result.reference,
-      error: {
-        code: result.code,
-        message: result.message,
-        raw: result.raw,
+    if (result.success) {
+      const pspMetadata: RefundPspMetadata = {
+        provider: result.provider ?? "unknown",
+        reference: result.reference,
+      };
+      const ticketIds =
+        refund.reason === "personal"
+          ? tickets.map((t) => t.ticketId)
+          : (await getOrderTicketsForRefund(refund.orderId, tx)).map(
+              (t) => t.ticketId
+            );
+      await markRefundSuccessfulTx(
+        tx,
+        refundId,
+        refund.orderId,
+        ticketIds,
+        Number(refund.totalAmount),
+        pspMetadata
+      );
+      return { status: "refunded" as RefundStatus };
+    }
+
+    await updateRefundRecord(
+      refundId,
+      {
+        status: "payment_failed",
+        pspMetadata: {
+          provider: result.provider ?? "unknown",
+          reference: result.reference,
+          error: {
+            code: result.code,
+            message: result.message,
+            raw: result.raw,
+          },
+        },
       },
-    },
-  });
+      tx
+    );
 
-  return { status: "payment_failed" as RefundStatus };
+    return { status: "payment_failed" as RefundStatus };
+  });
 }
 
 export async function markRefundManual(actor: Actor, refundId: string) {
