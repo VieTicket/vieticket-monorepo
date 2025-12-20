@@ -81,8 +81,6 @@ function CreateEventPageInner() {
     maxTicketsByOrder: undefined,
     startTime: "",
     endTime: "",
-    documentUrls: [],
-    contractUrl: "",
   });
 
   const [showings, setShowings] = useState<ShowingWithAreas[]>([
@@ -432,14 +430,6 @@ function CreateEventPageInner() {
           defaultSeatSettings: seatMapData.defaultSeatSettings,
         })
       );
-    }
-
-    // Add documents and contract URLs
-    if (formData.documentUrls && formData.documentUrls.length > 0) {
-      form.set("documentUrls", JSON.stringify(formData.documentUrls));
-    }
-    if (formData.contractUrl) {
-      form.set("contractUrl", formData.contractUrl);
     }
 
     startTransition(async () => {

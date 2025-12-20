@@ -398,23 +398,10 @@ export async function handleCreateEvent(
 
   console.log("Showings after seat map assignment:", showings);
 
-  // Extract documents and contract from formData
-  const documentUrlsStr = formData.get("documentUrls") as string;
-  const contractUrl = formData.get("contractUrl") as string;
-  
-  const documentUrls = documentUrlsStr ? JSON.parse(documentUrlsStr) : [];
-  
-  // Build eventMetadata with documents and contract
-  const eventMetadata = (documentUrls.length > 0 || contractUrl) ? {
-    eventProofDocuments: documentUrls.length > 0 ? [{
-      documentType: "organizer_documents",
-      documentUrl: documentUrls,
-    }] : [],
-    contractScreenshotUrl: contractUrl || null,
-  } : null;
-  
-  // Set approval status to "pending" if documents and contract are provided
-  const approvalStatus: "NotYet" | "pending" = (documentUrls.length > 0 && contractUrl) ? "pending" : "NotYet";
+  // For normal event creation, always start with "NotYet" status and null metadata
+  // Evidence will be submitted separately via EventCard button
+  const eventMetadata = null;
+  const approvalStatus: "NotYet" = "NotYet";
 
   const eventPayload = {
     id: eventId,
