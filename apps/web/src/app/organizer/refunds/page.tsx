@@ -6,6 +6,7 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { RefundsList } from "@/components/refunds/refunds-list";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 export default async function OrganizerRefundsPage({
   searchParams,
@@ -20,6 +21,7 @@ export default async function OrganizerRefundsPage({
   }>;
 }) {
   const sp = await searchParams;
+  const t = await getTranslations("refunds.organizerPage");
   const refundsResult = await listRefundsAction(sp);
 
   async function approve(formData: FormData) {
@@ -42,15 +44,15 @@ export default async function OrganizerRefundsPage({
   return (
     <div className="space-y-6 my-8 mx-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Refund Requests</h1>
-        <p className="text-muted-foreground">Manage personal refund requests for your events.</p>
+        <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {!refundsResult.success && (
         <Card>
           <CardContent className="py-6">
             <div className="text-red-600 text-sm">
-              {refundsResult.error ?? "Failed to load refunds."}
+              {refundsResult.error ?? t("errors.failedToLoad")}
             </div>
           </CardContent>
         </Card>
@@ -62,8 +64,8 @@ export default async function OrganizerRefundsPage({
           refunds={(refundsResult.data ?? []) as any[]}
           pagination={refundsResult.pagination}
           actions={{ approve, reject }}
-          title="Personal refund requests"
-          description="Search and filter personal refunds; approve/reject pending ones."
+          title={t("listTitle")}
+          description={t("listDescription")}
         />
       )}
     </div>

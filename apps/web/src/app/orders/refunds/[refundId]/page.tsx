@@ -5,26 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { getRefundDetailAction } from "@/lib/actions/refund-actions";
 import { formatCurrencyVND } from "@vieticket/utils/formatters/currency";
+import { getLocale, getTranslations } from "next-intl/server";
 
-const statusLabels: Record<string, string> = {
-  requested: "Requested",
-  pending_organizer: "Pending Organizer",
-  pending_admin: "Pending Admin",
-  approved: "Approved",
-  rejected: "Rejected",
-  declined: "Declined",
-  processing: "Processing",
-  payment_failed: "Payment Failed",
-  refunded: "Refunded",
-  completed: "Completed",
-  failed: "Failed",
-};
-
-function formatDate(value: unknown) {
+function formatDate(locale: string, value: unknown) {
   if (!value) return "-";
   const d = value instanceof Date ? value : new Date(String(value));
   if (Number.isNaN(d.getTime())) return "-";
-  return d.toLocaleString("vi-VN");
+  return d.toLocaleString(locale);
 }
 
 export default async function CustomerRefundDetailPage({
@@ -33,23 +20,28 @@ export default async function CustomerRefundDetailPage({
   params: Promise<{ refundId: string }>;
 }) {
   const { refundId } = await params;
+  const t = await getTranslations("refunds.customerDetail");
+  const tStatus = await getTranslations("refunds.statusOptions");
+  const tReason = await getTranslations("refunds.reasonOptions");
+  const locale = await getLocale();
+  const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
   const result = await getRefundDetailAction(refundId);
 
   if (!result.success || !result.data) {
     return (
       <div className="space-y-6 my-8 mx-6">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Refund</h1>
-          <p className="text-muted-foreground">Unable to load refund details.</p>
+          <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
+          <p className="text-muted-foreground">{t("errors.unableToLoad")}</p>
         </div>
 
         <Card>
           <CardContent className="py-6 space-y-4">
             <div className="text-red-600 text-sm">
-              {result.error ?? "Failed to load refund."}
+              {result.error ?? t("errors.failedToLoad")}
             </div>
             <Button asChild variant="outline">
-              <Link href="/orders/refunds">Back to refunds</Link>
+              <Link href="/orders/refunds">{t("buttons.backToRefunds")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -60,66 +52,69 @@ export default async function CustomerRefundDetailPage({
   const { refund, tickets } = result.data as any;
 
   return (
-    <div className="space-y-6 my-8 mx-6">
-      <div className="flex items-start justify-between gap-3">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Refund #{String(refund.id).slice(-8)}
+            {t("titleWithNumber", { id: String(refund.id).slice(-8) })}
           </h1>
           <p className="text-sm text-muted-foreground font-mono">{refund.id}</p>
         </div>
         <div className="flex items-center gap-2">
           <Button asChild variant="outline">
-            <Link href="/orders/refunds">Back</Link>
+            <Link href="/orders/refunds">{t("buttons.back")}</Link>
           </Button>
           <Button asChild>
-            <Link href={`/orders/${refund.orderId}`}>View order</Link>
+            <Link href={`/orders/${refund.orderId}`}>{t("buttons.viewOrder")}</Link>
           </Button>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Summary</CardTitle>
+          <CardTitle className="text-lg">{t("summary.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap items-center gap-3">
             <Badge variant="secondary">
-              {statusLabels[refund.status] ?? refund.status}
+              {tStatus(refund.status) ?? refund.status}
             </Badge>
             <span className="text-sm text-muted-foreground capitalize">
-              {String(refund.reason).replaceAll("_", " ")}
+              {tReason(refund.reason) ?? String(refund.reason).replaceAll("_", " ")}
             </span>
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <div>
-              <div className="text-xs text-muted-foreground">Refund amount</div>
+              <div className="text-xs text-muted-foreground">
+                {t("summary.refundAmount")}
+              </div>
               <div className="font-medium">
                 {formatCurrencyVND(Number(refund.amount))}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Base amount</div>
+              <div className="text-xs text-muted-foreground">{t("summary.baseAmount")}</div>
               <div className="font-medium">
                 {formatCurrencyVND(Number(refund.baseAmount ?? refund.amount))}
               </div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Percentage</div>
+              <div className="text-xs text-muted-foreground">{t("summary.percentage")}</div>
               <div className="font-medium">{refund.percentageApplied ?? "-"}%</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Requested at</div>
-              <div className="text-sm">{formatDate(refund.requestedAt)}</div>
+              <div className="text-xs text-muted-foreground">{t("summary.requestedAt")}</div>
+              <div className="text-sm">{formatDate(dateLocale, refund.requestedAt)}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Approved at</div>
-              <div className="text-sm">{formatDate(refund.approvedAt)}</div>
+              <div className="text-xs text-muted-foreground">{t("summary.approvedAt")}</div>
+              <div className="text-sm">{formatDate(dateLocale, refund.approvedAt)}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Refunded at</div>
-              <div className="text-sm">{formatDate(refund.refundedAt)}</div>
+              <div className="text-xs text-muted-foreground">{t("summary.refundedAt")}</div>
+              <div className="text-sm">{formatDate(dateLocale, refund.refundedAt)}</div>
             </div>
           </div>
 
@@ -127,7 +122,9 @@ export default async function CustomerRefundDetailPage({
             <>
               <Separator />
               <div>
-                <div className="text-xs text-muted-foreground">Rejection reason</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("rejectionReason.label")}
+                </div>
                 <div className="text-sm">{refund.rejectionReason}</div>
               </div>
             </>
@@ -137,16 +134,14 @@ export default async function CustomerRefundDetailPage({
             <>
               <Separator />
               <div className="space-y-1">
-                <div className="text-xs text-muted-foreground">Admin override</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("adminOverride.label")}
+                </div>
                 <div className="text-sm">
-                  Overridden from{" "}
-                  <span className="font-medium">
-                    {refund.overridePreviousPercentage ?? "-"}%
-                  </span>{" "}
-                  to{" "}
-                  <span className="font-medium">
-                    {refund.percentageApplied ?? "-"}%
-                  </span>
+                  {t("adminOverride.description", {
+                    from: refund.overridePreviousPercentage ?? "-",
+                    to: refund.percentageApplied ?? "-",
+                  })}
                   {refund.adminOverrideReason ? ` • ${refund.adminOverrideReason}` : null}
                 </div>
               </div>
@@ -156,9 +151,7 @@ export default async function CustomerRefundDetailPage({
           {refund.status === "payment_failed" ? (
             <>
               <Separator />
-              <div className="text-sm text-amber-700">
-                Refund payment failed. Support may need to follow up to complete the refund.
-              </div>
+              <div className="text-sm text-amber-700">{t("paymentFailedNotice")}</div>
             </>
           ) : null}
         </CardContent>
@@ -166,39 +159,39 @@ export default async function CustomerRefundDetailPage({
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Tickets</CardTitle>
+          <CardTitle className="text-lg">{t("tickets.title")}</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2">
           {tickets?.length ? (
             <div className="space-y-2">
-              {tickets.map((t: any) => (
+              {tickets.map((ticket: any) => (
                 <div
-                  key={t.ticketId}
+                  key={ticket.ticketId}
                   className="flex flex-col gap-1 rounded border border-gray-200 dark:border-gray-700 px-3 py-2"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="font-mono text-xs">{t.ticketId}</div>
+                    <div className="font-mono text-xs">{ticket.ticketId}</div>
                     <div className="text-sm font-medium">
-                      {formatCurrencyVND(Number(t.ticketPrice))}
+                      {formatCurrencyVND(Number(ticket.ticketPrice))}
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {t.areaName ? `${t.areaName} • ` : ""}
-                    {t.rowName ? `Row ${t.rowName} • ` : ""}
-                    {t.seatNumber ? `Seat ${t.seatNumber}` : ""}
+                    {ticket.areaName ? `${ticket.areaName} • ` : ""}
+                    {ticket.rowName ? `${t("tickets.rowLabel", { row: ticket.rowName })} • ` : ""}
+                    {ticket.seatNumber ? t("tickets.seatLabel", { seat: ticket.seatNumber }) : ""}
                   </div>
                   <div className="text-xs text-muted-foreground">
-                    Ticket status: {t.ticketStatus ?? "-"}
+                    {t("tickets.ticketStatus")}: {ticket.ticketStatus ?? "-"}
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">No tickets found.</div>
+            <div className="text-sm text-muted-foreground">{t("tickets.none")}</div>
           )}
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }
-

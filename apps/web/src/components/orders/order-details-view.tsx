@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { getAvailableRefundReasonsForCustomer } from "@vieticket/utils/finance/refund-policy"
+import { useTranslations } from "next-intl"
 
 type OrderEvent = {
     eventId: string
@@ -191,6 +192,7 @@ function TicketCard({ ticket, eventName }: { ticket: OrderTicket, eventName: str
 }
 
 export function OrderDetailsView({ order }: OrderDetailsViewProps) {
+    const tRefunds = useTranslations("refunds.orderDetails")
     const orderDate = new Date(order.orderDate)
     const updatedDate = new Date(order.updatedAt)
     const now = new Date()
@@ -326,14 +328,14 @@ export function OrderDetailsView({ order }: OrderDetailsViewProps) {
                 {hasRefundOptions && (
                     <Card>
                         <CardHeader>
-                            <CardTitle className="text-lg">Refunds</CardTitle>
+                            <CardTitle className="text-lg">{tRefunds("title")}</CardTitle>
                             <p className="text-sm text-gray-500">
-                                Request refunds from the dedicated refund page.
+                                {tRefunds("subtitle")}
                             </p>
                         </CardHeader>
                         <CardContent>
                             <Button asChild>
-                                <Link href={`/orders/${order.id}/refund`}>Request a refund</Link>
+                                <Link href={`/orders/${order.id}/refund`}>{tRefunds("requestButton")}</Link>
                             </Button>
                         </CardContent>
                     </Card>

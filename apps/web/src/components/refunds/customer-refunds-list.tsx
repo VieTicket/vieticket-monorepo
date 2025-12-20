@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLocale as useIntlLocale, useTranslations } from "next-intl";
 import {
   Select,
   SelectContent,
@@ -67,20 +68,6 @@ const REFUND_REASON_OPTIONS = [
   "fraud",
 ] as const;
 
-const statusLabels: Record<string, string> = {
-  requested: "Requested",
-  pending_organizer: "Pending Organizer",
-  pending_admin: "Pending Admin",
-  approved: "Approved",
-  rejected: "Rejected",
-  declined: "Declined",
-  processing: "Processing",
-  payment_failed: "Payment Failed",
-  refunded: "Refunded",
-  completed: "Completed",
-  failed: "Failed",
-};
-
 function parseDate(value: unknown) {
   if (!value) return null;
   const d = value instanceof Date ? value : new Date(String(value));
@@ -115,6 +102,12 @@ export function CustomerRefundsList({
     totalPages: number;
   };
 }) {
+  const t = useTranslations("refunds.customerList");
+  const tStatus = useTranslations("refunds.statusOptions");
+  const tReason = useTranslations("refunds.reasonOptions");
+  const locale = useIntlLocale();
+  const dateLocale = locale === "vi" ? "vi-VN" : "en-US";
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -187,9 +180,9 @@ export function CustomerRefundsList({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>My refund requests</CardTitle>
+        <CardTitle>{t("title")}</CardTitle>
         <p className="text-sm text-muted-foreground">
-          Track refund status, search by refund/order/event, and view details.
+          {t("subtitle")}
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -207,7 +200,7 @@ export function CustomerRefundsList({
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               className="pl-9 pr-20"
-              placeholder="Search by refund/order/event…"
+              placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -217,20 +210,20 @@ export function CustomerRefundsList({
               variant="secondary"
               className="absolute right-2 top-1.5 h-6 px-2"
             >
-              Search
+              {t("search")}
             </Button>
           </form>
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={statusParam} onValueChange={(v) => setFilter("status", v)}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue placeholder={t("filters.status.placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All statuses</SelectItem>
+                <SelectItem value="all">{t("filters.status.all")}</SelectItem>
                 {REFUND_STATUS_OPTIONS.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {statusLabels[s] ?? s}
+                    {tStatus(s)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -238,13 +231,13 @@ export function CustomerRefundsList({
 
             <Select value={reasonParam} onValueChange={(v) => setFilter("reason", v)}>
               <SelectTrigger className="w-[220px]">
-                <SelectValue placeholder="Reason" />
+                <SelectValue placeholder={t("filters.reason.placeholder")} />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All reasons</SelectItem>
+                <SelectItem value="all">{t("filters.reason.all")}</SelectItem>
                 {REFUND_REASON_OPTIONS.map((r) => (
                   <SelectItem key={r} value={r}>
-                    {r.replaceAll("_", " ")}
+                    {tReason(r)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -256,16 +249,16 @@ export function CustomerRefundsList({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Refund</TableHead>
-                <TableHead>Order</TableHead>
-                <TableHead>Event</TableHead>
+                <TableHead>{t("table.refund")}</TableHead>
+                <TableHead>{t("table.order")}</TableHead>
+                <TableHead>{t("table.event")}</TableHead>
                 <TableHead>
                   <button
                     type="button"
                     className="inline-flex items-center gap-1 hover:underline"
                     onClick={() => handleSort("reason")}
                   >
-                    Reason {sortIcon("reason", sortParam, dirParam)}
+                    {t("table.reason")} {sortIcon("reason", sortParam, dirParam)}
                   </button>
                 </TableHead>
                 <TableHead>
@@ -274,7 +267,7 @@ export function CustomerRefundsList({
                     className="inline-flex items-center gap-1 hover:underline"
                     onClick={() => handleSort("amount")}
                   >
-                    Amount {sortIcon("amount", sortParam, dirParam)}
+                    {t("table.amount")} {sortIcon("amount", sortParam, dirParam)}
                   </button>
                 </TableHead>
                 <TableHead>
@@ -283,7 +276,7 @@ export function CustomerRefundsList({
                     className="inline-flex items-center gap-1 hover:underline"
                     onClick={() => handleSort("status")}
                   >
-                    Status {sortIcon("status", sortParam, dirParam)}
+                    {t("table.status")} {sortIcon("status", sortParam, dirParam)}
                   </button>
                 </TableHead>
                 <TableHead>
@@ -292,17 +285,18 @@ export function CustomerRefundsList({
                     className="inline-flex items-center gap-1 hover:underline"
                     onClick={() => handleSort("requestedAt")}
                   >
-                    Requested {sortIcon("requestedAt", sortParam, dirParam)}
+                    {t("table.requestedAt")}{" "}
+                    {sortIcon("requestedAt", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead>Actions</TableHead>
+                <TableHead>{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {refunds.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center text-sm text-muted-foreground py-8">
-                    No refunds found.
+                    {t("table.empty")}
                   </TableCell>
                 </TableRow>
               ) : (
@@ -311,22 +305,28 @@ export function CustomerRefundsList({
                     <TableCell className="font-mono text-xs">{refund.id}</TableCell>
                     <TableCell className="font-mono text-xs">{refund.orderId}</TableCell>
                     <TableCell>{refund.eventName ?? refund.eventId ?? "-"}</TableCell>
-                    <TableCell className="capitalize">{refund.reason.replaceAll("_", " ")}</TableCell>
+                    <TableCell className="capitalize">
+                      {REFUND_REASON_OPTIONS.includes(refund.reason as any)
+                        ? tReason(refund.reason as any)
+                        : refund.reason.replaceAll("_", " ")}
+                    </TableCell>
                     <TableCell>{formatCurrencyVND(Number(refund.amount))}</TableCell>
                     <TableCell>
                       <Badge variant="secondary">
-                        {statusLabels[refund.status] ?? refund.status}
+                        {REFUND_STATUS_OPTIONS.includes(refund.status as any)
+                          ? tStatus(refund.status as any)
+                          : refund.status}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-xs text-muted-foreground">
-                      {parseDate(refund.requestedAt)?.toLocaleString("vi-VN") ?? "-"}
+                      {parseDate(refund.requestedAt)?.toLocaleString(dateLocale) ?? "-"}
                     </TableCell>
                     <TableCell className="space-x-2">
                       <Button size="sm" asChild variant="outline">
-                        <Link href={`/orders/refunds/${refund.id}`}>View</Link>
+                        <Link href={`/orders/refunds/${refund.id}`}>{t("actions.view")}</Link>
                       </Button>
                       <Button size="sm" asChild variant="secondary">
-                        <Link href={`/orders/${refund.orderId}`}>Order</Link>
+                        <Link href={`/orders/${refund.orderId}`}>{t("actions.order")}</Link>
                       </Button>
                     </TableCell>
                   </TableRow>
@@ -338,7 +338,11 @@ export function CustomerRefundsList({
 
         <div className="flex items-center justify-between">
           <p className="text-xs text-muted-foreground">
-            Showing {refunds.length === 0 ? 0 : startIndex + 1}–{endIndex} of {pagination.totalCount}
+            {t("pagination.showing", {
+              from: refunds.length === 0 ? 0 : startIndex + 1,
+              to: endIndex,
+              total: pagination.totalCount,
+            })}
           </p>
           <div className="flex items-center gap-2">
             <Button
@@ -346,17 +350,19 @@ export function CustomerRefundsList({
               variant="outline"
               onClick={() => pushParams({ page: String(Math.max(1, currentPage - 1)) })}
               disabled={currentPage <= 1}
+              aria-label={t("pagination.prev")}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
             <span className="text-xs text-muted-foreground">
-              Page {currentPage} / {totalPages}
+              {t("pagination.page", { page: currentPage, totalPages })}
             </span>
             <Button
               size="sm"
               variant="outline"
               onClick={() => pushParams({ page: String(Math.min(totalPages, currentPage + 1)) })}
               disabled={currentPage >= totalPages}
+              aria-label={t("pagination.next")}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -366,4 +372,3 @@ export function CustomerRefundsList({
     </Card>
   );
 }
-

@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +12,7 @@ import {
   getAvailableRefundReasonsForCustomer,
   validateRefundRequestInput,
 } from "@vieticket/utils/finance/refund-policy";
+import { useTranslations } from "next-intl";
 
 type RefundableTicket = {
   ticketId: string;
@@ -38,25 +40,15 @@ type OrderForRefund = {
 
 type RefundActionState = {
   success: boolean | null;
+  refundId?: string;
   error?: string;
 };
 
-function toLabel(reason: RefundReason) {
-  switch (reason) {
-    case "personal":
-      return "Personal reason";
-    case "event_cancelled":
-      return "Event cancelled (full order)";
-    case "event_postponed":
-      return "Event postponed (90% full order)";
-    case "fraud":
-      return "Report fraud (full order)";
-    default:
-      return reason;
-  }
-}
-
 export function RefundRequestView({ order }: { order: OrderForRefund }) {
+  const t = useTranslations("refunds.request");
+  const tReason = useTranslations("refunds.reasonOptions");
+  const router = useRouter();
+
   const refundableTickets = useMemo(
     () => order.tickets.filter((t) => t.status !== "refunded"),
     [order.tickets]
@@ -81,22 +73,28 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
     async (_prev: RefundActionState, formData: FormData): Promise<RefundActionState> => {
       const res = await submitRefundForm(formData);
       return res.success
-        ? { success: true }
+        ? { success: true, refundId: String((res.data as any)?.id ?? "") || undefined }
         : {
             success: false,
-            error: res.error || "Unable to submit refund right now.",
+            error: res.error || t("errors.unableToSubmit"),
           };
     },
     { success: null }
   );
 
+  useEffect(() => {
+    if (refundState.success && refundState.refundId) {
+      router.replace(`/orders/refunds/${refundState.refundId}`);
+    }
+  }, [refundState.refundId, refundState.success, router]);
+
   const reasonsForUI = useMemo(
     () =>
       availableReasons.map((value) => ({
         value,
-        label: toLabel(value),
+        label: tReason(value),
       })),
-    [availableReasons]
+    [availableReasons, tReason]
   );
 
   function toggleTicket(ticketId: string) {
@@ -116,19 +114,19 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
 
   const submissionValidation = useMemo(() => {
     if (!eligibleOrderStatus) {
-      return { ok: false as const, error: "This order is not eligible for refunds." };
+      return { ok: false as const, error: t("errors.orderNotEligible") };
     }
     if (availableReasons.length === 0) {
       return {
         ok: false as const,
-        error: "No refund options are currently available for this order.",
+        error: t("errors.noOptions"),
       };
     }
     if (!availableReasons.includes(selectedReason)) {
-      return { ok: false as const, error: "Selected refund reason is not available." };
+      return { ok: false as const, error: t("errors.reasonNotAvailable") };
     }
     if (selectedReason === "personal" && refundableTickets.length === 0) {
-      return { ok: false as const, error: "No refundable tickets remaining." };
+      return { ok: false as const, error: t("errors.noRefundableTickets") };
     }
 
     return validateRefundRequestInput({
@@ -141,6 +139,7 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
     selectedReason,
     refundableTickets.length,
     selectedTicketIds,
+    t,
   ]);
 
   const canSubmit = submissionValidation.ok && !refundPending;
@@ -152,34 +151,34 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
       <div className="max-w-2xl mx-auto space-y-6">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight">Request a refund</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
             <p className="text-sm text-muted-foreground">
-              Order <span className="font-mono text-xs">{order.id}</span>
+              {t("orderLabel")} <span className="font-mono text-xs">{order.id}</span>
               {order.event?.eventName ? ` • ${order.event.eventName}` : null}
             </p>
           </div>
           <Button asChild variant="outline">
-            <Link href={`/orders/${order.id}`}>Back to order</Link>
+            <Link href={`/orders/${order.id}`}>{t("backToOrder")}</Link>
           </Button>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Refund details</CardTitle>
+            <CardTitle className="text-lg">{t("details.title")}</CardTitle>
             <p className="text-sm text-muted-foreground">
-              Options depend on event status and refund policy windows.
+              {t("details.subtitle")}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {!eligibleOrderStatus && (
               <div className="text-sm text-red-600">
-                This order is not eligible for refunds.
+                {t("errors.orderNotEligible")}
               </div>
             )}
 
             {eligibleOrderStatus && availableReasons.length === 0 && (
               <div className="text-sm text-muted-foreground">
-                No refund options are currently available for this order.
+                {t("errors.noOptions")}
               </div>
             )}
 
@@ -200,7 +199,7 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
                 <input type="hidden" name="reason" value={selectedReason} />
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Reason</label>
+                  <label className="text-sm font-medium">{t("form.reasonLabel")}</label>
                   <div className="grid gap-2">
                     {reasonsForUI.map((r) => (
                       <button
@@ -223,7 +222,7 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
                               : "text-muted-foreground"
                           )}
                         >
-                          {selectedReason === r.value ? "Selected" : ""}
+                          {selectedReason === r.value ? t("form.selected") : ""}
                         </span>
                       </button>
                     ))}
@@ -232,29 +231,30 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
 
                 {selectedReason === "personal" && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Select tickets</label>
+                    <label className="text-sm font-medium">{t("form.selectTicketsLabel")}</label>
                     <div className="grid gap-2">
-                      {refundableTickets.map((t) => (
+                      {refundableTickets.map((ticket) => (
                         <label
-                          key={t.ticketId}
+                          key={ticket.ticketId}
                           className="flex items-center gap-2 rounded border px-3 py-2 text-sm border-gray-200 dark:border-gray-700"
                         >
                           <input
                             type="checkbox"
                             name="ticketIds"
-                            value={t.ticketId}
-                            checked={selectedTicketIds.includes(t.ticketId)}
-                            onChange={() => toggleTicket(t.ticketId)}
+                            value={ticket.ticketId}
+                            checked={selectedTicketIds.includes(ticket.ticketId)}
+                            onChange={() => toggleTicket(ticket.ticketId)}
                           />
                           <span>
-                            Ticket #{t.ticketId.slice(-6)} — {t.areaName} / Row{" "}
-                            {t.rowName} / Seat {t.seatNumber}
+                            {t("form.ticketLabel", { id: ticket.ticketId.slice(-6) })} —{" "}
+                            {ticket.areaName} / {t("form.rowLabel", { row: ticket.rowName })} /{" "}
+                            {t("form.seatLabel", { seat: ticket.seatNumber })}
                           </span>
                         </label>
                       ))}
                       {refundableTickets.length === 0 && (
                         <p className="text-xs text-red-500">
-                          No refundable tickets remaining.
+                          {t("errors.noRefundableTickets")}
                         </p>
                       )}
                     </div>
@@ -263,10 +263,10 @@ export function RefundRequestView({ order }: { order: OrderForRefund }) {
 
                 <div className="flex items-center gap-2">
                   <Button type="submit" disabled={!canSubmit}>
-                    {refundPending ? "Submitting..." : "Submit refund request"}
+                    {refundPending ? t("form.submitting") : t("form.submit")}
                   </Button>
                   {refundState.success === true && (
-                    <span className="text-green-600 text-sm">Request submitted.</span>
+                    <span className="text-green-600 text-sm">{t("form.submitted")}</span>
                   )}
                   {errorToShow && (
                     <span className="text-red-600 text-sm">{errorToShow}</span>

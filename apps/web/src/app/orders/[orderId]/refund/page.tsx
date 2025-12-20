@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { OrderDetails } from "@/components/orders/order-details-view";
 import { RefundRequestView } from "./refund-request-view";
+import { getTranslations } from "next-intl/server";
 
 interface OrderRefundPageProps {
   params: Promise<{
@@ -13,6 +14,7 @@ interface OrderRefundPageProps {
 
 export default async function OrderRefundPage({ params }: OrderRefundPageProps) {
   const { orderId } = await params;
+  const t = await getTranslations("refunds.requestPage");
   const result = await getOrderDetailsAction(orderId);
 
   if (!result.success || !result.data) {
@@ -20,18 +22,18 @@ export default async function OrderRefundPage({ params }: OrderRefundPageProps) 
       <div className="flex items-center justify-center min-h-screen">
         <Card className="max-w-md text-center">
           <CardHeader>
-            <CardTitle>Order Not Found</CardTitle>
+            <CardTitle>{t("orderNotFound.title")}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-red-500 mb-4">
-              {result.error || "Could not load order details."}
+              {result.error || t("orderNotFound.description")}
             </p>
             <div className="space-y-2">
               <Button asChild className="w-full">
-                <Link href="/orders">View All Orders</Link>
+                <Link href="/orders">{t("orderNotFound.viewOrders")}</Link>
               </Button>
               <Button asChild variant="outline" className="w-full">
-                <Link href="/">Go to Homepage</Link>
+                <Link href="/">{t("orderNotFound.goHome")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -42,4 +44,3 @@ export default async function OrderRefundPage({ params }: OrderRefundPageProps) 
 
   return <RefundRequestView order={result.data as OrderDetails} />;
 }
-
