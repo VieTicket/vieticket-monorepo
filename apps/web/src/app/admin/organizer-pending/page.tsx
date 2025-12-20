@@ -267,10 +267,10 @@ export default function OrganizerPendingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">
           Organizer Pending Active
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-sm sm:text-base text-muted-foreground">
           Review and approve pending organizer applications.
         </p>
       </div>
@@ -295,15 +295,15 @@ export default function OrganizerPendingPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="table-fixed w-full min-w-[1100px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[250px]">Organizer Name</TableHead>
                     <TableHead className="w-[250px]">User Details</TableHead>
                     <TableHead className="w-[250px]">Business Info</TableHead>
-                    <TableHead className="w-[150px]">Applied Date</TableHead>
-                    <TableHead className="w-[200px] text-right">Actions</TableHead>
+                    <TableHead className="w-[150px] pr-2">Applied Date</TableHead>
+                    <TableHead className="w-[200px] text-right pl-4">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -377,15 +377,16 @@ export default function OrganizerPendingPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[150px]">
+                      <TableCell className="w-[150px] pr-2">
                         {formatDate(organizer.user.createdAt)}
                       </TableCell>
-                      <TableCell className="w-[200px] text-right">
-                        <div className="flex items-center gap-2 justify-end">
+                      <TableCell className="w-[200px] text-right pl-4">
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 justify-end">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewDetails(organizer)}
+                            className="w-full sm:w-auto"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Details
@@ -395,6 +396,7 @@ export default function OrganizerPendingPage() {
                             size="sm"
                             onClick={() => handleApprove(organizer)}
                             disabled={processingIds.has(organizer.id)}
+                            className="w-full sm:w-auto"
                           >
                             {processingIds.has(organizer.id) ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -410,6 +412,7 @@ export default function OrganizerPendingPage() {
                             size="sm"
                             onClick={() => handleRejectClick(organizer)}
                             disabled={processingIds.has(organizer.id)}
+                            className="w-full sm:w-auto"
                           >
                             <UserX className="h-4 w-4 mr-1" />
                             Reject
@@ -425,11 +428,11 @@ export default function OrganizerPendingPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {startIndex + 1} to {Math.min(endIndex, organizers.length)} of {organizers.length} organizers
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -462,13 +465,13 @@ export default function OrganizerPendingPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Organizer Application Details</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="truncate" title={`Review the complete application for ${selectedOrganizer?.user.name}`}>
               Review the complete application for {selectedOrganizer?.user.name}
             </DialogDescription>
           </DialogHeader>
           {selectedOrganizer && (
             <div className="grid gap-6 py-4">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">
                     Personal Information
@@ -528,7 +531,7 @@ export default function OrganizerPendingPage() {
                     </div>
                   ) : taxCodeLookupError ? (
                     <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
-                      <strong>Lỗi:</strong> {taxCodeLookupError}
+                      <strong>Lỗi:</strong> <span className="break-words">{taxCodeLookupError}</span>
                     </div>
                   ) : taxCodeLookupResult ? (
                     <div className="space-y-3 bg-muted/50 p-4 rounded-md">
@@ -606,7 +609,7 @@ export default function OrganizerPendingPage() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reject Organizer Application</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="truncate" title={`Provide a reason for rejecting ${selectedOrganizer?.user.name}'s application. They will see this message when they log in.`}>
               Provide a reason for rejecting {selectedOrganizer?.user.name}'s
               application. They will see this message when they log in.
             </DialogDescription>

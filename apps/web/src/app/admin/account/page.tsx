@@ -358,8 +358,8 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account Management</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Account Management</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage user accounts and permissions.
         </p>
       </div>
@@ -375,7 +375,7 @@ export default function AccountPage() {
               </span>
             )}
           </CardTitle>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -388,8 +388,8 @@ export default function AccountPage() {
           </div>
         </CardHeader>
         <CardContent>
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="table-fixed w-full min-w-[800px]">
               <TableHeader>
                 <TableRow>
                   <TableHead className="w-[200px]">Name</TableHead>
@@ -404,7 +404,6 @@ export default function AccountPage() {
                     </div>
                   </TableHead>
                   <TableHead className="w-[150px]">Status</TableHead>
-                  <TableHead className="w-[200px]">Ban Details</TableHead>
                   <TableHead className="w-[130px]">Email Verified</TableHead>
                   <TableHead 
                     className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
@@ -448,23 +447,6 @@ export default function AccountPage() {
                             {statusInfo.status}
                           </span>
                         </Badge>
-                      </TableCell>
-                      <TableCell className="w-[200px] min-w-0">
-                        {user.banned && user.banReason && (
-                          <div className="min-w-0">
-                            <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
-                              {user.banReason}
-                            </div>
-                            {user.banExpires && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
-                                <Clock className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate min-w-0" title={`Expires: ${formatDateTime(user.banExpires.toString())}`}>
-                                  Expires: {formatDateTime(user.banExpires.toString())}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
                       </TableCell>
                       <TableCell className="w-[130px]">
                         <Badge variant={user.emailVerified ? "default" : "secondary"}>
@@ -512,7 +494,7 @@ export default function AccountPage() {
                             <DialogContent>
                               <DialogHeader>
                                 <DialogTitle>Lock User Account</DialogTitle>
-                                <DialogDescription>
+                                <DialogDescription className="truncate" title={`Lock the account for user: ${selectedUser?.name} (${selectedUser?.email})`}>
                                   Lock the account for user: {selectedUser?.name} ({selectedUser?.email})
                                 </DialogDescription>
                               </DialogHeader>
@@ -598,11 +580,11 @@ export default function AccountPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedUsers.length)} of {filteredAndSortedUsers.length} users
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -635,7 +617,7 @@ export default function AccountPage() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Organizer Details</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="truncate" title={`View organizer information for ${organizerDetail?.user?.name || "organizer"}`}>
               View organizer information for {organizerDetail?.user?.name || "organizer"}
             </DialogDescription>
           </DialogHeader>

@@ -262,8 +262,8 @@ export default function LockedAccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Locked Accounts</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Locked Accounts</h1>
+        <p className="text-sm sm:text-base text-muted-foreground">
           Manage and review locked user accounts.
         </p>
       </div>
@@ -279,7 +279,7 @@ export default function LockedAccountPage() {
               </span>
             )}
           </CardTitle>
-          <div className="flex items-center space-x-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-2">
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -300,8 +300,8 @@ export default function LockedAccountPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="table-fixed w-full min-w-[1000px]">
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[200px]">Name</TableHead>
@@ -407,11 +407,11 @@ export default function LockedAccountPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground text-center sm:text-left">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedUsers.length)} of {filteredAndSortedUsers.length} users
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center justify-center gap-2">
                 <Button
                   variant="outline"
                   size="sm"

@@ -98,7 +98,7 @@ const EventCard = ({
       <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold line-clamp-2 leading-tight">
+            <CardTitle className="text-lg font-semibold line-clamp-2 leading-tight" title={event.title}>
               {event.title}
             </CardTitle>
             <div className="flex items-center justify-between mt-1">
@@ -140,7 +140,7 @@ const EventCard = ({
           <div className="space-y-2 text-sm">
             <div className="flex items-center gap-2 text-gray-600">
               <MapPin className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+              <span className="truncate" title={event.location || "Location TBD"}>
                 {event.location || "Location TBD"}
               </span>
             </div>
@@ -159,7 +159,7 @@ const EventCard = ({
 
             <div className="flex items-center gap-2 text-gray-600">
               <User className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">
+              <span className="truncate" title={event.organizer_name || "Unknown Organizer"}>
                 {event.organizer_name || "Unknown Organizer"}
               </span>
             </div>
@@ -176,7 +176,7 @@ const EventCard = ({
         {/* Action Buttons - Show for pending, approved, and rejected events with different states */}
         {event.approvalStatus !== "pending" ? (
           <div
-            className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0"
+            className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             {event.approvalStatus === "approved" && onEdit && (
@@ -212,7 +212,7 @@ const EventCard = ({
           </div>
         ) : (
           <div
-            className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0"
+            className="flex flex-col sm:flex-row gap-2 mt-4 pt-4 border-t flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <Button
@@ -589,7 +589,7 @@ export default function EventsPendingPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
           {filteredEvents.map((event) => (
             <EventCard
               key={event.id}
