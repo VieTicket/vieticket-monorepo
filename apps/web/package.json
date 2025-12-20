@@ -39,6 +39,7 @@
     "@types/lodash": "^4.17.20",
     "@vieticket/auth": "workspace:*",
     "@vieticket/db": "workspace:*",
+    "@vieticket/queues": "workspace:*",
     "@vieticket/repos": "workspace:*",
     "@vieticket/services": "workspace:*",
     "@vieticket/utils": "workspace:*",
