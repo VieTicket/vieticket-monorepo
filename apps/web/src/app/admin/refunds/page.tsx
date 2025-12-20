@@ -9,6 +9,7 @@ import {
 import { RotateCcw } from "lucide-react";
 import { RefundsList } from "@/components/refunds/refunds-list";
 import { revalidatePath } from "next/cache";
+import { getTranslations } from "next-intl/server";
 
 export default async function RefundsPage({
   searchParams,
@@ -24,6 +25,7 @@ export default async function RefundsPage({
   }>;
 }) {
   const sp = await searchParams;
+  const t = await getTranslations("refunds.adminPage");
   const refundsResult = await listRefundsAction(sp);
 
   async function approve(formData: FormData) {
@@ -62,17 +64,15 @@ export default async function RefundsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Refunds</h1>
-        <p className="text-muted-foreground">
-          Manage refund requests and process refunds.
-        </p>
+        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
+        <p className="text-muted-foreground">{t("subtitle")}</p>
       </div>
 
       {!refundsResult.success && (
         <Card>
           <CardContent className="py-6">
             <div className="text-red-600 text-sm">
-              {refundsResult.error ?? "Failed to load refunds."}
+              {refundsResult.error ?? t("errors.failedToLoad")}
             </div>
           </CardContent>
         </Card>
@@ -87,10 +87,10 @@ export default async function RefundsPage({
           title={
             <span className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5" />
-              Refund Requests
+              {t("listTitle")}
             </span>
           }
-          description="Search, filter, and process refund requests."
+          description={t("listDescription")}
         />
       )}
     </div>

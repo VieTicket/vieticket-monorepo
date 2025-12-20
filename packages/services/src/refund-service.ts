@@ -219,28 +219,23 @@ export async function createRefund(
         }
       : {};
 
-  const record = await db.transaction(async (tx) => {
-    const record = await insertRefundWithTickets(
-      {
-        orderId: payload.orderId,
-        reason: payload.reason,
-        requestedAt,
-        status: nextStatus,
-        amount: calc.amount,
-        baseAmount: calc.baseAmount,
-        percentageApplied: calc.percentageApplied,
-        createdBy: actor.id,
-        ...approvedFields,
-      },
-      selectedTickets.map((t) => ({
-        ticketId: t.ticketId,
-        ticketPrice: t.price,
-      })),
-      tx
-    );
-
-    return record;
-  });
+  const record = await insertRefundWithTickets(
+    {
+      orderId: payload.orderId,
+      reason: payload.reason,
+      requestedAt,
+      status: nextStatus,
+      amount: calc.amount,
+      baseAmount: calc.baseAmount,
+      percentageApplied: calc.percentageApplied,
+      createdBy: actor.id,
+      ...approvedFields,
+    },
+    selectedTickets.map((t) => ({
+      ticketId: t.ticketId,
+      ticketPrice: t.price,
+    }))
+  );
 
   if (record.status === "approved") {
     const queued = await enqueueRefundExecutionBestEffort(record.id);

@@ -545,7 +545,10 @@
       "requestSubmitted": "Request Submitted",
       "requestSubmittedDesc": "Your payout request has been submitted successfully",
       "submissionFailed": "Submission Failed",
-      "unexpectedError": "An unexpected error occurred"
+      "unexpectedError": "An unexpected error occurred",
+      "table": {
+        "deduction": "Deduction (%)"
+      }
     },
     "Refund": {
       "refund": "Refund"
@@ -1195,6 +1198,203 @@
       "description": "If you have questions about the terms and conditions, please contact us.",
       "supportButton": "Contact support",
       "emailButton": "Send email"
+    }
+  },
+  "refunds": {
+    "requestPage": {
+      "orderNotFound": {
+        "title": "Order not found",
+        "description": "We couldn't find your order. Please check the order ID and try again.",
+        "viewOrders": "View my orders",
+        "goHome": "Go home"
+      }
+    },
+    "request": {
+      "title": "Request a refund",
+      "orderLabel": "Order:",
+      "backToOrder": "Back to order",
+      "details": {
+        "title": "Refund details",
+        "subtitle": "Select a reason and the tickets (if required). We'll review your request according to our policy."
+      },
+      "form": {
+        "reasonLabel": "Reason",
+        "selected": "Selected",
+        "selectTicketsLabel": "Select tickets",
+        "ticketLabel": "Ticket {id}",
+        "rowLabel": "Row {row}",
+        "seatLabel": "Seat {seat}",
+        "submitting": "Submitting...",
+        "submit": "Submit refund request",
+        "submitted": "Submitted"
+      },
+      "errors": {
+        "unableToSubmit": "Unable to submit refund right now.",
+        "orderNotEligible": "This order is not eligible for a refund.",
+        "noOptions": "No refund options are available for this order.",
+        "reasonNotAvailable": "This refund reason is not available for this order.",
+        "noRefundableTickets": "No refundable tickets are available."
+      }
+    },
+    "orderDetails": {
+      "title": "Refunds",
+      "subtitle": "Request refunds from the dedicated refund page.",
+      "requestButton": "Request a refund"
+    },
+    "customerPage": {
+      "title": "Refund requests",
+      "subtitle": "Track the status of your refund requests.",
+      "errors": {
+        "failedToLoad": "Unable to load refunds right now."
+      }
+    },
+    "customerDetail": {
+      "title": "Refund details",
+      "titleWithNumber": "Refund #{id}",
+      "errors": {
+        "unableToLoad": "Unable to load refund details.",
+        "failedToLoad": "Unable to load refund right now."
+      },
+      "buttons": {
+        "backToRefunds": "Back to refunds",
+        "back": "Back",
+        "viewOrder": "View order"
+      },
+      "summary": {
+        "title": "Summary",
+        "refundAmount": "Refund amount",
+        "baseAmount": "Base amount",
+        "percentage": "Percentage",
+        "requestedAt": "Requested at",
+        "approvedAt": "Approved at",
+        "refundedAt": "Refunded at"
+      },
+      "rejectionReason": {
+        "label": "Rejection reason"
+      },
+      "adminOverride": {
+        "label": "Admin override",
+        "description": "Override percentage: {from}% → {to}%"
+      },
+      "paymentFailedNotice": "Payment platform refund failed. Please contact support or try again later.",
+      "tickets": {
+        "title": "Tickets",
+        "rowLabel": "Row {row}",
+        "seatLabel": "Seat {seat}",
+        "ticketStatus": "Ticket status",
+        "none": "No tickets associated with this refund."
+      }
+    },
+    "customerList": {
+      "title": "Your refunds",
+      "subtitle": "Search, filter, and review your refund requests.",
+      "searchPlaceholder": "Search by refund ID, order ID, or event...",
+      "search": "Search",
+      "filters": {
+        "status": {
+          "placeholder": "Filter status",
+          "all": "All statuses"
+        },
+        "reason": {
+          "placeholder": "Filter reason",
+          "all": "All reasons"
+        }
+      },
+      "table": {
+        "refund": "Refund",
+        "order": "Order",
+        "event": "Event",
+        "reason": "Reason",
+        "amount": "Amount",
+        "status": "Status",
+        "requestedAt": "Requested",
+        "actions": "Actions",
+        "empty": "No refunds found."
+      },
+      "actions": {
+        "view": "View",
+        "order": "Order"
+      },
+      "pagination": {
+        "showing": "Showing {from}-{to} of {total}",
+        "prev": "Previous page",
+        "next": "Next page",
+        "page": "Page {page} of {totalPages}"
+      }
+    },
+    "managementList": {
+      "searchPlaceholder": "Search by order ID, refund ID, event...",
+      "search": "Search",
+      "filters": {
+        "status": {
+          "placeholder": "Filter status",
+          "all": "All statuses"
+        },
+        "reason": {
+          "placeholder": "Filter reason",
+          "all": "All reasons"
+        }
+      },
+      "table": {
+        "order": "Order",
+        "reason": "Reason",
+        "amount": "Amount",
+        "event": "Event",
+        "status": "Status",
+        "requestedAt": "Requested",
+        "actions": "Actions",
+        "empty": "No refunds found."
+      },
+      "actions": {
+        "approve": "Approve",
+        "reject": "Reject",
+        "executePsp": "Execute (PSP)",
+        "retryPsp": "Retry (PSP)",
+        "markManualDone": "Mark as done (manual)"
+      },
+      "pagination": {
+        "showing": "Showing {from}-{to} of {total}",
+        "prev": "Previous page",
+        "next": "Next page",
+        "page": "Page {page} of {totalPages}"
+      }
+    },
+    "adminPage": {
+      "title": "Refunds",
+      "subtitle": "Manage and execute refund requests.",
+      "listTitle": "Refund requests",
+      "listDescription": "Search, filter, and take actions on refund requests.",
+      "errors": {
+        "failedToLoad": "Unable to load refunds right now."
+      }
+    },
+    "organizerPage": {
+      "title": "Refunds",
+      "subtitle": "Review refund requests for your events.",
+      "listTitle": "Refund requests",
+      "listDescription": "Approve or reject eligible refund requests.",
+      "errors": {
+        "failedToLoad": "Unable to load refunds right now."
+      }
+    },
+    "statusOptions": {
+      "requested": "Requested",
+      "pending_organizer": "Pending organizer",
+      "pending_admin": "Pending admin",
+      "approved": "Approved",
+      "declined": "Declined",
+      "rejected": "Rejected",
+      "processing": "Processing",
+      "payment_failed": "Payment failed",
+      "refunded": "Refunded",
+      "completed": "Completed",
+      "failed": "Failed"
+    },
+    "reasonOptions": {
+      "personal": "Personal",
+      "event_cancelled": "Event cancelled",
+      "event_postponed": "Event postponed",
+      "fraud": "Fraud"
     }
   },
   "admin-dashboard": {
