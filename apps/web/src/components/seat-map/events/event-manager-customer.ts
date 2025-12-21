@@ -2,9 +2,15 @@ import * as PIXI from "pixi.js";
 import { CanvasItem, SeatShape } from "../types";
 import { shapes, stage } from "../variables";
 import { onPanStart, onPanMove, onPanEnd } from "./pan-events";
-import { onStageWheel } from "./zoom-events";
+import {
+  getActivePointerCount,
+  onStageWheel,
+  onTouchEnd,
+  onTouchMove,
+  onTouchStart,
+  resetTouchState,
+} from "./zoom-events";
 import { updateStageHitArea } from "../utils/stageTransform";
-import { useSeatMapStore } from "../store/seat-map-store";
 
 export class CustomerEventManager {
   private shapeEventHandlers = new Map<string, any>();
@@ -16,6 +22,8 @@ export class CustomerEventManager {
   // ✅ Customer-specific properties
   private customerHoverTimeout: NodeJS.Timeout | null = null;
   private customerLastHoveredSeat: string | null = null;
+
+  private isPanning: boolean = false;
 
   constructor(
     onSeatClickCallback?: (seatId: string, isAvailable: boolean) => void,
@@ -44,6 +52,11 @@ export class CustomerEventManager {
     stage.on("pointerup", this.onStagePointerUp.bind(this));
     stage.on("pointerupoutside", this.onStagePointerUp.bind(this));
     stage.on("wheel", onStageWheel);
+
+    stage.on("touchstart", this.onStageTouchStart.bind(this));
+    stage.on("touchmove", this.onStageTouchMove.bind(this));
+    stage.on("touchend", this.onStageTouchEnd.bind(this));
+    stage.on("touchendoutside", this.onStageTouchEnd.bind(this));
   }
 
   addShapeEvents(shape: CanvasItem) {
@@ -323,6 +336,40 @@ export class CustomerEventManager {
     }
   }
 
+  private onStageTouchStart(event: PIXI.FederatedPointerEvent) {
+    onTouchStart(event);
+
+    // If single touch, handle as pan
+    if (getActivePointerCount() === 1) {
+      this.isPanning = true;
+      onPanStart(event);
+    }
+  }
+
+  private onStageTouchMove(event: PIXI.FederatedPointerEvent) {
+    const pointerCount = getActivePointerCount();
+
+    if (pointerCount === 2) {
+      // Two finger touch - handle pinch-to-zoom
+      this.isPanning = false;
+      onTouchMove(event);
+    } else if (pointerCount === 1 && this.isPanning) {
+      // Single finger touch - handle panning
+      onPanMove(event);
+    }
+  }
+
+  private onStageTouchEnd(event: PIXI.FederatedPointerEvent) {
+    onTouchEnd(event);
+
+    const pointerCount = getActivePointerCount();
+
+    if (pointerCount === 0) {
+      this.isPanning = false;
+      onPanEnd();
+    }
+  }
+
   // Stage event handlers (same as before)
   private onStagePointerDown(event: PIXI.FederatedPointerEvent) {
     onPanStart(event);
@@ -427,6 +474,8 @@ export class CustomerEventManager {
       clearTimeout(this.customerHoverTimeout);
       this.customerHoverTimeout = null;
     }
+
+    resetTouchState();
 
     if (stage) {
       stage.removeAllListeners();

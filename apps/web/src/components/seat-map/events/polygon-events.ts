@@ -95,7 +95,7 @@ export const onPolygonStart = (event: PIXI.FederatedPointerEvent) => {
 
     if (
       polygonDrawingState.points.length >= MIN_POINTS &&
-      shouldClosePolygon(snapPoint, firstPoint)
+      isNearFirstPoint(snapPoint, firstPoint)
     ) {
       if (isAlignedWithFirstPoint(snapPoint, firstPoint)) {
         const alignedPoint = { ...snapPoint };
@@ -160,7 +160,7 @@ export const onPolygonMove = (event: PIXI.FederatedPointerEvent) => {
   updatePolygonPreview(
     previewPoints,
     polygonDrawingState.points.length >= MIN_POINTS &&
-      shouldClosePolygon(snapPoint, polygonDrawingState.points[0])
+      isNearFirstPoint(snapPoint, polygonDrawingState.points[0])
   );
 };
 

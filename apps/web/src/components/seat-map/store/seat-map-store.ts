@@ -1,9 +1,18 @@
 import { create } from "zustand";
-import { CanvasItem, ImageShape, SeatShape } from "../types";
+import {
+  AreaModeContainer,
+  CanvasItem,
+  GridShape,
+  ImageShape,
+  RowShape,
+  SeatShape,
+} from "../types";
 import { isEqual } from "lodash";
 import { getSelectionTransform } from "../events/transform-events";
 import { SeatMapCollaboration } from "../collaboration/seatmap-socket-client";
 import { getCustomerEventManager } from "../events/event-manager-customer";
+import { v4 as uuidv4 } from "uuid";
+import { areaModeContainer } from "../variables";
 
 export interface ShapeContext {
   topLevel: Array<{ id: string; type?: string; parentId: string | null }>;
@@ -257,13 +266,18 @@ interface SeatMapStore {
   isLoading: boolean;
   shapes: CanvasItem[];
   selectedShapes: CanvasItem[];
-
+  eventId: string | null;
   historyStack: UndoRedoAction[];
   currentHistoryIndex: number;
 
   collaboration: CollaborationState;
 
   customer: CustomerState;
+  sessionCreatedEntities: {
+    grids: string[];
+    rows: Array<{ id: string; gridId: string }>;
+    seats: Array<{ id: string; rowId: string; gridId: string }>;
+  };
 
   setSeatMap: (seatMap: SeatMapInfo | null) => void;
   setLoading: (loading: boolean) => void;
@@ -329,6 +343,12 @@ interface SeatMapStore {
     oldShapes: CanvasItem[],
     newShapes: CanvasItem[]
   ) => { before: CanvasItem[]; after: CanvasItem[]; affectedIds: string[] };
+  clearSessionTracking: () => void;
+  getSessionCreatedEntities: () => {
+    grids: string[];
+    rows: { id: string; gridId: string }[];
+    seats: { id: string; rowId: string; gridId: string }[];
+  };
 
   customerInitializeEventData: (eventData: {
     eventId: string;
@@ -367,6 +387,7 @@ interface SeatMapStore {
 
 export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
   seatMap: null,
+  eventId: null,
   isLoading: false,
   shapes: [],
   selectedShapes: [],
@@ -376,6 +397,11 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     userId: "",
     isConnected: false,
     roomUsers: [],
+  },
+  sessionCreatedEntities: {
+    grids: [],
+    rows: [],
+    seats: [],
   },
 
   customer: {
@@ -440,7 +466,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
 
     if (affectedIds.length > 0) {
       action = {
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         timestamp: Date.now(),
         data: {
           before: {
@@ -669,7 +695,65 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
 
     const actionToUndo = historyStack[currentHistoryIndex];
     const newIndex = currentHistoryIndex - 1;
+    const deletedShapes = actionToUndo.data.after.shapes || [];
+    const beforeIds = new Set(
+      actionToUndo.data.before.shapes?.map((s) => s.id) || []
+    );
 
+    deletedShapes.forEach((shape) => {
+      // Only process shapes that were created (not in before state)
+      if (beforeIds.has(shape.id)) return;
+
+      // Remove grid tracking
+      if (shape.type === "container" && "gridName" in shape) {
+        set((state) => ({
+          sessionCreatedEntities: {
+            ...state.sessionCreatedEntities,
+            grids: state.sessionCreatedEntities.grids.filter(
+              (id) => id !== shape.id
+            ),
+          },
+        }));
+        console.log(`🔙 Removed grid tracking: ${shape.id}`);
+      }
+
+      // Remove row and seat tracking (recursive)
+      if (shape.type === "container" && "children" in shape) {
+        const removeTracking = (container: any) => {
+          if ("rowName" in container) {
+            set((state) => ({
+              sessionCreatedEntities: {
+                ...state.sessionCreatedEntities,
+                rows: state.sessionCreatedEntities.rows.filter(
+                  (row) => row.id !== container.id
+                ),
+              },
+            }));
+            console.log(`🔙 Removed row tracking: ${container.id}`);
+
+            // Remove seat tracking
+            container.children?.forEach((seat: any) => {
+              if (seat.type === "ellipse" && "rowId" in seat) {
+                set((state) => ({
+                  sessionCreatedEntities: {
+                    ...state.sessionCreatedEntities,
+                    seats: state.sessionCreatedEntities.seats.filter(
+                      (s) => s.id !== seat.id
+                    ),
+                  },
+                }));
+              }
+            });
+          }
+
+          if (container.children && Array.isArray(container.children)) {
+            container.children.forEach(removeTracking);
+          }
+        };
+
+        removeTracking(shape);
+      }
+    });
     set({ currentHistoryIndex: newIndex });
     if (get().collaboration.isConnected) {
       SeatMapCollaboration.broadcastUndoAction(actionToUndo.id);
@@ -686,7 +770,82 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
 
     const newIndex = currentHistoryIndex + 1;
     const actionToRedo = historyStack[newIndex];
+    const beforeIds = new Set(
+      actionToRedo.data.before.shapes?.map((s) => s.id) || []
+    );
+    const newShapes =
+      actionToRedo.data.after.shapes?.filter(
+        (shape) => !beforeIds.has(shape.id)
+      ) || [];
 
+    newShapes.forEach((shape) => {
+      // Re-track Grid
+      if (
+        shape.type === "container" &&
+        "gridName" in shape &&
+        "seatSettings" in shape
+      ) {
+        const grid = shape as GridShape;
+        set((state) => ({
+          sessionCreatedEntities: {
+            ...state.sessionCreatedEntities,
+            grids: [...state.sessionCreatedEntities.grids, grid.id],
+          },
+        }));
+        console.log(`↩️ Re-tracked grid: ${grid.id}`);
+      }
+
+      // Re-track Rows and Seats
+      if (shape.type === "container" && "children" in shape) {
+        const retrackEntities = (container: any, gridId?: string) => {
+          if ("rowName" in container && "seatSpacing" in container) {
+            const row = container as RowShape;
+            const parentGridId = gridId || row.gridId;
+
+            set((state) => ({
+              sessionCreatedEntities: {
+                ...state.sessionCreatedEntities,
+                rows: [
+                  ...state.sessionCreatedEntities.rows,
+                  { id: row.id, gridId: parentGridId },
+                ],
+              },
+            }));
+            console.log(`↩️ Re-tracked row: ${row.id}`);
+
+            // Re-track seats
+            row.children?.forEach((seat) => {
+              if (seat.type === "ellipse" && "rowId" in seat) {
+                const seatShape = seat as SeatShape;
+                set((state) => ({
+                  sessionCreatedEntities: {
+                    ...state.sessionCreatedEntities,
+                    seats: [
+                      ...state.sessionCreatedEntities.seats,
+                      {
+                        id: seatShape.id,
+                        rowId: seatShape.rowId,
+                        gridId: seatShape.gridId,
+                      },
+                    ],
+                  },
+                }));
+              }
+            });
+          }
+
+          if (container.children && Array.isArray(container.children)) {
+            container.children.forEach((child: any) => {
+              const currentGridId =
+                "gridName" in container ? container.id : gridId;
+              retrackEntities(child, currentGridId);
+            });
+          }
+        };
+
+        retrackEntities(shape);
+      }
+    });
     set({ currentHistoryIndex: newIndex });
     if (get().collaboration.isConnected) {
       SeatMapCollaboration.broadcastRedoAction(actionToRedo.id);
@@ -852,7 +1011,7 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
     };
 
     const newAction: UndoRedoAction = existingAction || {
-      id: crypto.randomUUID(),
+      id: uuidv4(),
       timestamp: Date.now(),
       data: {
         before: {
@@ -877,6 +1036,147 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
         },
       },
     };
+
+    console.log("Saving to history:", newAction);
+
+    // ✅ Track newly created grids/rows/seats
+    // Check if this is a creation action (before state is empty or smaller)
+    if (
+      newAction.data.before.shapes?.length === 1 &&
+      newAction.data.after.shapes?.length === 1 &&
+      newAction.data.before.shapes[0].id === "area-mode-container-id" &&
+      newAction.data.after.shapes[0].id === "area-mode-container-id"
+    ) {
+      // Special case: Grid added to area-mode-container
+      const beforeContainer = newAction.data.before
+        .shapes[0] as AreaModeContainer;
+      const afterContainer = newAction.data.after
+        .shapes[0] as AreaModeContainer;
+
+      if (afterContainer.children?.length > beforeContainer.children?.length) {
+        // New grid(s) added
+        const newGrids = afterContainer.children.slice(
+          beforeContainer.children?.length || 0
+        ) as GridShape[];
+
+        newGrids.forEach((grid) => {
+          set((state) => ({
+            sessionCreatedEntities: {
+              ...state.sessionCreatedEntities,
+              grids: [...state.sessionCreatedEntities.grids, grid.id],
+            },
+          }));
+          console.log(`📊 Tracked new grid: ${grid.id}`);
+
+          // Track rows in the new grid
+          grid.children.forEach((row) => {
+            set((state) => ({
+              sessionCreatedEntities: {
+                ...state.sessionCreatedEntities,
+                rows: [
+                  ...state.sessionCreatedEntities.rows,
+                  { id: row.id, gridId: grid.id },
+                ],
+              },
+            }));
+            console.log(`📊 Tracked new row: ${row.id} in grid ${grid.id}`);
+
+            // Track seats in the row
+            row.children?.forEach((seat) => {
+              if (seat.type === "ellipse" && "rowId" in seat) {
+                const seatShape = seat as SeatShape;
+                set((state) => ({
+                  sessionCreatedEntities: {
+                    ...state.sessionCreatedEntities,
+                    seats: [
+                      ...state.sessionCreatedEntities.seats,
+                      {
+                        id: seatShape.id,
+                        rowId: seatShape.rowId,
+                        gridId: seatShape.gridId,
+                      },
+                    ],
+                  },
+                }));
+              }
+            });
+          });
+        });
+      }
+    } else if (beforeState.shapes?.length === 0 || !beforeState.shapes) {
+      // General creation case: shapes created from nothing
+      finalAfterState.shapes?.forEach((shape) => {
+        // Track Grid creation
+        if (
+          shape.type === "container" &&
+          "gridName" in shape &&
+          "seatSettings" in shape
+        ) {
+          const grid = shape as GridShape;
+          set((state) => ({
+            sessionCreatedEntities: {
+              ...state.sessionCreatedEntities,
+              grids: [...state.sessionCreatedEntities.grids, grid.id],
+            },
+          }));
+          console.log(`📊 Tracked new grid: ${grid.id}`);
+        }
+
+        // Track Row creation (recursive check in containers)
+        if (shape.type === "container" && "children" in shape) {
+          const checkForRows = (container: any, gridId?: string) => {
+            if ("rowName" in container && "seatSpacing" in container) {
+              const row = container as RowShape;
+              const parentGridId = gridId || row.gridId;
+
+              set((state) => ({
+                sessionCreatedEntities: {
+                  ...state.sessionCreatedEntities,
+                  rows: [
+                    ...state.sessionCreatedEntities.rows,
+                    { id: row.id, gridId: parentGridId },
+                  ],
+                },
+              }));
+              console.log(
+                `📊 Tracked new row: ${row.id} in grid ${parentGridId}`
+              );
+
+              // Check for seats in this row
+              row.children?.forEach((seat) => {
+                if (seat.type === "ellipse" && "rowId" in seat) {
+                  const seatShape = seat as SeatShape;
+                  set((state) => ({
+                    sessionCreatedEntities: {
+                      ...state.sessionCreatedEntities,
+                      seats: [
+                        ...state.sessionCreatedEntities.seats,
+                        {
+                          id: seatShape.id,
+                          rowId: seatShape.rowId,
+                          gridId: seatShape.gridId,
+                        },
+                      ],
+                    },
+                  }));
+                }
+              });
+            }
+
+            // Recursively check children
+            if (container.children && Array.isArray(container.children)) {
+              container.children.forEach((child: any) => {
+                const currentGridId =
+                  "gridName" in container ? container.id : gridId;
+                checkForRows(child, currentGridId);
+              });
+            }
+          };
+
+          checkForRows(shape);
+        }
+      });
+    }
 
     const newStack = historyStack.slice(0, currentHistoryIndex + 1);
     newStack.push(newAction);
@@ -959,6 +1259,19 @@ export const useSeatMapStore = create<SeatMapStore>((set, get) => ({
       after: cloneCanvasItems(after),
       affectedIds: affectedIds,
     };
+  },
+  clearSessionTracking: () => {
+    set({
+      sessionCreatedEntities: {
+        grids: [],
+        rows: [],
+        seats: [],
+      },
+    });
+  },
+
+  getSessionCreatedEntities: () => {
+    return get().sessionCreatedEntities;
   },
 
   customerInitializeEventData: (eventData) => {

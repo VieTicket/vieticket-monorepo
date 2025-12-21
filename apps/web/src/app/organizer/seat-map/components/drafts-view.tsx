@@ -10,6 +10,7 @@ import {
   MapPin,
   Clock,
   Palette,
+  Lock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -285,6 +286,7 @@ export function DraftsView({
     </>
   );
 }
+
 const DraftsTemplates = ({
   isLoading,
   filteredSeatMaps,
@@ -383,6 +385,7 @@ const EventSeatMaps = ({
       </div>
     );
   }
+  console.log("Event Seat Maps to display:", eventSeatMaps);
 
   if (eventSeatMaps.length === 0) {
     return (
@@ -435,7 +438,6 @@ const DraftTemplateCard = ({
   publishingIds: Set<string>;
   deletingIds: Set<string>;
 }) => {
-  console.log("Session in DraftTemplateCard:", seatMap, !seatMap.draftedFrom);
   if (viewMode === "list") {
     return (
       <div className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-200">
@@ -515,7 +517,7 @@ const DraftTemplateCard = ({
     );
   }
 
-  // Grid view - Remove fixed widths for responsive behavior
+  // Grid view
   return (
     <div className="max-w-[400px] group relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:shadow-lg dark:hover:shadow-2xl transition-all duration-200 overflow-hidden">
       {/* Publicity Badge */}
@@ -572,11 +574,11 @@ const DraftTemplateCard = ({
 
           <div className="flex gap-2">
             {!seatMap.draftedFrom && (
-              <div>
+              <div className="flex-1">
                 {seatMap.publicity === "private" ? (
                   <Button
                     variant="default"
-                    className="flex-1 text-xs"
+                    className="w-full text-xs"
                     onClick={() => onPublish(seatMap.id)}
                     disabled={publishingIds.has(seatMap.id)}
                   >
@@ -587,7 +589,7 @@ const DraftTemplateCard = ({
                 ) : (
                   <Button
                     variant="outline"
-                    className="flex-1 text-xs"
+                    className="w-full text-xs"
                     onClick={() => onUnpublish(seatMap.id)}
                   >
                     Unpublish
@@ -647,11 +649,39 @@ const EventSeatMapCard = ({
     ? getEventStatus(seatMap.eventInfo)
     : "unknown";
 
+  let canEdit = false;
+  if (seatMap.eventInfo) {
+    if (
+      seatMap.eventInfo.status === "pending" ||
+      seatMap.eventInfo.status === "NotYet"
+    ) {
+      canEdit = true;
+      if (
+        seatMap.eventInfo.startTime &&
+        new Date() > new Date(seatMap.eventInfo.startTime)
+      ) {
+        canEdit = false;
+      }
+    } else {
+      canEdit = false;
+    }
+  }
+
+  const editUrl =
+    canEdit && seatMap.eventInfo
+      ? `/seat-map?seatMapId=${seatMap.id}&eventId=${seatMap.eventInfo.id}`
+      : `/seat-map?seatMapId=${seatMap.id}`;
+
   if (viewMode === "list") {
     return (
       <div className="group flex items-center gap-4 p-4 bg-white dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-800 hover:shadow-md transition-all duration-200">
         {/* Thumbnail */}
-        <div className="w-24 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="w-24 h-16 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden flex-shrink-0 relative">
+          {!canEdit && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+              <Lock className="w-6 h-6 text-white" />
+            </div>
+          )}
           {seatMap.image ? (
             <img
               src={seatMap.image}
@@ -714,13 +744,22 @@ const EventSeatMapCard = ({
 
         {/* Actions */}
         <div className="flex items-center gap-2 flex-shrink-0">
-          {(getEventStatus(seatMap.eventInfo) === "upcoming" ||
-            getEventStatus(seatMap.eventInfo) === "unknown") && (
-            <Link href={`/seat-map?seatMapId=${seatMap.id}`}>
+          {canEdit ? (
+            <Link href={editUrl}>
               <Button variant="outline" size="sm">
                 Edit
               </Button>
             </Link>
+          ) : (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled
+              className="cursor-not-allowed"
+            >
+              <Lock className="w-3 h-3 mr-1" />
+              Locked
+            </Button>
           )}
           {seatMap.eventInfo && (
             <Link href={`/organizer/events/${seatMap.eventInfo.id}`}>
@@ -734,7 +773,7 @@ const EventSeatMapCard = ({
     );
   }
 
-  // Grid view - Remove fixed widths for responsive behavior
+  // Grid view
   return (
     <div className="group relative bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:shadow-lg dark:hover:shadow-2xl transition-all duration-200 overflow-hidden">
       {/* Event Status Badge */}
@@ -746,6 +785,16 @@ const EventSeatMapCard = ({
 
       {/* Seat Map Image */}
       <div className="aspect-video bg-gray-100 dark:bg-gray-800 relative overflow-hidden">
+        {!canEdit && (
+          <div className="absolute inset-0 bg-black/40 flex items-center justify-center z-10">
+            <div className="text-center">
+              <Lock className="w-8 h-8 text-white mx-auto mb-2" />
+              <p className="text-white text-sm font-medium">
+                {status === "ongoing" ? "Event Ongoing" : "Event Ended"}
+              </p>
+            </div>
+          </div>
+        )}
         {seatMap.image ? (
           <img
             src={seatMap.image}
@@ -768,7 +817,7 @@ const EventSeatMapCard = ({
       <div className="p-4 space-y-3">
         {/* Seat Map Info */}
         <div>
-          <h3 className=" font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors line-clamp-1">
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary transition-colors line-clamp-1">
             {seatMap.name}
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -789,11 +838,22 @@ const EventSeatMapCard = ({
 
         {/* Action Buttons */}
         <div className="flex gap-2 pt-2">
-          <Link href={`/seat-map?seatMapId=${seatMap.id}`} className="flex-1">
-            <Button variant="outline" className="w-full text-xs">
-              Edit
+          {canEdit ? (
+            <Link href={editUrl} className="flex-1">
+              <Button variant="outline" className="w-full text-xs">
+                Edit
+              </Button>
+            </Link>
+          ) : (
+            <Button
+              variant="outline"
+              className="flex-1 text-xs cursor-not-allowed"
+              disabled
+            >
+              <Lock className="w-3 h-3 mr-1" />
+              Locked
             </Button>
-          </Link>
+          )}
           {seatMap.eventInfo && (
             <Link
               href={`/organizer/events/${seatMap.eventInfo.id}`}

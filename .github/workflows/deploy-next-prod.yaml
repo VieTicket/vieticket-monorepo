@@ -52,6 +52,12 @@ jobs:
       - name: Pull Vercel Environment Information
         run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }} --cwd=apps/web
 
+      - name: Write production env file
+        shell: bash
+        run: |
+          mkdir -p apps/web
+          printf "%s" "${{ secrets.ENV_PRODUCTION }}" > apps/web/.env.production
+
       - name: Build Project with Turborepo
         run: bun run build --filter=web
 

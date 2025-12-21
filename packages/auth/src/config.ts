@@ -1,5 +1,5 @@
 import { db } from "@vieticket/db/pg/direct";
-import { account, session, user, verification, member, organization, invitation } from "@vieticket/db/pg/schemas/users";
+import { account, user, verification, member, organization, invitation } from "@vieticket/db/pg/schemas/users";
 import { betterAuth } from "better-auth/minimal";
 import { type User } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
@@ -17,7 +17,6 @@ export const auth = betterAuth({
     provider: "pg",
     schema: {
       user,
-      session,
       account,
       verification,
       member,
