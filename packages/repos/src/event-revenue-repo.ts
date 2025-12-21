@@ -1,26 +1,39 @@
 import { db } from "@vieticket/db/pg";
-import { events } from "@vieticket/db/pg/schemas/events";
-import { orders } from "@vieticket/db/pg/schemas/orders";
-import { tickets } from "@vieticket/db/pg/schemas/orders";
-import { seats } from "@vieticket/db/pg/schemas/events";
-import { rows } from "@vieticket/db/pg/schemas/events";
-import { areas } from "@vieticket/db/pg/schemas/events";
-import { eq, and, sum } from "drizzle-orm";
+import { orders, refunds } from "@vieticket/db/pg/schemas/orders";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 export async function getEventRevenue(eventId: string): Promise<number> {
-  const result = await db
-    .select({ total: sum(areas.price) })
-    .from(tickets)
-    .innerJoin(orders, eq(tickets.orderId, orders.id))
-    .innerJoin(seats, eq(tickets.seatId, seats.id))
-    .innerJoin(rows, eq(seats.rowId, rows.id))
-    .innerJoin(areas, eq(rows.areaId, areas.id))
-    .innerJoin(events, eq(areas.eventId, events.id))
-    .where(and(
-      eq(events.id, eventId),
-      eq(orders.status, 'paid')
-    ))
-    .execute();
+  const refundsByOrder = db
+    .select({
+      orderId: refunds.orderId,
+      totalRefunded: sql<number>`COALESCE(SUM(${refunds.amount}), 0)`.as(
+        "totalRefunded"
+      ),
+    })
+    .from(refunds)
+    .innerJoin(orders, eq(refunds.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.eventId, eventId),
+        inArray(orders.status, ["paid", "partial_refunded", "refunded"]),
+        eq(refunds.status, "refunded")
+      )
+    )
+    .groupBy(refunds.orderId)
+    .as("refund_sums");
 
-  return Number(result[0]?.total) || 0;
+  const [row] = await db
+    .select({
+      total: sql<number>`COALESCE(SUM(${orders.totalAmount} - COALESCE(${refundsByOrder.totalRefunded}, 0)), 0)`,
+    })
+    .from(orders)
+    .leftJoin(refundsByOrder, eq(refundsByOrder.orderId, orders.id))
+    .where(
+      and(
+        eq(orders.eventId, eventId),
+        inArray(orders.status, ["paid", "partial_refunded", "refunded"])
+      )
+    );
+
+  return Number(row?.total ?? 0);
 }
