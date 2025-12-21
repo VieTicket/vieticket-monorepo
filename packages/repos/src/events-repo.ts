@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events, showings } from "@vieticket/db/pg/schemas/events";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 /**
  * Fetches a single event by its ID.
@@ -13,6 +13,14 @@ export async function findEventById(eventId: string) {
   });
 
   return event;
+}
+
+export async function isEventOwnedByOrganizer(eventId: string, organizerId: string) {
+  const event = await db.query.events.findFirst({
+    columns: { id: true },
+    where: and(eq(events.id, eventId), eq(events.organizerId, organizerId)),
+  });
+  return Boolean(event);
 }
 
 /**
