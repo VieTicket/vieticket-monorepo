@@ -1,11 +1,11 @@
 {
-  "name": "@vieticket/services",
+  "name": "@vieticket/queues",
   "version": "1.0.0",
   "module": "src/index.ts",
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./*": "./src/*-service.ts"
+    "./nextjs": "./src/nextjs.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -18,11 +18,7 @@
     "typescript": "catalog:"
   },
   "dependencies": {
-    "@vieticket/db": "*",
-    "@vieticket/queues": "*",
-    "@vieticket/repos": "*",
-    "@vieticket/utils": "*",
-    "openai": "^6.7.0"
+    "@upstash/qstash": "^2.8.4"
   },
   "private": true
 }

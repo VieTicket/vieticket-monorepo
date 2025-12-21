@@ -545,7 +545,13 @@
       "requestSubmitted": "Đã Gửi Yêu Cầu",
       "requestSubmittedDesc": "Yêu cầu thanh toán của bạn đã được gửi thành công",
       "submissionFailed": "Gửi Thất Bại",
-      "unexpectedError": "Đã xảy ra lỗi không mong muốn"
+      "unexpectedError": "Đã xảy ra lỗi không mong muốn",
+      "table": {
+        "deduction": "Khấu trừ (%)"
+      }
+    },
+    "Refund": {
+      "refund": "Hoàn tiền"
     },
     "InspectTicket": {
       "inspectTicket": "Kiểm Tra Vé"
@@ -1193,6 +1199,203 @@
       "description": "Nếu bạn có thắc mắc về các điều khoản và điều kiện, hãy liên hệ với chúng tôi.",
       "supportButton": "Liên hệ hỗ trợ",
       "emailButton": "Gửi email"
+    }
+  },
+  "refunds": {
+    "requestPage": {
+      "orderNotFound": {
+        "title": "Không tìm thấy đơn hàng",
+        "description": "Chúng tôi không tìm thấy đơn hàng của bạn. Vui lòng kiểm tra mã đơn hàng và thử lại.",
+        "viewOrders": "Xem đơn hàng của tôi",
+        "goHome": "Về trang chủ"
+      }
+    },
+    "request": {
+      "title": "Yêu cầu hoàn tiền",
+      "orderLabel": "Đơn hàng:",
+      "backToOrder": "Quay lại đơn hàng",
+      "details": {
+        "title": "Thông tin hoàn tiền",
+        "subtitle": "Chọn lý do và vé (nếu cần). Chúng tôi sẽ xem xét yêu cầu theo chính sách hoàn tiền."
+      },
+      "form": {
+        "reasonLabel": "Lý do",
+        "selected": "Đã chọn",
+        "selectTicketsLabel": "Chọn vé",
+        "ticketLabel": "Vé {id}",
+        "rowLabel": "Hàng {row}",
+        "seatLabel": "Ghế {seat}",
+        "submitting": "Đang gửi...",
+        "submit": "Gửi yêu cầu hoàn tiền",
+        "submitted": "Đã gửi"
+      },
+      "errors": {
+        "unableToSubmit": "Hiện không thể gửi yêu cầu hoàn tiền.",
+        "orderNotEligible": "Đơn hàng này không đủ điều kiện hoàn tiền.",
+        "noOptions": "Không có tuỳ chọn hoàn tiền cho đơn hàng này.",
+        "reasonNotAvailable": "Lý do hoàn tiền này không áp dụng cho đơn hàng.",
+        "noRefundableTickets": "Không có vé nào có thể hoàn tiền."
+      }
+    },
+    "orderDetails": {
+      "title": "Hoàn tiền",
+      "subtitle": "Yêu cầu hoàn tiền tại trang hoàn tiền riêng.",
+      "requestButton": "Yêu cầu hoàn tiền"
+    },
+    "customerPage": {
+      "title": "Yêu cầu hoàn tiền",
+      "subtitle": "Theo dõi trạng thái các yêu cầu hoàn tiền của bạn.",
+      "errors": {
+        "failedToLoad": "Hiện không thể tải danh sách hoàn tiền."
+      }
+    },
+    "customerDetail": {
+      "title": "Chi tiết hoàn tiền",
+      "titleWithNumber": "Hoàn tiền #{id}",
+      "errors": {
+        "unableToLoad": "Không thể tải chi tiết hoàn tiền.",
+        "failedToLoad": "Hiện không thể tải hoàn tiền."
+      },
+      "buttons": {
+        "backToRefunds": "Quay lại danh sách",
+        "back": "Quay lại",
+        "viewOrder": "Xem đơn hàng"
+      },
+      "summary": {
+        "title": "Tóm tắt",
+        "refundAmount": "Số tiền hoàn",
+        "baseAmount": "Số tiền gốc",
+        "percentage": "Tỷ lệ",
+        "requestedAt": "Yêu cầu lúc",
+        "approvedAt": "Duyệt lúc",
+        "refundedAt": "Hoàn tiền lúc"
+      },
+      "rejectionReason": {
+        "label": "Lý do từ chối"
+      },
+      "adminOverride": {
+        "label": "Điều chỉnh của admin",
+        "description": "Điều chỉnh tỷ lệ: {from}% → {to}%"
+      },
+      "paymentFailedNotice": "Hoàn tiền qua cổng thanh toán thất bại. Vui lòng liên hệ hỗ trợ hoặc thử lại sau.",
+      "tickets": {
+        "title": "Vé",
+        "rowLabel": "Hàng {row}",
+        "seatLabel": "Ghế {seat}",
+        "ticketStatus": "Trạng thái vé",
+        "none": "Không có vé liên quan đến yêu cầu hoàn tiền này."
+      }
+    },
+    "customerList": {
+      "title": "Danh sách hoàn tiền",
+      "subtitle": "Tìm kiếm, lọc và xem các yêu cầu hoàn tiền.",
+      "searchPlaceholder": "Tìm theo mã hoàn tiền, mã đơn, hoặc sự kiện...",
+      "search": "Tìm",
+      "filters": {
+        "status": {
+          "placeholder": "Lọc trạng thái",
+          "all": "Tất cả trạng thái"
+        },
+        "reason": {
+          "placeholder": "Lọc lý do",
+          "all": "Tất cả lý do"
+        }
+      },
+      "table": {
+        "refund": "Hoàn tiền",
+        "order": "Đơn hàng",
+        "event": "Sự kiện",
+        "reason": "Lý do",
+        "amount": "Số tiền",
+        "status": "Trạng thái",
+        "requestedAt": "Thời gian yêu cầu",
+        "actions": "Thao tác",
+        "empty": "Không có yêu cầu hoàn tiền."
+      },
+      "actions": {
+        "view": "Xem",
+        "order": "Đơn hàng"
+      },
+      "pagination": {
+        "showing": "Hiển thị {from}-{to} trên {total}",
+        "prev": "Trang trước",
+        "next": "Trang sau",
+        "page": "Trang {page}/{totalPages}"
+      }
+    },
+    "managementList": {
+      "searchPlaceholder": "Tìm theo mã đơn, mã hoàn tiền, hoặc sự kiện...",
+      "search": "Tìm",
+      "filters": {
+        "status": {
+          "placeholder": "Lọc trạng thái",
+          "all": "Tất cả trạng thái"
+        },
+        "reason": {
+          "placeholder": "Lọc lý do",
+          "all": "Tất cả lý do"
+        }
+      },
+      "table": {
+        "order": "Đơn hàng",
+        "reason": "Lý do",
+        "amount": "Số tiền",
+        "event": "Sự kiện",
+        "status": "Trạng thái",
+        "requestedAt": "Thời gian yêu cầu",
+        "actions": "Thao tác",
+        "empty": "Không có yêu cầu hoàn tiền."
+      },
+      "actions": {
+        "approve": "Duyệt",
+        "reject": "Từ chối",
+        "executePsp": "Thực hiện (PSP)",
+        "retryPsp": "Thử lại (PSP)",
+        "markManualDone": "Đánh dấu đã xử lý (thủ công)"
+      },
+      "pagination": {
+        "showing": "Hiển thị {from}-{to} trên {total}",
+        "prev": "Trang trước",
+        "next": "Trang sau",
+        "page": "Trang {page}/{totalPages}"
+      }
+    },
+    "adminPage": {
+      "title": "Hoàn tiền",
+      "subtitle": "Quản lý và thực hiện các yêu cầu hoàn tiền.",
+      "listTitle": "Yêu cầu hoàn tiền",
+      "listDescription": "Tìm kiếm, lọc và thao tác với các yêu cầu hoàn tiền.",
+      "errors": {
+        "failedToLoad": "Hiện không thể tải danh sách hoàn tiền."
+      }
+    },
+    "organizerPage": {
+      "title": "Hoàn tiền",
+      "subtitle": "Xem xét yêu cầu hoàn tiền cho sự kiện của bạn.",
+      "listTitle": "Yêu cầu hoàn tiền",
+      "listDescription": "Duyệt hoặc từ chối các yêu cầu hoàn tiền đủ điều kiện.",
+      "errors": {
+        "failedToLoad": "Hiện không thể tải danh sách hoàn tiền."
+      }
+    },
+    "statusOptions": {
+      "requested": "Đã yêu cầu",
+      "pending_organizer": "Chờ nhà tổ chức",
+      "pending_admin": "Chờ quản trị viên",
+      "approved": "Đã duyệt",
+      "declined": "Bị từ chối",
+      "rejected": "Bị từ chối",
+      "processing": "Đang xử lý",
+      "payment_failed": "Hoàn tiền thất bại (PSP)",
+      "refunded": "Đã hoàn tiền",
+      "completed": "Hoàn tất",
+      "failed": "Thất bại"
+    },
+    "reasonOptions": {
+      "personal": "Cá nhân",
+      "event_cancelled": "Sự kiện bị hủy",
+      "event_postponed": "Sự kiện bị hoãn",
+      "fraud": "Gian lận"
     }
   },
   "admin-dashboard": {

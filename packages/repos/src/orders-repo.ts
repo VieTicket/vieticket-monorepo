@@ -1,4 +1,5 @@
 import { db } from "@vieticket/db/pg";
+import { OrderStatus } from "@vieticket/db/pg/enums";
 import { areas, events, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { orders, tickets } from "@vieticket/db/pg/schemas/orders";
 import { and, count, desc, eq, gt } from "drizzle-orm";
@@ -13,6 +14,10 @@ export async function getEventByTicketId(ticketId: string) {
     .select({
       eventId: events.id,
       eventName: events.name,
+      lifecycleStatus: events.lifecycleStatus,
+      ticketSaleEnd: events.ticketSaleEnd,
+      startTime: events.startTime,
+      endTime: events.endTime,
     })
     .from(tickets)
     .innerJoin(seats, eq(tickets.seatId, seats.id))
@@ -208,4 +213,18 @@ export async function getTicketDetails(orderId: string) {
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .where(eq(tickets.orderId, orderId));
+}
+
+export async function updateOrderStatus(
+  orderId: string,
+  status: OrderStatus,
+  client = db
+) {
+  const [updatedOrder] = await client
+    .update(orders)
+    .set({ status, updatedAt: new Date() })
+    .where(eq(orders.id, orderId))
+    .returning();
+
+  return updatedOrder;
 }
