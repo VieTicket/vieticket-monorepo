@@ -88,7 +88,18 @@ export async function findOrdersByUserIdWithPagination(
  */
 export async function findOrderByIdForUser(orderId: string, userId: string) {
   const [result] = await db
-    .select()
+    .select({
+      id: orders.id,
+      userId: orders.userId,
+      eventId: orders.eventId,
+      showingId: orders.showingId,
+      orderDate: orders.orderDate,
+      totalAmount: orders.totalAmount,
+      status: orders.status,
+      expiresAt: orders.expiresAt,
+      paymentMetadata: orders.paymentMetadata,
+      updatedAt: orders.updatedAt,
+    })
     .from(orders)
     .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
     .limit(1);

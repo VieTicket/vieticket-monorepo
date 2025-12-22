@@ -436,6 +436,11 @@ export async function updateOrderVNPayData(
   return updatedOrder;
 }
 
+export async function getOrderById(orderId: string) {
+  const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  return order || null;
+}
+
 // PHASE 3
 
 /**
@@ -485,6 +490,44 @@ export async function failOrderAndReleaseSeatHolds(
         and(
           eq(seatHolds.orderId, orderId),
           eq(seatHolds.userId, userId)
+        )
+      )
+      .returning({ seatId: seatHolds.seatId });
+
+    return {
+      order: orderRow,
+      releasedSeatIds: releasedSeats.map((seat) => seat.seatId),
+    };
+  });
+}
+
+export async function expireOrderAndReleaseSeatHolds(
+  orderId: string,
+  userId: string
+) {
+  return db.transaction(async (tx) => {
+    const now = new Date();
+
+    const [orderRow] = await tx
+      .update(orders)
+      .set({
+        status: "expired",
+        updatedAt: now,
+      })
+      .where(eq(orders.id, orderId))
+      .returning();
+
+    const releasedSeats = await tx
+      .update(seatHolds)
+      .set({
+        isFinalized: true,
+        isPaid: false,
+      })
+      .where(
+        and(
+          eq(seatHolds.orderId, orderId),
+          eq(seatHolds.userId, userId),
+          eq(seatHolds.isFinalized, false)
         )
       )
       .returning({ seatId: seatHolds.seatId });
@@ -616,10 +659,12 @@ export async function getUserUnconfirmedSeatHolds(
 export async function executePaymentTransaction(
   orderId: string,
   userId: string,
-  ticketData: Pick<Ticket, "seatId" | "status">[]
+  ticketData: Pick<Ticket, "seatId" | "status">[],
+  options?: { validationTime?: Date }
 ) {
   return db.transaction(async (tx) => {
     const now = new Date();
+    const validationTime = options?.validationTime ?? now;
 
     const [orderRow] = await tx
       .select()
@@ -652,11 +697,25 @@ export async function executePaymentTransaction(
       );
     }
 
-    if (orderRow.expiresAt && orderRow.expiresAt < now) {
+    if (orderRow.expiresAt && orderRow.expiresAt < validationTime) {
       await tx
         .update(orders)
-        .set({ status: "expired", updatedAt: now })
+        .set({
+          status: "expired",
+          updatedAt: now,
+        })
         .where(eq(orders.id, orderId));
+
+      await tx
+        .update(seatHolds)
+        .set({ isFinalized: true, isPaid: false })
+        .where(
+          and(
+            eq(seatHolds.orderId, orderId),
+            eq(seatHolds.userId, userId),
+            eq(seatHolds.isFinalized, false)
+          )
+        );
       throw new Error("Order has expired");
     }
 
@@ -678,13 +737,27 @@ export async function executePaymentTransaction(
     }
 
     const expiredHold = orderSeatHolds.find(
-      (hold) => hold.expiresAt && hold.expiresAt < now
+      (hold) => hold.expiresAt && hold.expiresAt < validationTime
     );
     if (expiredHold) {
       await tx
         .update(orders)
-        .set({ status: "expired", updatedAt: now })
+        .set({
+          status: "expired",
+          updatedAt: now,
+        })
         .where(eq(orders.id, orderId));
+
+      await tx
+        .update(seatHolds)
+        .set({ isFinalized: true, isPaid: false })
+        .where(
+          and(
+            eq(seatHolds.orderId, orderId),
+            eq(seatHolds.userId, userId),
+            eq(seatHolds.isFinalized, false)
+          )
+        );
       throw new Error("Seat holds have expired");
     }
 

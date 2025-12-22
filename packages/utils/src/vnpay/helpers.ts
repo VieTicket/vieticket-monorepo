@@ -44,15 +44,20 @@ export function generatePaymentUrl({
     // Calculate expiration time by adding TTL to current Vietnam time
     const expirationTime = new Date(vietnamTime.getTime() + (paymentExpirationSeconds * 1000));
 
+    const vnp_CreateDate = dateFormat(vietnamTime);
+    const vnp_ExpireDate = dateFormat(expirationTime);
+
     return {
         vnp_TxnRef,
+        vnp_CreateDate,
+        vnp_ExpireDate,
         paymentURL: vnpay.buildPaymentUrl({
             vnp_Amount: amount,
             vnp_IpAddr: ipAddr === '::1' ? '127.0.0.1' : ipAddr,
             vnp_TxnRef,
             vnp_OrderInfo: orderInfo,
-            vnp_CreateDate: dateFormat(vietnamTime),
-            vnp_ExpireDate: dateFormat(expirationTime),
+            vnp_CreateDate,
+            vnp_ExpireDate,
             vnp_OrderType: ProductCode.Entertainment_Training,
             vnp_ReturnUrl: returnUrl,
         })
