@@ -388,14 +388,14 @@ export default function AccountPage() {
           </div>
         </CardHeader>
         <CardContent>
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="w-full min-w-[800px]">
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px]">Name</TableHead>
-                  <TableHead className="w-[200px]">Email</TableHead>
+                  <TableHead className="min-w-[150px] max-w-[200px]">Name</TableHead>
+                  <TableHead className="min-w-[180px] max-w-[250px]">Email</TableHead>
                   <TableHead 
-                    className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="min-w-[100px] max-w-[130px] cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort('role')}
                   >
                     <div className="flex items-center gap-1">
@@ -403,11 +403,10 @@ export default function AccountPage() {
                       {getSortIcon('role')}
                     </div>
                   </TableHead>
-                  <TableHead className="w-[150px]">Status</TableHead>
-                  <TableHead className="w-[200px]">Ban Details</TableHead>
-                  <TableHead className="w-[130px]">Email Verified</TableHead>
+                  <TableHead className="min-w-[120px] max-w-[160px]">Status</TableHead>
+                  <TableHead className="min-w-[110px] max-w-[140px]">Email Verified</TableHead>
                   <TableHead 
-                    className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="min-w-[100px] max-w-[130px] cursor-pointer hover:bg-muted/50 transition-colors"
                     onClick={() => handleSort('createdAt')}
                   >
                     <div className="flex items-center gap-1">
@@ -415,7 +414,7 @@ export default function AccountPage() {
                       {getSortIcon('createdAt')}
                     </div>
                   </TableHead>
-                  <TableHead className="w-[120px] text-right">Actions</TableHead>
+                  <TableHead className="min-w-[100px] max-w-[130px] text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -427,52 +426,35 @@ export default function AccountPage() {
                       className={user.role === "organizer" ? "cursor-pointer hover:bg-muted/50" : ""}
                       onClick={() => user.role === "organizer" && handleViewOrganizer(user)}
                     >
-                      <TableCell className="font-medium w-[200px] min-w-0">
+                      <TableCell className="font-medium min-w-[150px] max-w-[200px]">
                         <div className="truncate" title={user.name}>
                           {user.name}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[200px] min-w-0">
+                      <TableCell className="min-w-[180px] max-w-[250px]">
                         <div className="truncate" title={user.email}>
                           {user.email}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[120px]">
+                      <TableCell className="min-w-[100px] max-w-[130px]">
                         <Badge variant={getRoleBadgeVariant(user.role)}>
                           {user.role}
                         </Badge>
                       </TableCell>
-                      <TableCell className="w-[150px] min-w-0">
+                      <TableCell className="min-w-[120px] max-w-[160px]">
                         <Badge variant={statusInfo.variant} className="truncate max-w-full">
                           <span className="truncate block" title={statusInfo.status}>
                             {statusInfo.status}
                           </span>
                         </Badge>
                       </TableCell>
-                      <TableCell className="w-[200px] min-w-0">
-                        {user.banned && user.banReason && (
-                          <div className="min-w-0">
-                            <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
-                              {user.banReason}
-                            </div>
-                            {user.banExpires && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
-                                <Clock className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate min-w-0" title={`Expires: ${formatDateTime(user.banExpires.toString())}`}>
-                                  Expires: {formatDateTime(user.banExpires.toString())}
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="w-[130px]">
+                      <TableCell className="min-w-[110px] max-w-[140px]">
                         <Badge variant={user.emailVerified ? "default" : "secondary"}>
                           {user.emailVerified ? "Verified" : "Unverified"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="w-[120px]">{formatDate(user.createdAt)}</TableCell>
-                      <TableCell className="w-[120px] text-right">
+                      <TableCell className="min-w-[100px] max-w-[130px]">{formatDate(user.createdAt)}</TableCell>
+                      <TableCell className="min-w-[100px] max-w-[130px] text-right">
                         {user.banned ? (
                           <Button
                             variant="default"
