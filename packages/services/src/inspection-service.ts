@@ -1,7 +1,8 @@
 import { TicketInspectionStatus, User } from "@vieticket/db/pg/schema";
 import * as inspectionRepo from "@vieticket/repos/inspection";
 import * as ticketsRepo from "@vieticket/repos/tickets";
-
+import { findAccessibleActiveEvents } from "@vieticket/repos/events";
+import { isUserMemberOfOrganization } from "@vieticket/repos/organization";
 export class AppError extends Error {
   public readonly code: string;
 
@@ -150,9 +151,6 @@ export async function processOfflineInspections(
  * @throws AppError if the user doesn't have access.
  */
 export async function getActiveEvents(user: User, activeOrganizationId?: string | null) {
-  // Import the new function
-  const { findAccessibleActiveEvents } = await import("@vieticket/repos/events");
-  
   // Organizers always have access
   if (user.role === "organizer") {
     return await findAccessibleActiveEvents(user.id, activeOrganizationId);
@@ -160,7 +158,6 @@ export async function getActiveEvents(user: User, activeOrganizationId?: string 
   
   // If there's an active organization, check if user is a member
   if (activeOrganizationId) {
-    const { isUserMemberOfOrganization } = await import("@vieticket/repos/organization");
     const isMember = await isUserMemberOfOrganization(user.id, activeOrganizationId);
     if (isMember) {
       return await findAccessibleActiveEvents(user.id, activeOrganizationId);
