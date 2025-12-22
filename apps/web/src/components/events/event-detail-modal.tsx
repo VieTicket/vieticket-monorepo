@@ -18,6 +18,7 @@ import {
   Film,
   FileCheck,
   ExternalLink,
+  Edit,
 } from "lucide-react";
 import { PendingEvent } from "@/hooks/use-admin-data";
 
@@ -28,6 +29,7 @@ interface EventDetailModalProps {
   onApprove: (eventId: string) => void;
   onReject: (eventId: string) => void;
   isProcessing: boolean;
+  onEdit?: (eventId: string) => void;
 }
 
 // Memoized detail card component
@@ -60,6 +62,7 @@ export function EventDetailModal({
   onApprove,
   onReject,
   isProcessing,
+  onEdit,
 }: EventDetailModalProps) {
   const [selectedShowingId, setSelectedShowingId] = useState<string>("");
 
@@ -503,6 +506,17 @@ export function EventDetailModal({
               ? "Already Rejected"
               : "Reject Event"}
           </Button>
+          {event.approvalStatus === "approved" && onEdit && (
+            <Button
+              onClick={() => onEdit(event.id)}
+              variant="outline"
+              size="lg"
+              className="flex-shrink-0"
+            >
+              <Edit className="h-5 w-5 mr-2" />
+              Edit
+            </Button>
+          )}
         </div>
       </div>
     </Modal>
