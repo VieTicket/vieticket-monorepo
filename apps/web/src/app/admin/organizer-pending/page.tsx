@@ -295,21 +295,21 @@ export default function OrganizerPendingPage() {
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
-              <Table className="table-fixed w-full">
+            <div className="rounded-md border overflow-x-auto">
+              <Table className="w-full min-w-[1000px]">
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[250px]">Organizer Name</TableHead>
-                    <TableHead className="w-[250px]">User Details</TableHead>
-                    <TableHead className="w-[250px]">Business Info</TableHead>
-                    <TableHead className="w-[150px]">Applied Date</TableHead>
-                    <TableHead className="w-[200px] text-right">Actions</TableHead>
+                    <TableHead className="min-w-[200px] max-w-[250px]">Organizer Name</TableHead>
+                    <TableHead className="min-w-[200px] max-w-[250px]">User Details</TableHead>
+                    <TableHead className="min-w-[200px] max-w-[250px]">Business Info</TableHead>
+                    <TableHead className="min-w-[120px] max-w-[150px] whitespace-nowrap">Applied Date</TableHead>
+                    <TableHead className="min-w-[280px] max-w-[320px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedOrganizers.map((organizer) => (
                     <TableRow key={organizer.id}>
-                      <TableCell className="w-[250px] min-w-0">
+                      <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="flex items-center gap-3 min-w-0">
                           {organizer.user.image && (
                             <img
@@ -326,7 +326,7 @@ export default function OrganizerPendingPage() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[250px] min-w-0">
+                      <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="space-y-1 min-w-0">
                           <div className="font-medium truncate" title={organizer.user.name}>
                             {organizer.user.name}
@@ -343,7 +343,7 @@ export default function OrganizerPendingPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[250px] min-w-0">
+                      <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="space-y-1 text-sm min-w-0">
                           {organizer.website && (
                             <div className="flex items-center gap-1 text-muted-foreground min-w-0">
@@ -377,15 +377,16 @@ export default function OrganizerPendingPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="w-[150px]">
+                      <TableCell className="min-w-[120px] max-w-[150px] whitespace-nowrap">
                         {formatDate(organizer.user.createdAt)}
                       </TableCell>
-                      <TableCell className="w-[200px] text-right">
-                        <div className="flex items-center gap-2 justify-end">
+                      <TableCell className="min-w-[280px] max-w-[320px] text-right">
+                        <div className="flex items-center gap-2 justify-end flex-wrap">
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewDetails(organizer)}
+                            className="flex-shrink-0"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Details
@@ -395,6 +396,7 @@ export default function OrganizerPendingPage() {
                             size="sm"
                             onClick={() => handleApprove(organizer)}
                             disabled={processingIds.has(organizer.id)}
+                            className="flex-shrink-0"
                           >
                             {processingIds.has(organizer.id) ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -410,6 +412,7 @@ export default function OrganizerPendingPage() {
                             size="sm"
                             onClick={() => handleRejectClick(organizer)}
                             disabled={processingIds.has(organizer.id)}
+                            className="flex-shrink-0"
                           >
                             <UserX className="h-4 w-4 mr-1" />
                             Reject
