@@ -16,6 +16,8 @@ import {
   FileText,
   Image as ImageIcon,
   Film,
+  FileCheck,
+  ExternalLink,
 } from "lucide-react";
 import { PendingEvent } from "@/hooks/use-admin-data";
 
@@ -126,6 +128,21 @@ export function EventDetailModal({
       maximumFractionDigits: 0,
     }).format(amount);
   };
+
+  // Document type labels mapping
+  const getDocumentTypeLabel = (documentType: string) => {
+    const labels: Record<string, string> = {
+      event_permit: "Giấy Phép Tổ Chức Sự Kiện",
+      venue_contract: "Hợp Đồng Địa Điểm",
+      insurance: "Giấy Chứng Nhận Bảo Hiểm",
+      other: "Tài Liệu Khác",
+    };
+    return labels[documentType] || documentType;
+  };
+
+  // Check if event has documents or contract
+  const hasDocuments = event.eventMetadata?.eventProofDocuments && event.eventMetadata.eventProofDocuments.length > 0;
+  const hasContract = event.eventMetadata?.contractScreenshotUrl;
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Event Details">
@@ -353,6 +370,113 @@ export function EventDetailModal({
         <DetailCard icon={Calendar} title="Submitted On">
           {formattedDates.created}
         </DetailCard>
+
+        {/* Event Documents and Contract */}
+        {(hasDocuments || hasContract) && (
+          <DetailCard icon={FileCheck} title="Giấy Tờ và Hợp Đồng">
+            <div className="space-y-6">
+              {/* Proof Documents */}
+              {hasDocuments && (
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900 text-sm mb-3">
+                    Tài Liệu Chứng Minh
+                  </h4>
+                  {event.eventMetadata?.eventProofDocuments?.map((doc, docIndex) => (
+                    <div key={docIndex} className="border border-gray-200 rounded-lg p-4 space-y-3">
+                      <div className="font-medium text-gray-900">
+                        {getDocumentTypeLabel(doc.documentType)}
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {doc.documentUrl.map((url, urlIndex) => (
+                          <div key={urlIndex} className="relative group">
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="block"
+                            >
+                              <div className="relative aspect-video bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors">
+                                <img
+                                  src={url}
+                                  alt={`${getDocumentTypeLabel(doc.documentType)} ${urlIndex + 1}`}
+                                  className="w-full h-full object-contain"
+                                  style={{ display: "block" }}
+                                  onError={(e) => {
+                                    const target = e.currentTarget;
+                                    target.style.display = "none";
+                                    const parent = target.parentElement;
+                                    if (parent) {
+                                      parent.innerHTML = `
+                                        <div class="flex items-center justify-center h-full text-gray-500 bg-gray-100">
+                                          <FileText class="h-8 w-8" />
+                                        </div>
+                                      `;
+                                    }
+                                  }}
+                                />
+                                <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                  <div className="bg-black/70 backdrop-blur-sm rounded-full p-1.5">
+                                    <ExternalLink className="h-4 w-4 text-white" />
+                                  </div>
+                                </div>
+                              </div>
+                            </a>
+                            <p className="text-xs text-gray-500 mt-1 text-center truncate">
+                              Tài liệu {urlIndex + 1}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Contract Screenshot */}
+              {hasContract && (
+                <div className="space-y-3 border-t pt-4">
+                  <h4 className="font-semibold text-gray-900 text-sm">
+                    Hợp Đồng Đã Ký
+                  </h4>
+                  <div className="relative group">
+                    <a
+                      href={event.eventMetadata?.contractScreenshotUrl || ""}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <div className="relative bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors">
+                        <img
+                          src={event.eventMetadata?.contractScreenshotUrl || ""}
+                          alt="Hợp Đồng Đã Ký"
+                          className="w-full max-h-96 object-contain"
+                          style={{ display: "block" }}
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = "none";
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `
+                                <div class="flex items-center justify-center h-64 text-gray-500 bg-gray-100">
+                                  <FileText class="h-12 w-12" />
+                                </div>
+                              `;
+                            }
+                          }}
+                        />
+                        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                          <div className="bg-black/70 backdrop-blur-sm rounded-full p-1.5">
+                            <ExternalLink className="h-4 w-4 text-white" />
+                          </div>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              )}
+            </div>
+          </DetailCard>
+        )}
 
         {/* Action Buttons */}
         <div className="flex gap-4 pt-4 border-t">
