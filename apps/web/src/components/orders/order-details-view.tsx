@@ -197,8 +197,8 @@ export function OrderDetailsView({ order }: OrderDetailsViewProps) {
     const updatedDate = new Date(order.updatedAt)
     const now = new Date()
 
-    const eventStatus = order.event.lifecycleStatus ?? "scheduled"
-    const startTime = order.event.startTime ? new Date(order.event.startTime) : null
+    const eventStatus = order.event?.lifecycleStatus ?? "scheduled"
+    const startTime = order.event?.startTime ? new Date(order.event.startTime) : null
     const hoursUntilStartTime = startTime && !Number.isNaN(startTime.getTime())
         ? (startTime.getTime() - now.getTime()) / (1000 * 60 * 60)
         : null

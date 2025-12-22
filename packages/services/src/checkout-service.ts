@@ -8,6 +8,8 @@ import {
   updateOrderVNPayData,
   executePaymentTransaction,
   failOrderAndReleaseSeatHolds,
+  expireOrderAndReleaseSeatHolds,
+  getOrderById,
   getOrderByVNPayTxnRef,
   getUserUnconfirmedSeatHolds,
   createOrderWithSeatLocks,
@@ -24,11 +26,213 @@ import {
   generatePaymentUrl,
   ReturnQueryFromVNPay,
   verifyVNPayResponse,
+  queryVNPayPaymentResult,
 } from "@vieticket/utils/vnpay";
+import { cancelMessage, publishJson, type QstashPublishResult } from "@vieticket/queues";
 import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
 import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
 import { sendMail } from "@vieticket/utils/mailer";
 import { user as users } from "@vieticket/db/pg/schemas/users";
+
+function normalizeBaseUrl(value: string) {
+  return value.replace(/\/+$/, "");
+}
+
+function resolveAppBaseUrl() {
+  const explicit = process.env.NEXT_PUBLIC_BASE_URL?.trim();
+  if (explicit) return normalizeBaseUrl(explicit);
+
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) {
+    return normalizeBaseUrl(vercel.startsWith("http") ? vercel : `https://${vercel}`);
+  }
+
+  return null;
+}
+
+function resolvePaymentExpirationSeconds() {
+  const ttl = process.env.PAYMENT_TTL_SECONDS
+    ? Number.parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
+    : 900;
+  return Number.isFinite(ttl) && ttl > 0 ? ttl : 900;
+}
+
+function resolveOrderRevalidateUrl() {
+  const baseUrl = resolveAppBaseUrl();
+  if (!baseUrl) return null;
+  return `${baseUrl}/api/qstash/orders/revalidate`;
+}
+
+async function enqueueOrderPaymentRevalidation(orderId: string, expiresAt: Date) {
+  const url = resolveOrderRevalidateUrl();
+  if (!url) {
+    return {
+      queued: false,
+      kind: "config_missing",
+      reason: "NEXT_PUBLIC_BASE_URL (or VERCEL_URL) is not set.",
+    } satisfies QstashPublishResult;
+  }
+
+  const notBefore = Math.floor(expiresAt.getTime() / 1000) + 1;
+
+  return publishJson({
+    url,
+    body: { orderId },
+    notBefore,
+    deduplicationId: `order-revalidate-${orderId}`,
+  });
+}
+
+function getVNPayPaymentData(
+  paymentMetadata: unknown
+): Record<string, unknown> | null {
+  if (!paymentMetadata || typeof paymentMetadata !== "object") return null;
+  if (!("provider" in paymentMetadata)) return null;
+  if ((paymentMetadata as any).provider !== "vnpay") return null;
+  const data = (paymentMetadata as any).data;
+  if (!data || typeof data !== "object") return null;
+  return data as Record<string, unknown>;
+}
+
+async function clearOrderPaymentRevalidationMessageId(orderId: string) {
+  const latest = await getOrderById(orderId);
+  if (!latest) return;
+  const vnpayData = getVNPayPaymentData(latest.paymentMetadata);
+  if (!vnpayData) return;
+
+  const { paymentRevalidateQstashMessageId: _ignored, ...rest } = vnpayData as any;
+  if (typeof rest.vnp_TxnRef !== "string" || !rest.vnp_TxnRef) return;
+
+  await updateOrderVNPayData(orderId, rest as any);
+}
+
+async function cancelOrderPaymentRevalidation(
+  orderId: string,
+  messageId: string | null | undefined
+) {
+  if (!messageId) return;
+
+  const result = await cancelMessage(messageId);
+  if (!result.cancelled) {
+    console.error(
+      `[checkout-service] Failed to cancel payment revalidation message ${messageId} for order ${orderId}: ${result.reason}`
+    );
+  }
+
+  try {
+    await clearOrderPaymentRevalidationMessageId(orderId);
+  } catch (error) {
+    console.error(
+      `[checkout-service] Failed to clear payment revalidation message id for order ${orderId}`,
+      error
+    );
+  }
+}
+
+function parseVNPayGmt7DateToUtc(value: string | number | null | undefined) {
+  if (value === null || value === undefined) return null;
+  const raw = String(value).trim();
+  if (!/^\d{14}$/.test(raw)) return null;
+
+  const year = Number(raw.slice(0, 4));
+  const month = Number(raw.slice(4, 6)) - 1;
+  const day = Number(raw.slice(6, 8));
+  const hour = Number(raw.slice(8, 10));
+  const minute = Number(raw.slice(10, 12));
+  const second = Number(raw.slice(12, 14));
+
+  if (
+    [year, month, day, hour, minute, second].some((n) => Number.isNaN(n)) ||
+    month < 0 ||
+    month > 11
+  ) {
+    return null;
+  }
+
+  return new Date(Date.UTC(year, month, day, hour - 7, minute, second));
+}
+
+async function attachVNPayPaymentAndScheduleRevalidation({
+  orderId,
+  userId,
+  amount,
+  clientIp,
+  expiresAt,
+  paymentExpirationSeconds,
+}: {
+  orderId: string;
+  userId: string;
+  amount: number;
+  clientIp: string;
+  expiresAt: Date;
+  paymentExpirationSeconds: number;
+}) {
+  let queuedMessageId: string | null = null;
+  try {
+    const baseUrl = resolveAppBaseUrl();
+    if (!baseUrl) {
+      throw new Error("NEXT_PUBLIC_BASE_URL (or VERCEL_URL) is not set.");
+    }
+
+    const returnUrl = `${baseUrl}/api/checkout/vnpay/return`;
+    const orderInfo = `Thanh toan don hang ${orderId}`;
+
+    const { vnp_TxnRef, vnp_CreateDate, vnp_ExpireDate, paymentURL } =
+      generatePaymentUrl({
+        amount,
+        ipAddr: clientIp,
+        orderId,
+        orderInfo,
+        returnUrl,
+        paymentExpirationSeconds,
+      });
+
+    await updateOrderVNPayData(orderId, {
+      vnp_TxnRef,
+      vnp_CreateDate,
+      vnp_ExpireDate,
+      vnp_OrderInfo: orderInfo,
+    } as any);
+
+    const queued = await enqueueOrderPaymentRevalidation(orderId, expiresAt);
+    if (!queued.queued) {
+      throw new Error(
+        `Payment verification queue is not available: ${queued.reason}`
+      );
+    }
+
+    queuedMessageId = queued.messageId;
+
+    await updateOrderVNPayData(orderId, {
+      vnp_TxnRef,
+      vnp_CreateDate,
+      vnp_ExpireDate,
+      vnp_OrderInfo: orderInfo,
+      paymentRevalidateQstashMessageId: queued.messageId,
+    } as any);
+
+    return { vnp_TxnRef, paymentURL };
+  } catch (error) {
+    if (queuedMessageId) {
+      const cancelled = await cancelMessage(queuedMessageId);
+      if (!cancelled.cancelled) {
+        console.error(
+          `[checkout-service] Failed to cancel queued payment revalidation message ${queuedMessageId} for order ${orderId}: ${cancelled.reason}`
+        );
+      }
+    }
+
+    try {
+      await failOrderAndReleaseSeatHolds(orderId, userId);
+    } catch (releaseError) {
+      console.error(
+        `[checkout-service] Failed to release seat holds for order ${orderId} after checkout setup failure`,
+        releaseError
+      );
+    }
+    throw error;
+  }
+}
 
 export async function getShowingTicketData(
   showingId: string,
@@ -227,8 +431,8 @@ export async function createPendingOrder(
   const totalAmount = seatDetails.reduce((sum, seat) => sum + seat.price, 0);
 
   // 4. Create order and seat holds in a transaction with locking
-  const holdDurationMinutes = 15;
-  const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
+  const paymentExpirationSeconds = resolvePaymentExpirationSeconds();
+  const expiresAt = new Date(Date.now() + paymentExpirationSeconds * 1000);
 
   const { order: newOrder } = await createOrderWithSeatLocks(
     {
@@ -242,25 +446,16 @@ export async function createPendingOrder(
     selectedSeatIds
   );
 
-  // 5. Generate VNPay payment URL
-  const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
-  const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
-    ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
-    : 900; // Default 15 minutes
-
-  const { vnp_TxnRef, paymentURL } = generatePaymentUrl({
-    amount: totalAmount,
-    ipAddr: clientIp,
+  const { paymentURL } = await attachVNPayPaymentAndScheduleRevalidation({
     orderId: newOrder.id,
-    orderInfo: `Thanh toan don hang ${newOrder.id}`,
-    returnUrl,
+    userId: user.id,
+    amount: totalAmount,
+    clientIp,
+    expiresAt,
     paymentExpirationSeconds,
   });
 
-  // 6. Store VNPay transaction reference (optional, but good practice)
-  await updateOrderVNPayData(newOrder.id, { vnp_TxnRef });
-
-  // 7. Return response
+  // 5. Return response
   return {
     vnpayURL: paymentURL,
     orderId: newOrder.id,
@@ -329,8 +524,8 @@ export async function createPendingGAOrder(
     );
   }
 
-  const holdDurationMinutes = 15;
-  const expiresAt = new Date(Date.now() + holdDurationMinutes * 60 * 1000);
+  const paymentExpirationSeconds = resolvePaymentExpirationSeconds();
+  const expiresAt = new Date(Date.now() + paymentExpirationSeconds * 1000);
 
   const { order, seats, totalAmount } = await createGAOrderWithSeatLocks({
     eventId: showing.event.id,
@@ -341,21 +536,14 @@ export async function createPendingGAOrder(
     status: "pending_payment",
   });
 
-  const returnUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/checkout/vnpay/return`;
-  const paymentExpirationSeconds = process.env.PAYMENT_TTL_SECONDS
-    ? parseInt(process.env.PAYMENT_TTL_SECONDS, 10)
-    : 900;
-
-  const { vnp_TxnRef, paymentURL } = generatePaymentUrl({
-    amount: totalAmount,
-    ipAddr: clientIp,
+  const { paymentURL } = await attachVNPayPaymentAndScheduleRevalidation({
     orderId: order.id,
-    orderInfo: `Thanh toan don hang ${order.id}`,
-    returnUrl,
+    userId: user.id,
+    amount: totalAmount,
+    clientIp,
+    expiresAt,
     paymentExpirationSeconds,
   });
-
-  await updateOrderVNPayData(order.id, { vnp_TxnRef });
 
   return {
     vnpayURL: paymentURL,
@@ -419,6 +607,12 @@ export async function processPaymentResult(
       };
     }
 
+    const vnpayData = getVNPayPaymentData(order.paymentMetadata);
+    const revalidateMessageId =
+      vnpayData && typeof (vnpayData as any).paymentRevalidateQstashMessageId === "string"
+        ? String((vnpayData as any).paymentRevalidateQstashMessageId)
+        : null;
+
     // 3. If a session exists, ensure it belongs to the order owner
     if (user) {
       if (user.role !== "customer") {
@@ -441,6 +635,7 @@ export async function processPaymentResult(
     if (!vnpayReturn.isSuccess) {
       // Payment failed - update order status
       await failOrderAndReleaseSeatHolds(order.id, order.userId);
+      await cancelOrderPaymentRevalidation(order.id, revalidateMessageId);
 
       return {
         success: false,
@@ -456,6 +651,7 @@ export async function processPaymentResult(
     // 5. Verify payment amount matches order (use verified amount from vnpayReturn)
     if (Math.abs(vnpayReturn.vnp_Amount - order.totalAmount) > 0.01) {
       await failOrderAndReleaseSeatHolds(order.id, order.userId);
+      await cancelOrderPaymentRevalidation(order.id, revalidateMessageId);
 
       return {
         success: false,
@@ -491,6 +687,7 @@ export async function processPaymentResult(
     if (order.status === "paid") {
       // Order already confirmed, return existing ticket details
       const tickets = await getTicketDetails(order.id);
+      await cancelOrderPaymentRevalidation(order.id, revalidateMessageId);
 
       return {
         success: true,
@@ -516,6 +713,7 @@ export async function processPaymentResult(
       order.status === "refunded" ||
       order.status === "partial_refunded"
     ) {
+      await cancelOrderPaymentRevalidation(order.id, revalidateMessageId);
       return {
         success: false,
         orderId: order.id,
@@ -545,11 +743,16 @@ export async function processPaymentResult(
       status: "active" as const,
     }));
 
+    const paidAt = parseVNPayGmt7DateToUtc(vnpayReturn.vnp_PayDate);
+
     // 8. Execute payment confirmation transaction with pre-generated ticket data
     const transactionResult = await executePaymentTransaction(
       order.id,
       order.userId,
-      ticketData
+      ticketData,
+      {
+        validationTime: paidAt ?? new Date(),
+      }
     );
 
     // 9. Get detailed ticket information
@@ -570,6 +773,8 @@ export async function processPaymentResult(
       // Log email error but don't fail the order
       console.error("Failed to send order confirmation email:", emailError);
     }
+
+    await cancelOrderPaymentRevalidation(order.id, revalidateMessageId);
 
     // 11. Return success response
     return {
@@ -601,6 +806,190 @@ export async function processPaymentResult(
       },
     };
   }
+}
+
+export type OrderPaymentRevalidationResult =
+  | { ok: true; orderId: string; orderStatus: string; skipped?: boolean }
+  | { ok: false; orderId: string; reason: string };
+
+/**
+ * QStash-triggered payment revalidation for orders that never return from VNPay.
+ * Queries VNPay and finalizes the order (paid/expired) accordingly.
+ */
+export async function revalidateOrderPayment(
+  orderId: string
+): Promise<OrderPaymentRevalidationResult> {
+  const order = await getOrderById(orderId);
+  if (!order) return { ok: false, orderId, reason: "Order not found" };
+
+  // Idempotency / already-terminal
+  if (
+    order.status === "paid" ||
+    order.status === "failed" ||
+    order.status === "expired" ||
+    order.status === "cancelled" ||
+    order.status === "refunded" ||
+    order.status === "partial_refunded"
+  ) {
+    try {
+      await clearOrderPaymentRevalidationMessageId(orderId);
+    } catch {
+      // ignore
+    }
+    return { ok: true, orderId, orderStatus: order.status, skipped: true };
+  }
+
+  if (!order.expiresAt) {
+    return { ok: false, orderId, reason: "Order has no expiresAt" };
+  }
+
+  const paymentMetadata = order.paymentMetadata as any;
+  const vnpayData =
+    paymentMetadata && paymentMetadata.provider === "vnpay"
+      ? (paymentMetadata.data as Record<string, unknown>)
+      : null;
+
+  if (!vnpayData) {
+    return { ok: false, orderId, reason: "Unsupported payment provider" };
+  }
+
+  const txnRef = typeof vnpayData.vnp_TxnRef === "string" ? vnpayData.vnp_TxnRef : "";
+  const orderInfo =
+    typeof vnpayData.vnp_OrderInfo === "string" && vnpayData.vnp_OrderInfo.trim()
+      ? vnpayData.vnp_OrderInfo
+      : `Thanh toan don hang ${orderId}`;
+
+  const transactionDateRaw = vnpayData.vnp_CreateDate;
+  const transactionDate = Number(transactionDateRaw);
+
+  if (!txnRef) {
+    return { ok: false, orderId, reason: "Missing vnp_TxnRef" };
+  }
+  if (!Number.isFinite(transactionDate) || transactionDate <= 0) {
+    return { ok: false, orderId, reason: "Missing vnp_CreateDate for queryDr" };
+  }
+
+  const transactionNo =
+    typeof vnpayData.vnp_TransactionNo === "number"
+      ? vnpayData.vnp_TransactionNo
+      : undefined;
+
+  const query = await queryVNPayPaymentResult({
+    txnRef,
+    orderInfo,
+    transactionDate,
+    transactionNo,
+  });
+
+  if (!query.verified) {
+    throw new Error("VNPay queryDr response is not verified");
+  }
+  if (!query.queryOk) {
+    return {
+      ok: false,
+      orderId,
+      reason: `VNPay queryDr failed with code ${query.responseCode ?? "unknown"}`,
+    };
+  }
+
+  if (!query.success) {
+    await expireOrderAndReleaseSeatHolds(orderId, order.userId);
+    try {
+      await clearOrderPaymentRevalidationMessageId(orderId);
+    } catch {
+      // ignore
+    }
+    return { ok: true, orderId, orderStatus: "expired" };
+  }
+
+  const paidAt = parseVNPayGmt7DateToUtc(query.payDate);
+  if (!paidAt) {
+    throw new Error("Missing VNPay vnp_PayDate in queryDr response");
+  }
+  if (paidAt > order.expiresAt) {
+    await expireOrderAndReleaseSeatHolds(orderId, order.userId);
+    try {
+      await clearOrderPaymentRevalidationMessageId(orderId);
+    } catch {
+      // ignore
+    }
+    return { ok: true, orderId, orderStatus: "expired" };
+  }
+
+  const rawAmount = Number(query.amount);
+  const expectedAmount = Number(order.totalAmount);
+  const amountMatches =
+    Number.isFinite(rawAmount) &&
+    (Math.abs(rawAmount - expectedAmount) < 0.01 ||
+      Math.abs(rawAmount / 100 - expectedAmount) < 0.01);
+  if (!amountMatches) {
+    await failOrderAndReleaseSeatHolds(orderId, order.userId);
+    try {
+      await clearOrderPaymentRevalidationMessageId(orderId);
+    } catch {
+      // ignore
+    }
+    return { ok: true, orderId, orderStatus: "failed" };
+  }
+
+  // Persist VNPay identifiers (best-effort)
+  try {
+    const existing =
+      paymentMetadata &&
+      paymentMetadata.provider === "vnpay" &&
+      paymentMetadata.data
+        ? (paymentMetadata.data as Record<string, unknown>)
+        : {};
+
+    await updateOrderVNPayData(orderId, {
+      ...existing,
+      vnp_TxnRef: txnRef,
+      vnp_PayDate: query.payDate,
+      vnp_TransactionNo: query.transactionNo,
+    } as any);
+  } catch (metaError) {
+    console.error("[checkout-service] Failed to persist VNPay queryDr metadata:", metaError);
+  }
+
+  const seatHolds = await getUserUnconfirmedSeatHolds(order.userId, orderId);
+  if (seatHolds.length === 0) {
+    try {
+      await clearOrderPaymentRevalidationMessageId(orderId);
+    } catch {
+      // ignore
+    }
+    return { ok: true, orderId, orderStatus: order.status ?? "pending_payment", skipped: true };
+  }
+
+  const ticketData = seatHolds.map((hold) => ({
+    seatId: hold.seatId,
+    status: "active" as const,
+  }));
+
+  const transactionResult = await executePaymentTransaction(orderId, order.userId, ticketData, {
+    validationTime: paidAt,
+  });
+
+  const ticketDetails = await getTicketDetails(orderId);
+
+  try {
+    const orderOwner = await db.query.user.findFirst({
+      where: eq(users.id, order.userId),
+    });
+    if (orderOwner) {
+      await sendOrderConfirmationEmail(orderOwner, transactionResult.order, ticketDetails);
+    }
+  } catch (emailError) {
+    console.error("[checkout-service] Failed to send order confirmation email:", emailError);
+  }
+
+  try {
+    await clearOrderPaymentRevalidationMessageId(orderId);
+  } catch {
+    // ignore
+  }
+
+  return { ok: true, orderId, orderStatus: "paid" };
 }
 
 /**

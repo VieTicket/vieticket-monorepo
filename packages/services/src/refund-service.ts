@@ -99,7 +99,7 @@ async function enqueueRefundExecutionAndMarkProcessing(refundId: string) {
   return queued;
 }
 
-async function enqueueRefundExecutionBestEffort(refundId: string) {
+async function enqueueRefundExecutionWithFallback(refundId: string) {
   try {
     const result = await enqueueRefundExecutionAndMarkProcessing(refundId);
     if (!result.queued) {
@@ -238,7 +238,7 @@ export async function createRefund(
   );
 
   if (record.status === "approved") {
-    const queued = await enqueueRefundExecutionBestEffort(record.id);
+    const queued = await enqueueRefundExecutionWithFallback(record.id);
     if (queued?.queued) {
       record.status = "processing";
     }
@@ -314,7 +314,7 @@ export async function approveRefund(
 
   const updated = await updateRefundRecord(refundId, patch);
   if (updated?.status === "approved") {
-    const queued = await enqueueRefundExecutionBestEffort(updated.id);
+    const queued = await enqueueRefundExecutionWithFallback(updated.id);
     if (queued?.queued) {
       updated.status = "processing";
     }
