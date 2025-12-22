@@ -183,31 +183,35 @@ const EventCard = ({
               <Button
                 onClick={() => onEdit(event.id)}
                 variant="outline"
-                className="flex-1"
                 size="sm"
+                className="px-3 flex-shrink-0"
+                title="Edit"
               >
-                <Edit className="h-4 w-4 mr-2" />
-                Edit
+                <Edit className="h-4 w-4" />
               </Button>
             )}
             <Button
               onClick={() => onApprove(event.id)}
               disabled={isProcessing || event.approvalStatus === "approved"}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-300"
+              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-green-300 min-w-0"
               size="sm"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {event.approvalStatus === "approved" ? "Approved" : "Approve"}
+              <CheckCircle className="h-4 w-4 mr-1.5 flex-shrink-0" />
+              <span className="truncate">
+                {event.approvalStatus === "approved" ? "Approved" : "Approve"}
+              </span>
             </Button>
             <Button
               onClick={() => onReject(event.id)}
               disabled={isProcessing || event.approvalStatus === "rejected"}
               variant="destructive"
-              className="flex-1 disabled:bg-red-300"
+              className="flex-1 disabled:bg-red-300 min-w-0"
               size="sm"
             >
-              <XCircle className="h-4 w-4 mr-2" />
-              {event.approvalStatus === "rejected" ? "Rejected" : "Reject"}
+              <XCircle className="h-4 w-4 mr-1.5 flex-shrink-0" />
+              <span className="truncate">
+                {event.approvalStatus === "rejected" ? "Rejected" : "Reject"}
+              </span>
             </Button>
           </div>
         ) : (
@@ -612,6 +616,7 @@ export default function EventsPendingPage() {
         onApprove={handleApprove}
         onReject={handleReject}
         isProcessing={processingEventId === selectedEvent?.id}
+        onEdit={handleEdit}
       />
     </div>
   );
