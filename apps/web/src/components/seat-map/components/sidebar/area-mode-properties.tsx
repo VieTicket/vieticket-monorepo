@@ -54,7 +54,7 @@ export const AreaModeProperties = React.memo(
     const updateShapes = useSeatMapStore((state) => state.updateShapes);
     const [activeTab, setActiveTab] = useState<TabType>("grid");
     console.log("AreaModeProperties rerendered");
-    // ========== GRID HANDLERS ==========
+
     const handleGridUpdate = useCallback(
       (
         gridId: string,
@@ -139,7 +139,6 @@ export const AreaModeProperties = React.memo(
       createNewGridFromSelection();
     }, []);
 
-    // ========== ROW HANDLERS ==========
     const handleRowUpdate = useCallback(
       (
         gridId: string,
@@ -327,7 +326,6 @@ export const AreaModeProperties = React.memo(
       selectSeatsInRow(rowId);
     }, []);
 
-    // ========== SEAT HANDLERS ==========
     const handleSeatUpdate = useCallback(
       (updates: Partial<SeatShape>) => {
         console.log("Seat Updates:", updates);
@@ -338,66 +336,75 @@ export const AreaModeProperties = React.memo(
             shape.type === "ellipse" && "rowId" in shape && "gridId" in shape
         );
 
-        if (seatShapes.length !== 1) return;
+        if (seatShapes.length === 0) return;
 
-        const seat = seatShapes[0];
+        const beforeSeats = cloneCanvasItems(seatShapes);
 
-        const hasChanges = Object.entries(updates).some(([key, value]) => {
-          return (seat as any)[key] !== value;
+        seatShapes.forEach((seat) => {
+          Object.assign(seat, updates);
+
+          if (updates.x !== undefined || updates.y !== undefined) {
+            seat.graphics.position.set(seat.x, seat.y);
+          }
+
+          if (updates.name !== undefined && seat.labelGraphics) {
+            seat.labelGraphics.text = updates.name;
+          }
+
+          if (updates.labelStyle !== undefined && seat.labelGraphics) {
+            seat.labelGraphics.style = createPixiTextStyle(seat.labelStyle);
+          }
+
+          if (updates.showLabel !== undefined && seat.labelGraphics) {
+            seat.labelGraphics.visible = updates.showLabel;
+          }
+
+          // ✅ Handle status update - only update the ring color, not seat color
+          if (updates.status !== undefined) {
+            seat.status = updates.status;
+            // Update the status ring color
+            if (seat.statusRing) {
+              seat.statusRing.clear();
+              if (seat.status.name !== "available") {
+                seat.statusRing
+                  .ellipse(0, 0, seat.radiusX + 3, seat.radiusY + 3)
+                  .stroke({
+                    width: 2,
+                    color: updates.status.color,
+                  });
+              }
+            }
+          }
+
+          if (
+            updates.color !== undefined ||
+            updates.strokeColor !== undefined ||
+            updates.strokeWidth !== undefined ||
+            updates.radiusX !== undefined ||
+            updates.radiusY !== undefined
+          ) {
+            updateSeatGraphics(seat);
+          }
+
+          if (updates.rotation !== undefined) {
+            seat.graphics.rotation = seat.rotation;
+            const row = getRowByIdFromAllGrids(seat.rowId);
+            const grid = getGridByRowId(seat.rowId);
+            updateSeatLabelRotation(seat, row, grid);
+          }
+
+          if (updates.scaleX !== undefined || updates.scaleY !== undefined) {
+            seat.graphics.scale.set(seat.scaleX, seat.scaleY);
+          }
+
+          if (updates.opacity !== undefined) {
+            seat.graphics.alpha = seat.opacity;
+          }
+
+          if (updates.visible !== undefined) {
+            seat.graphics.visible = seat.visible;
+          }
         });
-
-        if (!hasChanges) {
-          return;
-        }
-
-        const beforeSeat = cloneCanvasItem(seat);
-
-        Object.assign(seat, updates);
-
-        if (updates.x !== undefined || updates.y !== undefined) {
-          seat.graphics.position.set(seat.x, seat.y);
-        }
-
-        if (updates.name !== undefined && seat.labelGraphics) {
-          seat.labelGraphics.text = updates.name;
-        }
-
-        if (updates.labelStyle !== undefined && seat.labelGraphics) {
-          seat.labelGraphics.style = createPixiTextStyle(seat.labelStyle);
-        }
-
-        if (updates.showLabel !== undefined && seat.labelGraphics) {
-          seat.labelGraphics.visible = updates.showLabel;
-        }
-
-        if (
-          updates.color !== undefined ||
-          updates.strokeColor !== undefined ||
-          updates.strokeWidth !== undefined ||
-          updates.radiusX !== undefined ||
-          updates.radiusY !== undefined
-        ) {
-          updateSeatGraphics(seat);
-        }
-
-        if (updates.rotation !== undefined) {
-          seat.graphics.rotation = seat.rotation;
-          const row = getRowByIdFromAllGrids(seat.rowId);
-          const grid = getGridByRowId(seat.rowId);
-          updateSeatLabelRotation(seat, row, grid);
-        }
-
-        if (updates.scaleX !== undefined || updates.scaleY !== undefined) {
-          seat.graphics.scale.set(seat.scaleX, seat.scaleY);
-        }
-
-        if (updates.opacity !== undefined) {
-          seat.graphics.alpha = seat.opacity;
-        }
-
-        if (updates.visible !== undefined) {
-          seat.graphics.visible = seat.visible;
-        }
 
         updateShapes([...shapes], false, undefined, false);
         const selectionTransform = getSelectionTransform();
@@ -407,13 +414,11 @@ export const AreaModeProperties = React.memo(
 
         const context: ShapeContext = {
           topLevel: [],
-          nested: [
-            {
-              id: seat.id,
-              type: "ellipse",
-              parentId: seat.rowId,
-            },
-          ],
+          nested: seatShapes.map((seat) => ({
+            id: seat.id,
+            type: "ellipse",
+            parentId: seat.rowId,
+          })),
           operation: "modify",
           containerPositions: {
             [areaModeContainer.id]: {
@@ -425,12 +430,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: [beforeSeat],
+            shapes: beforeSeats,
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: [seat],
+            shapes: seatShapes,
             selectedShapes: selectedShapes,
             context,
           }
@@ -441,7 +446,6 @@ export const AreaModeProperties = React.memo(
       [shapes, selectedShapes]
     );
 
-    // ========== SELECTION ANALYSIS ==========
     const selectionAnalysis = useMemo(() => {
       if (!areaModeContainer || selectedShapes.length === 0) {
         return { type: "none" };
@@ -719,18 +723,15 @@ export const AreaModeProperties = React.memo(
         ) as RowShape[];
         if (affectedRows.length === 0) return;
 
-        // ✅ Clone BEFORE making changes (captures original seat labels)
         const beforeSeats = cloneCanvasItems(
           affectedRows.map((row) => row.children).flat()
         );
 
-        // Apply changes
         rowIds.forEach((rowId) => {
           reverseRowSeatLabels(gridId, rowId);
         });
 
-        // ✅ Get the AFTER state (now affectedRows have updated seat labels)
-        const afterSeats = affectedRows.map((row) => row.children).flat(); // These are already modified
+        const afterSeats = affectedRows.map((row) => row.children).flat();
 
         updateShapes([...shapes], false, undefined, false);
 
@@ -752,12 +753,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: beforeSeats, // Original state with old labels
+            shapes: beforeSeats,
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: afterSeats, // Modified state with reversed labels
+            shapes: afterSeats,
             selectedShapes: selectedShapes,
             context,
           }
@@ -786,13 +787,11 @@ export const AreaModeProperties = React.memo(
           affectedRows.map((row) => row.children).flat()
         );
 
-        // Apply changes
         rowIds.forEach((rowId) => {
           renumberSeatsInRow(gridId, rowId, startNumber, step);
         });
 
-        // ✅ Get the AFTER state (now affectedRows have updated seat numbers)
-        const afterSeats = affectedRows.map((row) => row.children).flat(); // These are already modified
+        const afterSeats = affectedRows.map((row) => row.children).flat();
 
         updateShapes([...shapes], false, undefined, false);
 
@@ -814,12 +813,12 @@ export const AreaModeProperties = React.memo(
 
         const action = useSeatMapStore.getState()._saveToHistory(
           {
-            shapes: beforeSeats, // Original state with old numbers
+            shapes: beforeSeats,
             selectedShapes: selectedShapes,
             context,
           },
           {
-            shapes: afterSeats, // Modified state with new numbers
+            shapes: afterSeats,
             selectedShapes: selectedShapes,
             context,
           }
@@ -846,7 +845,6 @@ export const AreaModeProperties = React.memo(
 
         const beforeRows = cloneCanvasItems(affectedRows);
 
-        // Apply to all rows with sequential letters
         let currentCharCode = startLetter.toUpperCase().charCodeAt(0);
         rowIds.forEach((rowId) => {
           const letter = String.fromCharCode(currentCharCode);

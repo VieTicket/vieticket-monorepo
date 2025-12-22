@@ -314,16 +314,15 @@ export default function SeatMapSeatSelectionPage({
         initializeAreaModeContainer();
 
         const canvas = app.canvas;
-        const preventZoom = (e: WheelEvent) => {
-          if (e.ctrlKey || e.metaKey) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
+        const preventZoomAndScroll = (e: WheelEvent) => {
+          e.preventDefault();
+          e.stopPropagation();
         };
-
-        canvas.addEventListener("wheel", preventZoom, { passive: false });
+        canvas.addEventListener("wheel", preventZoomAndScroll, {
+          passive: false,
+        });
         (canvas as any).__preventZoomCleanup = () => {
-          canvas.removeEventListener("wheel", preventZoom);
+          canvas.removeEventListener("wheel", preventZoomAndScroll);
         };
 
         setAppState((prev) => ({ ...prev, pixiInitialized: true }));

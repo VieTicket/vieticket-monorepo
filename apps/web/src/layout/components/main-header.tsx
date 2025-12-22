@@ -229,11 +229,6 @@ export default function Header() {
                   <span>Tickets</span>
                   <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
                 </Link>
-                <div className="relative flex items-center gap-3 py-3 px-4 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
-                  <Star className="w-5 h-5" />
-                  <span>Interested</span>
-                  <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />
-                </div>
                 <div className="relative py-3 px-4 hover:text-violet-300 transition-all duration-300 cursor-pointer group">
                   <ProfileDropdown />
                   <div className="h-0.5 bg-gradient-to-r from-violet-300 to-violet-400 w-0 group-hover:w-full absolute bottom-0 left-0 transition-all duration-300" />

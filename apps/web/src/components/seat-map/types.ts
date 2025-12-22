@@ -56,6 +56,7 @@ export interface SeatShape extends Omit<EllipseShape, "graphics"> {
   rowId: string;
   gridId: string;
   status: SeatStatus;
+  statusRing: PIXI.Graphics;
   seatGraphics: PIXI.Graphics;
   labelGraphics: PIXI.Text;
   showLabel: boolean;

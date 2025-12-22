@@ -36,7 +36,7 @@ import { MainToolbar } from "@/components/seat-map/components/main-toolbar";
 import { CanvasInventory } from "@/components/seat-map/components/canvas-inventory";
 import { PropertiesSidebar } from "@/components/seat-map/components/properties-sidebar";
 import { updateStageHitArea } from "@/components/seat-map/utils/stageTransform";
-// import ClientConnection from "@/components/seat-map/components/client-connection"; // ✅ Commented out
+
 import { useSeatMapStore } from "@/components/seat-map/store/seat-map-store";
 import {
   createGuideLines,
@@ -46,7 +46,7 @@ import { authClient } from "@/lib/auth/auth-client";
 import {
   recreateShape,
   restoreHistoryAfterSeatMapLoad,
-} from "@/components/seat-map/utils/undo-redo"; // ✅ Import recreateShape
+} from "@/components/seat-map/utils/undo-redo";
 import { CanvasItem, RowShape } from "@/components/seat-map/types";
 import { ValidationManager } from "@/components/seat-map/components/toolbar/validation-notification";
 import { updateRowLabelRotation } from "@/components/seat-map/shapes/row-shape";
@@ -62,7 +62,7 @@ const SeatMapV2PageInner = () => {
   const eventId = searchParams.get("eventId");
   const { data: session } = authClient.useSession();
   const router = useRouter();
-  // ✅ Direct API fetch function (copied from socket server)
+
   const fetchSeatMapAndOrganizer = async (
     seatMapId: string,
     userId: string
@@ -84,7 +84,7 @@ const SeatMapV2PageInner = () => {
     }
 
     const json = await res.json();
-    return json; // Expecting { seatMap, organizer } shape from the route
+    return json;
   };
 
   useEffect(() => {
@@ -102,19 +102,13 @@ const SeatMapV2PageInner = () => {
     setLoadingError(null);
 
     try {
-      console.log("🚀 Loading seat map data directly via API...");
-
-      // Set store loading state
       useSeatMapStore.setState({ isLoading: true });
 
-      // Fetch seat map data
       const data = await fetchSeatMapAndOrganizer(seatMapId, session.user.id);
 
-      if (!data.seatMap) {
-        throw new Error("Seat map not found");
+      if (data.status === "") {
       }
 
-      // ✅ Update store with seat map info
       useSeatMapStore.setState({
         seatMap: {
           id: data.seatMap.id,
@@ -129,10 +123,7 @@ const SeatMapV2PageInner = () => {
         isLoading: false,
       });
 
-      // ✅ Recreate shapes if they exist
       if (data.seatMap.shapes && Array.isArray(data.seatMap.shapes)) {
-        console.log("🔄 Recreating", data.seatMap.shapes.length, "shapes...");
-
         try {
           const recreatedShapes: CanvasItem[] = [];
 
@@ -140,8 +131,8 @@ const SeatMapV2PageInner = () => {
             try {
               const recreatedShape = await recreateShape(
                 shapeData,
-                true, // addShapeEvents
-                false // useRelativePositioning
+                true,
+                false
               );
 
               if (shapeContainer) {
@@ -154,7 +145,6 @@ const SeatMapV2PageInner = () => {
             }
           }
 
-          // ✅ Check if we have area mode container
           const hasAreaModeContainer = recreatedShapes.find(
             (shape: any) => shape.id === "area-mode-container-id"
           );
@@ -164,29 +154,9 @@ const SeatMapV2PageInner = () => {
           } else {
             setShapes(recreatedShapes);
           }
-
-          if (areaModeContainer) {
-            areaModeContainer.children.forEach((grid) => {
-              grid.children.forEach((row) => {
-                updateRowLabelRotation(row, grid);
-
-                row.children.forEach((seat) => {
-                  updateSeatLabelRotation(seat, row, grid);
-                });
-              });
-            });
-          }
-
-          // ✅ Update store with recreated shapes
           useSeatMapStore
             .getState()
             .updateShapes([...shapes], false, undefined, false);
-
-          console.log(
-            "✅ Successfully recreated",
-            recreatedShapes.length,
-            "shapes"
-          );
         } catch (error) {
           console.error("Failed to recreate shapes:", error);
           throw new Error("Failed to recreate seat map shapes");
@@ -194,20 +164,27 @@ const SeatMapV2PageInner = () => {
       }
 
       try {
-        console.log("📤 Attempting to restore history from localStorage...");
         const historyRestored = await restoreHistoryAfterSeatMapLoad(seatMapId);
-
-        if (historyRestored) {
-          console.log("✅ Successfully restored undo/redo history");
-        } else {
-          console.log("ℹ️ No stored history found for this seat map");
-        }
       } catch (error) {
         console.warn(
           "⚠️ Failed to restore history, continuing without it:",
           error
         );
       }
+      if (areaModeContainer) {
+        areaModeContainer.children.forEach((grid) => {
+          grid.children.forEach((row) => {
+            updateRowLabelRotation(row, grid);
+
+            row.children.forEach((seat) => {
+              updateSeatLabelRotation(seat, row, grid);
+            });
+          });
+        });
+      }
+      useSeatMapStore
+        .getState()
+        .updateShapes([...shapes], false, undefined, false);
     } catch (error) {
       console.error("Error loading seat map:", error);
       const errorMessage =
@@ -219,26 +196,21 @@ const SeatMapV2PageInner = () => {
     }
   };
 
-  // Handle window resize
   const handleResize = useCallback(() => {
     if (pixiApp && pixiContainerRef.current) {
       const container = pixiContainerRef.current;
       const newWidth = container.clientWidth;
       const newHeight = container.clientHeight;
 
-      // Resize the PIXI application
       pixiApp.renderer.resize(newWidth, newHeight);
 
-      // Update stage hit area to match new dimensions
       updateStageHitArea();
     }
   }, []);
 
-  // Window resize effect
   useEffect(() => {
     window.addEventListener("resize", handleResize);
 
-    // Also handle container resize with ResizeObserver
     let resizeObserver: ResizeObserver | null = null;
 
     if (pixiContainerRef.current) {
@@ -254,17 +226,14 @@ const SeatMapV2PageInner = () => {
     };
   }, [handleResize]);
 
-  // Prevent browser zoom on the canvas area
   useEffect(() => {
     const handleWheel = (event: WheelEvent) => {
-      // Check if the event is coming from our canvas area
       if (pixiContainerRef.current?.contains(event.target as Node)) {
         event.preventDefault();
         event.stopPropagation();
       }
     };
 
-    // Add event listeners with passive: false to ensure preventDefault works
     document.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
@@ -272,7 +241,6 @@ const SeatMapV2PageInner = () => {
     };
   }, []);
 
-  // ✅ PIXI initialization effect
   useEffect(() => {
     let cancelled = false;
 
@@ -348,9 +316,6 @@ const SeatMapV2PageInner = () => {
         canvas.removeEventListener("wheel", preventZoom);
       };
 
-      console.log("✅ PIXI application initialized successfully");
-
-      // ✅ Load seat map data after PIXI initialization
       if (seatMapId && session?.user?.id) {
         await loadSeatMapData();
       }
@@ -361,9 +326,6 @@ const SeatMapV2PageInner = () => {
     return () => {
       cancelled = true;
       if (pixiApp) {
-        console.log("🧹 Cleaning up PIXI application");
-
-        // Clean up the wheel event listener
         const canvas = pixiApp.canvas;
         if ((canvas as any).__preventZoomCleanup) {
           (canvas as any).__preventZoomCleanup();
@@ -376,21 +338,18 @@ const SeatMapV2PageInner = () => {
         resetVariables();
       }
     };
-  }, []); // ✅ Empty dependency array - only run once
+  }, []);
 
-  // ✅ Load seat map when session and seatMapId are available
   useEffect(() => {
     if (seatMapId && session?.user?.id && pixiApp && !isLoadingSeatMap) {
       loadSeatMapData();
     }
   }, [seatMapId, session?.user?.id, pixiApp]);
 
-  // ✅ Show loading/error states
   const isLoading =
     useSeatMapStore((state) => state.isLoading) || isLoadingSeatMap;
 
   const renderLoadingError = (error: string) => {
-    console.log("Rendering loading error:", error);
     if (error.includes("403"))
       return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">

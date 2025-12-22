@@ -58,6 +58,9 @@ export const createSeat = (
   container.cursor = "pointer";
   container.interactive = true;
 
+  // ✅ Create status ring (outer ring)
+  const statusRing = new PIXI.Graphics();
+  // Create main seat graphics
   const seatGraphics = new PIXI.Graphics();
   seatGraphics
     .ellipse(0, 0, seatSettings.seatRadius, seatSettings.seatRadius)
@@ -77,6 +80,8 @@ export const createSeat = (
   labelGraphics.position.set(0, 0);
   labelGraphics.visible = showLabel;
 
+  // ✅ Add status ring first (behind seat)
+  container.addChild(statusRing);
   container.addChild(seatGraphics);
   container.addChild(labelGraphics);
 
@@ -88,8 +93,9 @@ export const createSeat = (
     type: "ellipse",
     graphics: container,
     seatGraphics,
+    statusRing, // ✅ Add reference to status ring
     labelGraphics,
-    status: { name: "available", color: seatSettings.seatColor },
+    status: { name: "available", color: 0x4ade80 },
     x,
     y,
     radiusX: seatSettings.seatRadius,
@@ -149,6 +155,22 @@ export const recreateSeat = (
         price: 0,
       };
 
+  // ✅ Create status ring
+  const statusRing = new PIXI.Graphics();
+  const statusColor = seatData.status?.color || 0x4ade80;
+  if (seatData.status?.name !== "available") {
+    statusRing
+      .ellipse(
+        0,
+        0,
+        effectiveSettings.seatRadius + 3,
+        effectiveSettings.seatRadius + 3
+      )
+      .stroke({
+        width: 2,
+        color: statusColor,
+      });
+  }
   const seatGraphics = new PIXI.Graphics();
   seatGraphics
     .ellipse(0, 0, effectiveSettings.seatRadius, effectiveSettings.seatRadius)
@@ -170,6 +192,8 @@ export const recreateSeat = (
   labelGraphics.position.set(0, 0);
   labelGraphics.visible = seatData.showLabel ?? true;
 
+  // ✅ Add status ring first
+  container.addChild(statusRing);
   container.addChild(seatGraphics);
   container.addChild(labelGraphics);
 
@@ -185,10 +209,11 @@ export const recreateSeat = (
     type: "ellipse",
     graphics: container,
     seatGraphics,
+    statusRing, // ✅ Add reference
     labelGraphics,
     x: seatData.x,
     y: seatData.y,
-    status: seatData.status,
+    status: seatData.status || { name: "available", color: 0x4ade80 },
     radiusX: effectiveSettings.seatRadius,
     radiusY: effectiveSettings.seatRadius,
     color: effectiveSettings.seatColor,
@@ -219,8 +244,22 @@ export const recreateSeat = (
 };
 
 export const updateSeatGraphics = (seat: SeatShape): void => {
-  if (!seat.graphics || !seat.seatGraphics || !seat.labelGraphics) return;
+  if (
+    !seat.graphics ||
+    !seat.seatGraphics ||
+    !seat.labelGraphics ||
+    !seat.statusRing
+  )
+    return;
 
+  if (seat.status.name !== "available") {
+    seat.statusRing.clear();
+    seat.statusRing.ellipse(0, 0, seat.radiusX + 2, seat.radiusY + 2).stroke({
+      width: 2,
+      color: seat.status.color,
+    });
+  }
+  // Update main seat graphics
   seat.seatGraphics.clear();
   seat.seatGraphics
     .ellipse(0, 0, seat.radiusX, seat.radiusY)

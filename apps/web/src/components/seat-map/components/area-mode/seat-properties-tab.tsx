@@ -2,7 +2,13 @@
 
 import React, { useState } from "react";
 import { ArrowLeftRight, Circle as CircleIcon } from "lucide-react";
-import { SeatShape, GridShape, RowShape, SeatGridSettings } from "../../types";
+import {
+  SeatShape,
+  GridShape,
+  RowShape,
+  SeatGridSettings,
+  SeatStatus,
+} from "../../types";
 import { DebouncedInput } from "../inputs/debounced-input";
 import { DebouncedTextarea } from "../inputs/debounced-textarea";
 import { ColorPicker } from "../inputs/color-picker";
@@ -30,12 +36,44 @@ interface SeatPropertiesTabProps {
   onSeatUpdate: (updates: Partial<SeatShape>) => void;
 }
 
+// ✅ Define seat status options with colors
+const SEAT_STATUS_OPTIONS: Array<{
+  value: SeatStatus["name"];
+  label: string;
+  color: number;
+  description: string;
+}> = [
+  {
+    value: "available",
+    label: "Available",
+    color: 0x4ade80,
+    description: "Seat is available for booking",
+  },
+  {
+    value: "reserved",
+    label: "Reserved",
+    color: 0xfbbf24,
+    description: "Reserved for personal reasons",
+  },
+  {
+    value: "sold",
+    label: "Sold",
+    color: 0x60a5fa,
+    description: "Seat has been sold",
+  },
+  {
+    value: "blocked",
+    label: "Blocked/Damaged",
+    color: 0xef4444,
+    description: "Seat is blocked or damaged",
+  },
+];
+
 export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
   selectionAnalysis,
   selectedShapes,
   onGridUpdate,
   onSeatUpdate,
-
   onReverseSeatLabels,
   onRenumberSeats,
 }) => {
@@ -43,6 +81,7 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
   const [numberingStep, setNumberingStep] = useState(1);
   const seats = selectionAnalysis.seats || [];
   const isSingleSeatSelected = seats.length === 1;
+  const isMultipleSeatsSelected = seats.length > 1;
   const grid = selectionAnalysis.grid;
   const gridId = selectionAnalysis.gridId;
 
@@ -124,7 +163,6 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
         (sum: number, r: RowShape) => sum + r.children.length,
         0
       );
-      // ✅ Still allow access to all rows in the grid for tools
       rows = grid.children;
       break;
   }
@@ -139,12 +177,69 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
     }
     return [];
   };
+
+  // ✅ Handle seat status change
+  const handleSeatStatusChange = (statusName: SeatStatus["name"]) => {
+    const statusOption = SEAT_STATUS_OPTIONS.find(
+      (opt) => opt.value === statusName
+    );
+    if (statusOption) {
+      onSeatUpdate({
+        status: {
+          name: statusName,
+          color: statusOption.color,
+        },
+      });
+    }
+  };
+
   return (
     <div className="p-4 space-y-4">
       <div className="flex items-center space-x-2 text-sm font-semibold border-b border-gray-700 pb-2">
         <CircleIcon className="w-4 h-4 text-purple-400" />
         <span>Seat Properties</span>
       </div>
+
+      {/* ✅ Seat Status Selector - Show for single or multiple seats */}
+      {(isSingleSeatSelected || isMultipleSeatsSelected) && (
+        <div>
+          <label className="block text-sm font-medium mb-2">
+            Seat Status
+            {isMultipleSeatsSelected && (
+              <span className="text-xs text-gray-400 ml-2">
+                ({seats.length} seats selected)
+              </span>
+            )}
+          </label>
+          <select
+            value={isSingleSeatSelected ? seat.status.name : ""}
+            onChange={(e) =>
+              handleSeatStatusChange(e.target.value as SeatStatus["name"])
+            }
+            className="w-full px-3 py-2 border border-gray-600 rounded text-sm bg-gray-800 text-white "
+          >
+            {!isSingleSeatSelected && (
+              <option value="">-- Select Status --</option>
+            )}
+            {SEAT_STATUS_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+
+          {isSingleSeatSelected && (
+            <p className="text-xs text-gray-400 mt-1">
+              {
+                SEAT_STATUS_OPTIONS.find(
+                  (opt) => opt.value === seat.status.name
+                )?.description
+              }
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-4">
         <label className="block text-md font-medium mb-2">
           Custom Seat Numbering
@@ -195,6 +290,7 @@ export const SeatPropertiesTab: React.FC<SeatPropertiesTabProps> = ({
           Reverse Seat Numbers
         </button>
       </div>
+
       {/* Seat Name */}
       {isSingleSeatSelected && (
         <div className="space-y-4">

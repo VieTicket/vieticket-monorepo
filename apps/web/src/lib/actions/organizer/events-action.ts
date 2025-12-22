@@ -212,17 +212,11 @@ export async function handleCreateEvent(
   const posterUrl = formData.get("posterUrl") as string;
   const bannerUrl = formData.get("bannerUrl") as string;
   const maxTicketsByOrderStr = formData.get("maxTicketsByOrder") as string;
-  console.log("Creating event with data:", {
-    eventName,
-    description,
-    location,
-  });
   validateEventName(eventName);
   validateEventDescription(description);
   validateEventLocation(location);
   validateUrl(posterUrl, "Poster URL");
   validateUrl(bannerUrl, "Banner URL");
-  console.log("Poster URL:", posterUrl);
 
   const maxTicketsByOrder = maxTicketsByOrderStr
     ? Number(maxTicketsByOrderStr)
@@ -237,8 +231,6 @@ export async function handleCreateEvent(
   if (ticketingMode === "seatmap" && seatMapData) {
     validateSeatMapData(seatMapData);
   }
-
-  console.log("Banner URL:", bannerUrl);
 
   let showingIndex = 0;
   const showings: {
@@ -345,8 +337,6 @@ export async function handleCreateEvent(
     showingIndex++;
   }
 
-  console.log("Showings:", showings);
-
   if (showings.length === 0) {
     throw new Error("At least one showing is required");
   }
@@ -396,8 +386,6 @@ export async function handleCreateEvent(
     });
   }
 
-  console.log("Showings after seat map assignment:", showings);
-
   // For normal event creation, always start with "NotYet" status and null metadata
   // Evidence will be submitted separately via EventCard button
   const eventMetadata = null;
@@ -439,16 +427,13 @@ export async function handleCreateEvent(
     if (duplicatedSeatMapGrids.length === 0) {
       throw new Error("Duplicated seat map has no seating areas configured");
     }
-
-    console.log("Duplicated seat map grids:", duplicatedSeatMapGrids);
-
+    console.log("Creating event with seat map (copy mode):", eventPayload);
     result = await createEventWithShowingsAndSeatMap(
       eventPayload,
       showings,
       duplicatedSeatMapGrids,
       duplicatedDefaultSeatSettings
     );
-    console.log("Event created with seat map (copy mode):", result);
   } else {
     const copyMode = formData.get("showingConfigs[0].copyMode") === "true";
 
@@ -546,7 +531,6 @@ export async function handleCreateEvent(
     }
   }
 
-  console.log("Event creation result:", result);
   revalidatePath("/organizer/events");
   revalidatePath("/organizer");
   return result ? { eventId: result.eventId } : undefined;
@@ -643,7 +627,6 @@ export async function handleUpdateEvent(formData: FormData) {
     }
 
     const existingEvent = await getEventById(eventId);
-    console.log("Existing Event:", existingEvent);
     if (!existingEvent) {
       return { success: false, error: "Event not found" };
     }
@@ -1058,15 +1041,12 @@ export async function syncSeatMapToEventAction(
       throw new Error(`No showing found using seat map ${seatMapId}`);
     }
 
-    console.log(`🔄 Syncing seat map ${seatMapId} to showing ${showing.id}`);
-
     // 3. Filter grids to only include those created in this session
     const newGrids = grids.filter((grid) =>
       createdEntityIds.grids.includes(grid.id)
     );
 
     if (newGrids.length === 0) {
-      console.log("ℹ️ No new grids to sync");
       return { success: true, message: "No new changes to sync" };
     }
 
@@ -1095,10 +1075,6 @@ export async function syncSeatMapToEventAction(
         })
         .returning();
 
-      console.log(
-        `✅ Created area ${createdArea.id} for showing ${showing.id}`
-      );
-
       // Process rows
       const processedRows = [];
 
@@ -1124,10 +1100,6 @@ export async function syncSeatMapToEventAction(
           })
           .returning();
 
-        console.log(
-          `✅ Created row ${createdRow.id} in area ${createdArea.id}`
-        );
-
         // Create seats
         const seatValues = newSeats.map((seat, index) => ({
           id: seat.id,
@@ -1137,9 +1109,6 @@ export async function syncSeatMapToEventAction(
 
         if (seatValues.length > 0) {
           await db.insert(seats).values(seatValues);
-          console.log(
-            `✅ Created ${seatValues.length} seats in row ${createdRow.id}`
-          );
         }
 
         processedRows.push({

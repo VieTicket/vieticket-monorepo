@@ -275,6 +275,7 @@ export function DraftsView({
             </div>
 
             <EventSeatMaps
+              onDelete={onDelete}
               isLoading={isLoading}
               eventSeatMaps={filteredEventSeatMaps}
               viewMode={eventViewMode}
@@ -368,11 +369,13 @@ const DraftsTemplates = ({
 };
 
 const EventSeatMaps = ({
+  onDelete,
   isLoading,
   eventSeatMaps,
   viewMode,
   searchQuery,
 }: {
+  onDelete: (seatMapId: string) => void;
   isLoading: boolean;
   eventSeatMaps: SeatMapItem[];
   viewMode: "grid" | "list";
@@ -385,7 +388,6 @@ const EventSeatMaps = ({
       </div>
     );
   }
-  console.log("Event Seat Maps to display:", eventSeatMaps);
 
   if (eventSeatMaps.length === 0) {
     return (
@@ -413,6 +415,7 @@ const EventSeatMaps = ({
           key={seatMap.id}
           seatMap={seatMap}
           viewMode={viewMode}
+          onDelete={onDelete}
         />
       ))}
     </div>
@@ -616,9 +619,11 @@ const DraftTemplateCard = ({
 const EventSeatMapCard = ({
   seatMap,
   viewMode,
+  onDelete,
 }: {
   seatMap: SeatMapItem;
   viewMode: "grid" | "list";
+  onDelete: (seatMapId: string) => void;
 }) => {
   const getEventStatus = (eventInfo: any) => {
     if (!eventInfo?.startTime || !eventInfo?.endTime) return "unknown";
@@ -845,14 +850,25 @@ const EventSeatMapCard = ({
               </Button>
             </Link>
           ) : (
-            <Button
-              variant="outline"
-              className="flex-1 text-xs cursor-not-allowed"
-              disabled
-            >
-              <Lock className="w-3 h-3 mr-1" />
-              Locked
-            </Button>
+            <div className="flex-1 flex gap-2">
+              <Button
+                variant="outline"
+                className="flex-1 text-xs cursor-not-allowed"
+                disabled
+              >
+                <Lock className="w-3 h-3 mr-1" />
+                Locked
+              </Button>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-xs"
+                onClick={() => onDelete(seatMap.id)}
+              >
+                Delete
+              </Button>
+            </div>
           )}
           {seatMap.eventInfo && (
             <Link

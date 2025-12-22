@@ -131,7 +131,7 @@ export async function createEventWithShowingsAndAreasIndividual(
  * All showings share the same seat map configuration
  */
 export async function createEventWithShowingsAndSeatMap(
-  event: NewEvent,
+  event: Event,
   showings: {
     name: string;
     startTime: Date;
@@ -143,6 +143,7 @@ export async function createEventWithShowingsAndSeatMap(
   grids: GridShape[][],
   defaultSeatSettings: SeatGridSettings
 ): Promise<{ eventId: string } | null> {
+  console.log("Creating event with seat map (copy mode):", event);
   const result = createEventInputSchema.safeParse(event);
   if (!result.success) {
     throw new Error(
@@ -151,12 +152,15 @@ export async function createEventWithShowingsAndSeatMap(
         .join("\n")
     );
   }
-
+  console.log(result);
   const validEvent = result.data;
   let createdEventId: string | null = null;
 
   await db.transaction(async () => {
-    const [createdEvent] = await createEvent(validEvent);
+    const [createdEvent] = await createEvent({
+      id: event.id,
+      ...validEvent,
+    });
     createdEventId = createdEvent.id;
 
     const createdShowings = [];
