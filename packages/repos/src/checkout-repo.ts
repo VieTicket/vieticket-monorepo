@@ -437,7 +437,11 @@ export async function updateOrderVNPayData(
 }
 
 export async function getOrderById(orderId: string) {
-  const [order] = await db.select().from(orders).where(eq(orders.id, orderId)).limit(1);
+  const [order] = await db
+    .select()
+    .from(orders)
+    .where(eq(orders.id, orderId))
+    .limit(1);
   return order || null;
 }
 

@@ -5,6 +5,8 @@ import { events, user, showings, areas, rows, seats } from "@vieticket/db/pg/sch
 import { desc, eq, inArray, sql } from "drizzle-orm";
 import { findSeatMapById } from "@vieticket/repos/seat-map";
 
+const CACHE_TTL_SECONDS = 3600;
+
 export async function GET() {
   try {
     // Check admin authorization
@@ -33,7 +35,11 @@ export async function GET() {
       })
       .from(events)
       .leftJoin(user, eq(events.organizerId, user.id))
-      .orderBy(desc(events.createdAt));
+      .orderBy(desc(events.createdAt))
+      .$withCache({
+        tag: "admin:events:list",
+        config: { ex: CACHE_TTL_SECONDS },
+      });
 
     // Fetch showings for all events
     const eventIds = allEvents.map((e) => e.id);
@@ -42,6 +48,10 @@ export async function GET() {
           .select()
           .from(showings)
           .where(inArray(showings.eventId, eventIds))
+          .$withCache({
+            tag: "admin:events:showings",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Group showings by eventId
@@ -67,6 +77,10 @@ export async function GET() {
           .leftJoin(seats, eq(rows.id, seats.rowId))
           .where(inArray(areas.eventId, eventIds))
           .groupBy(areas.eventId)
+          .$withCache({
+            tag: "admin:events:capacity",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Get price range (min and max) for each event
@@ -80,6 +94,10 @@ export async function GET() {
           .from(areas)
           .where(inArray(areas.eventId, eventIds))
           .groupBy(areas.eventId)
+          .$withCache({
+            tag: "admin:events:price_range",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Create maps for quick lookup

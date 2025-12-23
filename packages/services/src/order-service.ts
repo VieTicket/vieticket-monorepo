@@ -9,7 +9,7 @@ import {
     getEventByTicketId,
     getTicketDetails,
 } from "@vieticket/repos/orders";
-import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
+import { getCachedTicketQRData } from "./ticket-qr-cache";
 import { eq } from "drizzle-orm";
 
 function toDateSafe(value: unknown): Date | null {
@@ -109,19 +109,21 @@ export async function getOrderDetails(
         hoursUntilStartTime,
     };
 
-    const tickets = ticketsRaw.map((ticket) => {
-        const qrData = ticket.status === "active"
-            ? generateTicketQRData(
-                ticket.ticketId,
-                user.name,
-                eventInfo.eventId,
-                ticket.seatNumber,
-                ticket.rowName,
-                ticket.areaName
-            )
-            : null;
-        return { ...ticket, qrData };
-    });
+    const tickets = await Promise.all(
+        ticketsRaw.map(async (ticket) => {
+            const qrData = ticket.status === "active"
+                ? await getCachedTicketQRData(
+                    ticket.ticketId,
+                    user.name,
+                    eventInfo.eventId,
+                    ticket.seatNumber,
+                    ticket.rowName,
+                    ticket.areaName
+                )
+                : null;
+            return { ...ticket, qrData };
+        })
+    );
 
     return {
         ...order,
@@ -151,7 +153,7 @@ export async function getTicketDetailsForUser(
     }
 
     const qrData = ticket.status === "active"
-        ? generateTicketQRData(
+        ? await getCachedTicketQRData(
             ticket.ticketId,
             user.name,
             ticket.eventId,

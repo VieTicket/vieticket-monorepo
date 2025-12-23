@@ -5,6 +5,8 @@ import { and, desc, eq, ilike, sql } from "drizzle-orm";
 import { PayoutStatus } from "@vieticket/db/pg/schema";
 import { PaginationParams } from "./types";
 
+const CACHE_TTL_SECONDS = 3600;
+
 type PayoutFilters = PaginationParams & {
   status?: PayoutStatus;
   search?: string;
@@ -92,7 +94,11 @@ export async function findPayoutRequestsByOrganizerId(
     const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
         .orderBy(desc(payoutRequests.requestDate))
         .offset(offset)
-        .limit(limit);
+        .limit(limit)
+        .$withCache({
+          tag: `payout_requests:organizer:${organizerId}:list:offset_${offset}:limit_${limit}:status_${status ?? "all"}:search_${search ?? ""}`,
+          config: { ex: CACHE_TTL_SECONDS },
+        });
 
     return rows.map(({ payout, event }) => ({
         ...payout,
@@ -130,7 +136,11 @@ export async function countPayoutRequestsByOrganizerId(
         .from(payoutRequests)
         .leftJoin(events, eq(payoutRequests.eventId, events.id));
 
-    const [result] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
+    const [result] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery)
+      .$withCache({
+        tag: `payout_requests:organizer:${organizerId}:count:status_${status ?? "all"}:search_${search ?? ""}`,
+        config: { ex: CACHE_TTL_SECONDS },
+      });
 
     return result.count;
 }
@@ -148,7 +158,11 @@ export async function hasActivePayoutRequestForEvent(eventId: string): Promise<b
                 eq(payoutRequests.eventId, eventId),
                 sql`payout_requests.status NOT IN ('cancelled', 'rejected')`
             )
-        );
+        )
+        .$withCache({
+          tag: `payout_requests:event:${eventId}:has_active`,
+          config: { ex: CACHE_TTL_SECONDS },
+        });
     return result.count > 0;
 }
 
@@ -179,14 +193,22 @@ export async function getPayoutRequestsForAdmin(
   const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
     .orderBy(desc(payoutRequests.requestDate))
     .offset(offset)
-    .limit(limit);
+    .limit(limit)
+    .$withCache({
+      tag: `payout_requests:admin:list:offset_${offset}:limit_${limit}:status_${status ?? "all"}:search_${search ?? ""}`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   const baseCountQuery = db
     .select({ count: sql<number>`count(*)` })
     .from(payoutRequests)
     .leftJoin(events, eq(payoutRequests.eventId, events.id));
 
-  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
+  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery)
+    .$withCache({
+      tag: `payout_requests:admin:count:status_${status ?? "all"}:search_${search ?? ""}`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   const totalCount = countResult.count;
   const totalPages = Math.ceil(totalCount / pagination.limit);

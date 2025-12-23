@@ -11,6 +11,8 @@ import {
 import { GridShape } from "@vieticket/db/mongo/models/seat-map";
 import { SeatGridSettings } from "@/types/event-types";
 
+const EVENT_STRUCTURE_CACHE_TTL_SECONDS = 86400;
+
 export async function createEvent(event: NewEvent) {
   return db.insert(events).values(event).returning();
 }
@@ -112,7 +114,14 @@ export async function createShowing(showing: {
 }
 
 export async function getShowingsByEventId(eventId: string) {
-  return db.select().from(showings).where(eq(showings.eventId, eventId));
+  return db
+    .select()
+    .from(showings)
+    .where(eq(showings.eventId, eventId))
+    .$withCache({
+      tag: `event:${eventId}:showings`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 
 export async function deleteShowingsByEventId(eventId: string) {
@@ -166,11 +175,25 @@ export async function createAreaWithId(area: {
 }
 
 export async function getAreasByEventId(eventId: string) {
-  return db.select().from(areas).where(eq(areas.eventId, eventId));
+  return db
+    .select()
+    .from(areas)
+    .where(eq(areas.eventId, eventId))
+    .$withCache({
+      tag: `event:${eventId}:areas`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 
 export async function getAreasByShowingId(showingId: string) {
-  return db.select().from(areas).where(eq(areas.showingId, showingId));
+  return db
+    .select()
+    .from(areas)
+    .where(eq(areas.showingId, showingId))
+    .$withCache({
+      tag: `showing:${showingId}:areas`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 
 export async function updateAreaById(
@@ -212,7 +235,14 @@ export async function createRowWithId(row: {
 }
 
 export async function getRowsByAreaId(areaId: string) {
-  return db.select().from(rows).where(eq(rows.areaId, areaId));
+  return db
+    .select()
+    .from(rows)
+    .where(eq(rows.areaId, areaId))
+    .$withCache({
+      tag: `area:${areaId}:rows`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 
 export async function updateRowById(
@@ -252,7 +282,14 @@ export async function createSeatsWithIds(
 }
 
 export async function getSeatsByRowId(rowId: string) {
-  return db.select().from(seats).where(eq(seats.rowId, rowId));
+  return db
+    .select()
+    .from(seats)
+    .where(eq(seats.rowId, rowId))
+    .$withCache({
+      tag: `row:${rowId}:seats`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 
 export async function updateSeatById(
@@ -898,7 +935,14 @@ export async function updateEventWithShowingsOptimized(
   });
 }
 export async function getEventsByOrganizerId(organizerId: string) {
-  return db.select().from(events).where(eq(events.organizerId, organizerId));
+  return db
+    .select()
+    .from(events)
+    .where(eq(events.organizerId, organizerId))
+    .$withCache({
+      tag: `organizer:${organizerId}:events`,
+      config: { ex: EVENT_STRUCTURE_CACHE_TTL_SECONDS },
+    });
 }
 export async function updateEventWithShowingsIndividualOptimized(
   eventPayload: any,

@@ -1,7 +1,10 @@
-import { and, desc, eq, lt, sql, count, avg, inArray } from "drizzle-orm";
+import { and, desc, eq, sql, count, avg, inArray } from "drizzle-orm";
 import { db } from "@vieticket/db/pg";
-import { eventRatings, events, tickets, orders, user } from "@vieticket/db/pg/schema";
+import { eventRatings, events, user } from "@vieticket/db/pg/schema";
 import { randomUUID } from "crypto";
+
+const CACHE_TTL_SECONDS = 3600;
+const EVENT_METADATA_CACHE_TTL_SECONDS = 86400;
 
 export async function hasUserPurchasedEvent(userId: string, eventId: string) {
   try {
@@ -33,13 +36,16 @@ export async function hasUserPurchasedEvent(userId: string, eventId: string) {
 }
 
 export async function isEventEnded(eventId: string) {
-  const now = new Date();
   const [row] = await db
-    .select({ id: events.id })
+    .select({ endTime: events.endTime })
     .from(events)
-    .where(and(eq(events.id, eventId), lt(events.endTime, now)))
-    .limit(1);
-  return !!row;
+    .where(eq(events.id, eventId))
+    .limit(1)
+    .$withCache({
+      tag: `event:${eventId}:end_time`,
+      config: { ex: EVENT_METADATA_CACHE_TTL_SECONDS },
+    });
+  return row?.endTime ? row.endTime < new Date() : false;
 }
 
 export async function upsertEventRating(
@@ -90,7 +96,11 @@ export async function getEventRatingSummary(eventId: string) {
         count: count(eventRatings.id),
       })
       .from(eventRatings)
-      .where(eq(eventRatings.eventId, eventId));
+      .where(eq(eventRatings.eventId, eventId))
+      .$withCache({
+        tag: `event:${eventId}:rating_summary`,
+        config: { ex: CACHE_TTL_SECONDS },
+      });
     
     const row = result[0];
     const summary = { 
@@ -112,7 +122,11 @@ export async function getOrganizerAverageRating(organizerId: string) {
     const organizerEvents = await db
       .select({ id: events.id })
       .from(events)
-      .where(eq(events.organizerId, organizerId));
+      .where(eq(events.organizerId, organizerId))
+      .$withCache({
+        tag: `organizer:${organizerId}:event_ids`,
+        config: { ex: EVENT_METADATA_CACHE_TTL_SECONDS },
+      });
 
     if (organizerEvents.length === 0) {
       return { average: 0, count: 0 };
@@ -131,7 +145,11 @@ export async function getOrganizerAverageRating(organizerId: string) {
         count: sql<number>`COUNT(*)`
       })
       .from(eventRatings)
-      .where(inArray(eventRatings.eventId, eventIds));
+      .where(inArray(eventRatings.eventId, eventIds))
+      .$withCache({
+        tag: `organizer:${organizerId}:rating_stats`,
+        config: { ex: CACHE_TTL_SECONDS },
+      });
 
     const stats = result[0];
     
@@ -169,7 +187,11 @@ export async function listEventRatings(eventId: string, limit = 10) {
     .leftJoin(user, eq(eventRatings.userId, user.id))
     .where(eq(eventRatings.eventId, eventId))
     .orderBy(desc(eventRatings.createdAt))
-    .limit(limit);
+    .limit(limit)
+    .$withCache({
+      tag: `event:${eventId}:ratings:limit_${limit}`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
   return rows;
 }
 
@@ -185,9 +207,11 @@ export async function getUserEventRating(userId: string, eventId: string) {
     })
     .from(eventRatings)
     .where(and(eq(eventRatings.userId, userId), eq(eventRatings.eventId, eventId)))
-    .limit(1);
+    .limit(1)
+    .$withCache({
+      tag: `user:${userId}:event:${eventId}:rating`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
   
   return row[0] || null;
 }
-
-

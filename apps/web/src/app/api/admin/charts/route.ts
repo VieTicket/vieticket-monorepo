@@ -5,6 +5,8 @@ import { eq, and, gte, lte } from "drizzle-orm";
 import { authorise } from "@/lib/auth/authorise";
 import { headers } from "next/headers";
 
+const CACHE_TTL_SECONDS = 3600;
+
 /**
  * Helper function to generate date ranges based on start and end dates
  * Returns either daily or monthly ranges based on the time span
@@ -132,7 +134,11 @@ export async function GET(request: Request) {
               gte(orders.orderDate, start),
               lte(orders.orderDate, end)
             )
-          );
+          )
+          .$withCache({
+            tag: `admin:charts:revenue:${start.getTime()}:${end.getTime()}`,
+            config: { ex: CACHE_TTL_SECONDS },
+          });
 
         return result.reduce((sum, row) => sum + Number(row.total), 0);
       })
@@ -152,7 +158,11 @@ export async function GET(request: Request) {
               gte(events.createdAt, start),
               lte(events.createdAt, end)
             )
-          );
+          )
+          .$withCache({
+            tag: `admin:charts:events:${start.getTime()}:${end.getTime()}`,
+            config: { ex: CACHE_TTL_SECONDS },
+          });
 
         return result.length;
       })

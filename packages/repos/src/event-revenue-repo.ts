@@ -2,6 +2,8 @@ import { db } from "@vieticket/db/pg";
 import { orders, refunds } from "@vieticket/db/pg/schemas/orders";
 import { and, eq, inArray, sql } from "drizzle-orm";
 
+const CACHE_TTL_SECONDS = 3600;
+
 export async function getEventRevenue(eventId: string): Promise<number> {
   const refundsByOrder = db
     .select({
@@ -33,7 +35,11 @@ export async function getEventRevenue(eventId: string): Promise<number> {
         eq(orders.eventId, eventId),
         inArray(orders.status, ["paid", "partial_refunded", "refunded"])
       )
-    );
+    )
+    .$withCache({
+      tag: `event:${eventId}:revenue_total`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   return Number(row?.total ?? 0);
 }

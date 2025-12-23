@@ -6,6 +6,8 @@ import { eq } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
 import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
 
+const CACHE_TTL_SECONDS = 3600;
+
 /**
  * Finds a ticket by ID with complete event and seat information
  * @param ticketId - The ID of the ticket
@@ -40,7 +42,11 @@ export async function findTicketByIdWithEventInfo(ticketId: string) {
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(eq(tickets.id, ticketId))
-    .limit(1);
+    .limit(1)
+    .$withCache({
+      tag: `ticket:${ticketId}:event_info`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   return result || null;
 }
@@ -127,5 +133,9 @@ export async function getTicketInspectionHistory(ticketId: string) {
     })
     .from(ticketInspectionHistory)
     .innerJoin(user, eq(ticketInspectionHistory.inspectorId, user.id))
-    .where(eq(ticketInspectionHistory.ticketId, ticketId));
+    .where(eq(ticketInspectionHistory.ticketId, ticketId))
+    .$withCache({
+      tag: `ticket:${ticketId}:inspection_history`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 }

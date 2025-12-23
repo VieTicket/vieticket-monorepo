@@ -4,6 +4,8 @@ import { areas, events, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { orders, tickets } from "@vieticket/db/pg/schemas/orders";
 import { and, count, desc, eq, gt } from "drizzle-orm";
 
+const CACHE_TTL_SECONDS = 3600;
+
 /**
  * Gets event information for a given ticket
  * @param ticketId - The ID of the ticket
@@ -25,7 +27,11 @@ export async function getEventByTicketId(ticketId: string) {
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(eq(tickets.id, ticketId))
-    .limit(1);
+    .limit(1)
+    .$withCache({
+      tag: `ticket:${ticketId}:event`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   return result || null;
 }
@@ -57,11 +63,19 @@ export async function findOrdersByUserIdWithPagination(
       .where(eq(orders.userId, userId))
       .orderBy(desc(orders.orderDate))
       .limit(limit)
-      .offset(offset),
+      .offset(offset)
+      .$withCache({
+        tag: `user:${userId}:orders:page_${page}:limit_${limit}`,
+        config: { ex: CACHE_TTL_SECONDS },
+      }),
     db
       .select({ total: count() })
       .from(orders)
-      .where(eq(orders.userId, userId)),
+      .where(eq(orders.userId, userId))
+      .$withCache({
+        tag: `user:${userId}:orders:total`,
+        config: { ex: CACHE_TTL_SECONDS },
+      }),
   ]);
 
   const total = totalResult[0].total;
@@ -102,7 +116,11 @@ export async function findOrderByIdForUser(orderId: string, userId: string) {
     })
     .from(orders)
     .where(and(eq(orders.id, orderId), eq(orders.userId, userId)))
-    .limit(1);
+    .limit(1)
+    .$withCache({
+      tag: `user:${userId}:order:${orderId}`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   return result || null;
 }
@@ -134,7 +152,11 @@ export async function findTicketByIdForUser(ticketId: string, userId: string) {
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .innerJoin(events, eq(areas.eventId, events.id))
     .where(and(eq(tickets.id, ticketId), eq(orders.userId, userId)))
-    .limit(1);
+    .limit(1)
+    .$withCache({
+      tag: `user:${userId}:ticket:${ticketId}`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 
   return result || null;
 }
@@ -181,8 +203,18 @@ export async function findUserTicketsWithPagination(
       .where(eq(orders.userId, userId))
       .orderBy(desc(tickets.purchasedAt))
       .limit(limit)
-      .offset(offset),
-    db.select({ total: count() }).from(userTicketsQuery.as("user_tickets")),
+      .offset(offset)
+      .$withCache({
+        tag: `user:${userId}:tickets:page_${page}:limit_${limit}`,
+        config: { ex: CACHE_TTL_SECONDS },
+      }),
+    db
+      .select({ total: count() })
+      .from(userTicketsQuery.as("user_tickets"))
+      .$withCache({
+        tag: `user:${userId}:tickets:total`,
+        config: { ex: CACHE_TTL_SECONDS },
+      }),
   ]);
 
   const total = totalResult[0].total;
@@ -223,7 +255,11 @@ export async function getTicketDetails(orderId: string) {
     .innerJoin(seats, eq(tickets.seatId, seats.id))
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
-    .where(eq(tickets.orderId, orderId));
+    .where(eq(tickets.orderId, orderId))
+    .$withCache({
+      tag: `order:${orderId}:ticket_details`,
+      config: { ex: CACHE_TTL_SECONDS },
+    });
 }
 
 export async function updateOrderStatus(

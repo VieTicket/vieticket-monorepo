@@ -6,6 +6,8 @@ import { and, eq, or, isNull } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
 import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
 
+const CACHE_TTL_SECONDS = 3600;
+
 /**
  * Checks if a ticket belongs to an event organized by the given organizer.
  * @param ticketId - The ticket ID to check.
@@ -24,7 +26,11 @@ export async function isTicketOwnedByOrganizer(ticketId: string, organizerId: st
             eq(tickets.id, ticketId),
             eq(events.organizerId, organizerId)
         ))
-        .limit(1);
+        .limit(1)
+        .$withCache({
+          tag: `ticket:${ticketId}:owned_by_organizer:${organizerId}`,
+          config: { ex: CACHE_TTL_SECONDS },
+        });
 
     return !!result;
 }
@@ -70,7 +76,11 @@ export async function canUserAccessTicket(
             eq(member.userId, userId),
             eq(events.organizationId, activeOrganizationId)
         ))
-        .limit(1);
+        .limit(1)
+        .$withCache({
+          tag: `ticket:${ticketId}:access:${userId}:org:${activeOrganizationId}`,
+          config: { ex: CACHE_TTL_SECONDS },
+        });
 
     return !!result;
 }

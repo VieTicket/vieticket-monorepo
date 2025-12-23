@@ -4,6 +4,9 @@ import { eq, and, gte, count, sum } from "drizzle-orm";
 import { authorise } from "@/lib/auth/authorise";
 import { NextResponse } from "next/server";
 
+const CACHE_TTL_SECONDS = 3600;
+const LONG_CACHE_TTL_SECONDS = 86400;
+
 export async function GET() {
   try {
     // Add authentication check
@@ -20,7 +23,11 @@ export async function GET() {
         total: sum(orders.totalAmount),
       })
       .from(orders)
-      .where(eq(orders.status, "paid"));
+      .where(eq(orders.status, "paid"))
+      .$withCache({
+        tag: "admin:stats:revenue_total",
+        config: { ex: CACHE_TTL_SECONDS },
+      });
 
     const totalRevenue = Number(revenueResult[0]?.total || 0);
 
@@ -30,7 +37,11 @@ export async function GET() {
         count: count(),
       })
       .from(events)
-      .where(eq(events.approvalStatus, "approved"));
+      .where(eq(events.approvalStatus, "approved"))
+      .$withCache({
+        tag: "admin:stats:approved_events_count",
+        config: { ex: LONG_CACHE_TTL_SECONDS },
+      });
 
     const ongoingEvents = ongoingEventsResult[0]?.count || 0;
 
@@ -40,7 +51,11 @@ export async function GET() {
         count: count(),
       })
       .from(user)
-      .where(eq(user.role, "organizer"));
+      .where(eq(user.role, "organizer"))
+      .$withCache({
+        tag: "admin:stats:organizers_count",
+        config: { ex: LONG_CACHE_TTL_SECONDS },
+      });
 
     const activeOrganizers = organizersResult[0]?.count || 0;
 
@@ -49,7 +64,11 @@ export async function GET() {
       .select({
         count: count(),
       })
-      .from(user);
+      .from(user)
+      .$withCache({
+        tag: "admin:stats:users_count",
+        config: { ex: LONG_CACHE_TTL_SECONDS },
+      });
 
     const allUsers = usersResult[0]?.count || 0;
 

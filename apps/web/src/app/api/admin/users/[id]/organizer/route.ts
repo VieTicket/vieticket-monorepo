@@ -3,6 +3,8 @@ import { db } from "@/lib/db";
 import { organizers, user } from "@vieticket/db/pg/schema";
 import { eq } from "drizzle-orm";
 
+const ORGANIZER_PROFILE_CACHE_TTL_SECONDS = 86400;
+
 export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -36,7 +38,11 @@ export async function GET(
       .from(organizers)
       .innerJoin(user, eq(organizers.id, user.id))
       .where(eq(organizers.id, userId))
-      .limit(1);
+      .limit(1)
+      .$withCache({
+        tag: `admin:organizer:${userId}`,
+        config: { ex: ORGANIZER_PROFILE_CACHE_TTL_SECONDS },
+      });
 
     if (organizerData.length === 0) {
       return Response.json(
@@ -78,4 +84,3 @@ export async function GET(
     );
   }
 }
-

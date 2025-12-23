@@ -4,6 +4,8 @@ import { events, organizers, showings, areas, rows, seats } from "@vieticket/db/
 import { eq, inArray, sql } from "drizzle-orm";
 import { findSeatMapById } from "@vieticket/repos/seat-map";
 
+const CACHE_TTL_SECONDS = 3600;
+
 export async function GET() {
   try {
     // Fetch events where is_approved is null (pending approval) with organizer info
@@ -29,7 +31,11 @@ export async function GET() {
       .from(events)
       .leftJoin(organizers, eq(events.organizerId, organizers.id))
       .where(eq(events.approvalStatus, "pending"))
-      .orderBy(events.createdAt);
+      .orderBy(events.createdAt)
+      .$withCache({
+        tag: "admin:events_pending:list",
+        config: { ex: CACHE_TTL_SECONDS },
+      });
 
     // Fetch showings for pending events
     const eventIds = pendingEvents.map((e) => e.id);
@@ -38,6 +44,10 @@ export async function GET() {
           .select()
           .from(showings)
           .where(inArray(showings.eventId, eventIds))
+          .$withCache({
+            tag: "admin:events_pending:showings",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Group showings by eventId
@@ -64,6 +74,10 @@ export async function GET() {
           .leftJoin(seats, eq(rows.id, seats.rowId))
           .where(inArray(areas.eventId, eventIds))
           .groupBy(areas.eventId)
+          .$withCache({
+            tag: "admin:events_pending:capacity",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Get price range (min and max) for each event
@@ -77,6 +91,10 @@ export async function GET() {
           .from(areas)
           .where(inArray(areas.eventId, eventIds))
           .groupBy(areas.eventId)
+          .$withCache({
+            tag: "admin:events_pending:price_range",
+            config: { ex: CACHE_TTL_SECONDS },
+          })
       : [];
 
     // Create maps for quick lookup

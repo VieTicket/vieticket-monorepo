@@ -30,7 +30,7 @@ import {
 } from "@vieticket/utils/vnpay";
 import { cancelMessage, publishJson, type QstashPublishResult } from "@vieticket/queues";
 import { generateQRCodeBuffer } from "@vieticket/utils/ticket-validation/client";
-import { generateTicketQRData } from "@vieticket/utils/ticket-validation/server";
+import { getCachedTicketQRData } from "./ticket-qr-cache";
 import { sendMail } from "@vieticket/utils/mailer";
 import { user as users } from "@vieticket/db/pg/schemas/users";
 
@@ -1014,7 +1014,7 @@ async function sendOrderConfirmationEmail(
     // Generate QR codes for all tickets with complete data
     const ticketsWithQR = await Promise.all(
       tickets.map(async (ticket) => {
-        const qrData = generateTicketQRData(
+        const qrData = await getCachedTicketQRData(
           ticket.ticketId,
           user.name,
           eventInfo.eventId,

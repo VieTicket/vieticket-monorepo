@@ -3,6 +3,8 @@ import { organizers, user } from "@vieticket/db/pg/schemas/users";
 import type { Organizer } from "@vieticket/db/pg/models/users";
 import { eq, and } from "drizzle-orm";
 
+const ORGANIZER_DIRECTORY_CACHE_TTL_SECONDS = 86400;
+
 /**
  * Creates a new organizer profile.
  * @param data - The organizer data to create.
@@ -165,7 +167,11 @@ export async function findPendingOrganizers(): Promise<
     })
     .from(organizers)
     .innerJoin(user, eq(organizers.id, user.id))
-    .where(eq(organizers.isActive, false));
+    .where(eq(organizers.isActive, false))
+    .$withCache({
+      tag: "organizers:pending",
+      config: { ex: ORGANIZER_DIRECTORY_CACHE_TTL_SECONDS },
+    });
 
   // Transform the flat result back to nested structure
   return result.map((row) => ({
@@ -251,7 +257,11 @@ export async function countOrganizers(isActive?: boolean): Promise<number> {
   const result = await db
     .select({ count: organizers.id })
     .from(organizers)
-    .where(filter);
+    .where(filter)
+    .$withCache({
+      tag: `organizers:count:isActive_${isActive ?? "all"}`,
+      config: { ex: ORGANIZER_DIRECTORY_CACHE_TTL_SECONDS },
+    });
 
   return result.length;
 }
@@ -310,7 +320,11 @@ export async function findOrganizersWithPagination(
       .innerJoin(user, eq(organizers.id, user.id))
       .where(filter)
       .limit(limit)
-      .offset(offset),
+      .offset(offset)
+      .$withCache({
+        tag: `organizers:list:page_${page}:limit_${limit}:isActive_${isActive ?? "all"}`,
+        config: { ex: ORGANIZER_DIRECTORY_CACHE_TTL_SECONDS },
+      }),
     countOrganizers(isActive),
   ]);
 

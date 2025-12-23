@@ -28,6 +28,16 @@ import {
 
 type DbClient = typeof defaultDb;
 
+const CACHE_TTL_SECONDS = 3600;
+
+function withCacheIfEnabled<T extends { $withCache: (config: any) => T }>(
+  query: T,
+  enabled: boolean,
+  config: any
+): T {
+  return enabled ? query.$withCache(config) : query;
+}
+
 function getDb(client?: DbClient) {
   return client ?? defaultDb;
 }
@@ -50,24 +60,32 @@ export async function getOrderRefundContext(
   client?: DbClient
 ): Promise<OrderRefundContext | null> {
   const db = getDb(client);
-  const [row] = await db
-    .select({
-      orderId: orders.id,
-      userId: orders.userId,
-      eventId: orders.eventId,
-      showingId: orders.showingId,
-      orderStatus: orders.status,
-      totalAmount: orders.totalAmount,
-      organizerId: events.organizerId,
-      autoApproveRefund: events.autoApproveRefund,
-      eventLifecycleStatus: events.lifecycleStatus,
-      startTime: sql<Date | null>`COALESCE(${showings.startTime}, ${events.startTime})`,
-    })
-    .from(orders)
-    .innerJoin(events, eq(events.id, orders.eventId))
-    .innerJoin(showings, eq(showings.id, orders.showingId))
-    .where(eq(orders.id, orderId))
-    .limit(1);
+  const cacheEnabled = !client;
+  const [row] = await withCacheIfEnabled(
+    db
+      .select({
+        orderId: orders.id,
+        userId: orders.userId,
+        eventId: orders.eventId,
+        showingId: orders.showingId,
+        orderStatus: orders.status,
+        totalAmount: orders.totalAmount,
+        organizerId: events.organizerId,
+        autoApproveRefund: events.autoApproveRefund,
+        eventLifecycleStatus: events.lifecycleStatus,
+        startTime: sql<Date | null>`COALESCE(${showings.startTime}, ${events.startTime})`,
+      })
+      .from(orders)
+      .innerJoin(events, eq(events.id, orders.eventId))
+      .innerJoin(showings, eq(showings.id, orders.showingId))
+      .where(eq(orders.id, orderId))
+      .limit(1),
+    cacheEnabled,
+    {
+      tag: `order:${orderId}:refund_context`,
+      config: { ex: CACHE_TTL_SECONDS },
+    }
+  );
   if (!row || !row.orderStatus) return null;
   return { ...row, orderStatus: row.orderStatus } satisfies OrderRefundContext;
 }
@@ -83,14 +101,22 @@ export async function getOrderTicketsForRefund(
   client?: DbClient
 ): Promise<RefundTicketRow[]> {
   const db = getDb(client);
-  const rows = await db
-    .select({
-      ticketId: tickets.id,
-      price: tickets.price,
-      status: tickets.status,
-    })
-    .from(tickets)
-    .where(eq(tickets.orderId, orderId));
+  const cacheEnabled = !client;
+  const rows = await withCacheIfEnabled(
+    db
+      .select({
+        ticketId: tickets.id,
+        price: tickets.price,
+        status: tickets.status,
+      })
+      .from(tickets)
+      .where(eq(tickets.orderId, orderId)),
+    cacheEnabled,
+    {
+      tag: `order:${orderId}:refund_tickets`,
+      config: { ex: CACHE_TTL_SECONDS },
+    }
+  );
 
   return rows.filter((t): t is RefundTicketRow => t.status !== null);
 }
@@ -100,7 +126,8 @@ export async function getExistingRefundsForOrder(
   client?: DbClient
 ) {
   const db = getDb(client);
-  return db
+  const cacheEnabled = !client;
+  const query = db
     .select({
       id: refunds.id,
       status: refunds.status,
@@ -109,6 +136,11 @@ export async function getExistingRefundsForOrder(
     })
     .from(refunds)
     .where(eq(refunds.orderId, orderId));
+
+  return withCacheIfEnabled(query, cacheEnabled, {
+    tag: `order:${orderId}:existing_refunds`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
 }
 
 export async function findBlockingRefundTickets(
@@ -296,6 +328,7 @@ export async function listRefundsForAdmin(
   client?: DbClient
 ) {
   const db = getDb(client);
+  const cacheEnabled = !client;
   const { offset, limit, status, reason, search, sort, direction } = filters;
   const conditions = buildRefundListConditions({ status, reason, search }).filter(
     Boolean
@@ -318,10 +351,15 @@ export async function listRefundsForAdmin(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
+  const rowsQuery = (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
     .orderBy(getRefundOrderBy(sort, direction))
     .offset(offset)
     .limit(limit);
+
+  const rows = await withCacheIfEnabled(rowsQuery, cacheEnabled, {
+    tag: `refunds:admin:list:offset_${offset}:limit_${limit}:status_${status ?? "all"}:reason_${reason ?? "all"}:search_${search ?? ""}:sort_${sort ?? "requestedAt"}:dir_${direction ?? "desc"}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
 
   const baseCountQuery = db
     .select({ count: sql<number>`count(*)` })
@@ -329,7 +367,11 @@ export async function listRefundsForAdmin(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
+  const countQuery = whereClause ? baseCountQuery.where(whereClause) : baseCountQuery;
+  const [countResult] = await withCacheIfEnabled(countQuery, cacheEnabled, {
+    tag: `refunds:admin:count:status_${status ?? "all"}:reason_${reason ?? "all"}:search_${search ?? ""}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
   const totalCount = Number(countResult?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
@@ -346,6 +388,7 @@ export async function listRefundsForOrganizer(
   client?: DbClient
 ) {
   const db = getDb(client);
+  const cacheEnabled = !client;
   const { offset, limit, status, search, sort, direction } = filters;
   const conditions = buildRefundListConditions({
     organizerId,
@@ -370,10 +413,15 @@ export async function listRefundsForOrganizer(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
+  const rowsQuery = (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
     .orderBy(getRefundOrderBy(sort, direction))
     .offset(offset)
     .limit(limit);
+
+  const rows = await withCacheIfEnabled(rowsQuery, cacheEnabled, {
+    tag: `refunds:organizer:${organizerId}:list:offset_${offset}:limit_${limit}:status_${status ?? "all"}:search_${search ?? ""}:sort_${sort ?? "requestedAt"}:dir_${direction ?? "desc"}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
 
   const baseCountQuery = db
     .select({ count: sql<number>`count(*)` })
@@ -381,7 +429,11 @@ export async function listRefundsForOrganizer(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
+  const countQuery = whereClause ? baseCountQuery.where(whereClause) : baseCountQuery;
+  const [countResult] = await withCacheIfEnabled(countQuery, cacheEnabled, {
+    tag: `refunds:organizer:${organizerId}:count:status_${status ?? "all"}:search_${search ?? ""}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
   const totalCount = Number(countResult?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
@@ -398,6 +450,7 @@ export async function listRefundsForCustomer(
   client?: DbClient
 ) {
   const db = getDb(client);
+  const cacheEnabled = !client;
   const { offset, limit, status, reason, search, sort, direction } = filters;
   const conditions = buildRefundListConditions({ userId, status, reason, search }).filter(
     Boolean
@@ -419,10 +472,15 @@ export async function listRefundsForCustomer(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const rows = await (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
+  const rowsQuery = (whereClause ? baseRowsQuery.where(whereClause) : baseRowsQuery)
     .orderBy(getRefundOrderBy(sort, direction))
     .offset(offset)
     .limit(limit);
+
+  const rows = await withCacheIfEnabled(rowsQuery, cacheEnabled, {
+    tag: `refunds:user:${userId}:list:offset_${offset}:limit_${limit}:status_${status ?? "all"}:reason_${reason ?? "all"}:search_${search ?? ""}:sort_${sort ?? "requestedAt"}:dir_${direction ?? "desc"}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
 
   const baseCountQuery = db
     .select({ count: sql<number>`count(*)` })
@@ -430,7 +488,11 @@ export async function listRefundsForCustomer(
     .innerJoin(orders, eq(orders.id, refunds.orderId))
     .innerJoin(events, eq(events.id, orders.eventId));
 
-  const [countResult] = await (whereClause ? baseCountQuery.where(whereClause) : baseCountQuery);
+  const countQuery = whereClause ? baseCountQuery.where(whereClause) : baseCountQuery;
+  const [countResult] = await withCacheIfEnabled(countQuery, cacheEnabled, {
+    tag: `refunds:user:${userId}:count:status_${status ?? "all"}:reason_${reason ?? "all"}:search_${search ?? ""}`,
+    config: { ex: CACHE_TTL_SECONDS },
+  });
   const totalCount = Number(countResult?.count ?? 0);
   const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
@@ -446,62 +508,77 @@ export async function getRefundDetail(
   client?: DbClient
 ) {
   const db = getDb(client);
-  const [row] = await db
-    .select({
-      id: refunds.id,
-      orderId: refunds.orderId,
-      reason: refunds.reason,
-      status: refunds.status,
-      amount: refunds.amount,
-      baseAmount: refunds.baseAmount,
-      percentageApplied: refunds.percentageApplied,
-      requestedAt: refunds.requestedAt,
-      approvedAt: refunds.approvedAt,
-      refundedAt: refunds.refundedAt,
-      createdBy: refunds.createdBy,
-      approvedBy: refunds.approvedBy,
-      rejectionReason: refunds.rejectionReason,
-      adminOverride: refunds.adminOverride,
-      adminOverrideBy: refunds.adminOverrideBy,
-      adminOverrideAt: refunds.adminOverrideAt,
-      adminOverrideReason: refunds.adminOverrideReason,
-      overridePreviousPercentage: refunds.overridePreviousPercentage,
-      overridePreviousAmount: refunds.overridePreviousAmount,
-      pspMetadata: refunds.pspMetadata,
-      userId: orders.userId,
-      orderStatus: orders.status,
-      totalAmount: orders.totalAmount,
-      paymentMetadata: orders.paymentMetadata,
-      organizerId: events.organizerId,
-      eventId: events.id,
-      eventName: events.name,
-    })
-    .from(refunds)
-    .innerJoin(orders, eq(orders.id, refunds.orderId))
-    .innerJoin(events, eq(events.id, orders.eventId))
-    .where(eq(refunds.id, refundId))
-    .limit(1);
+  const cacheEnabled = !client;
+  const [row] = await withCacheIfEnabled(
+    db
+      .select({
+        id: refunds.id,
+        orderId: refunds.orderId,
+        reason: refunds.reason,
+        status: refunds.status,
+        amount: refunds.amount,
+        baseAmount: refunds.baseAmount,
+        percentageApplied: refunds.percentageApplied,
+        requestedAt: refunds.requestedAt,
+        approvedAt: refunds.approvedAt,
+        refundedAt: refunds.refundedAt,
+        createdBy: refunds.createdBy,
+        approvedBy: refunds.approvedBy,
+        rejectionReason: refunds.rejectionReason,
+        adminOverride: refunds.adminOverride,
+        adminOverrideBy: refunds.adminOverrideBy,
+        adminOverrideAt: refunds.adminOverrideAt,
+        adminOverrideReason: refunds.adminOverrideReason,
+        overridePreviousPercentage: refunds.overridePreviousPercentage,
+        overridePreviousAmount: refunds.overridePreviousAmount,
+        pspMetadata: refunds.pspMetadata,
+        userId: orders.userId,
+        orderStatus: orders.status,
+        totalAmount: orders.totalAmount,
+        paymentMetadata: orders.paymentMetadata,
+        organizerId: events.organizerId,
+        eventId: events.id,
+        eventName: events.name,
+      })
+      .from(refunds)
+      .innerJoin(orders, eq(orders.id, refunds.orderId))
+      .innerJoin(events, eq(events.id, orders.eventId))
+      .where(eq(refunds.id, refundId))
+      .limit(1),
+    cacheEnabled,
+    {
+      tag: `refund:${refundId}:detail`,
+      config: { ex: CACHE_TTL_SECONDS },
+    }
+  );
 
   if (!row) return null;
 
-  const ticketRows = await db
-    .select({
-      ticketId: refundTickets.ticketId,
-      ticketPrice: refundTickets.ticketPrice,
-      ticketStatus: tickets.status,
-      seatId: tickets.seatId,
-      seatNumber: seats.seatNumber,
-      rowId: rows.id,
-      rowName: rows.rowName,
-      areaId: areas.id,
-      areaName: areas.name,
-    })
-    .from(refundTickets)
-    .innerJoin(tickets, eq(tickets.id, refundTickets.ticketId))
-    .innerJoin(seats, eq(seats.id, tickets.seatId))
-    .innerJoin(rows, eq(rows.id, seats.rowId))
-    .innerJoin(areas, eq(areas.id, rows.areaId))
-    .where(eq(refundTickets.refundId, refundId));
+  const ticketRows = await withCacheIfEnabled(
+    db
+      .select({
+        ticketId: refundTickets.ticketId,
+        ticketPrice: refundTickets.ticketPrice,
+        ticketStatus: tickets.status,
+        seatId: tickets.seatId,
+        seatNumber: seats.seatNumber,
+        rowId: rows.id,
+        rowName: rows.rowName,
+        areaId: areas.id,
+        areaName: areas.name,
+      })
+      .from(refundTickets)
+      .innerJoin(tickets, eq(tickets.id, refundTickets.ticketId))
+      .innerJoin(seats, eq(seats.id, tickets.seatId))
+      .innerJoin(rows, eq(rows.id, seats.rowId))
+      .innerJoin(areas, eq(areas.id, rows.areaId))
+      .where(eq(refundTickets.refundId, refundId)),
+    cacheEnabled,
+    {
+      tag: `refund:${refundId}:tickets`,
+      config: { ex: CACHE_TTL_SECONDS },
+    }
+  );
 
   return { refund: row, tickets: ticketRows };
 }
@@ -525,7 +602,6 @@ export async function releaseSeatHoldsForTickets(
 ) {
   if (ticketIds.length === 0) return;
   const db = getDb(client);
-
   const ticketSeatRows = await db
     .select({
       seatId: tickets.seatId,
@@ -555,21 +631,29 @@ export async function sumRefundAmountsForOrder(
   client?: DbClient
 ) {
   const db = getDb(client);
-  const [row] = await db
-    .select({
-      total: sum(refunds.amount),
-    })
-    .from(refunds)
-    .where(
-      and(
-        eq(refunds.orderId, orderId),
-        notInArray(refunds.status, [
-          "rejected",
-          "declined",
-          "failed",
-          "payment_failed",
-        ])
-      )
-    );
+  const cacheEnabled = !client;
+  const [row] = await withCacheIfEnabled(
+    db
+      .select({
+        total: sum(refunds.amount),
+      })
+      .from(refunds)
+      .where(
+        and(
+          eq(refunds.orderId, orderId),
+          notInArray(refunds.status, [
+            "rejected",
+            "declined",
+            "failed",
+            "payment_failed",
+          ])
+        )
+      ),
+    cacheEnabled,
+    {
+      tag: `order:${orderId}:refund_amount_sum`,
+      config: { ex: CACHE_TTL_SECONDS },
+    }
+  );
   return Number(row?.total ?? 0);
 }
