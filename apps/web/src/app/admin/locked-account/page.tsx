@@ -48,7 +48,29 @@ export default function LockedAccountPage() {
     // Refresh users every 3 seconds to check for expired bans
     const interval = setInterval(fetchUsers, 3000);
     
-    return () => clearInterval(interval);
+    // Also unlock expired bans every 10 minutes (same as worker interval)
+    const unlockInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/admin/unlock-expired-bans", {
+          method: "POST",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.unlockedCount > 0) {
+            console.log(`Auto-unlocked ${data.unlockedCount} expired ban(s)`);
+            // Refresh users list to reflect changes
+            fetchUsers();
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-unlocking expired bans:", error);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(unlockInterval);
+    };
   }, []);
 
   const fetchUsers = async () => {

@@ -66,7 +66,29 @@ export default function AccountPage() {
     // Refresh users every 5 minutes to check for expired bans
     const interval = setInterval(fetchUsers, 5 * 60 * 1000);
     
-    return () => clearInterval(interval);
+    // Also unlock expired bans every 10 minutes (same as worker interval)
+    const unlockInterval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/admin/unlock-expired-bans", {
+          method: "POST",
+        });
+        if (response.ok) {
+          const data = await response.json();
+          if (data.unlockedCount > 0) {
+            console.log(`Auto-unlocked ${data.unlockedCount} expired ban(s)`);
+            // Refresh users list to reflect changes
+            fetchUsers();
+          }
+        }
+      } catch (error) {
+        console.error("Error auto-unlocking expired bans:", error);
+      }
+    }, 10 * 60 * 1000); // 10 minutes
+    
+    return () => {
+      clearInterval(interval);
+      clearInterval(unlockInterval);
+    };
   }, []);
 
   const fetchUsers = async () => {
@@ -121,6 +143,15 @@ export default function AccountPage() {
     setUpdatingUsers(prev => new Set(prev).add(userId));
     
     try {
+      // Convert datetime-local value to ISO string with timezone
+      let banExpiresISO = null;
+      if (!currentBanned && banExpires) {
+        // datetime-local format is "YYYY-MM-DDTHH:mm" (local time, no timezone)
+        // Convert to ISO string with timezone
+        const localDate = new Date(banExpires);
+        banExpiresISO = localDate.toISOString();
+      }
+
       const response = await fetch(`/api/admin/users/${userId}/lock`, {
         method: "POST",
         headers: {
@@ -129,7 +160,7 @@ export default function AccountPage() {
         body: JSON.stringify({
           banned: !currentBanned,
           banReason: !currentBanned ? banReason || "Account locked by administrator" : null,
-          banExpires: !currentBanned ? banExpires || null : null,
+          banExpires: banExpiresISO,
         }),
       });
 
