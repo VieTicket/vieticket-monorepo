@@ -771,12 +771,12 @@ export function EventCompareModal({
                 <CardContent className="space-y-2">
                   {comparisonResult.priceRanking.map((event, index) => (
                     <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center gap-2">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
                           <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
-                          <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                          <span className="text-sm font-medium truncate flex-1 min-w-0" title={event.name}>{event.name}</span>
                         </div>
-                        <span className="text-sm font-medium flex-shrink-0 ml-2">
+                        <span className="text-sm font-medium flex-shrink-0">
                           {formatCurrency(event.price.avg)}
                         </span>
                       </div>
@@ -802,17 +802,17 @@ export function EventCompareModal({
                     const ticketSaleRate = event.ticketSaleRate;
                     return (
                       <div key={event.id} className="p-2 rounded bg-gray-50 space-y-1">
-                        <div className="flex justify-between items-center">
+                        <div className="flex justify-between items-center gap-2">
                           <div className="flex items-center space-x-2 flex-1 min-w-0">
                             <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
-                            <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
+                            <span className="text-sm font-medium truncate flex-1 min-w-0" title={event.name}>{event.name}</span>
                           </div>
                           {ticketSaleRate ? (
-                            <span className="text-sm font-medium flex-shrink-0 ml-2 text-purple-600">
+                            <span className="text-sm font-medium flex-shrink-0 text-purple-600">
                               {ticketSaleRate.rate.toFixed(1)}%
                             </span>
                           ) : (
-                            <span className="text-xs text-gray-400 flex-shrink-0 ml-2">N/A</span>
+                            <span className="text-xs text-gray-400 flex-shrink-0">N/A</span>
                           )}
                         </div>
                         {ticketSaleRate && (
@@ -852,7 +852,7 @@ export function EventCompareModal({
                         const rankIndex = hasDistance ? index + 1 : null;
                         
                         return (
-                          <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                          <div key={event.id} className="flex justify-between items-center gap-2 p-2 rounded bg-gray-50">
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
                               {rankIndex && (
                                 <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{rankIndex}</span>
@@ -865,13 +865,13 @@ export function EventCompareModal({
                               </div>
                             </div>
                             {hasDistance ? (
-                              <div className="text-right ml-2 flex-shrink-0">
+                              <div className="text-right flex-shrink-0">
                                 <span className="text-sm font-medium text-blue-600">
                                   {formatDistance(event.distanceFromUser)}
                                 </span>
                               </div>
                             ) : (
-                              <div className="text-right ml-2 flex-shrink-0">
+                              <div className="text-right flex-shrink-0">
                                 <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
                                   N/A
                                 </span>
@@ -881,7 +881,7 @@ export function EventCompareModal({
                         );
                       })
                     : comparisonResult.events.map((event) => (
-                        <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
+                        <div key={event.id} className="flex justify-between items-center gap-2 p-2 rounded bg-gray-50">
                           <div className="flex-1 min-w-0">
                             <span className="text-sm font-medium truncate block" title={event.name}>{event.name}</span>
                             <span className="text-xs text-gray-500 truncate block" title={event.location}>
@@ -889,13 +889,13 @@ export function EventCompareModal({
                             </span>
                           </div>
                           {event.distanceFromUser !== undefined ? (
-                            <div className="text-right ml-2 flex-shrink-0">
+                            <div className="text-right flex-shrink-0">
                               <span className="text-sm font-medium text-blue-600">
                                 {formatDistance(event.distanceFromUser)}
                               </span>
                             </div>
                           ) : event.location && (
-                            <div className="text-right ml-2 flex-shrink-0">
+                            <div className="text-right flex-shrink-0">
                               <span className="text-xs text-amber-600" title="Không thể xác định vị trí địa điểm">
                                 N/A
                               </span>
@@ -917,15 +917,15 @@ export function EventCompareModal({
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {comparisonResult.organizerRanking.map((event, index) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <div className="flex items-center space-x-2">
-                        <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
-                        <div>
+                    <div key={event.id} className="flex justify-between items-center gap-2 p-2 rounded bg-gray-50">
+                      <div className="flex items-center space-x-2 flex-1 min-w-0">
+                        <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
+                        <div className="flex-1 min-w-0">
                           <p className="text-sm font-medium truncate" title={event.organizer.name}>{event.organizer.name}</p>
                           <p className="text-xs text-gray-500 truncate" title={event.name}>{event.name}</p>
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-right flex-shrink-0">
                         {event.organizer.rating && event.organizer.rating.average > 0 ? (
                           <div className="flex items-center space-x-1">
                             <div className="flex items-center gap-1">
@@ -963,9 +963,9 @@ export function EventCompareModal({
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {comparisonResult.events.map((event) => (
-                    <div key={event.id} className="flex justify-between items-center p-2 rounded bg-gray-50">
-                      <span className="text-sm font-medium truncate" title={event.name}>{event.name}</span>
-                      <span className="text-sm text-gray-600 truncate max-w-32" title={event.category}>
+                    <div key={event.id} className="flex justify-between items-center gap-2 p-2 rounded bg-gray-50">
+                      <span className="text-sm font-medium truncate flex-1 min-w-0" title={event.name}>{event.name}</span>
+                      <span className="text-sm text-gray-600 truncate flex-shrink-0 max-w-[120px]" title={event.category}>
                         {event.category}
                       </span>
                     </div>
@@ -997,10 +997,10 @@ export function EventCompareModal({
                       const originalEvent = comparisonResult.events.find(e => e.id === event.id) || event;
                       return (
                         <div key={event.id} className="p-3 rounded bg-gray-50 space-y-2">
-                          <div className="flex justify-between items-start">
+                          <div className="flex justify-between items-start gap-2">
                             <div className="flex items-center space-x-2 flex-1 min-w-0">
                               <span className="text-sm font-bold text-blue-600 flex-shrink-0">#{index + 1}</span>
-                              <span className="text-sm font-medium truncate flex-1" title={originalEvent.name}>
+                              <span className="text-sm font-medium truncate flex-1 min-w-0" title={originalEvent.name}>
                                 {originalEvent.name}
                               </span>
                             </div>
