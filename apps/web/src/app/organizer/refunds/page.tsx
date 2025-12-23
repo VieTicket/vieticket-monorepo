@@ -42,7 +42,7 @@ export default async function OrganizerRefundsPage({
   }
 
   return (
-    <div className="space-y-6 my-8 mx-6">
+    <div className="space-y-6 my-8 mx-6 max-w-full overflow-hidden">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{t("title")}</h1>
         <p className="text-muted-foreground">{t("subtitle")}</p>

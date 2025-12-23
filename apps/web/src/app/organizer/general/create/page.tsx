@@ -1,4 +1,7 @@
 import { DashboardOverview } from "./DashboardOverview";
+import { notFound } from "next/navigation";
+import { authorise } from "@/lib/auth/authorise";
+import { isEventOwnedByOrganizer } from "@vieticket/repos/events";
 import {
   fetchOrdersByEvent,
   fetchRevenueOverTimeByEventId,
@@ -11,9 +14,19 @@ import {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ id: string }>;
+  searchParams: Promise<{ id?: string }>;
 }) {
+  const session = await authorise("organizer");
   const eventId = (await searchParams).id;
+  if (!eventId) return notFound();
+
+  const isOwnedByOrganizer = await isEventOwnedByOrganizer(
+    eventId,
+    session.user.id,
+  );
+  if (!isOwnedByOrganizer) {
+    return notFound();
+  }
 
   const revenueOverTime = await fetchRevenueOverTimeByEventId(eventId);
   const ticketTypeRevenue =

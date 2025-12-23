@@ -33,6 +33,14 @@ export interface EventShowing {
   isActive: boolean;
 }
 
+export interface EventMetadata {
+  eventProofDocuments?: Array<{
+    documentType: string;
+    documentUrl: string[];
+  }>;
+  contractScreenshotUrl?: string | null;
+}
+
 export interface PendingEvent {
   id: string;
   title: string;
@@ -52,6 +60,7 @@ export interface PendingEvent {
   priceRange?: { min: number; max: number } | null;
   seatMapId?: string | null;
   seatMapImage?: string | null;
+  eventMetadata?: EventMetadata | null;
 }
 
 export interface UpdateEventApprovalRequest {

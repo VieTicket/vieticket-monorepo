@@ -24,6 +24,7 @@ export async function GET() {
         image_url: events.posterUrl,
         category: events.type,
         seatMapId: events.seatMapId,
+        eventMetadata: events.eventMetadata,
       })
       .from(events)
       .leftJoin(organizers, eq(events.organizerId, organizers.id))
@@ -129,6 +130,7 @@ export async function GET() {
         price: eventPrice ? (eventPrice.min === eventPrice.max ? eventPrice.min : eventPrice.min) : 0,
         priceRange: eventPrice ? (eventPrice.min === eventPrice.max ? null : { min: eventPrice.min, max: eventPrice.max }) : null,
         seatMapImage: seatMapImage || null,
+        eventMetadata: event.eventMetadata || null,
         showings: eventShowings.map((showing) => ({
           id: showing.id,
           name: showing.name || "",

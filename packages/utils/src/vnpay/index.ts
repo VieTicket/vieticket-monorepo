@@ -16,6 +16,11 @@ export type VNPayOrderData = Partial<Omit<BuildPaymentUrl, 'vnp_TxnRef'>> & {
    * Payment time (yyyyMMddHHmmss, GMT+7) (from return query).
    */
   vnp_PayDate?: number | string;
+  /**
+   * QStash message id scheduled to revalidate payment after expiration.
+   * Stored so we can cancel the scheduled revalidation once the payment is resolved.
+   */
+  paymentRevalidateQstashMessageId?: string;
 };
 
 // Define the configuration interface

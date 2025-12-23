@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events, showings } from "@vieticket/db/pg/schemas/events";
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 /**
  * Fetches a single event by its ID.
@@ -13,6 +13,14 @@ export async function findEventById(eventId: string) {
   });
 
   return event;
+}
+
+export async function isEventOwnedByOrganizer(eventId: string, organizerId: string) {
+  const event = await db.query.events.findFirst({
+    columns: { id: true },
+    where: and(eq(events.id, eventId), eq(events.organizerId, organizerId)),
+  });
+  return Boolean(event);
 }
 
 /**
@@ -148,45 +156,46 @@ export async function findAccessibleActiveEvents(
   organizationId?: string | null
 ) {
   const now = new Date();
-  
-  // If organization context exists, get events from both user and organization
-  if (organizationId) {
-    const [userEvents, orgEvents] = await Promise.all([
-      db.query.events.findMany({
-        where: (event, { and, eq, gt }) =>
-          and(
-            eq(event.organizerId, userId),
-            eq(event.approvalStatus, "approved"),
-            gt(event.endTime, now)
-          ),
-      }),
-      db.query.events.findMany({
-        where: (event, { and, eq, gt }) =>
-          and(
-            eq(event.organizationId, organizationId),
-            eq(event.approvalStatus, "approved"),
-            gt(event.endTime, now)
-          ),
-      }),
-    ]);
-    
-    // Merge and deduplicate events
-    const allEvents = [...userEvents, ...orgEvents];
-    const uniqueEvents = Array.from(
-      new Map(allEvents.map(event => [event.id, event])).values()
-    );
-    return uniqueEvents;
-  }
-  
+
   // No organization context, just return user's events
-  return db.query.events.findMany({
-    where: (event, { and, eq, gt }) =>
-      and(
-        eq(event.organizerId, userId),
-        eq(event.approvalStatus, "approved"),
-        gt(event.endTime, now)
-      ),
-  });
+  if (!organizationId) {
+    return db.query.events.findMany({
+      where: (event, { and, eq, gt }) =>
+        and(
+          eq(event.organizerId, userId),
+          eq(event.approvalStatus, "approved"),
+          gt(event.endTime, now)
+        ),
+    });
+  }
+
+  // Organization context exists, get events from both user and organization
+  const [userEvents, orgEvents] = await Promise.all([
+    db.query.events.findMany({
+      where: (event, { and, eq, gt }) =>
+        and(
+          eq(event.organizerId, userId),
+          eq(event.approvalStatus, "approved"),
+          gt(event.endTime, now)
+        ),
+    }),
+    db.query.events.findMany({
+      where: (event, { and, eq, gt }) =>
+        and(
+          eq(event.organizationId, organizationId),
+          eq(event.approvalStatus, "approved"),
+          gt(event.endTime, now)
+        ),
+    }),
+  ]);
+
+  // Merge and deduplicate events
+  const allEvents = [...userEvents, ...orgEvents];
+  const uniqueEvents = Array.from(
+    new Map(allEvents.map(event => [event.id, event])).values()
+  );
+
+  return uniqueEvents;
 }
 
 /**
@@ -229,6 +238,6 @@ export async function linkEventToOrganization(
     .set({ organizationId })
     .where(eq(events.id, eventId))
     .returning();
-  
+
   return updatedEvent;
 }

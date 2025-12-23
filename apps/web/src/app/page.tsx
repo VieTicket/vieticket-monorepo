@@ -6,6 +6,8 @@ import { MouseGlowEffect } from "@/components/effects/mouse-glow";
 import TrendingEventsSlider from "@/components/events/trending-events-slider";
 import NewEventsSlider from "@/components/events/new-events-slider";
 
+export const revalidate = 60;
+
 export default async function Home() {
   // Load more events initially to provide better AI personalization
   // This reduces the need for client-side expansion and reordering
@@ -25,8 +27,8 @@ export default async function Home() {
       <div className="fixed inset-0 bg-slate-950" style={{ zIndex: 0 }} />
       
       {/* Static Gradient Accents */}
-      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-gradient-to-br from-yellow-400/10 to-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
-      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-purple-600/10 to-yellow-400/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+      <div className="fixed top-0 right-0 w-[500px] h-[500px] bg-linear-to-br from-yellow-400/10 to-purple-600/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
+      <div className="fixed bottom-0 left-0 w-[500px] h-[500px] bg-linear-to-tr from-purple-600/10 to-yellow-400/10 blur-[120px] rounded-full pointer-events-none" style={{ zIndex: 1 }} />
       
       {/* Mouse Glow Effect */}
       <MouseGlowEffect />
