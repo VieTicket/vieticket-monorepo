@@ -157,13 +157,13 @@ export function MembersManagement() {
   return (
     <div className="space-y-8">
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row gap-4 sm:items-center sm:justify-between">
           <h2 className="text-xl font-semibold">{t("members")}</h2>
           <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
             <DialogTrigger asChild>
-              <Button>{t("inviteMember")}</Button>
+              <Button className="w-full sm:w-auto">{t("inviteMember")}</Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
               <DialogHeader>
                 <DialogTitle>{t("inviteMember")}</DialogTitle>
               </DialogHeader>
@@ -193,32 +193,36 @@ export function MembersManagement() {
           </Dialog>
         </div>
 
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>User</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Joined</TableHead>
-                <TableHead className="w-[50px]"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {members?.members?.map((member) => (
-                <TableRow key={member.id}>
-                  <TableCell className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={member.user.image || ""} />
-                      <AvatarFallback>{member.user.name?.charAt(0) || member.user.email?.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{member.user.name}</span>
-                      <span className="text-xs text-muted-foreground">{member.user.email}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="capitalize">{member.role}</TableCell>
-                  <TableCell>{new Date(member.createdAt).toLocaleDateString()}</TableCell>
+        <div className="rounded-md border overflow-hidden">
+          <div className="overflow-x-auto">
+            <Table className="table-fixed w-full">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-auto">User</TableHead>
+                  <TableHead className="hidden sm:table-cell w-24">Role</TableHead>
+                  <TableHead className="hidden md:table-cell w-28">Joined</TableHead>
+                  <TableHead className="w-14"></TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members?.members?.map((member) => (
+                  <TableRow key={member.id}>
                   <TableCell>
+                    <div className="flex items-center gap-2 min-w-0 overflow-hidden">
+                        <Avatar className="h-8 w-8 shrink-0">
+                          <AvatarImage src={member.user.image || ""} />
+                          <AvatarFallback>{member.user.name?.charAt(0) || member.user.email?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col min-w-0 flex-1">
+                          <span className="font-medium truncate text-sm">{member.user.name}</span>
+                          <span className="text-xs text-muted-foreground truncate">{member.user.email}</span>
+                          <span className="text-xs text-muted-foreground sm:hidden capitalize truncate">{member.role}</span>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell capitalize text-sm truncate">{member.role}</TableCell>
+                    <TableCell className="hidden md:table-cell text-sm whitespace-nowrap">{new Date(member.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -240,29 +244,36 @@ export function MembersManagement() {
               ))}
             </TableBody>
           </Table>
+          </div>
         </div>
       </div>
 
       {invitations && invitations.length > 0 && (
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">{t("invitations")}</h2>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("email")}</TableHead>
-                  <TableHead>{t("role")}</TableHead>
-                  <TableHead>Sent At</TableHead>
-                  <TableHead className="w-[50px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {invitations.map((invitation) => (
-                  <TableRow key={invitation.id}>
-                    <TableCell>{invitation.email}</TableCell>
-                    <TableCell className="capitalize">{invitation.role}</TableCell>
-                    <TableCell>{new Date(invitation.createdAt).toLocaleDateString()}</TableCell>
+          <div className="rounded-md border overflow-hidden">
+            <div className="overflow-x-auto">
+              <Table className="table-fixed w-full">
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-auto">{t("email")}</TableHead>
+                    <TableHead className="hidden sm:table-cell w-24">{t("role")}</TableHead>
+                    <TableHead className="hidden md:table-cell w-28">Sent At</TableHead>
+                    <TableHead className="w-14"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {invitations.map((invitation) => (
+                    <TableRow key={invitation.id}>
                     <TableCell>
+                      <div className="flex flex-col min-w-0 overflow-hidden">
+                          <span className="truncate text-sm">{invitation.email}</span>
+                          <span className="text-xs text-muted-foreground sm:hidden capitalize truncate">{invitation.role}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell capitalize text-sm truncate">{invitation.role}</TableCell>
+                      <TableCell className="hidden md:table-cell text-sm whitespace-nowrap">{new Date(invitation.createdAt).toLocaleDateString()}</TableCell>
+                      <TableCell>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -276,6 +287,7 @@ export function MembersManagement() {
                 ))}
               </TableBody>
             </Table>
+            </div>
           </div>
         </div>
       )}

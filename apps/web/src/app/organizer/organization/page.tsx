@@ -43,18 +43,18 @@ export default function OrganizationPage() {
 
   if (viewMode === 'list') {
     return (
-      <div className="p-8 space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="p-4 md:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-0 sm:justify-between sm:items-center">
           <h1 className="text-2xl font-bold">{t("title")}</h1>
           {canCreateOrg && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button>
+                <Button className="w-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" />
                   {t("createOrg")}
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>{t("createOrg")}</DialogTitle>
                 </DialogHeader>
@@ -64,7 +64,7 @@ export default function OrganizationPage() {
           )}
         </div>
         
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {organizations?.map((org) => (
             <Card key={org.id} className="hover:bg-accent/50 transition-colors cursor-pointer" onClick={() => setActiveOrganizationId(org.id)}>
               <CardHeader>
@@ -88,29 +88,30 @@ export default function OrganizationPage() {
   if (!activeOrg) return null;
 
   return (
-    <div className="space-y-6 p-8">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => setViewMode('list')}>
+    <div className="space-y-6 p-4 md:p-8">
+      <div className="flex flex-col gap-4">
+        <div className="flex items-start gap-4">
+          <Button variant="ghost" size="icon" onClick={() => setViewMode('list')} className="shrink-0">
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div>
-            <h1 className="text-3xl font-bold tracking-tight">{t("settings")}</h1>
-            <p className="text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl md:text-3xl font-bold tracking-tight">{t("settings")}</h1>
+            <p className="text-sm md:text-base text-muted-foreground">
               {t("settingsDesc")}
             </p>
           </div>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 justify-end">
             {canCreateOrg && (
             <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
               <DialogTrigger asChild>
-                <Button variant="outline">
+                <Button variant="outline" className="w-full sm:w-auto">
                   <Plus className="mr-2 h-4 w-4" />
-                  {t("createOrg")}
+                  <span className="hidden sm:inline">{t("createOrg")}</span>
+                  <span className="sm:hidden">New</span>
                 </Button>
               </DialogTrigger>
-              <DialogContent>
+              <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
                 <DialogHeader>
                   <DialogTitle>{t("createOrg")}</DialogTitle>
                 </DialogHeader>
@@ -123,18 +124,18 @@ export default function OrganizationPage() {
       
       <Separator />
 
-      <div className="grid gap-6">
+      <div className="grid gap-6 min-w-0">
         <Card>
           <CardHeader>
             <CardTitle>{t("details")}</CardTitle>
-            <CardDescription>
+            <CardDescription className="break-words">
               {t("detailsDesc")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <span className="font-semibold">{t("name")}:</span> {activeOrg.name}
+              <div className="min-w-0">
+                <span className="font-semibold">{t("name")}:</span> <span className="break-words">{activeOrg.name}</span>
               </div>
             </div>
           </CardContent>
@@ -143,11 +144,11 @@ export default function OrganizationPage() {
         <Card>
           <CardHeader>
             <CardTitle>{t("members")}</CardTitle>
-            <CardDescription>
+            <CardDescription className="break-words">
               {t("membersDesc")}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="overflow-hidden">
             <MembersManagement />
           </CardContent>
         </Card>
@@ -157,10 +158,10 @@ export default function OrganizationPage() {
             <CardTitle className="text-red-600">{t("dangerZone")}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="font-medium">{t("leaveOrg")}</p>
-                <p className="text-sm text-muted-foreground">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium truncate">{t("leaveOrg")}</p>
+                <p className="text-sm text-muted-foreground break-words">
                   {t("leaveOrgDesc")}
                 </p>
               </div>

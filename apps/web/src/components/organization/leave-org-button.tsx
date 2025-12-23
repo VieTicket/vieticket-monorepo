@@ -44,8 +44,10 @@ export function LeaveOrgButton() {
       onClick={handleLeave}
       disabled={isLoading || isOwner}
       title={isOwner ? "Owners cannot leave the organization" : undefined}
+      className="w-full sm:w-auto shrink-0"
     >
-      Leave Organization
+      <span className="hidden sm:inline">Leave Organization</span>
+      <span className="sm:hidden">Leave</span>
     </Button>
   );
 }
