@@ -64,14 +64,14 @@ export default async function RefundsPage({
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle")}</p>
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">{t("title")}</h1>
+        <p className="text-slate-400">{t("subtitle")}</p>
       </div>
 
       {!refundsResult.success && (
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardContent className="py-6">
-            <div className="text-red-600 text-sm">
+            <div className="text-red-400 text-sm">
               {refundsResult.error ?? t("errors.failedToLoad")}
             </div>
           </CardContent>

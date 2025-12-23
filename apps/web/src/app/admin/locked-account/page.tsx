@@ -135,11 +135,11 @@ export default function LockedAccountPage() {
 
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) {
-      return <ArrowUpDown className="h-4 w-4 text-muted-foreground/50" />;
+      return <ArrowUpDown className="h-4 w-4 text-slate-400/50" />;
     }
     return sortDirection === 'asc' ? 
-      <ArrowUp className="h-4 w-4" /> : 
-      <ArrowDown className="h-4 w-4" />;
+      <ArrowUp className="h-4 w-4 text-slate-300" /> : 
+      <ArrowDown className="h-4 w-4 text-slate-300" />;
   };
 
   const handleLockToggle = async (userId: string, currentBanned: boolean) => {
@@ -235,23 +235,23 @@ export default function LockedAccountPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Locked Accounts</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">Locked Accounts</h1>
+          <p className="text-slate-400">
             Manage and review locked user accounts.
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserX className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <UserX className="h-5 w-5 text-yellow-400" />
               Locked User Accounts
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading locked users...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
+              <span className="ml-2 text-slate-300">Loading locked users...</span>
             </div>
           </CardContent>
         </Card>
@@ -262,31 +262,31 @@ export default function LockedAccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Locked Accounts</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">Locked Accounts</h1>
+        <p className="text-slate-400">
           Manage and review locked user accounts.
         </p>
       </div>
 
-      <Card>
+      <Card className="bg-slate-800/50 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserX className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <UserX className="h-5 w-5 text-yellow-400" />
             Locked User Accounts ({filteredAndSortedUsers.length} of {users.length})
             {totalPages > 1 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-slate-400 ml-2">
                 (Page {currentPage} of {totalPages})
               </span>
             )}
           </CardTitle>
           <div className="flex items-center space-x-2">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
               />
             </div>
           </div>
@@ -294,20 +294,20 @@ export default function LockedAccountPage() {
         <CardContent>
           {filteredAndSortedUsers.length === 0 ? (
             <div className="text-center py-8">
-              <UserX className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
+              <UserX className="h-12 w-12 mx-auto text-slate-400 mb-4" />
+              <p className="text-slate-400">
                 {searchQuery.trim() ? "No locked accounts match your search." : "No locked accounts found."}
               </p>
             </div>
           ) : (
-            <div className="rounded-md border">
+            <div className="rounded-md border border-slate-700/50">
               <Table className="table-fixed w-full">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[200px]">Name</TableHead>
-                    <TableHead className="w-[200px]">Email</TableHead>
+                  <TableRow className="border-slate-700/50">
+                    <TableHead className="w-[200px] text-slate-300">Name</TableHead>
+                    <TableHead className="w-[200px] text-slate-300">Email</TableHead>
                     <TableHead 
-                      className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="w-[120px] cursor-pointer hover:bg-slate-700/30 transition-colors text-slate-300"
                       onClick={() => handleSort('role')}
                     >
                       <div className="flex items-center gap-1">
@@ -315,11 +315,11 @@ export default function LockedAccountPage() {
                         {getSortIcon('role')}
                       </div>
                     </TableHead>
-                    <TableHead className="w-[150px]">Status</TableHead>
-                    <TableHead className="w-[200px]">Ban Details</TableHead>
-                    <TableHead className="w-[130px]">Email Verified</TableHead>
+                    <TableHead className="w-[150px] text-slate-300">Status</TableHead>
+                    <TableHead className="w-[200px] text-slate-300">Ban Details</TableHead>
+                    <TableHead className="w-[130px] text-slate-300">Email Verified</TableHead>
                     <TableHead 
-                      className="w-[120px] cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="w-[120px] cursor-pointer hover:bg-slate-700/30 transition-colors text-slate-300"
                       onClick={() => handleSort('createdAt')}
                     >
                       <div className="flex items-center gap-1">
@@ -327,45 +327,51 @@ export default function LockedAccountPage() {
                         {getSortIcon('createdAt')}
                       </div>
                     </TableHead>
-                    <TableHead className="w-[120px] text-right">Actions</TableHead>
+                    <TableHead className="w-[120px] text-right text-slate-300">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedUsers.map((user) => {
                     const statusInfo = getStatusInfo(user);
                     return (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium w-[200px] min-w-0">
+                      <TableRow key={user.id} className="border-slate-700/50 hover:bg-slate-700/20">
+                        <TableCell className="font-medium w-[200px] min-w-0 text-slate-200">
                           <div className="truncate" title={user.name}>
                             {user.name}
                           </div>
                         </TableCell>
-                        <TableCell className="w-[200px] min-w-0">
+                        <TableCell className="w-[200px] min-w-0 text-slate-300">
                           <div className="truncate" title={user.email}>
                             {user.email}
                           </div>
                         </TableCell>
                         <TableCell className="w-[120px]">
-                          <Badge variant={getRoleBadgeVariant(user.role)}>
-                            {user.role}
-                          </Badge>
+                          <div className="truncate">
+                            <Badge variant={getRoleBadgeVariant(user.role)} className="truncate max-w-full">
+                              <span className="truncate block" title={user.role}>
+                                {user.role}
+                              </span>
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="w-[150px] min-w-0">
-                          <Badge variant={statusInfo.variant} className="truncate max-w-full">
-                            <span className="truncate block" title={statusInfo.status}>
-                              {statusInfo.status}
-                            </span>
-                          </Badge>
+                          <div className="truncate">
+                            <Badge variant={statusInfo.variant} className="truncate max-w-full">
+                              <span className="truncate block" title={statusInfo.status}>
+                                {statusInfo.status}
+                              </span>
+                            </Badge>
+                          </div>
                         </TableCell>
                         <TableCell className="w-[200px] min-w-0">
                           {user.banReason && (
                             <div className="min-w-0">
-                              <div className="text-sm text-muted-foreground truncate" title={user.banReason}>
+                              <div className="text-sm text-slate-400 truncate" title={user.banReason}>
                                 {user.banReason}
                               </div>
                               {user.banExpires && (
-                                <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1 min-w-0">
-                                  <Clock className="h-3 w-3 flex-shrink-0" />
+                                <div className="flex items-center gap-1 text-xs text-slate-500 mt-1 min-w-0">
+                                  <Clock className="h-3 w-3 flex-shrink-0 text-yellow-400" />
                                   <span className="truncate min-w-0" title={`Expires: ${formatDateTime(user.banExpires.toString())}`}>
                                     Expires: {formatDateTime(user.banExpires.toString())}
                                   </span>
@@ -379,7 +385,11 @@ export default function LockedAccountPage() {
                             {user.emailVerified ? "Verified" : "Unverified"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="w-[120px]">{formatDate(user.createdAt)}</TableCell>
+                        <TableCell className="w-[120px] text-slate-300">
+                          <div className="truncate" title={formatDate(user.createdAt)}>
+                            {formatDate(user.createdAt)}
+                          </div>
+                        </TableCell>
                         <TableCell className="w-[120px] text-right">
                           <Button
                             variant="default"
@@ -407,8 +417,8 @@ export default function LockedAccountPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700/50">
+              <div className="text-sm text-slate-400">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedUsers.length)} of {filteredAndSortedUsers.length} users
               </div>
               <div className="flex items-center gap-2">
@@ -417,11 +427,12 @@ export default function LockedAccountPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <div className="text-sm font-medium px-3">
+                <div className="text-sm font-medium px-3 text-slate-300">
                   Page {currentPage} of {totalPages}
                 </div>
                 <Button
@@ -429,6 +440,7 @@ export default function LockedAccountPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />

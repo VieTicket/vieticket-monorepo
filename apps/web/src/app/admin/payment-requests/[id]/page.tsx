@@ -15,7 +15,7 @@ export default async function AdminPaymentRequestDetailPage({
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
+    <div className="space-y-6">
       <AdminPayoutRequestDetail
         initialRequest={result.data!.payoutRequest}
         revenue={result.data!.revenue}

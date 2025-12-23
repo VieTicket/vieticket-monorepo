@@ -331,23 +331,23 @@ export default function AccountPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Account Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">Account Management</h1>
+          <p className="text-slate-400">
             Manage user accounts and permissions.
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Users className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <Users className="h-5 w-5 text-yellow-400" />
               User Accounts
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading users...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
+              <span className="ml-2 text-slate-300">Loading users...</span>
             </div>
           </CardContent>
         </Card>
@@ -358,44 +358,44 @@ export default function AccountPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Account Management</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">Account Management</h1>
+        <p className="text-slate-400">
           Manage user accounts and permissions.
         </p>
       </div>
 
-      <Card>
+      <Card className="bg-slate-800/50 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <Users className="h-5 w-5 text-yellow-400" />
             User Accounts ({filteredAndSortedUsers.length} of {users.length})
             {totalPages > 1 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-slate-400 ml-2">
                 (Page {currentPage} of {totalPages})
               </span>
             )}
           </CardTitle>
           <div className="flex items-center space-x-2">
             <div className="relative flex-1 max-w-sm">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 placeholder="Search by name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
               />
             </div>
           </div>
         </CardHeader>
         <CardContent>
-            <div className="rounded-md border overflow-x-auto">
-              <Table className="w-full min-w-[800px]">
+            <div className="rounded-md border border-slate-700/50 overflow-x-auto">
+              <Table className="w-full table-fixed">
               <TableHeader>
-                <TableRow>
-                  <TableHead className="min-w-[150px] max-w-[200px]">Name</TableHead>
-                  <TableHead className="min-w-[180px] max-w-[250px]">Email</TableHead>
+                <TableRow className="border-slate-700/50">
+                  <TableHead className="w-[180px] text-slate-300">Name</TableHead>
+                  <TableHead className="w-[220px] text-slate-300">Email</TableHead>
                   <TableHead 
-                    className="min-w-[100px] max-w-[130px] cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="w-[110px] cursor-pointer hover:bg-slate-700/30 transition-colors text-slate-300"
                     onClick={() => handleSort('role')}
                   >
                     <div className="flex items-center gap-1">
@@ -403,10 +403,10 @@ export default function AccountPage() {
                       {getSortIcon('role')}
                     </div>
                   </TableHead>
-                  <TableHead className="min-w-[120px] max-w-[160px]">Status</TableHead>
-                  <TableHead className="min-w-[110px] max-w-[140px]">Email Verified</TableHead>
+                  <TableHead className="w-[150px] text-slate-300">Status</TableHead>
+                  <TableHead className="w-[130px] text-slate-300">Email Verified</TableHead>
                   <TableHead 
-                    className="min-w-[100px] max-w-[130px] cursor-pointer hover:bg-muted/50 transition-colors"
+                    className="w-[120px] cursor-pointer hover:bg-slate-700/30 transition-colors text-slate-300"
                     onClick={() => handleSort('createdAt')}
                   >
                     <div className="flex items-center gap-1">
@@ -414,7 +414,7 @@ export default function AccountPage() {
                       {getSortIcon('createdAt')}
                     </div>
                   </TableHead>
-                  <TableHead className="min-w-[100px] max-w-[130px] text-right">Actions</TableHead>
+                  <TableHead className="w-[140px] text-right text-slate-300">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -423,38 +423,48 @@ export default function AccountPage() {
                   return (
                     <TableRow 
                       key={user.id}
-                      className={user.role === "organizer" ? "cursor-pointer hover:bg-muted/50" : ""}
+                      className={`border-slate-700/50 ${user.role === "organizer" ? "cursor-pointer hover:bg-slate-700/30" : "hover:bg-slate-700/20"}`}
                       onClick={() => user.role === "organizer" && handleViewOrganizer(user)}
                     >
-                      <TableCell className="font-medium min-w-[150px] max-w-[200px]">
+                      <TableCell className="font-medium w-[180px] text-slate-200">
                         <div className="truncate" title={user.name}>
                           {user.name}
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-[180px] max-w-[250px]">
+                      <TableCell className="w-[220px] text-slate-300">
                         <div className="truncate" title={user.email}>
                           {user.email}
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-[100px] max-w-[130px]">
-                        <Badge variant={getRoleBadgeVariant(user.role)}>
-                          {user.role}
-                        </Badge>
+                      <TableCell className="w-[110px]">
+                        <div className="truncate">
+                          <Badge variant={getRoleBadgeVariant(user.role)} className="truncate max-w-full">
+                            <span className="truncate block" title={user.role}>
+                              {user.role}
+                            </span>
+                          </Badge>
+                        </div>
                       </TableCell>
-                      <TableCell className="min-w-[120px] max-w-[160px]">
-                        <Badge variant={statusInfo.variant} className="truncate max-w-full">
-                          <span className="truncate block" title={statusInfo.status}>
-                            {statusInfo.status}
-                          </span>
-                        </Badge>
+                      <TableCell className="w-[150px]">
+                        <div className="truncate">
+                          <Badge variant={statusInfo.variant} className="truncate max-w-full">
+                            <span className="truncate block" title={statusInfo.status}>
+                              {statusInfo.status}
+                            </span>
+                          </Badge>
+                        </div>
                       </TableCell>
-                      <TableCell className="min-w-[110px] max-w-[140px]">
+                      <TableCell className="w-[130px]">
                         <Badge variant={user.emailVerified ? "default" : "secondary"}>
                           {user.emailVerified ? "Verified" : "Unverified"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="min-w-[100px] max-w-[130px]">{formatDate(user.createdAt)}</TableCell>
-                      <TableCell className="min-w-[100px] max-w-[130px] text-right">
+                      <TableCell className="w-[120px] text-slate-300">
+                        <div className="truncate" title={formatDate(user.createdAt)}>
+                          {formatDate(user.createdAt)}
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[140px] text-right">
                         {user.banned ? (
                           <Button
                             variant="default"
@@ -475,7 +485,7 @@ export default function AccountPage() {
                             )}
                           </Button>
                         ) : user.role === "admin" ? (
-                          <span className="text-xs text-muted-foreground">Protected</span>
+                          <span className="text-xs text-slate-400">Protected</span>
                         ) : (
                           <Dialog open={dialogOpen && selectedUser?.id === user.id} onOpenChange={setDialogOpen}>
                             <DialogTrigger asChild>
@@ -491,25 +501,26 @@ export default function AccountPage() {
                                 Lock
                               </Button>
                             </DialogTrigger>
-                            <DialogContent>
+                            <DialogContent className="bg-slate-800 border-slate-700 text-white">
                               <DialogHeader>
-                                <DialogTitle>Lock User Account</DialogTitle>
-                                <DialogDescription>
+                                <DialogTitle className="text-white">Lock User Account</DialogTitle>
+                                <DialogDescription className="text-slate-400">
                                   Lock the account for user: {selectedUser?.name} ({selectedUser?.email})
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="grid gap-4 py-4">
                                 <div className="grid gap-2">
-                                  <Label htmlFor="banReason">Ban Reason</Label>
+                                  <Label htmlFor="banReason" className="text-slate-300">Ban Reason</Label>
                                   <Input
                                     id="banReason"
                                     value={banReason}
                                     onChange={(e) => setBanReason(e.target.value)}
                                     placeholder="Enter reason for locking the account"
+                                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                                   />
                                 </div>
                                 <div className="grid gap-2">
-                                  <Label htmlFor="banExpires">Ban Expires (Optional)</Label>
+                                  <Label htmlFor="banExpires" className="text-slate-300">Ban Expires (Optional)</Label>
                                   <Input
                                     id="banExpires"
                                     type="datetime-local"
@@ -537,6 +548,7 @@ export default function AccountPage() {
                                       }
                                       setBanExpires(value);
                                     }}
+                                    className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                                   />
                                 </div>
                               </div>
@@ -549,6 +561,7 @@ export default function AccountPage() {
                                     setBanReason("");
                                     setBanExpires("");
                                   }}
+                                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-700 hover:text-white"
                                 >
                                   Cancel
                                 </Button>
@@ -580,8 +593,8 @@ export default function AccountPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700/50">
+              <div className="text-sm text-slate-400">
                 Showing {startIndex + 1} to {Math.min(endIndex, filteredAndSortedUsers.length)} of {filteredAndSortedUsers.length} users
               </div>
               <div className="flex items-center gap-2">
@@ -590,11 +603,12 @@ export default function AccountPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <div className="text-sm font-medium px-3">
+                <div className="text-sm font-medium px-3 text-slate-300">
                   Page {currentPage} of {totalPages}
                 </div>
                 <Button
@@ -602,6 +616,7 @@ export default function AccountPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -614,26 +629,26 @@ export default function AccountPage() {
 
       {/* Organizer Detail Dialog */}
       <Dialog open={organizerDialogOpen} onOpenChange={setOrganizerDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
-            <DialogTitle>Organizer Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Organizer Details</DialogTitle>
+            <DialogDescription className="text-slate-400">
               View organizer information for {organizerDetail?.user?.name || "organizer"}
             </DialogDescription>
           </DialogHeader>
           {loadingOrganizer ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading organizer details...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
+              <span className="ml-2 text-slate-300">Loading organizer details...</span>
             </div>
           ) : organizerDetail ? (
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium text-slate-300">
                     Personal Information
                   </Label>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-2 text-slate-200">
                     <div className="break-words">
                       <strong>Name:</strong> {organizerDetail.user.name}
                     </div>
@@ -648,10 +663,10 @@ export default function AccountPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium text-slate-300">
                     Organization Details
                   </Label>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-2 text-slate-200">
                     <div className="break-words">
                       <strong>Organization Name:</strong>{" "}
                       {organizerDetail.name}
@@ -676,13 +691,13 @@ export default function AccountPage() {
               </div>
               {organizerDetail.website && (
                 <div>
-                  <Label className="text-sm font-medium">Website</Label>
+                  <Label className="text-sm font-medium text-slate-300">Website</Label>
                   <div className="mt-1 break-all">
                     <a
                       href={organizerDetail.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-violet-400 hover:text-violet-300 hover:underline"
                     >
                       {organizerDetail.website}
                     </a>
@@ -691,12 +706,12 @@ export default function AccountPage() {
               )}
               {organizerDetail.address && (
                 <div>
-                  <Label className="text-sm font-medium">Address</Label>
-                  <div className="mt-1 break-words">{organizerDetail.address}</div>
+                  <Label className="text-sm font-medium text-slate-300">Address</Label>
+                  <div className="mt-1 break-words text-slate-200">{organizerDetail.address}</div>
                 </div>
               )}
               <div>
-                <Label className="text-sm font-medium">Status</Label>
+                <Label className="text-sm font-medium text-slate-300">Status</Label>
                 <div className="mt-1">
                   <Badge variant={organizerDetail.isActive ? "default" : "secondary"}>
                     {organizerDetail.isActive ? "Active" : "Inactive"}
@@ -704,15 +719,15 @@ export default function AccountPage() {
                 </div>
               </div>
               <div>
-                <Label className="text-sm font-medium">Account Created</Label>
-                <div className="mt-1">
+                <Label className="text-sm font-medium text-slate-300">Account Created</Label>
+                <div className="mt-1 text-slate-200">
                   {formatDate(organizerDetail.user.createdAt)}
                 </div>
               </div>
             </div>
           ) : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOrganizerDialogOpen(false)}>
+            <Button variant="outline" onClick={() => setOrganizerDialogOpen(false)} className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-700 hover:text-white">
               Close
             </Button>
           </DialogFooter>
