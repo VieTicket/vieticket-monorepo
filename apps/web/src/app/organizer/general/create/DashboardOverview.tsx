@@ -7,7 +7,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Wallet, Ticket, Star } from "lucide-react";
+import { Wallet, Ticket, Star, ChevronDown, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import {
   ResponsiveContainer,
@@ -35,12 +35,20 @@ type TicketTypeRevenue = {
   ticketsSold: number; // Number of tickets sold for this type
 };
 
-type RecentTransaction = {
-  id: string;
-  date: string;
+type TicketDetail = {
+  ticketId: string;
   ticketType: string;
-  amount: number;
-  status: OrderStatus;
+  price: number;
+  status: string;
+};
+
+type RecentTransaction = {
+  orderId: string;
+  orderDate: string;
+  orderStatus: OrderStatus;
+  orderTotal: number;
+  ticketsCount: number;
+  tickets: TicketDetail[];
 };
 
 type Props = {
@@ -149,6 +157,21 @@ export function DashboardOverview({
   const totalAvailableTickets = initialTotalAvailableTickets || 0;
   const recentTransactions = initialRecentTransactions || [];
   // --- END DATA SETUP ---
+
+  // State for expandable orders
+  const [expandedOrders, setExpandedOrders] = useState<Set<string>>(new Set());
+
+  const toggleOrderExpansion = (orderId: string) => {
+    setExpandedOrders((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(orderId)) {
+        newSet.delete(orderId);
+      } else {
+        newSet.add(orderId);
+      }
+      return newSet;
+    });
+  };
 
   // Calculate overview metrics
   const totalRevenue = useMemo(() => {
@@ -547,120 +570,125 @@ export function DashboardOverview({
         <Card className="rounded-xl shadow-lg">
           <CardHeader className="px-3 sm:px-6">
             <CardTitle className="text-sm sm:text-lg lg:text-xl font-semibold text-gray-800 dark:text-gray-100">
-              Recent Transactions
+              Recent Orders
             </CardTitle>
             <CardDescription className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">
-              Latest ticket sales transactions
+              Latest ticket orders (click to expand)
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <div className="max-h-[250px] sm:max-h-[300px] overflow-y-auto overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-                <thead className="bg-gray-50 dark:bg-gray-800 sticky top-0 z-10">
-                  <tr>
-                    <th
-                      scope="col"
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      ID
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell"
-                    >
-                      Date
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Type
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Amount
-                    </th>
-                    <th
-                      scope="col"
-                      className="px-3 sm:px-6 py-2 sm:py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-                    >
-                      Status
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-700">
-                  {recentTransactions && recentTransactions.length > 0 ? (
-                    recentTransactions.map((transaction, index) => (
-                      <tr
-                        key={index}
-                        className="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                      >
-                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-50">
-                          <span className="inline-block max-w-[40px] sm:max-w-[50px] truncate">
-                            {transaction.id}
-                          </span>
-                          <div className="text-xs text-gray-500 sm:hidden">
-                            {new Date(transaction.date).toLocaleDateString(
-                              "vi-VN"
-                            )}
+            <div className="max-h-[250px] sm:max-h-[300px] overflow-y-auto">
+              {recentTransactions && recentTransactions.length > 0 ? (
+                <div className="divide-y divide-gray-200 dark:divide-gray-700">
+                  {recentTransactions.map((order) => {
+                    const isExpanded = expandedOrders.has(order.orderId);
+                    return (
+                      <div key={order.orderId}>
+                        {/* Order Summary Row */}
+                        <div
+                          className="px-3 sm:px-6 py-3 sm:py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors cursor-pointer"
+                          onClick={() => toggleOrderExpansion(order.orderId)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-2 sm:space-x-3 flex-1 min-w-0">
+                              <button className="shrink-0">
+                                {isExpanded ? (
+                                  <ChevronDown className="h-4 w-4 text-gray-500" />
+                                ) : (
+                                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                                )}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center space-x-2 flex-wrap">
+                                  <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-50 truncate max-w-20 sm:max-w-[120px]">
+                                    {order.orderId.slice(0, 8)}...
+                                  </span>
+                                  <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">
+                                    {order.orderDate}
+                                  </span>
+                                  <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                                    {order.ticketsCount} ticket{order.ticketsCount !== 1 ? 's' : ''}
+                                  </span>
+                                  <span
+                                    className={`px-2 py-0.5 text-xs rounded-full ${
+                                      order.orderStatus === "paid"
+                                        ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                        : order.orderStatus === "pending"
+                                          ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                                          : order.orderStatus === "failed"
+                                            ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                                            : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                                    }`}
+                                  >
+                                    {order.orderStatus}
+                                  </span>
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 sm:hidden mt-1">
+                                  {order.orderDate}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-gray-50 ml-2 shrink-0">
+                              {formatCurrencyVND(order.orderTotal)}
+                            </div>
                           </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
-                          {new Date(transaction.date).toLocaleDateString(
-                            "vi-VN"
-                          )}
-                        </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                          <span className="truncate max-w-[60px] sm:max-w-none inline-block">
-                            {transaction.ticketType}
-                          </span>
-                        </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm text-right text-gray-900 dark:text-gray-50">
-                          <div className="truncate">
-                            {formatCurrencyVND(transaction.amount)}
-                          </div>
-                        </td>
-                        <td className="px-3 sm:px-6 py-2 sm:py-4 whitespace-nowrap text-xs sm:text-sm">
-                          <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full
-                                                                ${
-                                                                  transaction.status ===
-                                                                  "paid"
-                                                                    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-                                                                    : transaction.status ===
-                                                                        "pending"
-                                                                      ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
-                                                                      : transaction.status ===
-                                                                          "failed"
-                                                                        ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-                                                                        : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
-                                                                }`}
-                          >
-                            {transaction.status}
-                          </span>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan={5}
-                        className="px-6 py-8 text-center text-sm text-muted-foreground"
-                      >
-                        <div className="flex flex-col items-center">
-                          <p className="text-lg">No transactions yet</p>
-                          <p className="text-sm">
-                            Transaction history will appear here once tickets
-                            are sold
-                          </p>
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+
+                        {/* Expanded Tickets */}
+                        {isExpanded && order.tickets.length > 0 && (
+                          <div className="bg-gray-50 dark:bg-gray-800/50 px-3 sm:px-12 py-2">
+                            <div className="space-y-2">
+                              {order.tickets.map((ticket) => (
+                                <div
+                                  key={ticket.ticketId}
+                                  className="flex items-center justify-between py-2 px-3 bg-white dark:bg-gray-900 rounded border border-gray-200 dark:border-gray-700"
+                                >
+                                  <div className="flex items-center space-x-2 flex-1 min-w-0">
+                                    <Ticket className="h-3 w-3 text-gray-400 shrink-0" />
+                                    <div className="flex-1 min-w-0">
+                                      <div className="text-xs font-medium text-gray-900 dark:text-gray-50 truncate">
+                                        {ticket.ticketType}
+                                      </div>
+                                      <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        ID: {ticket.ticketId.slice(0, 8)}...
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2 shrink-0">
+                                    <span className="text-xs font-medium text-gray-900 dark:text-gray-50">
+                                      {formatCurrencyVND(ticket.price)}
+                                    </span>
+                                    <span
+                                      className={`px-2 py-0.5 text-xs rounded-full ${
+                                        ticket.status === "active"
+                                          ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                                          : ticket.status === "used"
+                                            ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                                            : "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+                                      }`}
+                                    >
+                                      {ticket.status}
+                                    </span>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="px-6 py-8 text-center text-sm text-muted-foreground">
+                  <div className="flex flex-col items-center">
+                    <p className="text-lg">No orders yet</p>
+                    <p className="text-sm">
+                      Order history will appear here once tickets are sold
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

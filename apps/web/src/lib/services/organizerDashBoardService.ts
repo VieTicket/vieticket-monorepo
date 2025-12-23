@@ -35,8 +35,8 @@ export const organizerDashBoardService = {
   async getTotalTicket(eventId: string) {
     return await getTotalAvailableSeatsByEvent(eventId);
   },
-  async getOrdersByEvent(eventId: string) {
-    return await getOrdersByEvent(eventId);
+  async getOrdersByEvent(eventId: string, page = 1, limit = 10) {
+    return await getOrdersByEvent(eventId, page, limit);
   },
   async getEventRatingSummary(eventId: string) {
     return await getEventRatingSummary(eventId);

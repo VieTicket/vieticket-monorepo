@@ -50,8 +50,16 @@ export async function fetchTotalTicketsSByEventId(eventId: string) {
   return data;
 }
 
-export async function fetchOrdersByEvent(eventId: string) {
-  const data = await organizerDashBoardService.getOrdersByEvent(eventId);
+export async function fetchOrdersByEvent(
+  eventId: string,
+  page = 1,
+  limit = 10
+) {
+  const data = await organizerDashBoardService.getOrdersByEvent(
+    eventId,
+    page,
+    limit
+  );
 
   return data;
 }

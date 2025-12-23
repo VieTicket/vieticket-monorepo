@@ -14,10 +14,14 @@ import {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string }>;
+  searchParams: Promise<{ id?: string; page?: string; limit?: string }>;
 }) {
   const session = await authorise("organizer");
-  const eventId = (await searchParams).id;
+  const params = await searchParams;
+  const eventId = params.id;
+  const page = params.page ? parseInt(params.page, 10) : 1;
+  const limit = params.limit ? parseInt(params.limit, 10) : 10;
+  
   if (!eventId) return notFound();
 
   const isOwnedByOrganizer = await isEventOwnedByOrganizer(
@@ -32,7 +36,7 @@ export default async function Page({
   const ticketTypeRevenue =
     await fetchTotalTicketsSoldForEventByEventId(eventId);
   const totalTicket = await fetchTotalTicketsSByEventId(eventId);
-  const totalOrder = await fetchOrdersByEvent(eventId);
+  const totalOrder = await fetchOrdersByEvent(eventId, page, limit);
   const ratingSummary = await fetchEventRatingSummary(eventId);
 
   return (

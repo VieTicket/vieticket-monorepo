@@ -9,7 +9,6 @@ import {
   rows,
   areas,
   events,
-  user,
   OrderStatus,
 } from "@vieticket/db/pg/schema";
 
@@ -89,6 +88,7 @@ export const getRevenueOverTime = async (organizerId: string) => {
       typeof row.total === "string" ? Number.parseFloat(row.total) : row.total,
   }));
 };
+
 export const getRevenueDistributionByEvent = async (organizerId: string) => {
   const refundsByOrder = buildRefundSumsByOrderForOrganizer(organizerId);
   const result = await db
@@ -190,6 +190,7 @@ export const getTopRevenueEvents = async (organizerId: string, limit = 5) => {
         : row.ticketsSold,
   }));
 };
+
 export const getRevenueOverTimeByEvent = async (eventId: string) => {
   const refundsByOrder = buildRefundSumsByOrderForEvent(eventId);
   const result = await db
@@ -243,6 +244,7 @@ export const getRevenueDistributionForSingleEvent = async (eventId: string) => {
     total: typeof row.total === "string" ? Number(row.total) : row.total,
   }));
 };
+
 export const getTicketTypeRevenueByEvent = async (eventId: string) => {
   const grossByType = db
     .select({
@@ -311,6 +313,7 @@ export const getTicketTypeRevenueByEvent = async (eventId: string) => {
         : row.ticketsSold,
   }));
 };
+
 export const getTotalAvailableSeatsByEvent = async (eventId: string) => {
   const result = await db
     .select({
@@ -320,49 +323,122 @@ export const getTotalAvailableSeatsByEvent = async (eventId: string) => {
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
     .innerJoin(events, eq(areas.eventId, events.id))
-    .where(eq(events.id, eventId));
+    .where(eq(events.id, eventId))
+    .$withCache({
+      tag: `event:${eventId}:total_seats`,
+      config: { ex: REVENUE_CACHE_TTL_SECONDS },
+    });
   console.log("total ticket sold", result);
   const total = result[0]?.totalSeats ?? 0;
   return typeof total === "string" ? Number(total) : total;
 };
-export const getOrdersByEvent = async (eventId: string) => {
-  const result = await db
+
+export const getOrdersByEvent = async (
+  eventId: string,
+  page = 1,
+  limit = 10
+) => {
+  // Clamp limit to max 50
+  const clampedLimit = Math.min(Math.max(1, limit), 50);
+  const offset = (Math.max(1, page) - 1) * clampedLimit;
+
+  // First, get paginated orders with their refund totals
+  const ordersWithRefunds = await db
     .select({
-      id: orders.id,
-      date: orders.orderDate,
-      ticketType: areas.name,
-      quantity: sql<number>`COUNT(${tickets.id})`,
-      amount: sql<number>`SUM(${areas.price})`,
-      status: orders.status,
-      userName: user.name,
+      orderId: orders.id,
+      orderDate: orders.orderDate,
+      orderStatus: orders.status,
+      orderTotal: orders.totalAmount,
+      totalRefunded: sql<number>`COALESCE(SUM(${refunds.amount}), 0)`.as(
+        "totalRefunded"
+      ),
     })
     .from(orders)
-    .innerJoin(user, eq(orders.userId, user.id))
-    .innerJoin(tickets, eq(tickets.orderId, orders.id))
+    .leftJoin(
+      refunds,
+      and(eq(refunds.orderId, orders.id), eq(refunds.status, "refunded"))
+    )
+    .where(eq(orders.eventId, eventId))
+    .groupBy(orders.id, orders.orderDate, orders.status, orders.totalAmount)
+    .orderBy(sql`${orders.orderDate} DESC`)
+    .limit(clampedLimit)
+    .offset(offset)
+    .$withCache({
+      tag: `event:${eventId}:orders:page_${page}:limit_${clampedLimit}`,
+      config: { ex: REVENUE_CACHE_TTL_SECONDS },
+    });
+
+  // If no orders, return empty array
+  if (ordersWithRefunds.length === 0) {
+    return [];
+  }
+
+  // Get all order IDs from the paginated result
+  const orderIds = ordersWithRefunds.map((o) => o.orderId);
+
+  // Get all tickets for these orders
+  const ticketsData = await db
+    .select({
+      ticketId: tickets.id,
+      orderId: tickets.orderId,
+      ticketType: areas.name,
+      price: tickets.price,
+      status: tickets.status,
+    })
+    .from(tickets)
     .innerJoin(seats, eq(tickets.seatId, seats.id))
     .innerJoin(rows, eq(seats.rowId, rows.id))
     .innerJoin(areas, eq(rows.areaId, areas.id))
-    .innerJoin(events, eq(areas.eventId, events.id))
-    .where(eq(events.id, eventId))
-    .groupBy(
-      orders.id,
-      orders.orderDate,
-      orders.status,
-      areas.name,
-      areas.price,
-      user.id,
-      user.name,
-      user.email
-    );
+    .where(inArray(tickets.orderId, orderIds))
+    .orderBy(areas.name)
+    .$withCache({
+      tag: `event:${eventId}:order_tickets:page_${page}:limit_${clampedLimit}`,
+      config: { ex: REVENUE_CACHE_TTL_SECONDS },
+    });
 
-  return result.map((row) => ({
-    id: row.id,
-    date: row.date ? row.date.toISOString().split("T")[0] : "Chưa xác định",
-    ticketType: row.ticketType,
-    quantity:
-      typeof row.quantity === "string" ? Number(row.quantity) : row.quantity,
-    amount: typeof row.amount === "string" ? Number(row.amount) : row.amount,
-    status: row.status as OrderStatus, // ép kiểu nếu bạn có enum
-    userName: row.userName,
+  // Group tickets by order
+  const ticketsByOrder = ticketsData.reduce(
+    (acc, ticket) => {
+      if (!acc[ticket.orderId]) {
+        acc[ticket.orderId] = [];
+      }
+      acc[ticket.orderId].push({
+        ticketId: ticket.ticketId,
+        ticketType: ticket.ticketType,
+        price:
+          typeof ticket.price === "string"
+            ? Number(ticket.price)
+            : ticket.price,
+        status: ticket.status || "active",
+      });
+      return acc;
+    },
+    {} as Record<
+      string,
+      Array<{
+        ticketId: string;
+        ticketType: string;
+        price: number;
+        status: string;
+      }>
+    >
+  );
+
+  // Combine orders with their tickets
+  return ordersWithRefunds.map((order) => ({
+    orderId: order.orderId,
+    orderDate: order.orderDate
+      ? order.orderDate.toISOString().split("T")[0]
+      : "Chưa xác định",
+    orderStatus: order.orderStatus as OrderStatus,
+    orderTotal:
+      (typeof order.orderTotal === "string"
+        ? Number(order.orderTotal)
+        : order.orderTotal) -
+      (typeof order.totalRefunded === "string"
+        ? Number(order.totalRefunded)
+        : order.totalRefunded),
+    ticketsCount: ticketsByOrder[order.orderId]?.length || 0,
+    tickets: ticketsByOrder[order.orderId] || [],
   }));
 };
