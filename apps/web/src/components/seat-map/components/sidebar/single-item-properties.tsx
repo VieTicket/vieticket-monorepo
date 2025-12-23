@@ -35,11 +35,9 @@ export const SingleItemProperties = React.memo(
         "visible",
         "locked",
         "selected",
-        "expanded", // for containers
-        "color",
-        "strokeColor",
+        "expanded",
         "opacity",
-        "text", // for text shapes
+        "text",
         "fontSize",
         "fontFamily",
       ]);
@@ -49,6 +47,8 @@ export const SingleItemProperties = React.memo(
         "name",
         "x",
         "y",
+        "color",
+        "strokeColor",
         "rotation",
         "scaleX",
         "scaleY",

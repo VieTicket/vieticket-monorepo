@@ -30,7 +30,8 @@ export const createPolygon = (
   points: Array<{ x: number; y: number }>,
   cornerRadius: number = 10,
   addShapeEvents: boolean = true,
-  id: string = generateShapeId()
+  id: string = generateShapeId(),
+  polygonData?: Partial<PolygonShape>
 ): PolygonShape => {
   const graphics = new PIXI.Graphics();
 
@@ -43,11 +44,14 @@ export const createPolygon = (
     y: point.y - pivot.y,
     radius: cornerRadius / 2, // ✅ Initialize each point with individual radius
   }));
-
+  console.log("Relative Points:", polygonData);
   graphics
     .roundShape(relativePoints, cornerRadius)
-    .fill(0xffffff)
-    .stroke({ width: 2, color: 0x007aff });
+    .fill(polygonData?.color ?? 0xffffff)
+    .stroke({
+      width: polygonData?.strokeWidth ?? 2,
+      color: polygonData?.strokeColor ?? 0x007aff,
+    });
 
   graphics.position.set(pivot.x, pivot.y);
   graphics.eventMode = "static";
@@ -63,9 +67,9 @@ export const createPolygon = (
     y: graphics.y,
     points: relativePoints, // Points with individual radii
     cornerRadius,
-    color: 0xffffff,
-    strokeColor: 0x007aff,
-    strokeWidth: 2,
+    color: polygonData?.color ?? 0xffffff,
+    strokeColor: polygonData?.strokeColor ?? 0x007aff,
+    strokeWidth: polygonData?.strokeWidth ?? 2,
     selected: false,
     visible: true,
     interactive: true,

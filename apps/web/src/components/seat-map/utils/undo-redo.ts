@@ -717,7 +717,8 @@ export const recreateShape = async (
         rectData.width,
         rectData.height,
         addShapeEvents,
-        rectData.id
+        rectData.id,
+        rectData as Partial<RectangleShape>
       );
 
       recreatedShape.name = rectData.name;
@@ -752,7 +753,8 @@ export const recreateShape = async (
           ellipseData.radiusX,
           ellipseData.radiusY,
           addShapeEvents,
-          ellipseData.id
+          ellipseData.id,
+          ellipseData as Partial<EllipseShape>
         );
 
         recreatedShape.name = ellipseData.name;
@@ -796,7 +798,8 @@ export const recreateShape = async (
         polygonData.points,
         polygonData.cornerRadius,
         addShapeEvents,
-        polygonData.id
+        polygonData.id,
+        polygonData
       );
 
       recreatedShape.name = polygonData.name;

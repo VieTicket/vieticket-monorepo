@@ -9,13 +9,23 @@ export const createRectangle = (
   width: number,
   height: number,
   addShapeEvents: boolean = true,
-  id: string = generateShapeId()
+  id: string = generateShapeId(),
+  rectangleData?: Partial<RectangleShape>
 ): RectangleShape => {
   const graphics = new PIXI.Graphics();
   graphics
-    .roundRect(-width / 2, -height / 2, width, height, 10)
-    .fill(0xffffff)
-    .stroke({ width: 2, color: 0x007aff });
+    .roundRect(
+      -width / 2,
+      -height / 2,
+      width,
+      height,
+      rectangleData?.cornerRadius ?? 10
+    )
+    .fill(rectangleData?.color ?? 0xffffff)
+    .stroke({
+      width: rectangleData?.strokeWidth ?? 2,
+      color: rectangleData?.strokeColor ?? 0x007aff,
+    });
 
   // Position the graphics at the center
   graphics.position.set(x + width / 2, y + height / 2);
@@ -32,10 +42,10 @@ export const createRectangle = (
     y: y + height / 2, // Center point
     width,
     height,
-    cornerRadius: 10,
-    color: 0xffffff,
-    strokeColor: 0x007aff,
-    strokeWidth: 2,
+    cornerRadius: rectangleData?.cornerRadius ?? 10,
+    color: rectangleData?.color ?? 0xffffff,
+    strokeColor: rectangleData?.strokeColor ?? 0x007aff,
+    strokeWidth: rectangleData?.strokeWidth ?? 2,
     selected: false,
     visible: true,
     interactive: true,

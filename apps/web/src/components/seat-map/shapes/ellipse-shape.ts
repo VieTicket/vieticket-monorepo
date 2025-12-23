@@ -9,7 +9,8 @@ export const createEllipse = (
   radiusX: number,
   radiusY: number,
   addShapeEvents: boolean = true,
-  id: string = generateShapeId()
+  id: string = generateShapeId(),
+  ellipseData?: Partial<EllipseShape>
 ): EllipseShape => {
   const graphics = new PIXI.Graphics();
 
@@ -27,10 +28,13 @@ export const createEllipse = (
   // });
 
   // Draw ellipse centered at origin
-  graphics.ellipse(0, 0, radiusX, radiusY).fill(0xffffff).stroke({
-    width: 2,
-    color: 0x007aff,
-  });
+  graphics
+    .ellipse(0, 0, radiusX, radiusY)
+    .fill(ellipseData?.color ?? 0xffffff)
+    .stroke({
+      width: ellipseData?.strokeWidth ?? 2,
+      color: ellipseData?.strokeColor ?? 0x007aff,
+    });
 
   // Position the graphics
   graphics.position.set(x, y);
@@ -46,9 +50,9 @@ export const createEllipse = (
     y,
     radiusX,
     radiusY,
-    color: 0xffffff,
-    strokeColor: 0x007aff,
-    strokeWidth: 2,
+    color: ellipseData?.color ?? 0xffffff,
+    strokeColor: ellipseData?.strokeColor ?? 0x007aff,
+    strokeWidth: ellipseData?.strokeWidth ?? 2,
     selected: false,
     visible: true,
     interactive: true,
