@@ -15,7 +15,9 @@ import {
   X,
   MessageCircle,
   LogOut,
+  Shield,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const menuItems = [
   { name: "Dashboard", href: "/admin", icon: BarChart3 },
@@ -60,20 +62,22 @@ const MenuItem = ({
   return (
     <Link
       href={item.href}
-      className={`
-        group flex items-center px-3 py-2.5 text-sm font-medium rounded-lg transition-all duration-200
-        ${isActive
-          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm"
-          : "text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-l-4 hover:border-gray-300"
-        }
-      `}
+      className={cn(
+        "group flex items-center transition-all duration-200 rounded-2xl font-medium",
+        "px-4 py-3 gap-3",
+        isActive
+          ? "bg-yellow-400 text-[#2a273f] ring-2 ring-yellow-300 shadow-inner"
+          : "hover:bg-[#2f2b47] hover:ring-1 hover:ring-yellow-300/40 text-white/80"
+      )}
       onClick={onItemClick}
     >
       <Icon
-        className={`
-          mr-3 shrink-0 h-5 w-5 transition-colors
-          ${isActive ? "text-blue-500" : "text-gray-400 group-hover:text-gray-600"}
-        `}
+        className={cn(
+          "shrink-0 h-5 w-5 transition-all duration-200",
+          isActive
+            ? "text-[#2a273f]"
+            : "text-yellow-300 group-hover:text-yellow-200"
+        )}
       />
       <span className="truncate">{item.name}</span>
     </Link>
@@ -88,10 +92,10 @@ const MobileToggleButton = ({
   isOpen: boolean;
   onToggle: () => void;
 }) => (
-  <div className="lg:hidden fixed top-20 left-4 z-50">
+  <div className="lg:hidden fixed top-4 left-4 z-50">
     <button
       onClick={onToggle}
-      className="p-2 bg-white rounded-md shadow-md hover:bg-gray-50 transition-colors"
+      className="p-2 bg-slate-800/95 backdrop-blur-md border border-violet-400/30 rounded-lg shadow-lg hover:bg-slate-700/95 hover:border-violet-400/50 transition-all duration-300 text-yellow-400"
     >
       {isOpen ? <X size={20} /> : <Menu size={20} />}
     </button>
@@ -100,16 +104,27 @@ const MobileToggleButton = ({
 
 // Memoized Sidebar Header
 const SidebarHeader = () => (
-  <div className="px-4 py-3 border-b border-gray-200">
-    <h2 className="text-lg font-semibold text-gray-900">Admin Panel</h2>
-    <p className="text-sm text-gray-500">Manage your platform</p>
+  <div className="px-4 py-4 border-b border-slate-700/50">
+    <div className="flex items-center gap-3">
+      <div className="p-2 bg-gradient-to-br from-yellow-400 to-violet-500 rounded-lg">
+        <Shield className="h-5 w-5 text-[#2a273f]" />
+      </div>
+      <div>
+        <h2 className="text-lg font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
+          Admin Panel
+        </h2>
+        <p className="text-xs text-slate-400">Manage your platform</p>
+      </div>
+    </div>
   </div>
 );
 
 // Memoized Sidebar Footer
 const SidebarFooter = () => (
-  <div className="px-3 py-4 border-t border-gray-200">
-    <div className="text-xs text-gray-500 text-center">VieTicket Admin</div>
+  <div className="px-4 py-4 border-t border-slate-700/50">
+    <div className="text-xs text-slate-400 text-center font-medium">
+      VieTicket Admin
+    </div>
   </div>
 );
 
@@ -136,10 +151,10 @@ export default function AdminLayout({
 
   // Memoized sidebar class to prevent recalculation
   const sidebarClass = useMemo(
-    () => `
-    fixed lg:static inset-y-0 left-0 z-40 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out
-    ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-  `,
+    () => cn(
+      "fixed lg:static inset-y-0 left-0 z-40 w-64 bg-slate-900/95 backdrop-blur-md border-r border-slate-700/50 shadow-xl transform transition-transform duration-300 ease-in-out",
+      sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+    ),
     [sidebarOpen]
   );
 
@@ -161,19 +176,19 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="h-screen flex flex-col bg-gray-50">
+    <div className="h-screen flex flex-col bg-slate-950">
       {/* Mobile sidebar toggle */}
       <MobileToggleButton isOpen={sidebarOpen} onToggle={handleSidebarToggle} />
 
       <div className="flex flex-1 overflow-hidden">
         {/* Fixed Sidebar */}
         <div className={sidebarClass}>
-          <div className="h-full flex flex-col pt-4">
+          <div className="h-full flex flex-col">
             {/* Sidebar Header */}
             <SidebarHeader />
 
             {/* Navigation */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 px-3 py-4 space-y-2 overflow-y-auto">
               {renderedMenuItems}
             </nav>
 
@@ -184,14 +199,16 @@ export default function AdminLayout({
 
         {/* Scrollable Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6">{children}</main>
+          <main className="flex-1 overflow-y-auto p-6 bg-slate-950 text-white">
+            {children}
+          </main>
         </div>
       </div>
 
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black bg-opacity-50 lg:hidden"
+          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={handleOverlayClick}
         />
       )}

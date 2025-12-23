@@ -92,17 +92,17 @@ const EventCard = ({
 
   return (
     <Card
-      className="h-full flex flex-col overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200"
+      className="h-full flex flex-col overflow-hidden cursor-pointer hover:shadow-lg transition-shadow duration-200 bg-slate-800/50 border-slate-700/50 hover:border-violet-400/30"
       onClick={onClick}
     >
       <CardHeader className="pb-3 flex-shrink-0">
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <CardTitle className="text-lg font-semibold line-clamp-2 leading-tight">
+            <CardTitle className="text-lg font-semibold line-clamp-2 leading-tight text-white">
               {event.title}
             </CardTitle>
             <div className="flex items-center justify-between mt-1">
-              <p className="text-sm text-muted-foreground truncate">
+              <p className="text-sm text-slate-400 truncate">
                 {event.category || "General Event"}
               </p>
               {getStatusBadge()}
@@ -131,41 +131,41 @@ const EventCard = ({
         {/* Event Details */}
         <div className="space-y-3 flex-1 min-h-0">
           <div 
-            className="text-sm text-gray-600 line-clamp-3 leading-relaxed prose prose-sm max-w-none"
+            className="text-sm text-slate-300 line-clamp-3 leading-relaxed prose prose-sm max-w-none prose-invert"
             dangerouslySetInnerHTML={{ 
               __html: event.description || "No description available" 
             }}
           />
 
           <div className="space-y-2 text-sm">
-            <div className="flex items-center gap-2 text-gray-600">
-              <MapPin className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <MapPin className="h-4 w-4 flex-shrink-0 text-yellow-400" />
               <span className="truncate">
                 {event.location || "Location TBD"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Calendar className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <Calendar className="h-4 w-4 flex-shrink-0 text-yellow-400" />
               <span className="truncate">{formatDate(event.start_date)}</span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Clock className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <Clock className="h-4 w-4 flex-shrink-0 text-yellow-400" />
               <span className="truncate">
                 Ends: {formatDate(event.end_date)}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <User className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <User className="h-4 w-4 flex-shrink-0 text-yellow-400" />
               <span className="truncate">
                 {event.organizer_name || "Unknown Organizer"}
               </span>
             </div>
 
-            <div className="flex items-center gap-2 text-gray-600">
-              <Eye className="h-4 w-4 flex-shrink-0" />
+            <div className="flex items-center gap-2 text-slate-300">
+              <Eye className="h-4 w-4 flex-shrink-0 text-yellow-400" />
               <span className="truncate">
                 Capacity: {event.capacity > 0 ? `${event.capacity.toLocaleString("en-US")} seats` : "To be determined"}
               </span>
@@ -176,7 +176,7 @@ const EventCard = ({
         {/* Action Buttons - Show for pending, approved, and rejected events with different states */}
         {event.approvalStatus !== "pending" ? (
           <div
-            className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0"
+            className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50 flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             {event.approvalStatus === "approved" && onEdit && (
@@ -184,7 +184,7 @@ const EventCard = ({
                 onClick={() => onEdit(event.id)}
                 variant="outline"
                 size="sm"
-                className="px-3 flex-shrink-0"
+                className="px-3 flex-shrink-0 border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                 title="Edit"
               >
                 <Edit className="h-4 w-4" />
@@ -216,7 +216,7 @@ const EventCard = ({
           </div>
         ) : (
           <div
-            className="flex gap-2 mt-4 pt-4 border-t flex-shrink-0"
+            className="flex gap-2 mt-4 pt-4 border-t border-slate-700/50 flex-shrink-0"
             onClick={(e) => e.stopPropagation()}
           >
             <Button
@@ -421,10 +421,10 @@ export default function EventsPendingPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
             Event Management
           </h1>
-          <p className="text-red-500">Error loading events: {error.message}</p>
+          <p className="text-red-400">Error loading events: {error.message}</p>
         </div>
       </div>
     );
@@ -433,8 +433,8 @@ export default function EventsPendingPage() {
   return (
     <div className="space-y-4 sm:space-y-6">
       <div>
-        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Event Management</h1>
-        <p className="text-sm sm:text-base text-muted-foreground">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">Event Management</h1>
+        <p className="text-sm sm:text-base text-slate-400">
           Review and manage all event submissions. {allEvents?.length || 0}{" "}
           total events.
         </p>
@@ -450,19 +450,19 @@ export default function EventsPendingPage() {
       />
 
       {/* Search and Filter Controls */}
-      <Card>
+      <Card className="bg-slate-800/50 border-slate-700/50">
         <CardContent className="pt-4 sm:pt-6 px-4 sm:px-6">
           <div className="space-y-4">
             {/* Search and Category Row */}
             <div className="flex flex-col sm:flex-row gap-4">
               {/* Search Input */}
               <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                 <Input
                   placeholder="Search by event name or organizer..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
+                  className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                 />
               </div>
 
@@ -491,8 +491,8 @@ export default function EventsPendingPage() {
             <div className="flex flex-col gap-4">
               <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-2">
                 <div className="flex items-center gap-2 flex-shrink-0">
-                  <CalendarDays className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                  <span className="text-sm font-medium text-muted-foreground whitespace-nowrap">
+                  <CalendarDays className="h-4 w-4 text-yellow-400 flex-shrink-0" />
+                  <span className="text-sm font-medium text-slate-300 whitespace-nowrap">
                     Date Range:
                   </span>
                 </div>
@@ -502,15 +502,15 @@ export default function EventsPendingPage() {
                     type="date"
                     value={startDate}
                     onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full sm:w-auto sm:min-w-[140px]"
+                    className="w-full sm:w-auto sm:min-w-[140px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                   />
-                  <span className="text-sm text-muted-foreground text-center sm:text-left sm:mx-1">to</span>
+                  <span className="text-sm text-slate-400 text-center sm:text-left sm:mx-1">to</span>
                   <Input
                     id="endDate"
                     type="date"
                     value={endDate}
                     onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full sm:w-auto sm:min-w-[140px]"
+                    className="w-full sm:w-auto sm:min-w-[140px] bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                   />
                   {(startDate || endDate) && (
                     <Button
@@ -520,7 +520,7 @@ export default function EventsPendingPage() {
                         setStartDate("");
                         setEndDate("");
                       }}
-                      className="w-full sm:w-auto sm:ml-2"
+                      className="w-full sm:w-auto sm:ml-2 border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                     >
                       Reset
                     </Button>
@@ -531,7 +531,7 @@ export default function EventsPendingPage() {
           </div>
 
           {/* Results Count */}
-          <div className="mt-4 text-sm text-muted-foreground break-words">
+          <div className="mt-4 text-sm text-slate-400 break-words">
             <span className="whitespace-nowrap">
               Showing {filteredEvents.length} of {allEvents?.length || 0} events
             </span>
@@ -560,15 +560,15 @@ export default function EventsPendingPage() {
 
       {/* Events Grid */}
       {!filteredEvents || filteredEvents.length === 0 ? (
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardContent className="text-center py-12">
-            <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <Calendar className="h-12 w-12 text-slate-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-white mb-2">
               {activeTab === "pending" && "No Pending Events"}
               {activeTab === "approved" && "No Approved Events"}
               {activeTab === "rejected" && "No Rejected Events"}
             </h3>
-            <p className="text-sm sm:text-base text-gray-500 px-4 break-words">
+            <p className="text-sm sm:text-base text-slate-400 px-4 break-words">
               {(() => {
                 if (
                   searchQuery.trim() ||

@@ -59,18 +59,18 @@ const StatCard = ({
   change: number;
   format?: (val: number) => string;
 }) => (
-  <Card>
+  <Card className="bg-slate-800/50 border-slate-700/50 hover:border-violet-400/30 transition-all duration-300">
     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-      <CardTitle className="text-sm font-medium">{title}</CardTitle>
-      <Icon className="h-4 w-4 text-muted-foreground" />
+      <CardTitle className="text-sm font-medium text-slate-200">{title}</CardTitle>
+      <Icon className="h-4 w-4 text-yellow-400" />
     </CardHeader>
     <CardContent>
-      <div className="text-2xl font-bold">{format(value)}</div>
-      <div className="flex items-center text-xs text-muted-foreground">
+      <div className="text-2xl font-bold text-white">{format(value)}</div>
+      <div className="flex items-center text-xs text-slate-400 mt-1">
         {change > 0 ? (
-          <TrendingUp className="h-3 w-3 text-green-500 mr-1" />
+          <TrendingUp className="h-3 w-3 text-green-400 mr-1" />
         ) : (
-          <TrendingDown className="h-3 w-3 text-red-500 mr-1" />
+          <TrendingDown className="h-3 w-3 text-red-400 mr-1" />
         )}
         {Math.abs(change)}% from last month
       </div>
@@ -195,10 +195,11 @@ export default function AdminDashboard() {
         y: {
           beginAtZero: true,
           grid: {
-            color: "rgba(0, 0, 0, 0.1)",
+            color: "rgba(148, 163, 184, 0.1)",
           },
           ticks: {
             padding: 8,
+            color: "rgba(148, 163, 184, 0.8)",
           },
         },
         x: {
@@ -207,6 +208,7 @@ export default function AdminDashboard() {
           },
           ticks: {
             padding: 8,
+            color: "rgba(148, 163, 184, 0.8)",
           },
         },
       },
@@ -224,8 +226,10 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-red-500">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-red-400 mt-2">
             Error loading dashboard:{" "}
             {statsError?.message || chartError?.message || "An error occurred"}
           </p>
@@ -239,8 +243,10 @@ export default function AdminDashboard() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-          <p className="text-muted-foreground">Loading dashboard data...</p>
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
+            Dashboard
+          </h1>
+          <p className="text-slate-400 mt-2">Loading dashboard data...</p>
         </div>
         <StatsCardSkeleton />
       </div>
@@ -250,8 +256,10 @@ export default function AdminDashboard() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
+          Dashboard
+        </h1>
+        <p className="text-slate-400 mt-2">
           Welcome to your admin dashboard. Here&apos;s an overview of your
           platform.
         </p>
@@ -289,12 +297,12 @@ export default function AdminDashboard() {
       {/* Charts Section */}
       <div className="space-y-4">
         {/* Date Filter */}
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader>
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-2">
-                <CalendarDays className="h-5 w-5 text-muted-foreground" />
-                <CardTitle className="text-lg">Filter by Date</CardTitle>
+                <CalendarDays className="h-5 w-5 text-yellow-400" />
+                <CardTitle className="text-lg text-white">Filter by Date</CardTitle>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 {/* Preset buttons */}
@@ -303,7 +311,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={() => setDateRange(7)}
-                    className="text-xs"
+                    className="text-xs border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                   >
                     7 Days
                   </Button>
@@ -311,7 +319,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={() => setDateRange(30)}
-                    className="text-xs"
+                    className="text-xs border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                   >
                     30 Days
                   </Button>
@@ -319,7 +327,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={() => setMonthRange(3)}
-                    className="text-xs"
+                    className="text-xs border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                   >
                     3 Months
                   </Button>
@@ -327,7 +335,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={() => setMonthRange(6)}
-                    className="text-xs"
+                    className="text-xs border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                   >
                     6 Months
                   </Button>
@@ -335,7 +343,7 @@ export default function AdminDashboard() {
                     variant="outline"
                     size="sm"
                     onClick={() => setMonthRange(12)}
-                    className="text-xs"
+                    className="text-xs border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                   >
                     12 Months
                   </Button>
@@ -355,10 +363,10 @@ export default function AdminDashboard() {
                       }
                     }}
                     max={endDate || undefined}
-                    className="w-40"
+                    className="w-40 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                     placeholder="From Date"
                   />
-                  <span className="text-sm text-muted-foreground">to</span>
+                  <span className="text-sm text-slate-400">to</span>
                   <Input
                     type="date"
                     value={endDate}
@@ -372,7 +380,7 @@ export default function AdminDashboard() {
                     }}
                     min={startDate || undefined}
                     max={new Date().toISOString().split("T")[0]}
-                    className="w-40"
+                    className="w-40 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
                     placeholder="To Date"
                   />
                   {(startDate || endDate) && (
@@ -380,7 +388,7 @@ export default function AdminDashboard() {
                       variant="ghost"
                       size="sm"
                       onClick={resetDateFilter}
-                      className="text-xs"
+                      className="text-xs text-white hover:text-violet-300 hover:bg-violet-500/20"
                     >
                       Clear
                     </Button>
@@ -393,12 +401,12 @@ export default function AdminDashboard() {
 
         {/* Charts */}
         <div className="grid gap-4 md:grid-cols-2">
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Revenue Trend</CardTitle>
+                <CardTitle className="text-white">Revenue Trend</CardTitle>
                 {chartFetching && (
-                  <div className="text-xs text-muted-foreground animate-pulse">
+                  <div className="text-xs text-slate-400 animate-pulse">
                     Loading...
                   </div>
                 )}
@@ -419,12 +427,12 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-slate-800/50 border-slate-700/50">
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle>Events Created</CardTitle>
+                <CardTitle className="text-white">Events Created</CardTitle>
                 {chartFetching && (
-                  <div className="text-xs text-muted-foreground animate-pulse">
+                  <div className="text-xs text-slate-400 animate-pulse">
                     Loading...
                   </div>
                 )}

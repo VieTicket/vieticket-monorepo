@@ -76,8 +76,8 @@ function parseDate(value: unknown) {
 }
 
 function sortIcon(field: SortField, activeField: SortField, direction: SortDirection) {
-  if (field !== activeField) return <ArrowUpDown className="h-4 w-4 text-muted-foreground/50" />;
-  return direction === "asc" ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />;
+  if (field !== activeField) return <ArrowUpDown className="h-4 w-4 text-slate-400/50" />;
+  return direction === "asc" ? <ArrowUp className="h-4 w-4 text-slate-300" /> : <ArrowDown className="h-4 w-4 text-slate-300" />;
 }
 
 export type RefundsListActions = {
@@ -187,11 +187,11 @@ export function RefundsList({
   const canMarkManual = Boolean(actions.markManual);
 
   return (
-    <Card>
+    <Card className="bg-slate-800/50 border-slate-700/50">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
+        <CardTitle className="text-white">{title}</CardTitle>
         {description ? (
-          <p className="text-sm text-muted-foreground">{description}</p>
+          <p className="text-sm text-slate-400">{description}</p>
         ) : null}
       </CardHeader>
       <CardContent className="space-y-4">
@@ -206,9 +206,9 @@ export function RefundsList({
               });
             }}
           >
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <Input
-              className="pl-9 pr-20"
+              className="pl-9 pr-20 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
               placeholder={t("searchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -217,20 +217,20 @@ export function RefundsList({
               type="submit"
               size="sm"
               variant="secondary"
-              className="absolute right-2 top-1.5 h-6 px-2"
+              className="absolute right-2 top-1.5 h-6 px-2 bg-slate-700 hover:bg-slate-600 text-white"
             >
               {t("search")}
             </Button>
           </form>
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={statusParam} onValueChange={(v) => setFilter("status", v)}>
-              <SelectTrigger className="w-[200px]">
+              <SelectTrigger className="w-[200px] bg-slate-700/50 border-slate-600 text-white">
                 <SelectValue placeholder={t("filters.status.placeholder")} />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("filters.status.all")}</SelectItem>
+              <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectItem value="all" className="text-white hover:bg-slate-700">{t("filters.status.all")}</SelectItem>
                 {REFUND_STATUS_OPTIONS.map((s) => (
-                  <SelectItem key={s} value={s}>
+                  <SelectItem key={s} value={s} className="text-white hover:bg-slate-700">
                     {tStatus(s)}
                   </SelectItem>
                 ))}
@@ -242,13 +242,13 @@ export function RefundsList({
                 value={reasonParam}
                 onValueChange={(v) => setFilter("reason", v)}
               >
-                <SelectTrigger className="w-[220px]">
+                <SelectTrigger className="w-[220px] bg-slate-700/50 border-slate-600 text-white">
                   <SelectValue placeholder={t("filters.reason.placeholder")} />
                 </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("filters.reason.all")}</SelectItem>
+                <SelectContent className="bg-slate-800 border-slate-700">
+                  <SelectItem value="all" className="text-white hover:bg-slate-700">{t("filters.reason.all")}</SelectItem>
                   {REFUND_REASON_OPTIONS.map((r) => (
-                    <SelectItem key={r} value={r}>
+                    <SelectItem key={r} value={r} className="text-white hover:bg-slate-700">
                       {tReason(r)}
                     </SelectItem>
                   ))}
@@ -261,53 +261,53 @@ export function RefundsList({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>{t("table.order")}</TableHead>
-                <TableHead>
+              <TableRow className="border-slate-700/50">
+                <TableHead className="text-slate-300">{t("table.order")}</TableHead>
+                <TableHead className="text-slate-300">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 hover:underline"
+                    className="inline-flex items-center gap-1 hover:underline text-slate-300 hover:text-violet-300"
                     onClick={() => handleSort("reason")}
                   >
                     {t("table.reason")} {sortIcon("reason", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-slate-300">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 hover:underline"
+                    className="inline-flex items-center gap-1 hover:underline text-slate-300 hover:text-violet-300"
                     onClick={() => handleSort("amount")}
                   >
                     {t("table.amount")} {sortIcon("amount", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead>{t("table.event")}</TableHead>
-                <TableHead>
+                <TableHead className="text-slate-300">{t("table.event")}</TableHead>
+                <TableHead className="text-slate-300">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 hover:underline"
+                    className="inline-flex items-center gap-1 hover:underline text-slate-300 hover:text-violet-300"
                     onClick={() => handleSort("status")}
                   >
                     {t("table.status")} {sortIcon("status", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead>
+                <TableHead className="text-slate-300">
                   <button
                     type="button"
-                    className="inline-flex items-center gap-1 hover:underline"
+                    className="inline-flex items-center gap-1 hover:underline text-slate-300 hover:text-violet-300"
                     onClick={() => handleSort("requestedAt")}
                   >
                     {t("table.requestedAt")}{" "}
                     {sortIcon("requestedAt", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead>{t("table.actions")}</TableHead>
+                <TableHead className="text-slate-300">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageItems.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={7} className="text-center text-sm text-muted-foreground py-8">
+                <TableRow className="border-slate-700/50">
+                  <TableCell colSpan={7} className="text-center text-sm text-slate-400 py-8">
                     {t("table.empty")}
                   </TableCell>
                 </TableRow>
@@ -319,15 +319,15 @@ export function RefundsList({
                       : refund.status === "pending_organizer";
 
                   return (
-                    <TableRow key={refund.id}>
-                      <TableCell className="font-mono text-xs">{refund.orderId}</TableCell>
-                      <TableCell className="capitalize">
+                    <TableRow key={refund.id} className="border-slate-700/50 hover:bg-slate-700/20">
+                      <TableCell className="font-mono text-xs text-slate-200">{refund.orderId}</TableCell>
+                      <TableCell className="capitalize text-slate-300">
                         {REFUND_REASON_OPTIONS.includes(refund.reason as any)
                           ? tReason(refund.reason as any)
                           : refund.reason.replaceAll("_", " ")}
                       </TableCell>
-                      <TableCell>{formatCurrencyVND(Number(refund.amount))}</TableCell>
-                      <TableCell>{refund.eventName ?? refund.eventId ?? "-"}</TableCell>
+                      <TableCell className="text-slate-200">{formatCurrencyVND(Number(refund.amount))}</TableCell>
+                      <TableCell className="text-slate-300">{refund.eventName ?? refund.eventId ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">
                           {REFUND_STATUS_OPTIONS.includes(refund.status as any)
@@ -335,7 +335,7 @@ export function RefundsList({
                             : refund.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">
+                      <TableCell className="text-xs text-slate-400">
                         {parseDate(refund.requestedAt)?.toLocaleString(dateLocale) ?? "-"}
                       </TableCell>
                       <TableCell className="space-x-2">
@@ -383,7 +383,7 @@ export function RefundsList({
                         {role === "admin" && refund.status === "payment_failed" && canMarkManual ? (
                           <form className="inline" action={actions.markManual}>
                             <input type="hidden" name="refundId" value={refund.id} />
-                            <Button size="sm" variant="secondary" type="submit">
+                            <Button size="sm" variant="secondary" type="submit" className="text-white">
                               {t("actions.markManualDone")}
                             </Button>
                           </form>
@@ -398,7 +398,7 @@ export function RefundsList({
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-400">
             {t("pagination.showing", {
               from: pageItems.length === 0 ? 0 : startIndex + 1,
               to: endIndex,
@@ -412,10 +412,11 @@ export function RefundsList({
               onClick={() => pushParams({ page: String(Math.max(1, currentPage - 1)) })}
               disabled={currentPage <= 1}
               aria-label={t("pagination.prev")}
+              className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-slate-300">
               {t("pagination.page", { page: currentPage, totalPages })}
             </span>
             <Button
@@ -424,6 +425,7 @@ export function RefundsList({
               onClick={() => pushParams({ page: String(Math.min(totalPages, currentPage + 1)) })}
               disabled={currentPage >= totalPages}
               aria-label={t("pagination.next")}
+              className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

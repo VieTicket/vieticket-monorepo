@@ -238,25 +238,25 @@ export default function OrganizerPendingPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
+          <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
             Organizer Pending Active
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-slate-400">
             Review and approve pending organizer applications.
           </p>
         </div>
 
-        <Card>
+        <Card className="bg-slate-800/50 border-slate-700/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <UserCheck className="h-5 w-5" />
+            <CardTitle className="flex items-center gap-2 text-white">
+              <UserCheck className="h-5 w-5 text-yellow-400" />
               Pending Organizer Applications
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin" />
-              <span className="ml-2">Loading pending organizers...</span>
+              <Loader2 className="h-6 w-6 animate-spin text-yellow-400" />
+              <span className="ml-2 text-slate-300">Loading pending organizers...</span>
             </div>
           </CardContent>
         </Card>
@@ -267,21 +267,21 @@ export default function OrganizerPendingPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">
+        <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">
           Organizer Pending Active
         </h1>
-        <p className="text-muted-foreground">
+        <p className="text-slate-400">
           Review and approve pending organizer applications.
         </p>
       </div>
 
-      <Card>
+      <Card className="bg-slate-800/50 border-slate-700/50">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <UserCheck className="h-5 w-5" />
+          <CardTitle className="flex items-center gap-2 text-white">
+            <UserCheck className="h-5 w-5 text-yellow-400" />
             Pending Organizer Applications ({organizers.length})
             {totalPages > 1 && (
-              <span className="text-sm font-normal text-muted-foreground ml-2">
+              <span className="text-sm font-normal text-slate-400 ml-2">
                 (Page {currentPage} of {totalPages})
               </span>
             )}
@@ -290,25 +290,25 @@ export default function OrganizerPendingPage() {
         <CardContent>
           {organizers.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">
+              <p className="text-slate-400">
                 No pending organizer applications.
               </p>
             </div>
           ) : (
-            <div className="rounded-md border overflow-x-auto">
+            <div className="rounded-md border border-slate-700/50 overflow-x-auto">
               <Table className="w-full min-w-[1000px]">
                 <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[200px] max-w-[250px]">Organizer Name</TableHead>
-                    <TableHead className="min-w-[200px] max-w-[250px]">User Details</TableHead>
-                    <TableHead className="min-w-[200px] max-w-[250px]">Business Info</TableHead>
-                    <TableHead className="min-w-[120px] max-w-[150px] whitespace-nowrap">Applied Date</TableHead>
-                    <TableHead className="min-w-[280px] max-w-[320px] text-right">Actions</TableHead>
+                  <TableRow className="border-slate-700/50">
+                    <TableHead className="min-w-[200px] max-w-[250px] text-slate-300">Organizer Name</TableHead>
+                    <TableHead className="min-w-[200px] max-w-[250px] text-slate-300">User Details</TableHead>
+                    <TableHead className="min-w-[200px] max-w-[250px] text-slate-300">Business Info</TableHead>
+                    <TableHead className="min-w-[120px] max-w-[150px] whitespace-nowrap text-slate-300">Applied Date</TableHead>
+                    <TableHead className="min-w-[280px] max-w-[320px] text-right text-slate-300">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedOrganizers.map((organizer) => (
-                    <TableRow key={organizer.id}>
+                    <TableRow key={organizer.id} className="border-slate-700/50 hover:bg-slate-700/20">
                       <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="flex items-center gap-3 min-w-0">
                           {organizer.user.image && (
@@ -319,8 +319,8 @@ export default function OrganizerPendingPage() {
                             />
                           )}
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium truncate" title={organizer.name}>{organizer.name}</div>
-                            <div className="text-sm text-muted-foreground truncate" title={organizer.organizerType || "Type not specified"}>
+                            <div className="font-medium truncate text-white" title={organizer.name}>{organizer.name}</div>
+                            <div className="text-sm text-slate-400 truncate" title={organizer.organizerType || "Type not specified"}>
                               {organizer.organizerType || "Type not specified"}
                             </div>
                           </div>
@@ -328,15 +328,15 @@ export default function OrganizerPendingPage() {
                       </TableCell>
                       <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="space-y-1 min-w-0">
-                          <div className="font-medium truncate" title={organizer.user.name}>
+                          <div className="font-medium truncate text-white" title={organizer.user.name}>
                             {organizer.user.name}
                           </div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                          <div className="text-sm text-slate-400 flex items-center gap-1 min-w-0">
                             <Mail className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate min-w-0" title={organizer.user.email}>{organizer.user.email}</span>
                           </div>
                           {organizer.user.phone && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1 min-w-0">
+                            <div className="text-sm text-slate-400 flex items-center gap-1 min-w-0">
                               <Phone className="h-3 w-3 flex-shrink-0" />
                               <span className="truncate min-w-0" title={organizer.user.phone}>{organizer.user.phone}</span>
                             </div>
@@ -346,13 +346,13 @@ export default function OrganizerPendingPage() {
                       <TableCell className="min-w-[200px] max-w-[250px]">
                         <div className="space-y-1 text-sm min-w-0">
                           {organizer.website && (
-                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                            <div className="flex items-center gap-1 text-slate-400 min-w-0">
                               <Globe className="h-3 w-3 flex-shrink-0" />
                               <a
                                 href={organizer.website}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="hover:underline truncate min-w-0"
+                                className="hover:underline truncate min-w-0 text-violet-400 hover:text-violet-300"
                                 title={organizer.website}
                               >
                                 {organizer.website}
@@ -360,7 +360,7 @@ export default function OrganizerPendingPage() {
                             </div>
                           )}
                           {organizer.address && (
-                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                            <div className="flex items-center gap-1 text-slate-400 min-w-0">
                               <MapPin className="h-3 w-3 flex-shrink-0" />
                               <span className="truncate min-w-0" title={organizer.address}>
                                 {organizer.address}
@@ -368,7 +368,7 @@ export default function OrganizerPendingPage() {
                             </div>
                           )}
                           {organizer.foundedDate && (
-                            <div className="flex items-center gap-1 text-muted-foreground min-w-0">
+                            <div className="flex items-center gap-1 text-slate-400 min-w-0">
                               <Calendar className="h-3 w-3 flex-shrink-0" />
                               <span className="truncate min-w-0" title={`Founded: ${formatDate(organizer.foundedDate)}`}>
                                 Founded: {formatDate(organizer.foundedDate)}
@@ -377,7 +377,7 @@ export default function OrganizerPendingPage() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell className="min-w-[120px] max-w-[150px] whitespace-nowrap">
+                      <TableCell className="min-w-[120px] max-w-[150px] whitespace-nowrap text-slate-300">
                         {formatDate(organizer.user.createdAt)}
                       </TableCell>
                       <TableCell className="min-w-[280px] max-w-[320px] text-right">
@@ -386,7 +386,7 @@ export default function OrganizerPendingPage() {
                             variant="outline"
                             size="sm"
                             onClick={() => handleViewDetails(organizer)}
-                            className="flex-shrink-0"
+                            className="flex-shrink-0 border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300"
                           >
                             <Eye className="h-4 w-4 mr-1" />
                             Details
@@ -428,8 +428,8 @@ export default function OrganizerPendingPage() {
           
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4 pt-4 border-t">
-              <div className="text-sm text-muted-foreground">
+            <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-700/50">
+              <div className="text-sm text-slate-400">
                 Showing {startIndex + 1} to {Math.min(endIndex, organizers.length)} of {organizers.length} organizers
               </div>
               <div className="flex items-center gap-2">
@@ -438,11 +438,12 @@ export default function OrganizerPendingPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
                   disabled={currentPage === 1}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   <ChevronLeft className="h-4 w-4 mr-1" />
                   Previous
                 </Button>
-                <div className="text-sm font-medium px-3">
+                <div className="text-sm font-medium px-3 text-slate-300">
                   Page {currentPage} of {totalPages}
                 </div>
                 <Button
@@ -450,6 +451,7 @@ export default function OrganizerPendingPage() {
                   size="sm"
                   onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
                   disabled={currentPage === totalPages}
+                  className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
                 >
                   Next
                   <ChevronRight className="h-4 w-4 ml-1" />
@@ -462,10 +464,10 @@ export default function OrganizerPendingPage() {
 
       {/* Details Dialog */}
       <Dialog open={detailsDialogOpen} onOpenChange={setDetailsDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-2xl bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
-            <DialogTitle>Organizer Application Details</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Organizer Application Details</DialogTitle>
+            <DialogDescription className="text-slate-400">
               Review the complete application for {selectedOrganizer?.user.name}
             </DialogDescription>
           </DialogHeader>
@@ -473,10 +475,10 @@ export default function OrganizerPendingPage() {
             <div className="grid gap-6 py-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium text-slate-300">
                     Personal Information
                   </Label>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-2 text-slate-200">
                     <div className="break-words">
                       <strong>Name:</strong> {selectedOrganizer.user.name}
                     </div>
@@ -491,10 +493,10 @@ export default function OrganizerPendingPage() {
                   </div>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">
+                  <Label className="text-sm font-medium text-slate-300">
                     Organization Details
                   </Label>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-2 space-y-2 text-slate-200">
                     <div className="break-words">
                       <strong>Organization Name:</strong>{" "}
                       {selectedOrganizer.name}
@@ -520,41 +522,41 @@ export default function OrganizerPendingPage() {
 
               {/* Tax Code Lookup Section */}
               {selectedOrganizer.taxCode && (
-                <div className="border-t pt-4">
-                  <Label className="text-sm font-medium mb-3 block">
+                <div className="border-t border-slate-700/50 pt-4">
+                  <Label className="text-sm font-medium mb-3 block text-slate-300">
                     Tax Code Verification
                   </Label>
                   {taxCodeLookupLoading ? (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                    <div className="flex items-center gap-2 text-sm text-slate-400">
+                      <Loader2 className="h-4 w-4 animate-spin text-yellow-400" />
                       <span>Đang tra cứu thông tin mã số thuế...</span>
                     </div>
                   ) : taxCodeLookupError ? (
-                    <div className="text-sm text-destructive bg-destructive/10 p-3 rounded-md">
+                    <div className="text-sm text-red-400 bg-red-400/10 p-3 rounded-md">
                       <strong>Lỗi:</strong> {taxCodeLookupError}
                     </div>
                   ) : taxCodeLookupResult ? (
-                    <div className="space-y-3 bg-muted/50 p-4 rounded-md">
+                    <div className="space-y-3 bg-slate-700/30 p-4 rounded-md">
                       <div className="space-y-3 text-sm">
                         <div>
-                          <strong className="text-muted-foreground">
+                          <strong className="text-slate-400">
                             Tên doanh nghiệp:
                           </strong>
-                          <div className="mt-1 font-medium break-words">
+                          <div className="mt-1 font-medium break-words text-white">
                             {taxCodeLookupResult.name}
                           </div>
                         </div>
                         <div>
-                          <strong className="text-muted-foreground">
+                          <strong className="text-slate-400">
                             Địa chỉ:
                           </strong>
-                          <div className="mt-1 break-words">
+                          <div className="mt-1 break-words text-slate-200">
                             {taxCodeLookupResult.address}
                           </div>
                         </div>
                         {taxCodeLookupResult.disclaimer && (
-                          <div className="pt-2 border-t">
-                            <div className="text-xs text-muted-foreground italic">
+                          <div className="pt-2 border-t border-slate-700/50">
+                            <div className="text-xs text-slate-400 italic">
                               {taxCodeLookupResult.disclaimer}
                             </div>
                           </div>
@@ -566,13 +568,13 @@ export default function OrganizerPendingPage() {
               )}
               {selectedOrganizer.website && (
                 <div>
-                  <Label className="text-sm font-medium">Website</Label>
+                  <Label className="text-sm font-medium text-slate-300">Website</Label>
                   <div className="mt-1 break-all">
                     <a
                       href={selectedOrganizer.website}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
+                      className="text-violet-400 hover:text-violet-300 hover:underline"
                     >
                       {selectedOrganizer.website}
                     </a>
@@ -581,13 +583,13 @@ export default function OrganizerPendingPage() {
               )}
               {selectedOrganizer.address && (
                 <div>
-                  <Label className="text-sm font-medium">Address</Label>
-                  <div className="mt-1 break-words">{selectedOrganizer.address}</div>
+                  <Label className="text-sm font-medium text-slate-300">Address</Label>
+                  <div className="mt-1 break-words text-slate-200">{selectedOrganizer.address}</div>
                 </div>
               )}
               <div>
-                <Label className="text-sm font-medium">Application Date</Label>
-                <div className="mt-1">
+                <Label className="text-sm font-medium text-slate-300">Application Date</Label>
+                <div className="mt-1 text-slate-200">
                   {formatDate(selectedOrganizer.user.createdAt)}
                 </div>
               </div>
@@ -597,6 +599,7 @@ export default function OrganizerPendingPage() {
             <Button
               variant="outline"
               onClick={() => setDetailsDialogOpen(false)}
+              className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-700 hover:text-white"
             >
               Close
             </Button>
@@ -606,23 +609,24 @@ export default function OrganizerPendingPage() {
 
       {/* Reject Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent>
+        <DialogContent className="bg-slate-800 border-slate-700 text-white">
           <DialogHeader>
-            <DialogTitle>Reject Organizer Application</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-white">Reject Organizer Application</DialogTitle>
+            <DialogDescription className="text-slate-400">
               Provide a reason for rejecting {selectedOrganizer?.user.name}'s
               application. They will see this message when they log in.
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid gap-2">
-              <Label htmlFor="rejectReason">Rejection Reason</Label>
+              <Label htmlFor="rejectReason" className="text-slate-300">Rejection Reason</Label>
               <Textarea
                 id="rejectReason"
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
                 placeholder="Please provide a clear reason for rejecting this application..."
                 rows={4}
+                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
               />
             </div>
           </div>
@@ -634,6 +638,7 @@ export default function OrganizerPendingPage() {
                 setSelectedOrganizer(null);
                 setRejectReason("");
               }}
+              className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-700 hover:text-white"
             >
               Cancel
             </Button>
