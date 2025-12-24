@@ -7,6 +7,14 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
   CloudUpload,
   FlipHorizontal,
   FlipVertical,
@@ -21,6 +29,7 @@ import {
   AlignLeft,
   AlignCenter,
   AlignRight,
+  AlertTriangle,
 } from "lucide-react";
 import { HiOutlineDuplicate } from "react-icons/hi";
 import { clearCanvas, deleteShapes } from "../../shapes";
@@ -45,13 +54,24 @@ import { AreaTools } from "./area-tools";
 export const CommonTools: React.FC = () => {
   const router = useRouter();
   const [selectedTool, setSelectedTool] = useState<Tool>("select");
+  const [showEventProtectionDialog, setShowEventProtectionDialog] =
+    useState(false);
+  const [protectedShapesInfo, setProtectedShapesInfo] = useState<{
+    grids: number;
+    rows: number;
+    seats: number;
+  }>({ grids: 0, rows: 0, seats: 0 });
+
   const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
   const shapes = useSeatMapStore((state) => state.shapes);
+  const eventId = useSeatMapStore((state) => state.eventId);
   const shapesCount = selectedShapes.length;
   const hasSelectedShapes = selectedShapes.length > 0;
   const canUndoAction = useSeatMapStore((state) => state.canUndo());
   const canRedoAction = useSeatMapStore((state) => state.canRedo());
+
   useKeyMap(setSelectedTool);
+
   useEffect(() => {
     setCurrentTool(selectedTool);
     const selectionTransform = getSelectionTransform();
@@ -61,6 +81,7 @@ export const CommonTools: React.FC = () => {
   const handleToolChange = (tool: Tool) => {
     setSelectedTool(tool);
   };
+
   const handleNewCanvas = () => {
     if (shapes.length > 0) {
       if (
@@ -141,6 +162,44 @@ export const CommonTools: React.FC = () => {
     window.dispatchEvent(new CustomEvent("open-import-dialog"));
   };
 
+  const validateEventProtectedDeletion = (): boolean => {
+    if (!eventId) {
+      return true;
+    }
+
+    let gridCount = 0;
+    let rowCount = 0;
+    let seatCount = 0;
+
+    selectedShapes.forEach((shape) => {
+      if (shape.type === "container" && "gridName" in shape) {
+        gridCount++;
+      } else if (shape.type === "container" && "rowName" in shape) {
+        rowCount++;
+      } else if (shape.type === "ellipse" && "seatNumber" in shape) {
+        seatCount++;
+      }
+    });
+
+    if (gridCount > 0 || rowCount > 0 || seatCount > 0) {
+      setProtectedShapesInfo({
+        grids: gridCount,
+        rows: rowCount,
+        seats: seatCount,
+      });
+      setShowEventProtectionDialog(true);
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleDelete = () => {
+    if (validateEventProtectedDeletion()) {
+      deleteShapes();
+    }
+  };
+
   return (
     <>
       <DropdownMenu>
@@ -170,7 +229,6 @@ export const CommonTools: React.FC = () => {
       </DropdownMenu>
       <div className="border-l mx-2 h-6" />
 
-      {/* Shape Tools or Area Tools based on mode */}
       {!isAreaMode ? (
         <ShapeTools
           currentTool={selectedTool}
@@ -179,7 +237,7 @@ export const CommonTools: React.FC = () => {
       ) : (
         <AreaTools currentTool={selectedTool} onToolChange={handleToolChange} />
       )}
-      {/* Area Mode Alignment Tools */}
+
       {isAreaMode && (
         <>
           <div className="border-l mx-2 h-6" />
@@ -227,8 +285,9 @@ export const CommonTools: React.FC = () => {
       >
         <Redo2 className="w-5 h-5" />
       </Button>
+
       <Button
-        onClick={() => deleteShapes()}
+        onClick={handleDelete}
         variant="ghost"
         size="icon"
         title="Delete"
@@ -236,6 +295,7 @@ export const CommonTools: React.FC = () => {
       >
         <Trash2 className="w-5 h-5" />
       </Button>
+
       <Button
         variant="ghost"
         size="icon"
@@ -285,6 +345,90 @@ export const CommonTools: React.FC = () => {
           Return
         </Button>
       )}
+
+      <Dialog
+        open={showEventProtectionDialog}
+        onOpenChange={setShowEventProtectionDialog}
+      >
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-amber-600">
+              <AlertTriangle className="w-5 h-5" />
+              Cannot Delete Event Seating
+            </DialogTitle>
+            <DialogDescription className="space-y-3 pt-4">
+              <p className="text-base">
+                This seat map is currently linked to an event. You cannot delete
+                the following seating elements:
+              </p>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 space-y-2">
+                {protectedShapesInfo.grids > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Seating Areas (Grids)</span>
+                    <span className="text-amber-700 font-semibold">
+                      {protectedShapesInfo.grids}
+                    </span>
+                  </div>
+                )}
+                {protectedShapesInfo.rows > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Rows</span>
+                    <span className="text-amber-700 font-semibold">
+                      {protectedShapesInfo.rows}
+                    </span>
+                  </div>
+                )}
+                {protectedShapesInfo.seats > 0 && (
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium">Seats</span>
+                    <span className="text-amber-700 font-semibold">
+                      {protectedShapesInfo.seats}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm text-blue-800">
+                  <strong>💡 Alternative:</strong> Instead of deleting, you can
+                  mark seats as unavailable. This preserves the seating
+                  structure while preventing customers from selecting those
+                  seats.
+                </p>
+              </div>
+
+              <p className="text-sm text-gray-600">
+                To delete these elements, you must first unlink this seat map
+                from the event or create a new seat map for the event.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setShowEventProtectionDialog(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                setShowEventProtectionDialog(false);
+
+                toast.info(
+                  "Use the Properties Panel to mark seats as unavailable",
+                  {
+                    description:
+                      "Select a seat and toggle its availability in the Properties Panel",
+                  }
+                );
+              }}
+            >
+              Show Me How
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

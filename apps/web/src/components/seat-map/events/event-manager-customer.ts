@@ -154,8 +154,13 @@ export class CustomerEventManager {
       ? this.getSeatStatus(seat.id)
       : "available";
 
-    // ✅ Update cursor logic to allow interaction with selected seats
-    if (status === "available" || status === "selected") {
+    if (
+      seat.status.name === "reserved" ||
+      seat.status.name === "blocked" ||
+      seat.status.name === "sold"
+    ) {
+      seat.graphics.cursor = "not-allowed";
+    } else if (status === "available" || status === "selected") {
       seat.graphics.cursor = "pointer";
       // Slight scale effect on hover for interactable seats
       if (seat.seatGraphics) {

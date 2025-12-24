@@ -38,22 +38,42 @@ const calculateSeatWorldPosition = (
   let x = seat.x;
   let y = seat.y;
 
-  // Apply row transformation
-  const rowCos = Math.cos(row.rotation || 0);
-  const rowSin = Math.sin(row.rotation || 0);
+  // Apply seat's own scale (for mirroring)
+  const seatScaleX = seat.scaleX || 1;
+  const seatScaleY = seat.scaleY || 1;
 
-  const rotatedX = x * rowCos - y * rowSin;
-  const rotatedY = x * rowSin + y * rowCos;
+  // When mirrored, flip the coordinate
+  x *= seatScaleX;
+  y *= seatScaleY;
+
+  // Apply row transformation with scale consideration
+  const rowScaleX = row.scaleX || 1;
+  const rowScaleY = row.scaleY || 1;
+
+  // Apply rotation (affected by scale sign)
+  const effectiveRowRotation = row.rotation || 0;
+  const rowCos = Math.cos(effectiveRowRotation);
+  const rowSin = Math.sin(effectiveRowRotation);
+
+  // Apply scale and rotation together
+  const rotatedX = x * rowScaleX * rowCos - y * rowScaleY * rowSin;
+  const rotatedY = x * rowScaleX * rowSin + y * rowScaleY * rowCos;
 
   x = rotatedX + row.x;
   y = rotatedY + row.y;
 
-  // Apply grid transformation
-  const gridCos = Math.cos(grid.rotation || 0);
-  const gridSin = Math.sin(grid.rotation || 0);
+  // Apply grid transformation with scale consideration
+  const gridScaleX = grid.scaleX || 1;
+  const gridScaleY = grid.scaleY || 1;
 
-  const finalRotatedX = x * gridCos - y * gridSin;
-  const finalRotatedY = x * gridSin + y * gridCos;
+  // Apply rotation (affected by scale sign)
+  const effectiveGridRotation = grid.rotation || 0;
+  const gridCos = Math.cos(effectiveGridRotation);
+  const gridSin = Math.sin(effectiveGridRotation);
+
+  // Apply scale and rotation together
+  const finalRotatedX = x * gridScaleX * gridCos - y * gridScaleY * gridSin;
+  const finalRotatedY = x * gridScaleX * gridSin + y * gridScaleY * gridCos;
 
   return {
     worldX: finalRotatedX + grid.x,
