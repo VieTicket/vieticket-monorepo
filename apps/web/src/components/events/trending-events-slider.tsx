@@ -19,11 +19,15 @@ export default function TrendingEventsSlider({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
 
   // Sắp xếp events theo views từ cao xuống thấp và lấy top 10
   const topEvents = events
     .sort((a, b) => (b.views || 0) - (a.views || 0))
     .slice(0, 10);
+
+  // Nhân đôi mảng để tạo hiệu ứng infinite loop
+  const duplicatedEvents = [...topEvents, ...topEvents];
 
   // Xử lý sự kiện scroll để ẩn/hiện nút điều hướng
   const handleScroll = () => {
@@ -47,6 +51,30 @@ export default function TrendingEventsSlider({
       }
     }
   };
+
+  // Auto scroll với infinite loop
+  useEffect(() => {
+    const ref = scrollRef.current;
+    if (!ref) return;
+
+    const cardWidth = 380 + 24; // width + gap
+    const totalWidth = cardWidth * topEvents.length;
+
+    const autoScroll = () => {
+      if (isPaused) return;
+
+      if (ref.scrollLeft >= totalWidth) {
+        // Reset về đầu khi đến cuối phần đầu tiên
+        ref.scrollLeft = 0;
+      } else {
+        ref.scrollLeft += 2; // Tốc độ scroll (pixel/frame)
+      }
+    };
+
+    const intervalId = setInterval(autoScroll, 30); // 30ms/frame ≈ 33fps
+
+    return () => clearInterval(intervalId);
+  }, [isPaused, topEvents.length]);
 
   useEffect(() => {
     const ref = scrollRef.current;
@@ -77,7 +105,11 @@ export default function TrendingEventsSlider({
         </div>
 
         {/* Slider Wrapper */}
-        <div className="relative group">
+        <div
+          className="relative group"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           {/* Nút Previous */}
           {showLeftArrow && (
             <button
@@ -101,17 +133,17 @@ export default function TrendingEventsSlider({
           {/* Scroll Container */}
           <div
             ref={scrollRef}
-            className="flex gap-6 overflow-x-auto pb-8 pt-4 px-2 snap-x snap-mandatory scrollbar-hide"
+            className="flex gap-6 overflow-x-auto pb-8 pt-4 px-2 scrollbar-hide"
             style={{
               scrollbarWidth: "none",
               msOverflowStyle: "none",
             }}
           >
-            {topEvents.map((event, index) => (
+            {duplicatedEvents.map((event, index) => (
               <Link
-                key={event.id}
+                key={`${event.id}-${index}`}
                 href={`/events/${event.slug}`}
-                className="flex-none w-[300px] md:w-[380px] relative snap-start group/card cursor-pointer"
+                className="flex-none w-[300px] md:w-[380px] relative group/card cursor-pointer"
               >
                 {/* Số thứ hạng */}
                 <div className="absolute -left-4 bottom-0 z-10 select-none pointer-events-none">
@@ -123,7 +155,7 @@ export default function TrendingEventsSlider({
                       textShadow: "4px 4px 0px rgba(0,0,0,0.5)",
                     }}
                   >
-                    {index + 1}
+                    {(index % topEvents.length) + 1}
                   </span>
                 </div>
 

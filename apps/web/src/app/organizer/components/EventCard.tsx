@@ -257,7 +257,7 @@ export default function EventCard({ event, onEventDeleted }: EventCardProps) {
                 Statistics
               </Button>
             )}
-            {event.approvalStatus !== "approved" && (
+            {event.approvalStatus !== "approved" && event.approvalStatus !== "pending" && (
               <Button
                 onClick={() =>
                   router.push(`/organizer/event/create?id=${event.id}`)
