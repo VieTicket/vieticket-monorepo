@@ -306,16 +306,16 @@ const SeatMapV2PageInner = () => {
 
       createEventManager();
 
-      createGuideLines({
-        showGrid: false,
-        showSnapGuides: true,
-        gridSpacing: 25,
-        snapDistance: 15,
-        gridColor: 0xdddddd,
-        snapGuideColor: 0xff4081,
-        gridAlpha: 0.4,
-        snapGuideAlpha: 0.9,
-      });
+      // createGuideLines({
+      //   showGrid: false,
+      //   showSnapGuides: true,
+      //   gridSpacing: 25,
+      //   snapDistance: 15,
+      //   gridColor: 0xdddddd,
+      //   snapGuideColor: 0xff4081,
+      //   gridAlpha: 0.4,
+      //   snapGuideAlpha: 0.9,
+      // });
 
       initializeAreaModeContainer();
 
