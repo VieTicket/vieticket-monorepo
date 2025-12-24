@@ -10,7 +10,12 @@ import { toast } from "sonner";
 import { updateSeatMapAction } from "@/lib/actions/organizer/seat-map-actions";
 import { useRouter } from "next/navigation";
 import { useSeatMapStore } from "../../store/seat-map-store";
-import { areaModeContainer, pixiApp, stage } from "../../variables";
+import {
+  areaModeContainer,
+  pixiApp,
+  stage,
+  initialAreaModeState,
+} from "../../variables";
 import {
   GridShape,
   RowShape,
@@ -18,10 +23,6 @@ import {
   AreaModeContainer,
   CanvasItem,
 } from "../../types";
-import {
-  calculateAllContentBounds,
-  calculateGroupBounds,
-} from "../../utils/bounds";
 import * as PIXI from "pixi.js";
 import { uploadBlobToCloudinary } from "@/components/ui/file-uploader";
 import { syncSeatMapToEventAction } from "@/lib/actions/organizer/events-action";
@@ -49,40 +50,30 @@ export const UploadDialog: React.FC = () => {
 
   const captureScreenshot = async (): Promise<Blob | null> => {
     if (pixiApp && stage) {
-      // Get the bounds of all content
       const bounds = stage.getBounds();
-
-      // Define padding (in pixels)
-      const padding = 300;
-
-      // Calculate dimensions with padding
+      const padding = 400;
       const captureWidth = bounds.width + padding * 2;
       const captureHeight = bounds.height + padding * 2;
 
-      // Create a render texture with padding
       const renderTexture = PIXI.RenderTexture.create({
         width: captureWidth,
         height: captureHeight,
       });
 
-      // Create transform matrix with offset for padding
       const matrix = new PIXI.Matrix().translate(
         padding - bounds.x,
         padding - bounds.y
       );
 
-      // Render the stage to texture with the new API
       pixiApp.renderer.render({
         container: stage,
         target: renderTexture,
         transform: matrix,
       });
 
-      // Extract canvas from render texture
       const canvas = pixiApp.renderer.extract.canvas(renderTexture);
       const imageData = canvas.toDataURL!("image/png");
 
-      // Clean up
       renderTexture.destroy(true);
 
       const response = await fetch(imageData);
@@ -92,12 +83,10 @@ export const UploadDialog: React.FC = () => {
     return null;
   };
 
-  // Serialization helper to remove PIXI objects
   const serializeShape = (shape: CanvasItem): any => {
     const serialized: any = {};
 
     for (const [key, value] of Object.entries(shape)) {
-      // Skip PIXI.js specific properties
       if (
         key === "graphics" ||
         key === "container" ||
@@ -109,41 +98,34 @@ export const UploadDialog: React.FC = () => {
         key === "filters" ||
         key === "hitArea" ||
         key === "cursor" ||
-        key === "seatGraphics" || // ✅ Added seat-specific graphics
-        key === "labelGraphics" || // ✅ Added label graphics
+        key === "seatGraphics" ||
+        key === "labelGraphics" ||
         (typeof value === "object" &&
           value !== null &&
           (value.constructor?.name?.includes("PIXI") ||
             value.constructor?.name?.includes("Graphics") ||
             value.constructor?.name?.includes("Container") ||
             value.constructor?.name?.includes("Sprite") ||
-            value.constructor?.name?.includes("Text"))) // ✅ Added Text
+            value.constructor?.name?.includes("Text")))
       ) {
         continue;
       }
 
-      // Handle children recursively
       if (key === "children" && Array.isArray(value)) {
         serialized[key] = value.map((child) => serializeShape(child));
-      }
-      // Handle arrays
-      else if (Array.isArray(value)) {
+      } else if (Array.isArray(value)) {
         serialized[key] = value.map((item) =>
           typeof item === "object" && item !== null
             ? JSON.parse(JSON.stringify(item))
             : item
         );
-      }
-      // Handle plain objects
-      else if (typeof value === "object" && value !== null) {
+      } else if (typeof value === "object" && value !== null) {
         if (value.constructor === Object) {
           serialized[key] = JSON.parse(JSON.stringify(value));
         } else {
           continue;
         }
-      }
-      // Handle primitives
-      else {
+      } else {
         serialized[key] = value;
       }
     }
@@ -151,21 +133,18 @@ export const UploadDialog: React.FC = () => {
     return serialized;
   };
 
-  // ✅ Helper function to count seats in a grid
   const countSeatsInGrid = (grid: GridShape): number => {
     return grid.children.reduce((total, row) => {
       return total + row.children.length;
     }, 0);
   };
 
-  // ✅ Helper function to calculate revenue for a grid
   const calculateGridRevenue = (grid: GridShape): number => {
     const seatCount = countSeatsInGrid(grid);
     const seatPrice = grid.seatSettings?.price || 0;
     return seatCount * seatPrice;
   };
 
-  // Calculate statistics using new types
   const statistics = useMemo(() => {
     if (!areaModeContainer) {
       return {
@@ -184,7 +163,6 @@ export const UploadDialog: React.FC = () => {
       revenue: number;
     }> = [];
 
-    // ✅ Filter and process GridShape children from AreaModeContainer
     const grids = areaModeContainer.children.filter(
       (child): child is GridShape =>
         child.type === "container" &&
@@ -192,7 +170,6 @@ export const UploadDialog: React.FC = () => {
         "seatSettings" in child
     );
 
-    // ✅ Process each grid that has seats
     grids
       .filter((grid) => countSeatsInGrid(grid) > 0)
       .forEach((grid) => {
@@ -217,6 +194,89 @@ export const UploadDialog: React.FC = () => {
     };
   }, [shapes]);
 
+  const getNewEntities = () => {
+    if (!areaModeContainer || !initialAreaModeState) {
+      return captureAllEntities();
+    }
+
+    const newGrids: string[] = [];
+    const newRows: Array<{ id: string; gridId: string }> = [];
+    const newSeats: Array<{ id: string; rowId: string; gridId: string }> = [];
+
+    const initialGridIds = initialAreaModeState.children.map((g) => g.id);
+    const initialRowsByGrid: Record<string, string[]> = {};
+    const initialSeatsByRow: Record<string, string[]> = {};
+
+    initialAreaModeState.children.forEach((grid) => {
+      initialRowsByGrid[grid.id] = grid.children.map((r) => r.id);
+      grid.children.forEach((row) => {
+        initialSeatsByRow[row.id] = row.children.map((s) => s.id);
+      });
+    });
+
+    areaModeContainer.children.forEach((grid) => {
+      if (grid.type === "container" && "gridName" in grid) {
+        const isNewGrid = !initialGridIds.includes(grid.id);
+
+        if (isNewGrid) {
+          newGrids.push(grid.id);
+        }
+
+        grid.children.forEach((row) => {
+          if (row.type === "container" && "rowName" in row) {
+            const isNewRow = !initialRowsByGrid[grid.id]?.includes(row.id);
+
+            if (isNewRow) {
+              newRows.push({ id: row.id, gridId: grid.id });
+            }
+
+            row.children.forEach((seat) => {
+              const isNewSeat = !initialSeatsByRow[row.id]?.includes(seat.id);
+
+              if (isNewSeat) {
+                newSeats.push({
+                  id: seat.id,
+                  rowId: row.id,
+                  gridId: grid.id,
+                });
+              }
+            });
+          }
+        });
+      }
+    });
+
+    return { grids: newGrids, rows: newRows, seats: newSeats };
+  };
+
+  const captureAllEntities = () => {
+    const grids: string[] = [];
+    const rows: Array<{ id: string; gridId: string }> = [];
+    const seats: Array<{ id: string; rowId: string; gridId: string }> = [];
+
+    if (!areaModeContainer) {
+      return { grids, rows, seats };
+    }
+
+    areaModeContainer.children.forEach((grid) => {
+      if (grid.type === "container" && "gridName" in grid) {
+        grids.push(grid.id);
+
+        grid.children.forEach((row) => {
+          if (row.type === "container" && "rowName" in row) {
+            rows.push({ id: row.id, gridId: grid.id });
+
+            row.children.forEach((seat) => {
+              seats.push({ id: seat.id, rowId: row.id, gridId: grid.id });
+            });
+          }
+        });
+      }
+    });
+
+    return { grids, rows, seats };
+  };
+
   const handleUpload = async () => {
     if (!seatMap || !seatMap.id) {
       toast.error("Seat map information is missing");
@@ -238,31 +298,17 @@ export const UploadDialog: React.FC = () => {
         description: "Capturing screenshot and uploading data...",
       });
 
-      // ✅ Capture screenshot first
-      let screenshotUrl = seatMap.image; // Keep existing image as fallback
+      let screenshotUrl = seatMap.image;
 
       try {
         setScreenshotProgress(10);
-        toast.info("Capturing seat map screenshot...", {
-          description: "Generating preview image...",
-        });
+        toast.info("Capturing seat map screenshot...");
 
         console.log("Event ID for sync:", eventId, areaModeContainer);
         if (eventId && areaModeContainer) {
-          // Get session-created entities with parent relationships
-          const createdEntities = useSeatMapStore
-            .getState()
-            .getSessionCreatedEntities();
+          const createdEntities = getNewEntities();
 
-          // Extract all grids from area mode container
-          const grids = areaModeContainer.children.filter(
-            (child): child is GridShape =>
-              child.type === "container" &&
-              "gridName" in child &&
-              "seatSettings" in child
-          );
-
-          console.log("📊 Syncing entities:", {
+          console.log("📊 New entities to sync:", {
             eventId,
             seatMapId: seatMap.id,
             newGrids: createdEntities.grids.length,
@@ -270,101 +316,94 @@ export const UploadDialog: React.FC = () => {
             newSeats: createdEntities.seats.length,
           });
 
-          // Sync to database
-          const syncResult = await syncSeatMapToEventAction({
-            eventId,
-            seatMapId: seatMap.id,
-            grids,
-            createdEntityIds: createdEntities,
-          });
+          if (createdEntities.grids.length > 0) {
+            const grids = areaModeContainer.children.filter(
+              (child): child is GridShape =>
+                child.type === "container" &&
+                "gridName" in child &&
+                "seatSettings" in child
+            );
 
-          if (!syncResult.success) {
-            toast.error("Failed to sync changes to event", {
-              description: syncResult.error,
+            const syncResult = await syncSeatMapToEventAction({
+              eventId,
+              seatMapId: seatMap.id,
+              grids,
+              createdEntityIds: createdEntities,
             });
-            return;
-          }
 
-          if (syncResult.data) {
-            toast.success("Event seating updated!", {
-              description: `Added ${syncResult.data.areasCreated} areas with ${syncResult.data.totalSeats} seats`,
-            });
-          }
+            if (!syncResult.success) {
+              toast.error("Failed to sync changes to event", {
+                description: syncResult.error,
+              });
+              return;
+            }
 
-          // Clear session tracking after successful sync
-          useSeatMapStore.getState().clearSessionTracking();
+            if (syncResult.data) {
+              toast.success("Event seating updated!", {
+                description: `Added ${syncResult.data.areasCreated} areas with ${syncResult.data.totalSeats} seats`,
+              });
+            }
+          } else {
+            console.log("✅ No new entities to sync");
+          }
         }
+
         setScreenshotProgress(30);
         const screenshotBlob = await captureScreenshot();
 
         if (screenshotBlob) {
           setScreenshotProgress(50);
 
-          // ✅ Generate filename for screenshot
           const sanitizedName =
             seatMap.name.replace(/[^a-zA-Z0-9]/g, "_") || "seatmap";
           const timestamp = new Date().getDate().toString();
           const filename = `${sanitizedName}_screenshot_${timestamp}.png`;
 
-          toast.info("Uploading screenshot to cloud...", {
-            description: "Please wait while we process the image...",
-          });
+          toast.info("Uploading screenshot to cloud...");
 
-          // ✅ Upload screenshot to Cloudinary with progress tracking
           const uploadResponse = await uploadBlobToCloudinary(
             screenshotBlob,
             filename,
             "seat-maps",
             (progress) => {
-              // Map upload progress to our overall progress (30% to 70%)
               const mappedProgress = 30 + progress * 0.4;
               setScreenshotProgress(mappedProgress);
             },
-            true // Overwrite existing files
+            true
           );
 
           screenshotUrl = uploadResponse.secure_url;
           useSeatMapStore.getState().clearStoredHistory();
 
-          toast.success("Screenshot captured and uploaded!", {
-            description: "Now saving seat map data...",
-          });
+          toast.success("Screenshot captured and uploaded!");
         } else {
           console.warn(
             "Failed to capture screenshot, proceeding without updating image"
           );
-          toast.warning("Screenshot capture failed, keeping existing image", {
-            description: "Continuing with seat map save...",
-          });
+          toast.warning("Screenshot capture failed, keeping existing image");
         }
       } catch (screenshotError) {
         console.error("Screenshot capture/upload failed:", screenshotError);
-        toast.warning("Screenshot update failed, keeping existing image", {
-          description: "Continuing with seat map save...",
-        });
+        toast.warning("Screenshot update failed, keeping existing image");
       }
 
       setScreenshotProgress(80);
 
-      // ✅ Serialize shapes to remove PIXI.js objects
       const serializedShapes = shapes.map((shape) => serializeShape(shape));
 
       setScreenshotProgress(90);
 
-      // ✅ Update seat map with new screenshot
       const result = await updateSeatMapAction(
         seatMap.id,
         serializedShapes,
         seatMap.name,
-        screenshotUrl // Use the new screenshot URL
+        screenshotUrl
       );
 
       setScreenshotProgress(100);
 
       if (result.success) {
-        toast.success("Seat map updated successfully!", {
-          description: "Screenshot and data have been saved",
-        });
+        toast.success("Seat map updated successfully!");
         setIsOpen(false);
         router.push("/organizer/seat-map");
       } else {
@@ -399,7 +438,6 @@ export const UploadDialog: React.FC = () => {
           <DialogTitle>Save Seat Map</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-4">
-          {/* ✅ Show screenshot progress when uploading */}
           {isUploading && (
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="flex items-center justify-between mb-2">
@@ -428,7 +466,6 @@ export const UploadDialog: React.FC = () => {
             </div>
           )}
 
-          {/* Seat Map Info */}
           {seatMap && (
             <div className="rounded-lg border border-gray-200 p-4 space-y-3">
               <h3 className="font-semibold text-sm">Seat Map Information</h3>
@@ -468,12 +505,10 @@ export const UploadDialog: React.FC = () => {
             </div>
           )}
 
-          {/* ✅ Updated Area Mode Statistics using new types */}
           {areaModeContainer && statistics.totalGrids > 0 ? (
             <div className="rounded-lg border border-gray-200 p-4 space-y-3">
               <h3 className="font-semibold text-sm">Seat Statistics</h3>
 
-              {/* Summary */}
               <div className="grid grid-cols-3 gap-3">
                 <div className="bg-blue-50 rounded p-3 text-center">
                   <p className="text-xs text-gray-600">Total Grids</p>
@@ -495,7 +530,6 @@ export const UploadDialog: React.FC = () => {
                 </div>
               </div>
 
-              {/* Grid Breakdown */}
               {statistics.gridBreakdown.length > 0 && (
                 <div className="mt-3">
                   <h4 className="text-xs font-semibold text-gray-600 mb-2">
@@ -529,7 +563,6 @@ export const UploadDialog: React.FC = () => {
             </div>
           )}
 
-          {/* General Shape Count */}
           <div className="text-xs text-gray-500">
             {shapes.length > 0 ? (
               <p>✅ {shapes.length} total shape(s) in canvas</p>
@@ -538,7 +571,6 @@ export const UploadDialog: React.FC = () => {
             )}
           </div>
 
-          {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"

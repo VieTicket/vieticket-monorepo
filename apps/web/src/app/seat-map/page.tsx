@@ -23,6 +23,8 @@ import {
   setShapes,
   shapeContainer,
   areaModeContainer,
+  initialAreaModeState,
+  setInitialAreaModeState,
 } from "@/components/seat-map/variables";
 import {
   createSelectionTransform,
@@ -37,7 +39,10 @@ import { CanvasInventory } from "@/components/seat-map/components/canvas-invento
 import { PropertiesSidebar } from "@/components/seat-map/components/properties-sidebar";
 import { updateStageHitArea } from "@/components/seat-map/utils/stageTransform";
 
-import { useSeatMapStore } from "@/components/seat-map/store/seat-map-store";
+import {
+  cloneCanvasItem,
+  useSeatMapStore,
+} from "@/components/seat-map/store/seat-map-store";
 import {
   createGuideLines,
   destroyGuideLines,
@@ -47,7 +52,11 @@ import {
   recreateShape,
   restoreHistoryAfterSeatMapLoad,
 } from "@/components/seat-map/utils/undo-redo";
-import { CanvasItem, RowShape } from "@/components/seat-map/types";
+import {
+  AreaModeContainer,
+  CanvasItem,
+  RowShape,
+} from "@/components/seat-map/types";
 import { ValidationManager } from "@/components/seat-map/components/toolbar/validation-notification";
 import { updateRowLabelRotation } from "@/components/seat-map/shapes/row-shape";
 import { updateSeatLabelRotation } from "@/components/seat-map/shapes/seat-shape";
@@ -78,7 +87,7 @@ const SeatMapV2PageInner = () => {
 
     if (!res.ok) {
       const text = await res.text().catch(() => "");
-      throw new Error(
+      alert(
         `Failed to fetch seatmap from ${url}: ${res.status} ${res.statusText} ${text}`
       );
     }
@@ -153,6 +162,13 @@ const SeatMapV2PageInner = () => {
             setShapes([...shapes, ...recreatedShapes]);
           } else {
             setShapes(recreatedShapes);
+            setInitialAreaModeState(
+              cloneCanvasItem(
+                recreatedShapes.find(
+                  (shape: any) => shape.id === "area-mode-container-id"
+                )!
+              ) as AreaModeContainer
+            );
           }
           useSeatMapStore
             .getState()

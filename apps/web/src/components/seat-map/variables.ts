@@ -11,6 +11,7 @@ export let shapeContainer: PIXI.Container | null = null;
 export let previewContainer: PIXI.Container | null = null;
 export let previewGraphics: PIXI.Graphics | null = null;
 export let shapes: CanvasItem[] = [];
+export let initialAreaModeState: AreaModeContainer | null = null;
 export let currentTool: Tool = "select";
 
 // Interaction state variables
@@ -84,6 +85,10 @@ export const setPreviewContainer = (container: PIXI.Container | null) => {
 };
 export const setPreviewGraphics = (graphics: PIXI.Graphics | null) => {
   previewGraphics = graphics;
+};
+
+export const setInitialAreaModeState = (state: AreaModeContainer) => {
+  initialAreaModeState = state;
 };
 
 export const setGuidelineGraphics = (graphics: PIXI.Graphics | null) => {
