@@ -75,9 +75,9 @@ function parseDate(value: unknown) {
   return d;
 }
 
-function sortIcon(field: SortField, activeField: SortField, direction: SortDirection, isAdmin: boolean = false) {
-  const inactiveColor = isAdmin ? "text-gray-400/50" : "text-slate-400/50";
-  const activeColor = isAdmin ? "text-gray-600" : "text-slate-300";
+function sortIcon(field: SortField, activeField: SortField, direction: SortDirection) {
+  const inactiveColor = "text-gray-400/50";
+  const activeColor = "text-gray-600";
   if (field !== activeField) return <ArrowUpDown className={`h-4 w-4 ${inactiveColor}`} />;
   return direction === "asc" ? <ArrowUp className={`h-4 w-4 ${activeColor}`} /> : <ArrowDown className={`h-4 w-4 ${activeColor}`} />;
 }
@@ -188,32 +188,18 @@ export function RefundsList({
   const canExecute = Boolean(actions.execute);
   const canMarkManual = Boolean(actions.markManual);
 
-  // Use light mode for admin, dark mode for organizer
-  const isAdmin = role === "admin";
-  const cardClassName = isAdmin 
-    ? "bg-white border-gray-200" 
-    : "bg-slate-800/50 border-slate-700/50";
-  const titleClassName = isAdmin ? "text-gray-900" : "text-white";
-  const descClassName = isAdmin ? "text-sm text-gray-600" : "text-sm text-slate-400";
-  const searchIconClassName = isAdmin ? "text-gray-400" : "text-slate-400";
-  const inputClassName = isAdmin
-    ? "pl-9 pr-20 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-violet-400"
-    : "pl-9 pr-20 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50";
-  const searchButtonClassName = isAdmin
-    ? "absolute right-2 top-1.5 h-6 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700"
-    : "absolute right-2 top-1.5 h-6 px-2 bg-slate-700 hover:bg-slate-600 text-white";
-  const selectTriggerClassName = isAdmin
-    ? "w-[200px] bg-white border-gray-300 text-gray-900"
-    : "w-[200px] bg-slate-700/50 border-slate-600 text-white";
-  const selectContentClassName = isAdmin
-    ? "bg-white border-gray-200"
-    : "bg-slate-800 border-slate-700";
-  const selectItemClassName = isAdmin
-    ? "text-gray-900 hover:bg-gray-100"
-    : "text-white hover:bg-slate-700";
-  const selectTriggerReasonClassName = isAdmin
-    ? "w-[220px] bg-white border-gray-300 text-gray-900"
-    : "w-[220px] bg-slate-700/50 border-slate-600 text-white";
+  // Use light mode for both admin and organizer
+  const isLightMode = true;
+  const cardClassName = "bg-white border-gray-200";
+  const titleClassName = "text-gray-900";
+  const descClassName = "text-sm text-gray-600";
+  const searchIconClassName = "text-gray-400";
+  const inputClassName = "pl-9 pr-20 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-violet-400";
+  const searchButtonClassName = "absolute right-2 top-1.5 h-6 px-2 bg-gray-100 hover:bg-gray-200 text-gray-700";
+  const selectTriggerClassName = "w-[200px] bg-white border-gray-300 text-gray-900";
+  const selectContentClassName = "bg-white border-gray-200";
+  const selectItemClassName = "text-gray-900 hover:bg-gray-100";
+  const selectTriggerReasonClassName = "w-[220px] bg-white border-gray-300 text-gray-900";
 
   return (
     <Card className={cardClassName}>
@@ -290,53 +276,53 @@ export function RefundsList({
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
-              <TableRow className={isAdmin ? "border-gray-200" : "border-slate-700/50"}>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>{t("table.order")}</TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>
+              <TableRow className="border-gray-200">
+                <TableHead className="text-gray-700">{t("table.order")}</TableHead>
+                <TableHead className="text-gray-700">
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-1 hover:underline ${isAdmin ? "text-gray-700 hover:text-violet-700" : "text-slate-300 hover:text-violet-300"}`}
+                    className="inline-flex items-center gap-1 hover:underline text-gray-700 hover:text-violet-700"
                     onClick={() => handleSort("reason")}
                   >
-                    {t("table.reason")} {sortIcon("reason", sortParam, dirParam, isAdmin)}
+                    {t("table.reason")} {sortIcon("reason", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>
+                <TableHead className="text-gray-700">
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-1 hover:underline ${isAdmin ? "text-gray-700 hover:text-violet-700" : "text-slate-300 hover:text-violet-300"}`}
+                    className="inline-flex items-center gap-1 hover:underline text-gray-700 hover:text-violet-700"
                     onClick={() => handleSort("amount")}
                   >
-                    {t("table.amount")} {sortIcon("amount", sortParam, dirParam, isAdmin)}
+                    {t("table.amount")} {sortIcon("amount", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>{t("table.event")}</TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>
+                <TableHead className="text-gray-700">{t("table.event")}</TableHead>
+                <TableHead className="text-gray-700">
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-1 hover:underline ${isAdmin ? "text-gray-700 hover:text-violet-700" : "text-slate-300 hover:text-violet-300"}`}
+                    className="inline-flex items-center gap-1 hover:underline text-gray-700 hover:text-violet-700"
                     onClick={() => handleSort("status")}
                   >
-                    {t("table.status")} {sortIcon("status", sortParam, dirParam, isAdmin)}
+                    {t("table.status")} {sortIcon("status", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>
+                <TableHead className="text-gray-700">
                   <button
                     type="button"
-                    className={`inline-flex items-center gap-1 hover:underline ${isAdmin ? "text-gray-700 hover:text-violet-700" : "text-slate-300 hover:text-violet-300"}`}
+                    className="inline-flex items-center gap-1 hover:underline text-gray-700 hover:text-violet-700"
                     onClick={() => handleSort("requestedAt")}
                   >
                     {t("table.requestedAt")}{" "}
-                    {sortIcon("requestedAt", sortParam, dirParam, isAdmin)}
+                    {sortIcon("requestedAt", sortParam, dirParam)}
                   </button>
                 </TableHead>
-                <TableHead className={isAdmin ? "text-gray-700" : "text-slate-300"}>{t("table.actions")}</TableHead>
+                <TableHead className="text-gray-700">{t("table.actions")}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {pageItems.length === 0 ? (
-                <TableRow className={isAdmin ? "border-gray-200" : "border-slate-700/50"}>
-                  <TableCell colSpan={7} className={`text-center text-sm py-8 ${isAdmin ? "text-gray-600" : "text-slate-400"}`}>
+                <TableRow className="border-gray-200">
+                  <TableCell colSpan={7} className="text-center text-sm py-8 text-gray-600">
                     {t("table.empty")}
                   </TableCell>
                 </TableRow>
@@ -348,15 +334,15 @@ export function RefundsList({
                       : refund.status === "pending_organizer";
 
                   return (
-                    <TableRow key={refund.id} className={isAdmin ? "border-gray-200 hover:bg-gray-50" : "border-slate-700/50 hover:bg-slate-700/20"}>
-                      <TableCell className={`font-mono text-xs ${isAdmin ? "text-gray-900" : "text-slate-200"}`}>{refund.orderId}</TableCell>
-                      <TableCell className={`capitalize ${isAdmin ? "text-gray-700" : "text-slate-300"}`}>
+                    <TableRow key={refund.id} className="border-gray-200 hover:bg-gray-50">
+                      <TableCell className="font-mono text-xs text-gray-900">{refund.orderId}</TableCell>
+                      <TableCell className="capitalize text-gray-700">
                         {REFUND_REASON_OPTIONS.includes(refund.reason as any)
                           ? tReason(refund.reason as any)
                           : refund.reason.replaceAll("_", " ")}
                       </TableCell>
-                      <TableCell className={isAdmin ? "text-gray-900" : "text-slate-200"}>{formatCurrencyVND(Number(refund.amount))}</TableCell>
-                      <TableCell className={isAdmin ? "text-gray-700" : "text-slate-300"}>{refund.eventName ?? refund.eventId ?? "-"}</TableCell>
+                      <TableCell className="text-gray-900">{formatCurrencyVND(Number(refund.amount))}</TableCell>
+                      <TableCell className="text-gray-700">{refund.eventName ?? refund.eventId ?? "-"}</TableCell>
                       <TableCell>
                         <Badge variant="secondary">
                           {REFUND_STATUS_OPTIONS.includes(refund.status as any)
@@ -364,7 +350,7 @@ export function RefundsList({
                             : refund.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className={`text-xs ${isAdmin ? "text-gray-600" : "text-slate-400"}`}>
+                      <TableCell className="text-xs text-gray-600">
                         {parseDate(refund.requestedAt)?.toLocaleString(dateLocale) ?? "-"}
                       </TableCell>
                       <TableCell className="space-x-2">
@@ -412,7 +398,7 @@ export function RefundsList({
                         {role === "admin" && refund.status === "payment_failed" && canMarkManual ? (
                           <form className="inline" action={actions.markManual}>
                             <input type="hidden" name="refundId" value={refund.id} />
-                            <Button size="sm" variant="secondary" type="submit" className={isAdmin ? "text-gray-700" : "text-white"}>
+                            <Button size="sm" variant="secondary" type="submit" className="text-gray-700">
                               {t("actions.markManualDone")}
                             </Button>
                           </form>
@@ -427,7 +413,7 @@ export function RefundsList({
         </div>
 
         <div className="flex items-center justify-between">
-          <p className={`text-xs ${isAdmin ? "text-gray-600" : "text-slate-400"}`}>
+          <p className="text-xs text-gray-600">
             {t("pagination.showing", {
               from: pageItems.length === 0 ? 0 : startIndex + 1,
               to: endIndex,
@@ -441,13 +427,11 @@ export function RefundsList({
               onClick={() => pushParams({ page: String(Math.max(1, currentPage - 1)) })}
               disabled={currentPage <= 1}
               aria-label={t("pagination.prev")}
-              className={isAdmin 
-                ? "border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
-                : "border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"}
+              className="border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className={`text-xs ${isAdmin ? "text-gray-700" : "text-slate-300"}`}>
+            <span className="text-xs text-gray-700">
               {t("pagination.page", { page: currentPage, totalPages })}
             </span>
             <Button
@@ -456,9 +440,7 @@ export function RefundsList({
               onClick={() => pushParams({ page: String(Math.min(totalPages, currentPage + 1)) })}
               disabled={currentPage >= totalPages}
               aria-label={t("pagination.next")}
-              className={isAdmin 
-                ? "border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
-                : "border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"}
+              className="border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
