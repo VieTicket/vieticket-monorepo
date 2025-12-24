@@ -135,10 +135,10 @@ export function EventDetailModal({
   // Document type labels mapping
   const getDocumentTypeLabel = (documentType: string) => {
     const labels: Record<string, string> = {
-      event_permit: "Giấy Phép Tổ Chức Sự Kiện",
-      venue_contract: "Hợp Đồng Địa Điểm",
-      insurance: "Giấy Chứng Nhận Bảo Hiểm",
-      other: "Tài Liệu Khác",
+      event_permit: "Event Permit",
+      venue_contract: "Venue Contract",
+      insurance: "Insurance Certificate",
+      other: "Other Documents",
     };
     return labels[documentType] || documentType;
   };
@@ -376,13 +376,13 @@ export function EventDetailModal({
 
         {/* Event Documents and Contract */}
         {(hasDocuments || hasContract) && (
-          <DetailCard icon={FileCheck} title="Giấy Tờ và Hợp Đồng">
+          <DetailCard icon={FileCheck} title="Documents and Contract">
             <div className="space-y-6">
               {/* Proof Documents */}
               {hasDocuments && (
                 <div className="space-y-4">
                   <h4 className="font-semibold text-gray-900 text-sm mb-3">
-                    Tài Liệu Chứng Minh
+                    Proof Documents
                   </h4>
                   {event.eventMetadata?.eventProofDocuments?.map((doc, docIndex) => (
                     <div key={docIndex} className="border border-gray-200 rounded-lg p-4 space-y-3">
@@ -425,7 +425,7 @@ export function EventDetailModal({
                               </div>
                             </a>
                             <p className="text-xs text-gray-500 mt-1 text-center truncate">
-                              Tài liệu {urlIndex + 1}
+                              Document {urlIndex + 1}
                             </p>
                           </div>
                         ))}
@@ -439,7 +439,7 @@ export function EventDetailModal({
               {hasContract && (
                 <div className="space-y-3 border-t pt-4">
                   <h4 className="font-semibold text-gray-900 text-sm">
-                    Hợp Đồng Đã Ký
+                    Signed Contract
                   </h4>
                   <div className="relative group">
                     <a
@@ -451,7 +451,7 @@ export function EventDetailModal({
                       <div className="relative bg-white rounded-lg overflow-hidden border border-gray-200 hover:border-blue-400 transition-colors">
                         <img
                           src={event.eventMetadata?.contractScreenshotUrl || ""}
-                          alt="Hợp Đồng Đã Ký"
+                          alt="Signed Contract"
                           className="w-full max-h-96 object-contain"
                           style={{ display: "block" }}
                           onError={(e) => {

@@ -448,6 +448,7 @@
     "RequestPayout": {
       "requestPayout": "Request Payout",
       "title": "Admin Payout Management",
+      "subtitle": "Manage and review payout requests from organizers",
       "loading": "Loading...",
       "filterLabel": "Filter by status:",
       "statusOptions": {

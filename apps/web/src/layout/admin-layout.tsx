@@ -176,7 +176,7 @@ export default function AdminLayout({
   );
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950">
+    <div className="h-screen flex flex-col bg-white">
       {/* Mobile sidebar toggle */}
       <MobileToggleButton isOpen={sidebarOpen} onToggle={handleSidebarToggle} />
 
@@ -199,7 +199,7 @@ export default function AdminLayout({
 
         {/* Scrollable Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <main className="flex-1 overflow-y-auto p-6 bg-slate-950 text-white">
+          <main className="flex-1 overflow-y-auto p-6 bg-white text-gray-900">
             {children}
           </main>
         </div>
@@ -208,7 +208,7 @@ export default function AdminLayout({
       {/* Mobile overlay */}
       {sidebarOpen && (
         <div
-          className="fixed inset-0 z-30 bg-black/70 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-30 bg-black/50 backdrop-blur-sm lg:hidden"
           onClick={handleOverlayClick}
         />
       )}
