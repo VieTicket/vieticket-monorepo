@@ -1,9 +1,0 @@
-{
-  "crons": [
-    {
-      "path": "/api/admin/unlock-expired-bans",
-      "schedule": "*/10 * * * *"
-    }
-  ]
-}
-

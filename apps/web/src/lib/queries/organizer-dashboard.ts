@@ -358,7 +358,12 @@ export const getOrdersByEvent = async (
       refunds,
       and(eq(refunds.orderId, orders.id), eq(refunds.status, "refunded"))
     )
-    .where(eq(orders.eventId, eventId))
+    .where(
+      and(
+        eq(orders.eventId, eventId),
+        inArray(orders.status, [...REVENUE_ORDER_STATUSES])
+      )
+    )
     .groupBy(orders.id, orders.orderDate, orders.status, orders.totalAmount)
     .orderBy(sql`${orders.orderDate} DESC`)
     .limit(clampedLimit)
