@@ -1,6 +1,6 @@
 import { db } from "@vieticket/db/pg";
 import { areas, events, showings } from "@vieticket/db/pg/schemas/events";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, lt, sql } from "drizzle-orm";
 
 /**
  * Fetches a single event by its ID.
@@ -146,7 +146,7 @@ export async function findActiveEventsByOrganizationId(organizationId: string) {
 
 /**
  * Finds all active events accessible to a user (created by them or in their organization).
- * "Active" means events that are approved and have not ended yet.
+ * "Active" means events that are approved and within event timeframe.
  * @param userId - The ID of the user.
  * @param organizationId - Optional organization ID to include organization events.
  * @returns An array of active events.
@@ -164,6 +164,7 @@ export async function findAccessibleActiveEvents(
         and(
           eq(event.organizerId, userId),
           eq(event.approvalStatus, "approved"),
+          lt(event.startTime, now),
           gt(event.endTime, now)
         ),
     });
@@ -176,6 +177,7 @@ export async function findAccessibleActiveEvents(
         and(
           eq(event.organizerId, userId),
           eq(event.approvalStatus, "approved"),
+          lt(event.startTime, now),
           gt(event.endTime, now)
         ),
     }),
@@ -184,6 +186,7 @@ export async function findAccessibleActiveEvents(
         and(
           eq(event.organizationId, organizationId),
           eq(event.approvalStatus, "approved"),
+          lt(event.startTime, now),
           gt(event.endTime, now)
         ),
     }),

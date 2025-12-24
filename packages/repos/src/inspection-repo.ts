@@ -1,10 +1,10 @@
 import { db } from "@vieticket/db/pg";
-import { tickets } from "@vieticket/db/pg/schemas/orders";
-import { seats, rows, areas, events } from "@vieticket/db/pg/schemas/events";
-import { member } from "@vieticket/db/pg/schemas/users";
-import { and, eq, or, isNull } from "drizzle-orm";
 import { TicketInspectionStatus } from "@vieticket/db/pg/schema";
+import { areas, events, rows, seats } from "@vieticket/db/pg/schemas/events";
 import { ticketInspectionHistory } from "@vieticket/db/pg/schemas/logs";
+import { tickets } from "@vieticket/db/pg/schemas/orders";
+import { member } from "@vieticket/db/pg/schemas/users";
+import { and, eq } from "drizzle-orm";
 
 const CACHE_TTL_SECONDS = 3600;
 
@@ -101,7 +101,8 @@ export async function atomicCheckInAndLog(
     const [ticket] = await tx
       .select()
       .from(tickets)
-      .where(eq(tickets.id, ticketId));
+      .where(eq(tickets.id, ticketId))
+      .for("update");
 
     if (!ticket) {
       // Log invalid inspection

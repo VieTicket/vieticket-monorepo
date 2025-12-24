@@ -17,15 +17,18 @@ import {
   setPan,
   selectedContainer,
   isAreaMode,
+  initialAreaModeState,
 } from "../variables";
 import { mirrorHorizontally, mirrorVertically } from "../utils/mirroring";
 import { getGuideLines } from "../guide-lines";
+import { toast } from "sonner";
 
 export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
   const selectedShapes = useSeatMapStore((state) => state.selectedShapes);
   const selectAll = useSeatMapStore((state) => state.selectAll);
   const clearSelection = useSeatMapStore((state) => state.clearSelection);
   const shapes = useSeatMapStore((state) => state.shapes);
+  const eventId = useSeatMapStore((state) => state.eventId);
   const areaModeContainer = shapes.find(
     (shape) => shape.id === "area-mode-container"
   );
@@ -38,6 +41,7 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
     currentTool,
     selectedContainer,
     pan,
+    eventId,
   });
 
   useEffect(() => {
@@ -49,8 +53,9 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
       currentTool,
       selectedContainer,
       pan,
+      eventId,
     };
-  }, [selectedShapes, selectAll, clearSelection, shapes]);
+  }, [selectedShapes, selectAll, clearSelection, shapes, eventId]);
 
   const getToolMapping = useCallback(
     (key: string): Tool | null => {
@@ -73,6 +78,77 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
     },
     [areaModeContainer]
   );
+
+  const isSeatInInitialState = useCallback((seatId: string): boolean => {
+    if (!initialAreaModeState) {
+      return false;
+    }
+
+    // Traverse through grids -> rows -> seats in the initial state
+    for (const grid of initialAreaModeState.children) {
+      for (const row of grid.children) {
+        if (row.children.some((seat) => seat.id === seatId)) {
+          return true;
+        }
+      }
+    }
+
+    return false;
+  }, []);
+
+  const validateEventProtectedDeletion = useCallback((): boolean => {
+    const store = storeRef.current;
+
+    if (!store.eventId) {
+      return true;
+    }
+
+    let gridCount = 0;
+    let rowCount = 0;
+    let protectedSeatCount = 0;
+    const deletableSeats: string[] = [];
+
+    store.selectedShapes.forEach((shape) => {
+      if (shape.type === "container" && "gridName" in shape) {
+        gridCount++;
+      } else if (shape.type === "container" && "rowName" in shape) {
+        rowCount++;
+      } else if (shape.type === "ellipse" && "seatNumber" in shape) {
+        // Check if this seat existed in the initial state
+        const isNewSeat = !isSeatInInitialState(shape.id);
+
+        if (isNewSeat) {
+          deletableSeats.push(shape.id);
+        } else {
+          protectedSeatCount++;
+        }
+      }
+    });
+
+    // If there are deletable new seats, proceed with deletion
+    if (
+      deletableSeats.length > 0 &&
+      gridCount === 0 &&
+      rowCount === 0 &&
+      protectedSeatCount === 0
+    ) {
+      return true;
+    }
+
+    if (gridCount > 0 || rowCount > 0 || protectedSeatCount > 0) {
+      const parts: string[] = [];
+      if (gridCount > 0) parts.push(`${gridCount} grid(s)`);
+      if (rowCount > 0) parts.push(`${rowCount} row(s)`);
+      if (protectedSeatCount > 0) parts.push(`${protectedSeatCount} seat(s)`);
+
+      toast.error("Cannot delete event seating", {
+        description: `Cannot delete ${parts.join(", ")} linked to an event. Only newly added seats can be deleted.`,
+      });
+      return false;
+    }
+
+    return true;
+  }, [isSeatInInitialState]);
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -130,7 +206,9 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
           case "Delete":
           case "Backspace":
             if (store.selectedShapes.length > 0) {
-              deleteShapes();
+              if (validateEventProtectedDeletion()) {
+                deleteShapes();
+              }
               preventDefault();
             }
             return;
@@ -270,7 +348,7 @@ export const useKeyMap = (setSelectedTool: (tool: Tool) => void) => {
         return;
       }
     },
-    [getToolMapping]
+    [getToolMapping, validateEventProtectedDeletion]
   );
 
   useEffect(() => {

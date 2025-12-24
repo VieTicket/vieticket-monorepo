@@ -24,5 +24,3 @@ export async function submitEventRating(
   await upsertEventRating(userId, eventId, stars, comment);
   return await getEventRatingSummary(eventId);
 }
-
-

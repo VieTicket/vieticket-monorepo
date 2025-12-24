@@ -37,7 +37,7 @@ import { duplicateSelectedShapes } from "../../utils/duplication";
 import { useSeatMapStore } from "../../store/seat-map-store";
 import { mirrorHorizontally, mirrorVertically } from "../../utils/mirroring";
 import { performUndo, performRedo } from "../../utils/undo-redo";
-import { isAreaMode, setCurrentTool, setIsAreaMode } from "../../variables";
+import { isAreaMode, setCurrentTool, setIsAreaMode, initialAreaModeState } from "../../variables";
 import {
   alignSeats,
   enterAreaMode,
@@ -162,43 +162,74 @@ export const CommonTools: React.FC = () => {
     window.dispatchEvent(new CustomEvent("open-import-dialog"));
   };
 
-  const validateEventProtectedDeletion = (): boolean => {
-    if (!eventId) {
-      return true;
-    }
+const validateEventProtectedDeletion = (): boolean => {
+  if (!eventId) {
+    return true;
+  }
 
-    let gridCount = 0;
-    let rowCount = 0;
-    let seatCount = 0;
+  let gridCount = 0;
+  let rowCount = 0;
+  let seatCount = 0;
+  const deletableSeats: string[] = [];
 
-    selectedShapes.forEach((shape) => {
-      if (shape.type === "container" && "gridName" in shape) {
-        gridCount++;
-      } else if (shape.type === "container" && "rowName" in shape) {
-        rowCount++;
-      } else if (shape.type === "ellipse" && "seatNumber" in shape) {
+  selectedShapes.forEach((shape) => {
+    if (shape.type === "container" && "gridName" in shape) {
+      gridCount++;
+    } else if (shape.type === "container" && "rowName" in shape) {
+      rowCount++;
+    } else if (shape.type === "ellipse" && "seatNumber" in shape) {
+      // Check if this seat existed in the initial state
+      const isNewSeat = !isSeatInInitialState(shape.id);
+      
+      if (isNewSeat) {
+        deletableSeats.push(shape.id);
+      } else {
         seatCount++;
       }
-    });
-
-    if (gridCount > 0 || rowCount > 0 || seatCount > 0) {
-      setProtectedShapesInfo({
-        grids: gridCount,
-        rows: rowCount,
-        seats: seatCount,
-      });
-      setShowEventProtectionDialog(true);
-      return false;
     }
+  });
 
+  // If there are deletable new seats, proceed with deletion
+  if (deletableSeats.length > 0 && gridCount === 0 && rowCount === 0 && seatCount === 0) {
     return true;
-  };
+  }
 
-  const handleDelete = () => {
-    if (validateEventProtectedDeletion()) {
-      deleteShapes();
+  if (gridCount > 0 || rowCount > 0 || seatCount > 0) {
+    setProtectedShapesInfo({
+      grids: gridCount,
+      rows: rowCount,
+      seats: seatCount,
+    });
+    setShowEventProtectionDialog(true);
+    return false;
+  }
+
+  return true;
+};
+
+const isSeatInInitialState = (seatId: string): boolean => {
+  if (!initialAreaModeState) {
+    return false;
+  }
+
+  // Traverse through grids -> rows -> seats in the initial state
+  for (const grid of initialAreaModeState.children) {
+    for (const row of grid.children) {
+      if (row.children.some((seat) => seat.id === seatId)) {
+        return true;
+      }
     }
-  };
+  }
+
+  return false;
+};
+
+const handleDelete = () => {
+  if (validateEventProtectedDeletion()) {
+    deleteShapes();
+  }
+};
+
 
   return (
     <>
@@ -390,18 +421,14 @@ export const CommonTools: React.FC = () => {
               </div>
 
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
                   <strong>💡 Alternative:</strong> Instead of deleting, you can
                   mark seats as unavailable. This preserves the seating
                   structure while preventing customers from selecting those
                   seats.
-                </p>
               </div>
 
-              <p className="text-sm text-gray-600">
                 To delete these elements, you must first unlink this seat map
                 from the event or create a new seat map for the event.
-              </p>
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

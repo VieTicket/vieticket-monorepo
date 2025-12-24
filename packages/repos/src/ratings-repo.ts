@@ -3,9 +3,6 @@ import { db } from "@vieticket/db/pg";
 import { eventRatings, events, user } from "@vieticket/db/pg/schema";
 import { randomUUID } from "crypto";
 
-const CACHE_TTL_SECONDS = 3600;
-const EVENT_METADATA_CACHE_TTL_SECONDS = 86400;
-
 export async function hasUserPurchasedEvent(userId: string, eventId: string) {
   try {
     const existsRes = await db.execute<{ exists_result: boolean }>(sql`
@@ -40,11 +37,7 @@ export async function isEventEnded(eventId: string) {
     .select({ endTime: events.endTime })
     .from(events)
     .where(eq(events.id, eventId))
-    .limit(1)
-    .$withCache({
-      tag: `event:${eventId}:end_time`,
-      config: { ex: EVENT_METADATA_CACHE_TTL_SECONDS },
-    });
+    .limit(1);
   return row?.endTime ? row.endTime < new Date() : false;
 }
 
@@ -96,11 +89,7 @@ export async function getEventRatingSummary(eventId: string) {
         count: count(eventRatings.id),
       })
       .from(eventRatings)
-      .where(eq(eventRatings.eventId, eventId))
-      .$withCache({
-        tag: `event:${eventId}:rating_summary`,
-        config: { ex: CACHE_TTL_SECONDS },
-      });
+      .where(eq(eventRatings.eventId, eventId));
     
     const row = result[0];
     const summary = { 
@@ -122,11 +111,7 @@ export async function getOrganizerAverageRating(organizerId: string) {
     const organizerEvents = await db
       .select({ id: events.id })
       .from(events)
-      .where(eq(events.organizerId, organizerId))
-      .$withCache({
-        tag: `organizer:${organizerId}:event_ids`,
-        config: { ex: EVENT_METADATA_CACHE_TTL_SECONDS },
-      });
+      .where(eq(events.organizerId, organizerId));
 
     if (organizerEvents.length === 0) {
       return { average: 0, count: 0 };
@@ -145,11 +130,7 @@ export async function getOrganizerAverageRating(organizerId: string) {
         count: sql<number>`COUNT(*)`
       })
       .from(eventRatings)
-      .where(inArray(eventRatings.eventId, eventIds))
-      .$withCache({
-        tag: `organizer:${organizerId}:rating_stats`,
-        config: { ex: CACHE_TTL_SECONDS },
-      });
+      .where(inArray(eventRatings.eventId, eventIds));
 
     const stats = result[0];
     
@@ -187,11 +168,7 @@ export async function listEventRatings(eventId: string, limit = 10) {
     .leftJoin(user, eq(eventRatings.userId, user.id))
     .where(eq(eventRatings.eventId, eventId))
     .orderBy(desc(eventRatings.createdAt))
-    .limit(limit)
-    .$withCache({
-      tag: `event:${eventId}:ratings:limit_${limit}`,
-      config: { ex: CACHE_TTL_SECONDS },
-    });
+    .limit(limit);
   return rows;
 }
 
@@ -207,11 +184,7 @@ export async function getUserEventRating(userId: string, eventId: string) {
     })
     .from(eventRatings)
     .where(and(eq(eventRatings.userId, userId), eq(eventRatings.eventId, eventId)))
-    .limit(1)
-    .$withCache({
-      tag: `user:${userId}:event:${eventId}:rating`,
-      config: { ex: CACHE_TTL_SECONDS },
-    });
+    .limit(1);
   
   return row[0] || null;
 }

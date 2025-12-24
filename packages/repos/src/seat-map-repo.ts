@@ -233,7 +233,9 @@ export async function duplicateSeatMapForEvent(
     });
 
     const timestamp = new Date().getDate();
-    const duplicatedName = `${originalSeatMap.name}_${eventName}_${timestamp}`;
+    const shortenedEventName = eventName.length > 10 ? eventName.slice(0, 10) : eventName;
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const duplicatedName = `${originalSeatMap.name}_${shortenedEventName}_${randomSuffix}`;
 
     const duplicatedSeatMap = new SeatMapModel({
       name: duplicatedName,
