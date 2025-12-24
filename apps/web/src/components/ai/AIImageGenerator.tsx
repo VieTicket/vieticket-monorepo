@@ -31,9 +31,9 @@ export function AIImageGenerator({
 }: AIImageGeneratorProps) {
   const t = useTranslations("organizer-dashboard.CreateEvent");
   const [prompt, setPrompt] = useState(
-    "Modern abstract background with vibrant colorful lights, dynamic energy rays, professional event atmosphere, high-quality digital art, contemporary design elements, perfect for concert or entertainment events"
+    "High-end photography of a cozy Christmas music event, live band performing classic carols on stage, musicians with guitars, piano and violin, audience enjoying the music, warm ambient lighting, dominant festive tones of deep green and red, glowing fairy lights, soft golden highlights, Christmas decorations, pine garlands, ribbons and ornaments, elegant stage setup, cinematic composition, shallow depth of field, ultra-detailed, warm magical Christmas mood, 16:9"
   );
-  const [textPrompt, setTextPrompt] = useState("EVENT 2025"); // NEW
+  const [textPrompt, setTextPrompt] = useState("Christmas"); // NEW
   const [style, setStyle] = useState("modern");
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImage, setGeneratedImage] = useState<string | null>(null);
