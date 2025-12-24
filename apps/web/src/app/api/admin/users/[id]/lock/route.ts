@@ -2,6 +2,10 @@ import { authorise } from "@/lib/auth/authorise";
 import { db } from "@/lib/db";
 import { user } from "@vieticket/db/pg/schema";
 import { eq } from "drizzle-orm";
+import {
+  scheduleUserUnlock,
+  cancelScheduledUnlock,
+} from "@vieticket/services";
 
 export async function POST(
   request: Request,
@@ -62,6 +66,28 @@ export async function POST(
         updatedAt: new Date(),
       })
       .where(eq(user.id, userId));
+
+    // Handle QStash scheduling
+    if (banned && banExpires) {
+      // Schedule automatic unlock at expiration time
+      const banExpiresDate = new Date(banExpires);
+      const scheduleResult = await scheduleUserUnlock(userId, banExpiresDate);
+      
+      if (!scheduleResult.queued) {
+        console.warn(
+          `[lock-route] Failed to schedule unlock for user ${userId}: ${scheduleResult.reason}`
+        );
+        // Don't fail the ban operation, just log the warning
+      } else {
+        console.log(
+          `[lock-route] Scheduled unlock for user ${userId} at ${banExpiresDate.toISOString()}`
+        );
+      }
+    } else if (!banned) {
+      // User is being unlocked manually - cancel any scheduled unlock
+      await cancelScheduledUnlock(userId);
+      console.log(`[lock-route] Cancelled scheduled unlock for user ${userId}`);
+    }
 
     return Response.json({
       success: true,

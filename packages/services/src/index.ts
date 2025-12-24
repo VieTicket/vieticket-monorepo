@@ -1,3 +1,4 @@
+export * from "./ban-service";
 export * from "./checkout-service";
 export * from "./event-revenue-service";
 export * from "./event-service";
