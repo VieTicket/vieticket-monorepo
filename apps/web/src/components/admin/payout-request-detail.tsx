@@ -126,34 +126,34 @@ export function AdminPayoutRequestDetail({ initialRequest, revenue }: Props) {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm text-slate-400">{t("page.title")}</p>
+          <p className="text-sm text-gray-600">{t("page.title")}</p>
           <h1 className="text-2xl font-bold bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">{request.event?.name || t("table.event")}</h1>
         </div>
-        <Button variant="outline" asChild className="border-slate-600 bg-slate-700/50 text-white hover:bg-slate-700 hover:text-white">
+        <Button variant="outline" asChild className="border-gray-300 bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900">
           <Link href="/admin/payment-requests">{t("backToList", { defaultValue: "Back to list" })}</Link>
         </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <Card className="bg-slate-800/50 border-slate-700/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 space-y-1">
-            <p className="text-sm text-slate-400">{t("table.requestedAmount")}</p>
-            <p className="text-lg font-semibold text-white">{formatCurrencyVND(request.requestedAmount)}</p>
+            <p className="text-sm text-gray-600">{t("table.requestedAmount")}</p>
+            <p className="text-lg font-semibold text-gray-900">{formatCurrencyVND(request.requestedAmount)}</p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-800/50 border-slate-700/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 space-y-1">
-            <p className="text-sm text-slate-400">{t("table.agreedAmount")}</p>
-            <p className="text-lg font-semibold text-white">
+            <p className="text-sm text-gray-600">{t("table.agreedAmount")}</p>
+            <p className="text-lg font-semibold text-gray-900">
               {request.agreedAmount !== null && request.agreedAmount !== undefined
                 ? formatCurrencyVND(request.agreedAmount)
                 : t("table.notSet", { defaultValue: "Not set" })}
             </p>
           </CardContent>
         </Card>
-        <Card className="bg-slate-800/50 border-slate-700/50">
+        <Card className="bg-white border-gray-200">
           <CardContent className="p-4 space-y-1">
-            <p className="text-sm text-slate-400">{t("table.status")}</p>
+            <p className="text-sm text-gray-600">{t("table.status")}</p>
             <Badge
               variant={
                 ({
@@ -173,19 +173,19 @@ export function AdminPayoutRequestDetail({ initialRequest, revenue }: Props) {
         </Card>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-white border-gray-200">
         <CardContent className="p-4 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <p className="text-sm text-slate-400">{t("table.agreedAmount")}</p>
+              <p className="text-sm text-gray-600">{t("table.agreedAmount")}</p>
               <Input
                 type="number"
                 value={agreedAmountInput}
                 onChange={(e) => setAgreedAmountInput(e.target.value)}
                 disabled={!canEditAgreed}
-                className="bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50 disabled:opacity-50"
+                className="bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-violet-400 disabled:opacity-50"
               />
-              <div className="flex items-center justify-between text-xs text-slate-400">
+              <div className="flex items-center justify-between text-xs text-gray-600">
                 <span>
                   {t("currentRevenue", { defaultValue: "Current revenue" })}: {formatCurrencyVND(revenue)}
                 </span>
@@ -195,14 +195,14 @@ export function AdminPayoutRequestDetail({ initialRequest, revenue }: Props) {
               </div>
             </div>
             <div className="space-y-2">
-              <p className="text-sm text-slate-400">{t("table.status")}</p>
+              <p className="text-sm text-gray-600">{t("table.status")}</p>
               <Select value={statusDraft} onValueChange={(value) => setStatusDraft(value as PayoutStatus)}>
-                <SelectTrigger className="bg-slate-700/50 border-slate-600 text-white">
+                <SelectTrigger className="bg-white border-gray-300 text-gray-900">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-slate-800 border-slate-700">
+                <SelectContent className="bg-white border-gray-200">
                   {STATUS_OPTIONS.map((status) => (
-                    <SelectItem key={status} value={status} className="text-white hover:bg-slate-700">
+                    <SelectItem key={status} value={status} className="text-gray-900 hover:bg-gray-100">
                       {t(`statusOptions.${status}`)}
                     </SelectItem>
                   ))}
@@ -217,22 +217,22 @@ export function AdminPayoutRequestDetail({ initialRequest, revenue }: Props) {
                 : t("buttons.save")}
             </Button>
             {!canEditAgreed && (
-              <span className="text-xs text-slate-400">
+              <span className="text-xs text-gray-600">
                 {t("errors.cannotEditAgreedStatus", { defaultValue: "Agreed amount can only be edited when status is pending or in discussion." })}
               </span>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-700/50">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-gray-200">
             <div className="space-y-1">
-              <p className="text-sm text-slate-400">{t("table.requestDate")}</p>
-              <p className="font-medium text-white">
+              <p className="text-sm text-gray-600">{t("table.requestDate")}</p>
+              <p className="font-medium text-gray-900">
                 {format(new Date(request.requestDate), "dd/MM/yyyy HH:mm")}
               </p>
             </div>
             <div className="space-y-1">
-              <p className="text-sm text-slate-400">{t("table.completionDate")}</p>
-              <p className="font-medium text-white">
+              <p className="text-sm text-gray-600">{t("table.completionDate")}</p>
+              <p className="font-medium text-gray-900">
                 {request.completionDate
                   ? format(new Date(request.completionDate), "dd/MM/yyyy HH:mm")
                   : t("table.notSet", { defaultValue: "Not set" })}
@@ -241,13 +241,13 @@ export function AdminPayoutRequestDetail({ initialRequest, revenue }: Props) {
           </div>
 
           <div className="space-y-2">
-            <p className="text-sm text-slate-400">{t("table.uploadEvidence")}</p>
+            <p className="text-sm text-gray-600">{t("table.uploadEvidence")}</p>
             {request.proofDocumentUrl && (
               <a
                 href={request.proofDocumentUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-violet-400 hover:text-violet-300 underline text-sm transition-colors"
+                className="text-violet-600 hover:text-violet-700 underline text-sm transition-colors"
               >
                 {t("table.viewEvidence")}
               </a>

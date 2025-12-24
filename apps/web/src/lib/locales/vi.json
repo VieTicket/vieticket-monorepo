@@ -448,6 +448,7 @@
     "RequestPayout": {
       "requestPayout": "Yêu Cầu Thanh Toán",
       "title": "Quản Lý Yêu Cầu Thanh Toán",
+      "subtitle": "Quản lý và xem xét các yêu cầu thanh toán từ người tổ chức",
       "loading": "Đang tải...",
       "filterLabel": "Lọc theo trạng thái:",
       "statusOptions": {

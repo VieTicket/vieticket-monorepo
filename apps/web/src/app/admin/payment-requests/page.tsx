@@ -88,20 +88,20 @@ export default function AdminPaymentRequestsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight bg-gradient-to-r from-yellow-400 via-yellow-300 to-violet-400 bg-clip-text text-transparent">{t("title")}</h1>
-        <p className="text-slate-400 mt-2">{t("subtitle", { defaultValue: "Manage and review payout requests from organizers" })}</p>
+        <p className="text-gray-600 mt-2">{t("subtitle", { defaultValue: "Manage and review payout requests from organizers" })}</p>
       </div>
 
-      <Card className="bg-slate-800/50 border-slate-700/50">
+      <Card className="bg-white border-gray-200">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-white">
-            <CreditCard className="h-5 w-5 text-yellow-400" />
+          <CardTitle className="flex items-center gap-2 text-gray-900">
+            <CreditCard className="h-5 w-5 text-yellow-500" />
             {t("title")}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
             <div className="relative flex-1 max-w-md">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
               <Input
                 placeholder={t("searchPlaceholder", { defaultValue: "Search payout requests" })}
                 value={searchTerm}
@@ -109,7 +109,7 @@ export default function AdminPaymentRequestsPage() {
                   setPage(1);
                   setSearchTerm(e.target.value);
                 }}
-                className="pl-10 bg-slate-700/50 border-slate-600 text-white placeholder:text-slate-400 focus:border-violet-400/50"
+                className="pl-10 bg-white border-gray-300 text-gray-900 placeholder:text-gray-400 focus:border-violet-400"
               />
             </div>
             <Select
@@ -119,13 +119,13 @@ export default function AdminPaymentRequestsPage() {
                 setStatusFilter(value as PayoutStatus | "all");
               }}
             >
-              <SelectTrigger className="w-full md:w-56 bg-slate-700/50 border-slate-600 text-white">
+              <SelectTrigger className="w-full md:w-56 bg-white border-gray-300 text-gray-900">
                 <SelectValue placeholder={t("filterLabel")} />
               </SelectTrigger>
-              <SelectContent className="bg-slate-800 border-slate-700">
-                <SelectItem value="all" className="text-white hover:bg-slate-700">{t("statusOptions.all")}</SelectItem>
+              <SelectContent className="bg-white border-gray-200">
+                <SelectItem value="all" className="text-gray-900 hover:bg-gray-100">{t("statusOptions.all")}</SelectItem>
                 {STATUS_OPTIONS.map((status) => (
-                  <SelectItem key={status} value={status} className="text-white hover:bg-slate-700">
+                  <SelectItem key={status} value={status} className="text-gray-900 hover:bg-gray-100">
                     {t(`statusOptions.${status}`)}
                   </SelectItem>
                 ))}
@@ -136,45 +136,45 @@ export default function AdminPaymentRequestsPage() {
           <div className="min-h-[300px] relative">
             {requests.length === 0 && !isTableLoading ? (
               <div className="text-center py-12">
-                <CreditCard className="h-12 w-12 mx-auto text-slate-400 mb-4" />
-                <p className="text-slate-400">{t("noRequests")}</p>
+                <CreditCard className="h-12 w-12 mx-auto text-gray-400 mb-4" />
+                <p className="text-gray-600">{t("noRequests")}</p>
               </div>
             ) : (
               <>
                 {requests.length > 0 && (
-                  <div className="rounded-md border border-slate-700/50 overflow-x-auto">
+                  <div className="rounded-md border border-gray-200 overflow-x-auto">
                     <Table className="w-full">
                       <TableHeader>
-                        <TableRow className="border-slate-700/50">
-                          <TableHead className="text-slate-300">{t("table.event")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.requestedAmount")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.agreedAmount")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.deduction", { defaultValue: "Deduction (%)" })}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.status")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.requestDate")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.completionDate")}</TableHead>
-                          <TableHead className="text-slate-300">{t("table.actions")}</TableHead>
+                        <TableRow className="border-gray-200">
+                          <TableHead className="text-gray-700">{t("table.event")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.requestedAmount")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.agreedAmount")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.deduction", { defaultValue: "Deduction (%)" })}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.status")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.requestDate")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.completionDate")}</TableHead>
+                          <TableHead className="text-gray-700">{t("table.actions")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {requests.map((request) => {
                           const displayAgreedValue = request.agreedAmount ?? request.requestedAmount;
                           return (
-                            <TableRow key={request.id} className="border-slate-700/50 hover:bg-slate-700/20">
-                              <TableCell className="min-w-0 max-w-xs text-slate-200">
+                            <TableRow key={request.id} className="border-gray-200 hover:bg-gray-50">
+                              <TableCell className="min-w-0 max-w-xs text-gray-900">
                                 <div className="truncate" title={request.event?.name || "N/A"}>
                                   {request.event?.name || "N/A"}
                                 </div>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-slate-200">
+                              <TableCell className="whitespace-nowrap text-gray-900">
                                 {formatCurrencyVND(request.requestedAmount)}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-slate-200">
+                              <TableCell className="whitespace-nowrap text-gray-900">
                                 {displayAgreedValue !== undefined && displayAgreedValue !== null
                                   ? formatCurrencyVND(Number(displayAgreedValue))
                                   : t("table.notSet", { defaultValue: "Not set" })}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-slate-400">
+                              <TableCell className="whitespace-nowrap text-gray-600">
                                 {"—"}
                               </TableCell>
                               <TableCell>
@@ -194,16 +194,16 @@ export default function AdminPaymentRequestsPage() {
                                   {t(`statusOptions.${request.status}`)}
                                 </Badge>
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-slate-300">
+                              <TableCell className="whitespace-nowrap text-gray-700">
                                 {new Date(request.requestDate).toLocaleDateString("en-US")}
                               </TableCell>
-                              <TableCell className="whitespace-nowrap text-slate-300">
+                              <TableCell className="whitespace-nowrap text-gray-700">
                                 {request.completionDate ? new Date(request.completionDate).toLocaleDateString("en-US") : "N/A"}
                               </TableCell>
                               <TableCell>
                                 <Link
                                   href={`/admin/payment-requests/${request.id}`}
-                                  className="text-violet-400 hover:text-violet-300 underline font-medium transition-colors"
+                                  className="text-violet-600 hover:text-violet-700 underline font-medium transition-colors"
                                 >
                                   {t("viewDetails")}
                                 </Link>
@@ -217,18 +217,18 @@ export default function AdminPaymentRequestsPage() {
                 )}
 
                 {requests.length > 0 && (
-                  <div className="flex justify-center items-center mt-4 pt-4 border-t border-slate-700/50 space-x-2">
+                  <div className="flex justify-center items-center mt-4 pt-4 border-t border-gray-200 space-x-2">
                     <Button
                       variant="outline"
                       size="sm"
                       disabled={page === 1}
                       onClick={() => setPage((p) => Math.max(1, p - 1))}
-                      className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
+                      className="border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
                     >
                       <ChevronLeft className="h-4 w-4 mr-1" />
                       {t("buttons.previous")}
                     </Button>
-                    <span className="text-sm text-slate-300 px-3">
+                    <span className="text-sm text-gray-700 px-3">
                       {t("pagination.pageOf", { page, totalPages })}
                     </span>
                     <Button
@@ -236,7 +236,7 @@ export default function AdminPaymentRequestsPage() {
                       size="sm"
                       disabled={page === totalPages}
                       onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      className="border-slate-600 bg-slate-700/50 text-white hover:bg-violet-500/20 hover:border-violet-400/50 hover:text-violet-300 disabled:bg-slate-800/30 disabled:text-slate-500"
+                      className="border-gray-300 bg-white text-gray-700 hover:bg-violet-50 hover:border-violet-400 hover:text-violet-700 disabled:bg-gray-100 disabled:text-gray-400"
                     >
                       {t("buttons.next")}
                       <ChevronRight className="h-4 w-4 ml-1" />
@@ -247,8 +247,8 @@ export default function AdminPaymentRequestsPage() {
             )}
 
             {isTableLoading && (
-              <div className="absolute inset-0 flex justify-center items-center bg-slate-900/60 backdrop-blur-sm rounded-md">
-                <div className="text-sm text-slate-400">{t("loading")}</div>
+              <div className="absolute inset-0 flex justify-center items-center bg-white/80 backdrop-blur-sm rounded-md">
+                <div className="text-sm text-gray-600">{t("loading")}</div>
               </div>
             )}
           </div>
