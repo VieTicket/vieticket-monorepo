@@ -241,47 +241,8 @@ export async function handleCreateEvent(
     ticketSaleEnd?: Date | null;
     seatMapId?: string;
   }[] = [];
-  while (true) {
-    const name = formData.get(`showings[${showingIndex}].name`);
-    const startTime = formData.get(`showings[${showingIndex}].startTime`);
-    const endTime = formData.get(`showings[${showingIndex}].endTime`);
-
-    if (!name || !startTime || !endTime) break;
-
-    showings.push({
-      name: name.toString(),
-      startTime: new Date(startTime.toString()),
-      endTime: new Date(endTime.toString()),
-    });
-
-    showingIndex++;
-  }
-
-  validateShowings(showings);
-
-  const eventStartTime = showings[0].startTime;
-  const eventEndTime = showings[showings.length - 1].endTime;
-
-  const eventTicketSaleStart = formData.get("ticketSaleStart")
-    ? (() => {
-        const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
-        if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
-          return null;
-        const date = new Date(ticketSaleStartValue);
-        return isNaN(date.getTime()) ? null : date;
-      })()
-    : null;
-
-  const eventTicketSaleEnd = formData.get("ticketSaleEnd")
-    ? (() => {
-        const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
-        if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
-          return null;
-        const date = new Date(ticketSaleEndValue);
-        return isNaN(date.getTime()) ? null : date;
-      })()
-    : null;
-
+  
+  // Read all showing data in a single pass
   while (true) {
     const name = formData.get(`showings[${showingIndex}].name`);
     const startTime = formData.get(`showings[${showingIndex}].startTime`);
@@ -302,6 +263,7 @@ export async function handleCreateEvent(
       throw new Error(`Invalid date format in showing: ${name}`);
     }
 
+    // Parse ticket sale times or use defaults
     const ticketSaleStartDate =
       ticketSaleStart && ticketSaleStart.toString().trim() !== ""
         ? (() => {
@@ -336,6 +298,31 @@ export async function handleCreateEvent(
 
     showingIndex++;
   }
+
+  validateShowings(showings);
+
+  const eventStartTime = showings[0].startTime;
+  const eventEndTime = showings[showings.length - 1].endTime;
+
+  const eventTicketSaleStart = formData.get("ticketSaleStart")
+    ? (() => {
+        const ticketSaleStartValue = formData.get("ticketSaleStart") as string;
+        if (!ticketSaleStartValue || ticketSaleStartValue.trim() === "")
+          return null;
+        const date = new Date(ticketSaleStartValue);
+        return isNaN(date.getTime()) ? null : date;
+      })()
+    : null;
+
+  const eventTicketSaleEnd = formData.get("ticketSaleEnd")
+    ? (() => {
+        const ticketSaleEndValue = formData.get("ticketSaleEnd") as string;
+        if (!ticketSaleEndValue || ticketSaleEndValue.trim() === "")
+          return null;
+        const date = new Date(ticketSaleEndValue);
+        return isNaN(date.getTime()) ? null : date;
+      })()
+    : null;
 
   if (showings.length === 0) {
     throw new Error("At least one showing is required");
