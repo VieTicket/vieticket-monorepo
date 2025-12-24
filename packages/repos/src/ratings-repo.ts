@@ -17,7 +17,7 @@ export async function hasUserPurchasedEvent(userId: string, eventId: string) {
         JOIN rows rw ON rw.id = s.row_id
         JOIN areas ar ON ar.id = rw.area_id
         WHERE o.user_id = ${userId}
-          AND o.status IN ('paid', 'refunded')
+          AND o.status IN ('paid', 'refunded', 'partial_refunded')
           AND ar.event_id = ${eventId}
       ) AS exists_result;
     `);
